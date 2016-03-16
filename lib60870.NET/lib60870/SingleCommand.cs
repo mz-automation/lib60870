@@ -48,6 +48,12 @@ namespace lib60870
 				return ((sco & 0x80) == 0x80);
 			}
 		}
+
+		public override string ToString ()
+		{
+			return string.Format ("[SingleCommand: QU={0}, State={1}, Select={2}]", QU, State, Select);
+		}
+		
 	}
 
 	public class SingleCommandWithCP56Time2a : SingleCommand
@@ -79,6 +85,7 @@ namespace lib60870
 				return timestamp;
 			}
 		}
+
 
 	}
 
@@ -145,6 +152,8 @@ namespace lib60870
 		{
 		}
 	}
+
+
 
 }
 

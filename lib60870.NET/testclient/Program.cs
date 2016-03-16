@@ -91,7 +91,7 @@ namespace testclient
 
 			Thread.Sleep (5000);
 
-			con.sendControlCommand (TypeID.C_SC_NA_1, CauseOfTransmission.ACTIVATION, 1, new SingleCommand (5000, false, false, 0));
+			con.sendControlCommand (TypeID.C_SC_NA_1, CauseOfTransmission.ACTIVATION, 1, new SingleCommand (5000, true, false, 0));
 
 			con.sendControlCommand (TypeID.C_DC_NA_1, CauseOfTransmission.ACTIVATION, 1, new DoubleCommand (5001, DoubleCommand.ON, false, 0));
 
@@ -99,15 +99,6 @@ namespace testclient
 
 			con.sendControlCommand (TypeID.C_SC_TA_1, CauseOfTransmission.ACTIVATION, 1, 
 			                        new SingleCommandWithCP56Time2a (5000, false, false, 0, new CP56Time2a (DateTime.Now)));
-
-
-			//TypeID.C_RC_TA_1
-
-			bool running = true;
-
-			while (running) {
-				Thread.Sleep (100);
-			} 
 
 		}
 	}

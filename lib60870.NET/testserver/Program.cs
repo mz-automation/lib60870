@@ -36,12 +36,31 @@ namespace testserver
 			return true;
 		}
 
+		private static bool asduHandler(object parameter, ServerConnection connection, ASDU asdu)
+		{
+
+
+			if (asdu.TypeId == TypeID.C_SC_NA_1) {
+				Console.WriteLine ("Single command");
+
+				SingleCommand sc = (SingleCommand)asdu.GetElement (0);
+
+				Console.WriteLine (sc.ToString ());
+			} else {
+				Console.WriteLine ("unknown ASDU");
+			}
+
+			return true;
+		}
+
 		public static void Main (string[] args)
 		{
 
 			Server server = new Server ();
 
 			server.SetInterrogationHandler (interrogationHandler, null);
+
+			server.SetASDUHandler (asduHandler, null);
 
 			server.Start ();
 

@@ -268,7 +268,7 @@ namespace lib60870
 						// Receive the response from the remote device.
 						int bytesRec = receiveMessage(socket, bytes);
 
-						if (bytesRec != 0) {
+						if (bytesRec > 0) {
 
 							if (debugOutput)
 								Console.WriteLine(
@@ -280,6 +280,9 @@ namespace lib60870
 								running = false;
 							}
 						}
+						else
+							running = false;
+
 						// TODO else ?
 
 						Thread.Sleep(100);

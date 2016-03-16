@@ -194,6 +194,13 @@ namespace lib60870
 
 			switch (typeId) {
 
+			case TypeID.C_SC_NA_1:
+				elementSize = parameters.SizeOfIOA + 1;
+
+				retVal = new SingleCommand (parameters, payload, index * elementSize);
+
+				break;
+
 			case TypeID.M_ME_NB_1:
 
 				elementSize = parameters.SizeOfIOA + 3;
