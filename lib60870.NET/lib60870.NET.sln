@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "lib60870", "lib60870\lib60870.csproj", "{F604286A-1AFC-4355-8C2C-A998CFCEE979}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testlib", "testlib\testlib.csproj", "{DAEA188F-6E13-4161-82F2-3BDC19F3DAA0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testclient", "testclient\testclient.csproj", "{608CD6D9-91FC-419F-A0F6-2091E0B6D469}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testserver", "testserver\testserver.csproj", "{04DB887E-3123-4C21-8B39-11168D1F5198}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{04DB887E-3123-4C21-8B39-11168D1F5198}.Debug|x86.ActiveCfg = Debug|x86
+		{04DB887E-3123-4C21-8B39-11168D1F5198}.Debug|x86.Build.0 = Debug|x86
+		{04DB887E-3123-4C21-8B39-11168D1F5198}.Release|x86.ActiveCfg = Release|x86
+		{04DB887E-3123-4C21-8B39-11168D1F5198}.Release|x86.Build.0 = Release|x86
+		{608CD6D9-91FC-419F-A0F6-2091E0B6D469}.Debug|x86.ActiveCfg = Debug|x86
+		{608CD6D9-91FC-419F-A0F6-2091E0B6D469}.Debug|x86.Build.0 = Debug|x86
+		{608CD6D9-91FC-419F-A0F6-2091E0B6D469}.Release|x86.ActiveCfg = Release|x86
+		{608CD6D9-91FC-419F-A0F6-2091E0B6D469}.Release|x86.Build.0 = Release|x86
+		{DAEA188F-6E13-4161-82F2-3BDC19F3DAA0}.Debug|x86.ActiveCfg = Debug|x86
+		{DAEA188F-6E13-4161-82F2-3BDC19F3DAA0}.Debug|x86.Build.0 = Debug|x86
+		{DAEA188F-6E13-4161-82F2-3BDC19F3DAA0}.Release|x86.ActiveCfg = Release|x86
+		{DAEA188F-6E13-4161-82F2-3BDC19F3DAA0}.Release|x86.Build.0 = Release|x86
+		{F604286A-1AFC-4355-8C2C-A998CFCEE979}.Debug|x86.ActiveCfg = Debug|x86
+		{F604286A-1AFC-4355-8C2C-A998CFCEE979}.Debug|x86.Build.0 = Debug|x86
+		{F604286A-1AFC-4355-8C2C-A998CFCEE979}.Release|x86.ActiveCfg = Release|x86
+		{F604286A-1AFC-4355-8C2C-A998CFCEE979}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		StartupItem = lib60870\lib60870.csproj
+	EndGlobalSection
+EndGlobal

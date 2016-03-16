@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>10.0.0</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{F604286A-1AFC-4355-8C2C-A998CFCEE979}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>lib60870</RootNamespace>
+    <AssemblyName>lib60870</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug</OutputPath>
+    <DefineConstants>DEBUG;</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Externalconsole>true</Externalconsole>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DebugType>full</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release</OutputPath>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Externalconsole>true</Externalconsole>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Connection.cs" />
+    <Compile Include="ConnectionParameters.cs" />
+    <Compile Include="ASDU.cs" />
+    <Compile Include="TypeID.cs" />
+    <Compile Include="CauseOfTransmission.cs" />
+    <Compile Include="InformationObject.cs" />
+    <Compile Include="MeasuredValueScaledWithCP56Time2a.cs" />
+    <Compile Include="MeasuredValueShortFloatWithCP56Time2a.cs" />
+    <Compile Include="QualityDescriptor.cs" />
+    <Compile Include="CP56Time2a.cs" />
+    <Compile Include="SystemUtils.cs" />
+    <Compile Include="SinglePointWithCP56Time2a.cs" />
+    <Compile Include="SinglePointInformation.cs" />
+    <Compile Include="CP24Time2a.cs" />
+    <Compile Include="CP16Time2a.cs" />
+    <Compile Include="MeasuredValueScaled.cs" />
+    <Compile Include="MeasuredValueShortFloat.cs" />
+    <Compile Include="SingleCommand.cs" />
+    <Compile Include="T104Frame.cs" />
+    <Compile Include="Frame.cs" />
+    <Compile Include="SetpointCommandQualifier.cs" />
+    <Compile Include="Server.cs" />
+    <Compile Include="ServerConnection.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+</Project>
