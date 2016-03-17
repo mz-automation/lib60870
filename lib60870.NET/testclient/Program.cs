@@ -12,7 +12,17 @@ namespace testclient
 		{
 			Console.WriteLine (asdu.ToString ());
 
-			if (asdu.TypeId == TypeID.M_ME_TE_1) {
+			if (asdu.TypeId == TypeID.M_SP_NA_1) {
+
+				for (int i = 0; i < asdu.NumberOfElements; i++) {
+
+					var val = (SinglePointInformation)asdu.GetElement (i);
+
+					Console.WriteLine ("  IOA: " + val.ObjectAddress + " SP value: " + val.Value);
+					Console.WriteLine ("   " + val.Quality.ToString ());
+				}
+			} 
+			else if (asdu.TypeId == TypeID.M_ME_TE_1) {
 			
 				for (int i = 0; i < asdu.NumberOfElements; i++) {
 
@@ -43,15 +53,6 @@ namespace testclient
 					Console.WriteLine ("   " + val.Quality.ToString ());
 					Console.WriteLine ("   " + val.Timestamp.ToString ());
 				}
-			} else if (asdu.TypeId == TypeID.M_SP_NA_1) {
-
-				for (int i = 0; i < asdu.NumberOfElements; i++) {
-
-					var val = (SinglePointInformation)asdu.GetElement (i);
-
-					Console.WriteLine ("  IOA: " + val.ObjectAddress + " SP value: " + val.Value);
-					Console.WriteLine ("   " + val.Quality.ToString ());
-				}
 			} else if (asdu.TypeId == TypeID.M_ME_NC_1) {
 
 				for (int i = 0; i < asdu.NumberOfElements; i++) {
@@ -70,6 +71,8 @@ namespace testclient
 					Console.WriteLine ("   " + msv.Quality.ToString ());
 				}
 
+			} else {
+				Console.WriteLine ("Unknown message type!");
 			}
 
 			return true;
@@ -78,8 +81,8 @@ namespace testclient
 		public static void Main (string[] args)
 		{
 
-			//Connection con = new Connection ("192.168.1.50");
-			Connection con = new Connection ("127.0.0.1");
+			Connection con = new Connection ("192.168.1.50");
+			//Connection con = new Connection ("127.0.0.1");
 
 			con.SetASDUReceivedHandler (asduReceivedHandler, null);
 

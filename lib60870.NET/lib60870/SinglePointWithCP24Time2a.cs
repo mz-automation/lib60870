@@ -4,7 +4,7 @@ namespace lib60870
 {
 	//TODO refactor: use SinglePointInformation as base class
 
-	public class SinglePointWithCP56Time2a : InformationObject
+	public class SinglePointWithCP24Time2a : InformationObject
 	{
 		private bool value;
 
@@ -22,15 +22,15 @@ namespace lib60870
 			}
 		}
 
-		private CP56Time2a timestamp;
+		private CP24Time2a timestamp;
 
-		public CP56Time2a Timestamp {
+		public CP24Time2a Timestamp {
 			get {
 				return this.timestamp;
 			}
 		}
-
-		public SinglePointWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		
+		public SinglePointWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -39,14 +39,12 @@ namespace lib60870
 			byte siq = msg [startIndex++];
 
 			value = ((siq & 0x01) == 0x01);
-			
+
 			quality = new QualityDescriptor ((byte) (siq & 0xf0));
 
-			/* parse CP56Time2a (time stamp) */
-			timestamp = new CP56Time2a (msg, startIndex);
+			/* parse CP24Time2a (time stamp) */
+			timestamp = new CP24Time2a (msg, startIndex);
 		}
 	}
 
-
 }
-

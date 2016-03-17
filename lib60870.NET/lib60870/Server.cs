@@ -18,6 +18,8 @@ namespace lib60870
 
 		private bool running = false;
 
+		private Socket listeningSocket;
+
 		private ConnectionParameters parameters = null;
 
 		public Server()
@@ -47,39 +49,59 @@ namespace lib60870
 			this.asduHandlerParameter = parameter;
 		}
 
-		public void Start() 
+		private void ServerAcceptThread()
 		{
-			IPAddress ipAddress = IPAddress.Parse(localHostname);
-			IPEndPoint remoteEP = new IPEndPoint(ipAddress, parameters.TcpPort);
-
-			// Create a TCP/IP  socket.
-			Socket socket = new Socket(AddressFamily.InterNetwork, 
-			                           SocketType.Stream, ProtocolType.Tcp );
-
-			socket.Bind (remoteEP);
-
-			socket.Listen (100);
-
 			running = true;
 
 			Console.WriteLine ("Waiting for connections...");
 
 			while (running) {
 
-				Socket newSocket = socket.Accept ();
+				try {
+					Socket newSocket = listeningSocket.Accept ();
 
-				if (newSocket != null) {
-					Console.WriteLine ("Connected");
+					if (newSocket != null) {
+						Console.WriteLine ("Connected");
 
-					new ServerConnection (newSocket, parameters, this);
+						new ServerConnection (newSocket, parameters, this);
+					}
+
+				} catch (Exception) {
+					running = false;
 				}
+
+
 			}
+		}
+
+		public void Start() 
+		{
+			IPAddress ipAddress = IPAddress.Parse(localHostname);
+			IPEndPoint remoteEP = new IPEndPoint(ipAddress, parameters.TcpPort);
+
+			// Create a TCP/IP  socket.
+			listeningSocket = new Socket(AddressFamily.InterNetwork, 
+			                           SocketType.Stream, ProtocolType.Tcp );
+
+			listeningSocket.Bind (remoteEP);
+
+			listeningSocket.Listen (100);
+
+			Thread acceptThread = new Thread(ServerAcceptThread);
+
+			acceptThread.Start ();
 
 		}
 
 		public void Stop()
 		{
 			running = false;
+			try {
+				listeningSocket.Shutdown(SocketShutdown.Both);
+			} catch (Exception) {
+				
+			}
+			listeningSocket.Close();
 		}
 
 	}

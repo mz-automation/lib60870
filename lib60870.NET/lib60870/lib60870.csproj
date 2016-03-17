@@ -58,6 +58,9 @@
     <Compile Include="SetpointCommandQualifier.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="ServerConnection.cs" />
+    <Compile Include="SinglePointWithCP24Time2a.cs" />
+    <Compile Include="DoublePointInformation.cs" />
+    <Compile Include="StepPositionInformation.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

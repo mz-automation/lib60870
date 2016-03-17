@@ -46,6 +46,9 @@ namespace lib60870
 		{
 			if (socket.Poll (100, SelectMode.SelectRead)) {
 
+				if (socket.Available == 0)
+					throw new SocketException ();
+
 				// wait for first byte
 				if (socket.Receive (buffer, 0, 1, SocketFlags.None) != 1)
 					return 0;
@@ -242,27 +245,29 @@ namespace lib60870
 
 					while (running) {
 
-						// Receive the response from the remote device.
-						int bytesRec = receiveMessage(socket, bytes);
-
-						if (bytesRec != 0) {
-
-							if (debugOutput)
-								Console.WriteLine(
-									BitConverter.ToString(bytes, 0, bytesRec));
-
-							if (checkMessage(socket, bytes, bytesRec) == false) {
-								/* close connection on error */
-								running = false;
+						try {
+							// Receive the response from the remote device.
+							int bytesRec = receiveMessage(socket, bytes);
+							
+							if (bytesRec != 0) {
+							
+								if (debugOutput)
+									Console.WriteLine(
+										BitConverter.ToString(bytes, 0, bytesRec));
+							
+								if (checkMessage(socket, bytes, bytesRec) == false) {
+									/* close connection on error */
+									running = false;
+								}
 							}
+							// TODO else ?
+							
+							SendSMessageIfRequired();
+							
+							Thread.Sleep(100);
+						} catch (SocketException) {
+							running = false;
 						}
-
-						//Console.WriteLine("CYCLE");
-						// TODO else ?
-
-						SendSMessageIfRequired();
-
-						Thread.Sleep(100);
 					}
 
 					Console.WriteLine("CLOSE CONNECTION!");
