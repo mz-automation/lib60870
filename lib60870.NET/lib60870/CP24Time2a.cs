@@ -68,6 +68,12 @@ namespace lib60870
 			}
 		}
 
+		public byte[] GetEncodedValue() 
+		{
+			return encodedValue;
+		}
+
+
 		public override string ToString ()
 		{
 			return string.Format ("[CP24Time2a: Millisecond={0}, Second={1}, Minute={2}, Invalid={3}, Substitued={4}]", Millisecond, Second, Minute, Invalid, Substitued);

@@ -62,6 +62,7 @@
     <Compile Include="DoublePointInformation.cs" />
     <Compile Include="StepPositionInformation.cs" />
     <Compile Include="Bitstring32.cs" />
+    <Compile Include="MeasuredValueNormalized.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

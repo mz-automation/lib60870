@@ -298,6 +298,31 @@ namespace lib60870
 
 				break;
 
+			case TypeID.M_ME_NA_1: /* 9 */
+
+				elementSize = parameters.SizeOfIOA + 3;
+
+				retVal = new MeasuredValueNormalized (parameters, payload, index * elementSize);
+
+				//TODO add support for Sequence of elements in a single information object (sq = 1)
+
+				break;
+
+			case TypeID.M_ME_TA_1: /* 10 */
+
+				elementSize = parameters.SizeOfIOA + 6;
+
+				retVal = new MeasuredValueNormalizedWithCP24Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_ME_TD_1: /* 34 */
+
+				elementSize = parameters.SizeOfIOA + 10;
+
+				retVal = new MeasuredValueNormalizedWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
 
 			case TypeID.C_SC_NA_1:
 				elementSize = parameters.SizeOfIOA + 1;
