@@ -208,7 +208,7 @@ namespace lib60870
 
 				elementSize = parameters.SizeOfIOA + 4;
 
-				retVal = new SinglePointWithCP24Time2a (parameters, payload, index + elementSize);
+				retVal = new SinglePointWithCP24Time2a (parameters, payload, index * elementSize);
 
 				break;
 
@@ -224,7 +224,7 @@ namespace lib60870
 
 				elementSize = parameters.SizeOfIOA + 1;
 
-				retVal = new DoublePointInformation (parameters, payload, index + elementSize);
+				retVal = new DoublePointInformation (parameters, payload, index * elementSize);
 
 				//TODO add support for Sequence of elements in a single information object (sq = 1)
 
@@ -232,25 +232,25 @@ namespace lib60870
 
 			case TypeID.M_DP_TA_1: /* 4 */
 
-				elementSize = parameters.SizeOfIOA * 4;
+				elementSize = parameters.SizeOfIOA + 4;
 
-				retVal = new DoublePointWithCP24Time2a (parameters, payload, index + elementSize);
+				retVal = new DoublePointWithCP24Time2a (parameters, payload, index * elementSize);
 
 				break;
 
 			case TypeID.M_DP_TB_1: /* 31 */
 
-				elementSize = parameters.SizeOfIOA * 8;
+				elementSize = parameters.SizeOfIOA + 8;
 
-				retVal = new DoublePointWithCP56Time2a (parameters, payload, index + elementSize);
+				retVal = new DoublePointWithCP56Time2a (parameters, payload, index * elementSize);
 
 				break;
 
 			case TypeID.M_ST_NA_1: /* 5 */
 
-				elementSize = parameters.SizeOfIOA * 2;
+				elementSize = parameters.SizeOfIOA + 2;
 
-				retVal = new StepPositionInformation (parameters, payload, index + elementSize);
+				retVal = new StepPositionInformation (parameters, payload, index * elementSize);
 
 				//TODO add support for Sequence of elements in a single information object (sq = 1)
 
@@ -258,19 +258,46 @@ namespace lib60870
 
 			case TypeID.M_ST_TA_1: /* 6 */
 
-				elementSize = parameters.SizeOfIOA * 5;
+				elementSize = parameters.SizeOfIOA + 5;
 
-				retVal = new StepPositionWithCP24Time2a (parameters, payload, index + elementSize);
+				retVal = new StepPositionWithCP24Time2a (parameters, payload, index * elementSize);
 
 				break;
 
 			case TypeID.M_ST_TB_1: /* 32 */
 
-				elementSize = parameters.SizeOfIOA * 9;
+				elementSize = parameters.SizeOfIOA + 9;
 
-				retVal = new StepPositionWithCP56Time2a (parameters, payload, index + elementSize);
+				retVal = new StepPositionWithCP56Time2a (parameters, payload, index * elementSize);
 
 				break;
+
+			case TypeID.M_BO_NA_1: /* 7 */
+
+				elementSize = parameters.SizeOfIOA + 5;
+
+				retVal = new Bitstring32 (parameters, payload, index * elementSize);
+
+				//TODO add support for Sequence of elements in a single information object (sq = 1)
+
+				break;
+
+			case TypeID.M_BO_TA_1: /* 8 */
+
+				elementSize = parameters.SizeOfIOA + 8;
+
+				retVal = new Bitstring32WithCP24Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_BO_TB_1: /* 33 */
+
+				elementSize = parameters.SizeOfIOA + 12;
+
+				retVal = new Bitstring32WithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
 
 			case TypeID.C_SC_NA_1:
 				elementSize = parameters.SizeOfIOA + 1;
