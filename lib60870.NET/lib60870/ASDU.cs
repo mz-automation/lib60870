@@ -212,14 +212,6 @@ namespace lib60870
 
 				break;
 
-			case TypeID.M_SP_TB_1: /* 30 */
-
-				elementSize = parameters.SizeOfIOA + 8;
-
-				retVal = new SinglePointWithCP56Time2a (parameters, payload, index * elementSize);
-
-				break;
-
 			case TypeID.M_DP_NA_1: /* 3 */
 
 				elementSize = parameters.SizeOfIOA + 1;
@@ -235,14 +227,6 @@ namespace lib60870
 				elementSize = parameters.SizeOfIOA + 4;
 
 				retVal = new DoublePointWithCP24Time2a (parameters, payload, index * elementSize);
-
-				break;
-
-			case TypeID.M_DP_TB_1: /* 31 */
-
-				elementSize = parameters.SizeOfIOA + 8;
-
-				retVal = new DoublePointWithCP56Time2a (parameters, payload, index * elementSize);
 
 				break;
 
@@ -264,14 +248,6 @@ namespace lib60870
 
 				break;
 
-			case TypeID.M_ST_TB_1: /* 32 */
-
-				elementSize = parameters.SizeOfIOA + 9;
-
-				retVal = new StepPositionWithCP56Time2a (parameters, payload, index * elementSize);
-
-				break;
-
 			case TypeID.M_BO_NA_1: /* 7 */
 
 				elementSize = parameters.SizeOfIOA + 5;
@@ -287,14 +263,6 @@ namespace lib60870
 				elementSize = parameters.SizeOfIOA + 8;
 
 				retVal = new Bitstring32WithCP24Time2a (parameters, payload, index * elementSize);
-
-				break;
-
-			case TypeID.M_BO_TB_1: /* 33 */
-
-				elementSize = parameters.SizeOfIOA + 12;
-
-				retVal = new Bitstring32WithCP56Time2a (parameters, payload, index * elementSize);
 
 				break;
 
@@ -316,6 +284,101 @@ namespace lib60870
 
 				break;
 
+			case TypeID.M_ME_NB_1: /* 11 */
+
+				elementSize = parameters.SizeOfIOA + 3;
+
+				retVal = new MeasuredValueScaled (parameters, payload, index * elementSize);
+
+				//TODO add support for Sequence of elements in a single information object (sq = 1)
+
+				break;
+
+			case TypeID.M_ME_TB_1: /* 12 */
+
+				elementSize = parameters.SizeOfIOA + 6;
+
+				retVal = new MeasuredValueScaledWithCP24Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+
+			case TypeID.M_ME_NC_1: /* 13 */
+
+				elementSize = parameters.SizeOfIOA + 5;
+
+				retVal = new MeasuredValueShortFloat (parameters, payload, index * elementSize);
+
+				//TODO add support for Sequence of elements in a single information object (sq = 1)
+
+				break;
+
+			case TypeID.M_ME_TC_1: /* 14 */
+
+				elementSize = parameters.SizeOfIOA + 5;
+
+				retVal = new MeasuredValueShortFloatWithCP24Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_IT_NA_1: /* 15 */
+
+				elementSize = parameters.SizeOfIOA + 5;
+
+				retVal = new IntegratedTotals (parameters, payload, index * elementSize);
+
+				//TODO add support for Sequence of elements in a single information object (sq = 1)
+
+				break;
+
+			case TypeID.M_IT_TA_1: /* 16 */
+
+				elementSize = parameters.SizeOfIOA + 8;
+
+				retVal = new IntegratedTotalsWithCP24Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_EP_TA_1: /* 17 */
+
+				elementSize = parameters.SizeOfIOA + 6;
+
+				retVal = new EventOfProtectionEquipment (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_SP_TB_1: /* 30 */
+
+				elementSize = parameters.SizeOfIOA + 8;
+
+				retVal = new SinglePointWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_DP_TB_1: /* 31 */
+
+				elementSize = parameters.SizeOfIOA + 8;
+
+				retVal = new DoublePointWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_ST_TB_1: /* 32 */
+
+				elementSize = parameters.SizeOfIOA + 9;
+
+				retVal = new StepPositionWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_BO_TB_1: /* 33 */
+
+				elementSize = parameters.SizeOfIOA + 12;
+
+				retVal = new Bitstring32WithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
 			case TypeID.M_ME_TD_1: /* 34 */
 
 				elementSize = parameters.SizeOfIOA + 10;
@@ -324,6 +387,31 @@ namespace lib60870
 
 				break;
 
+			case TypeID.M_ME_TE_1: /* 35 */
+
+				elementSize = parameters.SizeOfIOA + 10;
+
+				retVal = new MeasuredValueScaledWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_ME_TF_1: /* 36 */
+
+				elementSize = parameters.SizeOfIOA + 12;
+
+				retVal = new MeasuredValueShortFloatWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_IT_TB_1: /* 37 */
+
+				elementSize = parameters.SizeOfIOA + 12;
+
+				retVal = new IntegratedTotalsWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+
 			case TypeID.C_SC_NA_1:
 				elementSize = parameters.SizeOfIOA + 1;
 
@@ -331,40 +419,13 @@ namespace lib60870
 
 				break;
 
-			case TypeID.M_ME_NB_1:
 
-				elementSize = parameters.SizeOfIOA + 3;
 
-				retVal = new MeasuredValueScaled (parameters, payload, index * elementSize);
 
-				break;
 
-			case TypeID.M_ME_NC_1:
 
-				elementSize = parameters.SizeOfIOA + 5;
 
-				retVal = new MeasuredValueShortFloat (parameters, payload, index * elementSize);
 
-				break;
-
-			case TypeID.M_ME_TE_1:
-
-				elementSize = parameters.SizeOfIOA + 10;
-
-				//TODO check if index is valid
-				//TODO check if msg size is large enough!
-
-				retVal = new MeasuredValueScaledWithCP56Time2a (parameters, payload, index * elementSize);
-
-				break;
-
-			case TypeID.M_ME_TF_1:
-
-				elementSize = parameters.SizeOfIOA + 12;
-
-				retVal = new MeasuredValueShortFloatWithCP56Time2a (parameters, payload, index * elementSize);
-
-				break;
 
 			default:
 				throw new ASDUParsingException ("Unknown ASDU type id:" + typeId);

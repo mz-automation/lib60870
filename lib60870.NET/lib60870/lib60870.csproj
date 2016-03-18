@@ -41,8 +41,6 @@
     <Compile Include="TypeID.cs" />
     <Compile Include="CauseOfTransmission.cs" />
     <Compile Include="InformationObject.cs" />
-    <Compile Include="MeasuredValueScaledWithCP56Time2a.cs" />
-    <Compile Include="MeasuredValueShortFloatWithCP56Time2a.cs" />
     <Compile Include="QualityDescriptor.cs" />
     <Compile Include="CP56Time2a.cs" />
     <Compile Include="SystemUtils.cs" />
@@ -63,6 +61,10 @@
     <Compile Include="StepPositionInformation.cs" />
     <Compile Include="Bitstring32.cs" />
     <Compile Include="MeasuredValueNormalized.cs" />
+    <Compile Include="BinaryCounterReading.cs" />
+    <Compile Include="IntegratedTotals.cs" />
+    <Compile Include="SingleEvent.cs" />
+    <Compile Include="EventOfProtectionEquipment.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
