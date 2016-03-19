@@ -65,6 +65,9 @@
     <Compile Include="IntegratedTotals.cs" />
     <Compile Include="SingleEvent.cs" />
     <Compile Include="EventOfProtectionEquipment.cs" />
+    <Compile Include="QualityDescriptorP.cs" />
+    <Compile Include="PackedStartEventsOfProtectionEquipment.cs" />
+    <Compile Include="StartEvent.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

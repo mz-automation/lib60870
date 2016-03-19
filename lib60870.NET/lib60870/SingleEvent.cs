@@ -10,124 +10,44 @@ namespace lib60870
 		INDETERMINATE_3 = 3
 	}
 
+
 	public class SingleEvent
 	{
-		private byte encodedValue;
+		private QualityDescriptorP qdp;
+
+		private EventState eventState;
 
 		public SingleEvent()
 		{
-			this.encodedValue = 0;
+			this.eventState = EventState.INDETERMINATE_0;
+			this.qdp = new QualityDescriptorP ();
 		}
 
 		public SingleEvent (byte encodedValue)
 		{
-			this.encodedValue = encodedValue;
+			this.eventState = (EventState)(encodedValue & 0x03);
+
+			this.qdp = new QualityDescriptorP (encodedValue);
 		}
 
 		public EventState State {
 			get {
-				return (EventState)(encodedValue & 0x03);
+				return eventState;
 			}
 		}
 
-		public bool Reserved {
+		public QualityDescriptorP QDP {
 			get {
-				return ((encodedValue & 0x04) == 0x04);
-			}
-
-			set {
-				if (value) 
-					encodedValue |= 0x04;
-				else
-					encodedValue &= 0xfb;
+				return qdp;
 			}
 		}
 
-		public bool ElapsedTimeInvalid {
-			get {
-				return ((encodedValue & 0x08) == 0x08);
-			}
-
-			set {
-				if (value) 
-					encodedValue |= 0x08;
-				else
-					encodedValue &= 0xf7;
-			}
-		}
-
-		public bool Blocked {
-			get {
-				if ((encodedValue & 0x10) != 0)
-					return true;
-				else
-					return false;
-			}
-
-			set {
-				if (value) 
-					encodedValue |= 0x10;
-				else
-					encodedValue &= 0xef;
-			}
-		}
-
-		public bool Substituted {
-			get {
-				if ((encodedValue & 0x20) != 0)
-					return true;
-				else
-					return false;
-			}
-
-			set {
-				if (value) 
-					encodedValue |= 0x20;
-				else
-					encodedValue &= 0xdf;
-			}
-		}
-
-
-		public bool NonTopical {
-			get {
-				if ((encodedValue & 0x40) != 0)
-					return true;
-				else
-					return false;
-			}
-
-			set {
-				if (value) 
-					encodedValue |= 0x40;
-				else
-					encodedValue &= 0xbf;
-			}
-		}
-
-
-		public bool Invalid {
-			get {
-				if ((encodedValue & 0x80) != 0)
-					return true;
-				else
-					return false;
-			}
-
-			set {
-				if (value) 
-					encodedValue |= 0x80;
-				else
-					encodedValue &= 0x7f;
-			}
-		}
 
 		public byte EncodedValue {
 			get {
-				return this.encodedValue;
-			}
-			set {
-				encodedValue = value;
+				byte encodedValue = (byte)((qdp.EncodedValue & 0xfc) + (int) eventState);
+
+				return encodedValue;
 			}
 		}
 
