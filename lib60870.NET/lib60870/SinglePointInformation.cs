@@ -33,5 +33,42 @@ namespace lib60870
 			quality = new QualityDescriptor ((byte) (siq & 0xf0));
 		}
 	}
+
+	public class PackedSinglePointWithSCD : InformationObject
+	{
+		private StatusAndStatusChangeDetection scd;
+
+		private QualityDescriptor qds;
+
+		public StatusAndStatusChangeDetection SCD {
+			get {
+				return this.scd;
+			}
+			set {
+				scd = value;
+			}
+		}
+
+		public QualityDescriptor QDS {
+			get {
+				return this.qds;
+			}
+			set {
+				qds = value;
+			}
+		}
+
+		public PackedSinglePointWithSCD (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
+		{
+			startIndex += parameters.SizeOfIOA; /* skip IOA */
+
+			scd = new StatusAndStatusChangeDetection (msg, startIndex);
+			startIndex += 4;
+
+			qds = new QualityDescriptor (msg [startIndex++]);
+		}
+	}
+
 }
 

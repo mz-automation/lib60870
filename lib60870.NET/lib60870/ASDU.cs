@@ -363,6 +363,26 @@ namespace lib60870
 
 				break;
 
+			case TypeID.M_PS_NA_1: /* 20 */
+
+				elementSize = parameters.SizeOfIOA + 5;
+
+				retVal = new PackedSinglePointWithSCD (parameters, payload, index * elementSize);
+
+				//TODO add support for Sequence of elements in a single information object (sq = 1)
+
+				break;
+
+			case TypeID.M_ME_ND_1: /* 21 */
+
+				elementSize = parameters.SizeOfIOA + 2;
+
+				retVal = new MeasuredValueNormalizedWithoutQuality (parameters, payload, index * elementSize);
+
+				//TODO add support for Sequence of elements in a single information object (sq = 1)
+
+				break;
+
 			case TypeID.M_SP_TB_1: /* 30 */
 
 				elementSize = parameters.SizeOfIOA + 8;
@@ -427,21 +447,74 @@ namespace lib60870
 
 				break;
 
+			case TypeID.M_EP_TD_1: /* 38 */
 
-			case TypeID.C_SC_NA_1:
+				elementSize = parameters.SizeOfIOA + 10;
+
+				retVal = new EventOfProtectionEquipmentWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_EP_TE_1: /* 39 */
+
+				elementSize = parameters.SizeOfIOA + 11;
+
+				retVal = new PackedStartEventsOfProtectionEquipmentWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.M_EP_TF_1: /* 40 */
+
+				elementSize = parameters.SizeOfIOA + 11;
+
+				retVal = new PacketOutputCircuitInfoWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+
+			case TypeID.C_SC_NA_1: /* 45 */
+
 				elementSize = parameters.SizeOfIOA + 1;
 
 				retVal = new SingleCommand (parameters, payload, index * elementSize);
 
 				break;
 
+			case TypeID.C_DC_NA_1: /* 46 */
 
+				elementSize = parameters.SizeOfIOA + 1;
 
+				retVal = new DoubleCommand (parameters, payload, index * elementSize);
 
+				break;
 
+			case TypeID.C_RC_NA_1: /* 47 */
 
+				elementSize = parameters.SizeOfIOA + 1;
 
+				retVal = new StepCommand (parameters, payload, index * elementSize);
 
+				break;
+
+			case TypeID.C_SE_NA_1: /* 48 - Set-point command, normalized value */
+
+				elementSize = parameters.SizeOfIOA + 3;
+
+				retVal = new SetpointCommandNormalized (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.C_SE_NB_1: /* 49 - Set-point command, scaled value */
+
+				//TODO
+
+				break;
+
+			case TypeID.C_SE_NC_1: /* 50 - Set-point command, short floating point number */
+
+				// TODO
+
+				break;
 
 			default:
 				throw new ASDUParsingException ("Unknown ASDU type id:" + typeId);
