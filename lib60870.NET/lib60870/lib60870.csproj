@@ -68,6 +68,8 @@
     <Compile Include="QualityDescriptorP.cs" />
     <Compile Include="PackedStartEventsOfProtectionEquipment.cs" />
     <Compile Include="StartEvent.cs" />
+    <Compile Include="OutputCircuitInfo.cs" />
+    <Compile Include="PacketOutputCircuitInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

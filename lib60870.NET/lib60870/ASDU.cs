@@ -355,6 +355,14 @@ namespace lib60870
 
 				break;
 
+			case TypeID.M_EP_TC_1: /* 19 */
+
+				elementSize = parameters.SizeOfIOA + 7;
+
+				retVal = new PacketOutputCircuitInfo (parameters, payload, index * elementSize);
+
+				break;
+
 			case TypeID.M_SP_TB_1: /* 30 */
 
 				elementSize = parameters.SizeOfIOA + 8;

@@ -81,8 +81,8 @@ namespace testclient
 		public static void Main (string[] args)
 		{
 
-			Connection con = new Connection ("192.168.1.50");
-			//Connection con = new Connection ("127.0.0.1");
+			//Connection con = new Connection ("192.168.1.50");
+			Connection con = new Connection ("127.0.0.1");
 
 			con.SetASDUReceivedHandler (asduReceivedHandler, null);
 
