@@ -20,6 +20,12 @@ namespace lib60870
 				return (encodedValue[0] + (encodedValue[1] * 0x100));
 			}
 		}
+
+		public byte[] GetEncodedValue() 
+		{
+			return encodedValue;
+		}
+
 	}
 }
 

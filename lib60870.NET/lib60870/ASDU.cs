@@ -506,13 +506,42 @@ namespace lib60870
 
 			case TypeID.C_SE_NB_1: /* 49 - Set-point command, scaled value */
 
-				//TODO
+				elementSize = parameters.SizeOfIOA + 3;
+
+				retVal = new SetpointCommandScaled (parameters, payload, index * elementSize);
 
 				break;
 
 			case TypeID.C_SE_NC_1: /* 50 - Set-point command, short floating point number */
 
-				// TODO
+				elementSize = parameters.SizeOfIOA + 5;
+
+				retVal = new SetpointCommandShortFloat (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.C_BO_NA_1: /* 51 - Bitstring command */
+
+				elementSize = parameters.SizeOfIOA + 4;
+
+				retVal = new Bitstring32Command (parameters, payload, index * elementSize);
+
+				break;
+
+
+			case TypeID.P_ME_NA_1: /* 110 - Parameter of measured values, normalized value */
+
+				elementSize = parameters.SizeOfIOA + 3;
+
+				retVal = new ParameterNormalizedValue (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.P_ME_NB_1: /* 111 - Parameter of measured values, scaled value */
+
+				elementSize = parameters.SizeOfIOA + 3;
+
+				retVal = new ParameterScaledValue (parameters, payload, index * elementSize);
 
 				break;
 

@@ -109,20 +109,29 @@ namespace lib60870
 				frame.SetNextByte ((byte) ((ca & 0xff00) >> 8));
 		}
 
-		public void sendInterrogationCommand(CauseOfTransmission cot, int ca, byte qoi) 
+		private void EncodeIOA(Frame frame, int ioa) {
+			frame.SetNextByte((byte)(ioa & 0xff));
+
+			if (parameters.SizeOfIOA > 1)
+				frame.SetNextByte((byte)((ioa / 0x100) & 0xff));
+
+			if (parameters.SizeOfIOA > 1)
+				frame.SetNextByte((byte)((ioa / 0x10000) & 0xff));
+		}
+
+		/// <summary>
+		/// Sends the interrogation command.
+		/// </summary>
+		/// <param name="cot">Cause of transmission</param>
+		/// <param name="ca">Common address</param>
+		/// <param name="qoi">Qualifier of interrogation</param>
+		public void SendInterrogationCommand(CauseOfTransmission cot, int ca, byte qoi) 
 		{
 			Frame frame = new T104Frame ();
 
 			EncodeIdentificationField (frame, TypeID.C_IC_NA_1, 1, cot, ca);
 
-			/* encode IOA */
-			frame.SetNextByte ((byte)0);
-
-			if (parameters.SizeOfIOA > 1)
-				frame.SetNextByte ((byte)0);
-
-			if (parameters.SizeOfIOA > 2)
-				frame.SetNextByte ((byte)0);
+			EncodeIOA (frame, 0);
 
 			/* encode COI (7.2.6.21) */
 			frame.SetNextByte (qoi); /* 20 = station interrogation */
@@ -132,8 +141,140 @@ namespace lib60870
 			sendIMessage (frame);
 		}
 
+		/// <summary>
+		/// Sends the counter interrogation command (C_CI_NA_1 typeID: 101)
+		/// </summary>
+		/// <param name="cot">Cause of transmission</param>
+		/// <param name="ca">Common address</param>
+		/// <param name="qcc">Qualifier of counter interrogation command</param>
+		public void SendCounterInterrogationCommand(CauseOfTransmission cot, int ca, byte qcc)
+		{
+			Frame frame = new T104Frame ();
+
+			EncodeIdentificationField (frame, TypeID.C_CI_NA_1, 1, cot, ca);
+
+			EncodeIOA (frame, 0);
+
+			/* encode QCC */
+			frame.SetNextByte (qcc);
+
+			Console.WriteLine("Encoded C_CI_NA_1 with " + frame.GetMsgSize() + " bytes.");
+
+			sendIMessage (frame);
+		}
 	
-		public void sendControlCommand(TypeID typeId, CauseOfTransmission cot, int ca, InformationObject sc) {
+		/// <summary>
+		/// Sends a read command (C_RD_NA_1 typeID: 102).
+		/// </summary>
+		/// <param name="cot">Cause of transmission</param>
+		/// <param name="ca">Common address</param>
+		/// <param name="ioa">Information object address</param>
+		public void SendReadCommand(CauseOfTransmission cot, int ca, int ioa)
+		{
+			Frame frame = new T104Frame ();
+
+			EncodeIdentificationField (frame, TypeID.C_RD_NA_1, 1, cot, ca);
+
+			EncodeIOA (frame, ioa);
+
+			Console.WriteLine("Encoded C_RD_NA_1 with " + frame.GetMsgSize() + " bytes.");
+
+			sendIMessage (frame);
+		}
+
+		/// <summary>
+		/// Sends a clock synchronization command (C_CS_NA_1 typeID: 103).
+		/// </summary>
+		/// <param name="cot">Cause of transmission</param>
+		/// <param name="ca">Common address</param>
+		/// <param name="time">the new time to set</param>
+		public void SendClockSyncCommand(CauseOfTransmission cot, int ca, CP56Time2a time)
+		{
+			Frame frame = new T104Frame ();
+
+			EncodeIdentificationField (frame, TypeID.C_CS_NA_1, 1, cot, ca);
+
+			EncodeIOA (frame, 0);
+
+			frame.AppendBytes (time.GetEncodedValue ());
+
+			Console.WriteLine("Encoded C_CS_NA_1 with " + frame.GetMsgSize() + " bytes.");
+
+			sendIMessage (frame);
+		}
+
+		/// <summary>
+		/// Sends a test command (C_TS_NA_1 typeID: 104).
+		/// </summary>
+		/// <param name="cot">Cause of transmission</param>
+		/// <param name="ca">Common address</param>
+		public void SendTestCommand(CauseOfTransmission cot, int ca)
+		{
+			Frame frame = new T104Frame ();
+
+			EncodeIdentificationField (frame, TypeID.C_TS_NA_1, 1, cot, ca);
+
+			EncodeIOA (frame, 0);
+
+			frame.SetNextByte (0xcc);
+			frame.SetNextByte (0x55);
+
+			Console.WriteLine("Encoded C_TS_NA_1 with " + frame.GetMsgSize() + " bytes.");
+
+			sendIMessage (frame);
+		}
+
+		/// <summary>
+		/// Sends a reset process command (C_RP_NA_1 typeID: 105).
+		/// </summary>
+		/// <param name="cot">Cause of transmission</param>
+		/// <param name="ca">Common address</param>
+		/// <param name="qrp">Qualifier of reset process command</param>
+		public void SendResetProcessCommand(CauseOfTransmission cot, int ca, byte qrp)
+		{
+			Frame frame = new T104Frame ();
+
+			EncodeIdentificationField (frame, TypeID.C_RP_NA_1, 1, cot, ca);
+
+			EncodeIOA (frame, 0);
+
+			frame.SetNextByte (qrp);
+
+			Console.WriteLine("Encoded C_RP_NA_1 with " + frame.GetMsgSize() + " bytes.");
+
+			sendIMessage (frame);
+		}
+
+
+		/// <summary>
+		/// Sends a delay acquisition command (C_CD_NA_1 typeID: 106).
+		/// </summary>
+		/// <param name="cot">Cause of transmission</param>
+		/// <param name="ca">Common address</param>
+		/// <param name="delay">delay for acquisition</param>
+		public void SendDelayAcquisitionCommand(CauseOfTransmission cot, int ca, CP16Time2a delay)
+		{
+			Frame frame = new T104Frame ();
+
+			EncodeIdentificationField (frame, TypeID.C_CD_NA_1, 1, cot, ca);
+
+			EncodeIOA (frame, 0);
+
+			frame.AppendBytes (delay.GetEncodedValue ());
+
+			Console.WriteLine("Encoded C_CD_NA_1 with " + frame.GetMsgSize() + " bytes.");
+
+			sendIMessage (frame);
+		}
+
+		/// <summary>
+		/// Sends the control command.
+		/// </summary>
+		/// <param name="typeId">Type ID of the control command</param>
+		/// <param name="cot">Cause of transmission</param>
+		/// <param name="ca">Common address</param>
+		/// <param name="sc">Information object of the command</param>
+		public void SendControlCommand(TypeID typeId, CauseOfTransmission cot, int ca, InformationObject sc) {
 			Frame frame = new T104Frame ();
 
 			EncodeIdentificationField (frame, typeId, 1 /* SQ:false; NumIX:1 */, cot, ca);

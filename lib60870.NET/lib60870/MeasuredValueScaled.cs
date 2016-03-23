@@ -4,9 +4,9 @@ namespace lib60870
 {
 	public class MeasuredValueScaled : InformationObject
 	{
-		private int scaledValue;
+		private ScaledValue scaledValue;
 
-		public int ScaledValue {
+		public ScaledValue ScaledValue {
 			get {
 				return this.scaledValue;
 			}
@@ -23,7 +23,7 @@ namespace lib60870
 		public MeasuredValueScaled (int objectAddress, int value, QualityDescriptor quality)
 			: base(objectAddress)
 		{
-			this.scaledValue = value;
+			this.scaledValue = new ScaledValue(value);
 			this.quality = quality;
 		}
 
@@ -32,11 +32,8 @@ namespace lib60870
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
-			scaledValue = msg [startIndex++];
-			scaledValue += (msg [startIndex++] * 0x100);
-
-			if (scaledValue > 32767)
-				scaledValue = scaledValue - 65536;
+			scaledValue = new ScaledValue (msg, startIndex);
+			startIndex += 2;
 
 			/* parse QDS (quality) */
 			quality = new QualityDescriptor (msg [startIndex++]);
@@ -45,40 +42,15 @@ namespace lib60870
 		public override void Encode(Frame frame, ConnectionParameters parameters) {
 			base.Encode(frame, parameters);
 
-			int valueToEncode;
-
-			if (scaledValue < 0)
-				valueToEncode = scaledValue + 65536;
-			else
-				valueToEncode = scaledValue;
-
-			frame.SetNextByte ((byte)(valueToEncode % 256));
-			frame.SetNextByte ((byte)(valueToEncode / 256));
+			frame.AppendBytes (scaledValue.GetEncodedValue ());
 
 			frame.SetNextByte (quality.EncodedValue);
 		}
 
 	}
 
-	public class MeasuredValueScaledWithCP56Time2a : InformationObject
+	public class MeasuredValueScaledWithCP56Time2a : MeasuredValueScaled
 	{
-
-		private int scaledValue;
-
-		public int ScaledValue {
-			get {
-				return this.scaledValue;
-			}
-		}
-
-		private QualityDescriptor quality;
-
-		public QualityDescriptor Quality {
-			get {
-				return this.quality;
-			}
-		}
-
 		private CP56Time2a timestamp;
 
 		public CP56Time2a Timestamp {
@@ -90,16 +62,7 @@ namespace lib60870
 		public MeasuredValueScaledWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
-
-			scaledValue = msg [startIndex++];
-			scaledValue += (msg [startIndex++] * 0x100);
-
-			if (scaledValue > 32767)
-				scaledValue = scaledValue - 65536;
-
-			/* parse QDS (quality) */
-			quality = new QualityDescriptor (msg [startIndex++]);
+			startIndex += parameters.SizeOfIOA + 3; /* skip IOA + scaledValue + QDS */
 
 			/* parse CP56Time2a (time stamp) */
 			timestamp = new CP56Time2a (msg, startIndex);
@@ -107,25 +70,8 @@ namespace lib60870
 
 	}
 
-	public class MeasuredValueScaledWithCP24Time2a : InformationObject
+	public class MeasuredValueScaledWithCP24Time2a : MeasuredValueScaled
 	{
-
-		private int scaledValue;
-
-		public int ScaledValue {
-			get {
-				return this.scaledValue;
-			}
-		}
-
-		private QualityDescriptor quality;
-
-		public QualityDescriptor Quality {
-			get {
-				return this.quality;
-			}
-		}
-
 		private CP24Time2a timestamp;
 
 		public CP24Time2a Timestamp {
@@ -137,16 +83,7 @@ namespace lib60870
 		public MeasuredValueScaledWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
-
-			scaledValue = msg [startIndex++];
-			scaledValue += (msg [startIndex++] * 0x100);
-
-			if (scaledValue > 32767)
-				scaledValue = scaledValue - 65536;
-
-			/* parse QDS (quality) */
-			quality = new QualityDescriptor (msg [startIndex++]);
+			startIndex += parameters.SizeOfIOA + 3; /* skip IOA + scaledValue + QDS */
 
 			/* parse CP56Time2a (time stamp) */
 			timestamp = new CP24Time2a (msg, startIndex);

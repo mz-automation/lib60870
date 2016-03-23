@@ -71,7 +71,9 @@
     <Compile Include="OutputCircuitInfo.cs" />
     <Compile Include="PacketOutputCircuitInfo.cs" />
     <Compile Include="StatusAndStatusChangeDetection.cs" />
-    <Compile Include="SetpointCommandNormalized.cs" />
+    <Compile Include="ScaledValue.cs" />
+    <Compile Include="SetpointCommands.cs" />
+    <Compile Include="ParameterMeasuredValues.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
