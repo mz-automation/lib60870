@@ -185,7 +185,7 @@ namespace lib60870
 				ASDU asdu = new ASDU (parameters, buffer, msgSize);
 
 				switch (asdu.TypeId) {
-				case TypeID.C_IC_NA_1:
+				case TypeID.C_IC_NA_1: /* 100 - interrogation command */
 
 					Console.WriteLine ("Rcvd interrogation command C_IC_NA_1");
 
@@ -196,6 +196,22 @@ namespace lib60870
 					}
 
 					break;
+
+				case TypeID.C_TS_NA_1: /* 104 - test command */
+
+					Console.WriteLine ("Rcvd test command C_TS_NA_1");
+
+					if (asdu.Cot != CauseOfTransmission.ACTIVATION)
+						asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+					else
+						asdu.Cot = CauseOfTransmission.ACTIVATION_CON;
+
+					this.SendASDU (asdu);
+
+					messageHandled = true;
+
+					break;
+
 				}
 
 				if ((messageHandled == false) && (server.asduHandler != null))

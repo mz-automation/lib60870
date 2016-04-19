@@ -69,7 +69,7 @@ namespace testserver
 
 			server.Start ();
 
-			Thread.Sleep (10000);
+			Thread.Sleep (100000);
 
 			Console.WriteLine ("Stop server");
 			server.Stop ();
