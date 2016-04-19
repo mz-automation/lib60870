@@ -7,8 +7,6 @@ using System.Threading;
 
 namespace testserver
 {
-
-
 	
 	class MainClass
 	{
@@ -29,6 +27,10 @@ namespace testserver
 			newAsdu.AddInformationObject (new MeasuredValueScaled (102, 2300, new QualityDescriptor ()));
 
 			connection.SendASDU (newAsdu);
+
+			newAsdu = new ASDU (TypeID.M_ME_TE_1, CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 3, 1, false);
+
+			newAsdu.AddInformationObject(new MeasuredValueScaledWithCP56Time2a(103, 3456, new QualityDescriptor (), new CP56Time2a(DateTime.Now)));
 
 
 			connection.SendACT_TERM (asdu);
@@ -57,6 +59,9 @@ namespace testserver
 		{
 
 			Server server = new Server ();
+
+			if (BitConverter.IsLittleEndian)
+				Console.WriteLine ("Platform is little endian");
 
 			server.SetInterrogationHandler (interrogationHandler, null);
 

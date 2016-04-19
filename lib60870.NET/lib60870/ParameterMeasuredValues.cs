@@ -108,4 +108,60 @@ namespace lib60870
 			frame.SetNextByte (qpm);
 		}
 	}
+
+	public class ParameterFloatValue : InformationObject
+	{
+
+		private float value;
+
+		public float Value {
+			get {
+				return this.value;
+			}
+		}
+
+		private byte qpm;
+
+		public float QPM {
+			get {
+				return qpm;
+			}
+		}
+
+		public ParameterFloatValue (int objectAddress, float value, byte qpm) :
+			base (objectAddress)
+		{
+			this.value = value;
+
+			this.qpm = qpm;
+		}
+
+		public ParameterFloatValue (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
+		{
+			startIndex += parameters.SizeOfIOA; /* skip IOA */
+
+			/* parse float value */
+			value = System.BitConverter.ToSingle (msg, startIndex);
+			startIndex += 4;
+
+			/* parse QDS (quality) */
+			qpm = msg [startIndex++];
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			byte[] floatEncoded = BitConverter.GetBytes (value);
+
+			if (BitConverter.IsLittleEndian == false)
+				Array.Reverse (floatEncoded);
+
+			frame.AppendBytes (floatEncoded);
+
+			frame.SetNextByte (qpm);
+		}
+
+	}
+
 }

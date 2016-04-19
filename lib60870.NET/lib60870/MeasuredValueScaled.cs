@@ -59,6 +59,12 @@ namespace lib60870
 			}
 		}
 
+		public MeasuredValueScaledWithCP56Time2a (int objectAddress, int value, QualityDescriptor quality, CP56Time2a timestamp)
+			: base(objectAddress, value, quality)
+		{
+			this.timestamp = timestamp;
+		}
+
 		public MeasuredValueScaledWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
@@ -66,6 +72,12 @@ namespace lib60870
 
 			/* parse CP56Time2a (time stamp) */
 			timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
 
 	}
@@ -80,6 +92,12 @@ namespace lib60870
 			}
 		}
 
+		public MeasuredValueScaledWithCP24Time2a (int objectAddress, int value, QualityDescriptor quality, CP24Time2a timestamp)
+			: base(objectAddress, value, quality)
+		{
+			this.timestamp = timestamp;
+		}
+
 		public MeasuredValueScaledWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
@@ -87,6 +105,12 @@ namespace lib60870
 
 			/* parse CP56Time2a (time stamp) */
 			timestamp = new CP24Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
 
 	}

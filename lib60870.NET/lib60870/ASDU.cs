@@ -383,6 +383,8 @@ namespace lib60870
 
 				break;
 
+			/* 22 - 29 reserved */
+
 			case TypeID.M_SP_TB_1: /* 30 */
 
 				elementSize = parameters.SizeOfIOA + 8;
@@ -471,6 +473,7 @@ namespace lib60870
 
 				break;
 
+			/* 41 - 44 reserved */
 
 			case TypeID.C_SC_NA_1: /* 45 */
 
@@ -528,6 +531,11 @@ namespace lib60870
 
 				break;
 
+			/* 52 - 57 reserved */
+
+				/* TODO */
+
+			/* 65 - 69 reserved */
 
 			case TypeID.P_ME_NA_1: /* 110 - Parameter of measured values, normalized value */
 
@@ -544,6 +552,24 @@ namespace lib60870
 				retVal = new ParameterScaledValue (parameters, payload, index * elementSize);
 
 				break;
+
+			case TypeID.P_ME_NC_1: /* 112 - Parameter of measured values, short floating point number */
+
+				elementSize = parameters.SizeOfIOA + 5;
+
+				retVal = new ParameterFloatValue (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.P_AC_NA_1: /* 113 - Parameter for activation */
+
+				elementSize = parameters.SizeOfIOA + 1;
+
+				//TODO
+
+				break;
+
+			/* 114 - 119 reserved */
 
 			default:
 				throw new ASDUParsingException ("Unknown ASDU type id:" + typeId);
