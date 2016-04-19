@@ -565,7 +565,7 @@ namespace lib60870
 
 				elementSize = parameters.SizeOfIOA + 1;
 
-				//TODO
+				retVal = new ParameterActivation (parameters, payload, index * elementSize);
 
 				break;
 
