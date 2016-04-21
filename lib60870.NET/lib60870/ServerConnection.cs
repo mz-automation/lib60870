@@ -257,6 +257,8 @@ namespace lib60870
 
 					Console.WriteLine("Socket connected");
 
+					this.server.IncreaseConnectionCounter ();
+
 					running = true;
 
 					while (running) {
@@ -285,6 +287,8 @@ namespace lib60870
 							running = false;
 						}
 					}
+
+					this.server.DecreaseConnctionCounter();
 
 					Console.WriteLine("CLOSE CONNECTION!");
 

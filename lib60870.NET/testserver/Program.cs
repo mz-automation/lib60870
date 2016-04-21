@@ -57,6 +57,12 @@ namespace testserver
 
 		public static void Main (string[] args)
 		{
+			bool running = true;
+
+			Console.CancelKeyPress += delegate(object sender, ConsoleCancelEventArgs e) {
+				e.Cancel = true;
+				running = false;
+			};
 
 			Server server = new Server ();
 
@@ -69,7 +75,9 @@ namespace testserver
 
 			server.Start ();
 
-			Thread.Sleep (100000);
+			while (running) {
+				Thread.Sleep(100);
+			}
 
 			Console.WriteLine ("Stop server");
 			server.Stop ();

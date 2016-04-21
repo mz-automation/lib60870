@@ -49,6 +49,22 @@ namespace lib60870
 			this.asduHandlerParameter = parameter;
 		}
 
+		private int activeConnections = 0;
+
+		internal void IncreaseConnectionCounter() {
+			activeConnections++;
+		}
+
+		internal void DecreaseConnctionCounter() {
+			activeConnections--;
+		}
+
+		public int ActiveConnections {
+			get {
+				return this.activeConnections;
+			}
+		}
+
 		private void ServerAcceptThread()
 		{
 			running = true;
