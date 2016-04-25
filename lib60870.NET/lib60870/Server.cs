@@ -4,6 +4,9 @@ using lib60870;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+//using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 namespace lib60870
 {
@@ -20,7 +23,24 @@ namespace lib60870
 
 		private Socket listeningSocket;
 
+		private int maxQueueSize = 1000;
+
+		public int MaxQueueSize {
+			get {
+				return this.maxQueueSize;
+			}
+			set {
+				maxQueueSize = value;
+			}
+		}
+
 		private ConnectionParameters parameters = null;
+
+		// List of all open connections
+		private List<ServerConnection> allOpenConnections = new List<ServerConnection>();
+
+		// Queue for messages (ASDUs)
+		private Queue<ASDU> enqueuedASDUs = null;
 
 		public Server()
 		{
@@ -48,20 +68,10 @@ namespace lib60870
 			this.asduHandler = handler;
 			this.asduHandlerParameter = parameter;
 		}
-
-		private int activeConnections = 0;
-
-		internal void IncreaseConnectionCounter() {
-			activeConnections++;
-		}
-
-		internal void DecreaseConnctionCounter() {
-			activeConnections--;
-		}
-
+			
 		public int ActiveConnections {
 			get {
-				return this.activeConnections;
+				return this.allOpenConnections.Count;
 			}
 		}
 
@@ -74,12 +84,14 @@ namespace lib60870
 			while (running) {
 
 				try {
+					
 					Socket newSocket = listeningSocket.Accept ();
 
 					if (newSocket != null) {
 						Console.WriteLine ("Connected");
 
-						new ServerConnection (newSocket, parameters, this);
+						allOpenConnections.Add(
+							new ServerConnection (newSocket, parameters, this));
 					}
 
 				} catch (Exception) {
@@ -88,6 +100,11 @@ namespace lib60870
 
 
 			}
+		}
+
+		internal void Remove(ServerConnection connection)
+		{
+			allOpenConnections.Remove (connection);
 		}
 
 		public void Start() 
@@ -112,14 +129,63 @@ namespace lib60870
 		public void Stop()
 		{
 			running = false;
+
 			try {
-				listeningSocket.Shutdown(SocketShutdown.Both);
-			} catch (Exception) {
+				listeningSocket.Close();
 				
+				// close all open connection
+				foreach (ServerConnection connection in allOpenConnections) {
+					connection.Close();
+				}
+					
+
+			} catch (Exception e) {
+				Console.WriteLine (e);
 			}
+
 			listeningSocket.Close();
 		}
 
+
+		public void EnqueueASDU(ASDU asdu) 
+		{
+			if (enqueuedASDUs == null) {
+				enqueuedASDUs = new Queue<ASDU> ();
+			}
+
+			if (enqueuedASDUs.Count == maxQueueSize)
+				enqueuedASDUs.Dequeue ();
+
+			enqueuedASDUs.Enqueue (asdu);
+
+			Console.WriteLine ("Queue contains " + enqueuedASDUs.Count + " messages");
+
+			foreach (ServerConnection connection in allOpenConnections) {
+				if (connection.IsActive)
+					connection.ASDUReadyToSend ();
+			}
+		}
+
+		internal ASDU DequeueASDU() 
+		{
+			if (enqueuedASDUs == null)
+				return null;
+
+			if (enqueuedASDUs.Count > 0)
+				return enqueuedASDUs.Dequeue ();
+			else
+				return null;
+		}
+
+		internal void Activated(ServerConnection activeConnection)
+		{
+			// deactivate all other connections
+
+			foreach (ServerConnection connection in allOpenConnections) {
+				if (connection != activeConnection)
+					connection.IsActive = false;
+			}
+		}
 	}
 	
 }

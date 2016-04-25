@@ -10,9 +10,9 @@ namespace lib60870
 	public class ServerConnection 
 	{
 
-		//static byte[] STARTDT_ACT_MSG = new byte[] { 0x68, 0x04, 0x07, 0x00, 0x00, 0x00 };
+		static byte[] STARTDT_CON_MSG = new byte[] { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
 
-		static byte[] STARTDT_ACT_CON_MSG = new byte[] { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
+		static byte[] STOPDT_CON_MSG = new byte[] { 0x68, 0x04, 0x23, 0x00, 0x00, 0x00 };
 
 		static byte[] TESTFR_CON_MSG = new byte[] { 0x68, 0x04, 0x83, 0x00, 0x00, 0x00 };
 
@@ -34,6 +34,33 @@ namespace lib60870
 			Thread workerThread = new Thread(HandleConnection);
 
 			workerThread.Start ();
+		}
+
+		/// <summary>
+		/// Flag indicating that this connection is the active connection.
+		/// The active connection is the only connection that is answering
+		/// application layer requests and sends cyclic, and spontaneous messages.
+		/// </summary>
+		private bool isActive = false;
+
+		/// <summary>
+		/// Gets or sets a value indicating whether this connection is active.
+		/// The active connection is the only connection that is answering
+		/// application layer requests and sends cyclic, and spontaneous messages.
+		/// </summary>
+		/// <value><c>true</c> if this instance is active; otherwise, <c>false</c>.</value>
+		public bool IsActive {
+			get {
+				return this.isActive;
+			}
+			set {
+				isActive = value;
+
+				if (isActive)
+					Console.WriteLine (this.ToString () + " is active");
+				else
+					Console.WriteLine (this.ToString () + " is not active");
+			}
 		}
 
 		private Socket socket;
@@ -177,73 +204,121 @@ namespace lib60870
 
 					return false;
 				}
+					
 
 				IncreaseReceivedMessageCounters ();
 
-				bool messageHandled = false;
+				if (isActive) {
 
-				ASDU asdu = new ASDU (parameters, buffer, msgSize);
+					bool messageHandled = false;
 
-				switch (asdu.TypeId) {
-				case TypeID.C_IC_NA_1: /* 100 - interrogation command */
+					ASDU asdu = new ASDU (parameters, buffer, msgSize);
 
-					Console.WriteLine ("Rcvd interrogation command C_IC_NA_1");
+					switch (asdu.TypeId) {
 
-					if (server.interrogationHandler != null) {
+					case TypeID.C_IC_NA_1: /* 100 - interrogation command */
 
-						if (server.interrogationHandler (server.InterrogationHandlerParameter, this, asdu))
-							messageHandled = true;
-					}
+						Console.WriteLine ("Rcvd interrogation command C_IC_NA_1");
 
-					break;
+						if (server.interrogationHandler != null) {
 
-				case TypeID.C_TS_NA_1: /* 104 - test command */
+							if (server.interrogationHandler (server.InterrogationHandlerParameter, this, asdu))
+								messageHandled = true;
+						}
 
-					Console.WriteLine ("Rcvd test command C_TS_NA_1");
+						if (asdu.Cot != CauseOfTransmission.ACTIVATION)
+							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
 
-					if (asdu.Cot != CauseOfTransmission.ACTIVATION)
-						asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
-					else
-						asdu.Cot = CauseOfTransmission.ACTIVATION_CON;
+						break;
 
-					this.SendASDU (asdu);
+					case TypeID.C_RD_NA_1: /* 102 - read command */
 
-					messageHandled = true;
+						Console.WriteLine ("Rcvd read command C_RD_NA_1");
 
-					break;
+						if (asdu.Cot == CauseOfTransmission.REQUEST) {
 
-				}
+							Console.WriteLine ("Read request for object: " + asdu.Ca);
 
-				if ((messageHandled == false) && (server.asduHandler != null))
-					if (server.asduHandler (server.asduHandlerParameter, this, asdu))
+						} else {
+							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+							this.SendASDU (asdu);
+						}
+
+						break;
+
+					case TypeID.C_TS_NA_1: /* 104 - test command */
+
+						Console.WriteLine ("Rcvd test command C_TS_NA_1");
+
+						if (asdu.Cot != CauseOfTransmission.ACTIVATION)
+							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+						else
+							asdu.Cot = CauseOfTransmission.ACTIVATION_CON;
+
+						this.SendASDU (asdu);
+
 						messageHandled = true;
 
+						break;
+
+
+
+					}
+
+					if ((messageHandled == false) && (server.asduHandler != null))
+					if (server.asduHandler (server.asduHandlerParameter, this, asdu))
+						messageHandled = true;
+				} else {
+					// connection not activated --> skip message
+					Console.WriteLine("Message not activated. Skip I message");
+
+
+				}
 
 
 				return true;
 			}
 
 			// Check for TESTFR_ACT message
-			if (buffer [2] == 0x43) {
+			if ((buffer [2] & 0x43) == 0x43) {
 
 				if (debugOutput)
 					Console.WriteLine ("Send TESTFR_CON");
 
 				socket.Send (TESTFR_CON_MSG);
+			} 
 
-				return true;
-
-			} else if (buffer [2] == 0x07) {
+			// Check for STARTDT_ACT message
+			if ((buffer [2] & 0x07) == 0x07) {
 
 				if (debugOutput)
-					Console.WriteLine ("Send STARTDT ACT CON");
+					Console.WriteLine ("Send STARTDT_CON");
 
-				socket.Send (STARTDT_ACT_CON_MSG);
+				this.isActive = true;
 
-				return true;
+				socket.Send (STARTDT_CON_MSG);
+			}
+
+			// Check for STOPDT_ACT message
+			if ((buffer [2] & 0x13) == 0x13) {
+				
+				if (debugOutput)
+					Console.WriteLine ("Send STOPDT_CON");
+
+				this.isActive = false;
+
+				socket.Send (STOPDT_CON_MSG);
 			}
 
 			return true;
+		}
+
+		private void checkServerQueue()
+		{
+			ASDU asdu = server.DequeueASDU ();
+
+			if (asdu != null)
+				SendASDU(asdu);
 		}
 
 		private void HandleConnection() {
@@ -256,8 +331,6 @@ namespace lib60870
 				try {
 
 					Console.WriteLine("Socket connected");
-
-					this.server.IncreaseConnectionCounter ();
 
 					running = true;
 
@@ -279,16 +352,16 @@ namespace lib60870
 								}
 							}
 							// TODO else ?
-							
+							if (isActive)
+								checkServerQueue();
+												
 							SendSMessageIfRequired();
 							
-							Thread.Sleep(100);
+							Thread.Sleep(1);
 						} catch (SocketException) {
 							running = false;
 						}
 					}
-
-					this.server.DecreaseConnctionCounter();
 
 					Console.WriteLine("CLOSE CONNECTION!");
 
@@ -307,7 +380,27 @@ namespace lib60870
 			} catch (Exception e) {
 				Console.WriteLine( e.ToString());
 			}
+
+			server.Remove (this);
 		}
+
+
+		public void Close() 
+		{
+			running = false;
+		}
+
+
+		public void ASDUReadyToSend () 
+		{
+			if (isActive) {
+				ASDU asdu = server.DequeueASDU ();	
+
+				if (asdu != null)
+					SendASDU (asdu);
+			}
+		}
+
 	}
 	
 }

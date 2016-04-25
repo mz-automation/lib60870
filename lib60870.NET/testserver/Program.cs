@@ -48,8 +48,13 @@ namespace testserver
 				SingleCommand sc = (SingleCommand)asdu.GetElement (0);
 
 				Console.WriteLine (sc.ToString ());
-			} else {
-				Console.WriteLine ("unknown ASDU");
+			} 
+			else if (asdu.TypeId == TypeID.C_CS_NA_1){
+				
+
+				ClockSynchronizationCommand qsc = (ClockSynchronizationCommand)asdu.GetElement (0);
+
+				Console.WriteLine ("Received clock sync command with time " + qsc.NewTime.ToString());
 			}
 
 			return true;
@@ -69,14 +74,31 @@ namespace testserver
 			if (BitConverter.IsLittleEndian)
 				Console.WriteLine ("Platform is little endian");
 
+			server.MaxQueueSize = 10;
+
 			server.SetInterrogationHandler (interrogationHandler, null);
 
 			server.SetASDUHandler (asduHandler, null);
 
 			server.Start ();
 
+			int waitTime = 1000;
+
 			while (running) {
 				Thread.Sleep(100);
+
+				if (waitTime > 0)
+					waitTime -= 100;
+				else {
+
+					ASDU newAsdu = new ASDU (TypeID.M_ME_NB_1, CauseOfTransmission.PERIODIC, false, false, 2, 1, false);
+
+					newAsdu.AddInformationObject (new MeasuredValueScaled (110, -1, new QualityDescriptor ()));
+				
+					server.EnqueueASDU (newAsdu);
+
+					waitTime = 1000;
+				}
 			}
 
 			Console.WriteLine ("Stop server");

@@ -537,6 +537,54 @@ namespace lib60870
 
 			/* 65 - 69 reserved */
 
+			case TypeID.C_IC_NA_1: /* 100 - Interrogation command */
+
+				elementSize = parameters.SizeOfIOA + 1;
+
+				retVal = new InterrogationCommand (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.C_CI_NA_1: /* 101 - Counter interrogation command */
+
+				elementSize = parameters.SizeOfIOA + 1;
+
+				retVal = new CounterInterrogationCommand (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.C_RD_NA_1: /* 102 - Read command */
+
+				elementSize = parameters.SizeOfIOA;
+
+				retVal = new ReadCommand (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.C_CS_NA_1: /* 103 - Clock synchronization command */
+
+				elementSize = parameters.SizeOfIOA + 7;
+
+				retVal = new ClockSynchronizationCommand (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.C_RP_NA_1: /* 105 - Reset process command */
+
+				elementSize = parameters.SizeOfIOA + 1;
+
+				retVal = new ResetProcessCommand (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.C_CD_NA_1: /* 106 - Delay acquisition command */
+
+				elementSize = parameters.SizeOfIOA + 2;
+
+				retVal = new DelayAcquisitionCommand (parameters, payload, index * elementSize);
+
+				break;
+
 			case TypeID.P_ME_NA_1: /* 110 - Parameter of measured values, normalized value */
 
 				elementSize = parameters.SizeOfIOA + 3;
