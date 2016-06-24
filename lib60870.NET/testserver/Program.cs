@@ -11,9 +11,9 @@ namespace testserver
 	class MainClass
 	{
 	
-		private static bool interrogationHandler(object parameter, ServerConnection connection, ASDU asdu)
+		private static bool interrogationHandler(object parameter, ServerConnection connection, ASDU asdu, byte qoi)
 		{
-			Console.WriteLine ("Interrogation!");
+			Console.WriteLine ("Interrogation for group " + qoi);
 
 			connection.SendACT_CON (asdu, false);
 

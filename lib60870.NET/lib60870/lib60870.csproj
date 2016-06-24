@@ -74,7 +74,7 @@
     <Compile Include="ScaledValue.cs" />
     <Compile Include="SetpointCommands.cs" />
     <Compile Include="ParameterMeasuredValues.cs" />
-    <Compile Include="Properties\SystemInformationCommands.cs" />
+    <Compile Include="SystemInformationCommands.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

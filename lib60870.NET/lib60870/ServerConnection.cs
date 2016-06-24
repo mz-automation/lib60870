@@ -220,13 +220,34 @@ namespace lib60870
 
 						Console.WriteLine ("Rcvd interrogation command C_IC_NA_1");
 
-						if (server.interrogationHandler != null) {
+						if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.DEACTIVATION)) {
+							if (server.interrogationHandler != null) {
 
-							if (server.interrogationHandler (server.InterrogationHandlerParameter, this, asdu))
-								messageHandled = true;
+								InterrogationCommand irc = (InterrogationCommand)asdu.GetElement (0);
+
+								if (server.interrogationHandler (server.InterrogationHandlerParameter, this, asdu, irc.QOI))
+									messageHandled = true;
+							}
 						}
+						else
+							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
 
-						if (asdu.Cot != CauseOfTransmission.ACTIVATION)
+						break;
+
+					case TypeID.C_CI_NA_1: /* 101 - counter interrogation command */
+
+						Console.WriteLine ("Rcvd counter interrogation command C_CI_NA_1");
+
+						if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.DEACTIVATION)) {
+							if (server.counterInterrogationHandler != null) {
+
+								CounterInterrogationCommand cic = (CounterInterrogationCommand)asdu.GetElement (0);
+
+								if (server.counterInterrogationHandler(server.counterInterrogationHandlerParameter, this, asdu, cic.QCC))
+									messageHandled = true;
+							}
+						}
+						else
 							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
 
 						break;
@@ -238,6 +259,14 @@ namespace lib60870
 						if (asdu.Cot == CauseOfTransmission.REQUEST) {
 
 							Console.WriteLine ("Read request for object: " + asdu.Ca);
+
+							if (server.readHandler != null) {
+								ReadCommand rc = (ReadCommand)asdu.GetElement (0);
+
+								if (server.readHandler (server.readHandlerParameter, this, asdu, rc.ObjectAddress))
+									messageHandled = true;
+
+							}
 
 						} else {
 							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;

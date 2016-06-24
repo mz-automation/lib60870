@@ -34,7 +34,7 @@ namespace lib60870
 			if (parameters.SizeOfIOA > 1)
             	frame.SetNextByte((byte)((objectAddress / 0x100) & 0xff));
 
-			if (parameters.SizeOfIOA > 1)
+			if (parameters.SizeOfIOA > 2)
               	frame.SetNextByte((byte)((objectAddress / 0x10000) & 0xff));
 		}
 
