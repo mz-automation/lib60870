@@ -2,26 +2,9 @@ using System;
 
 namespace lib60870
 {
-	//TODO refactor: use SinglePointInformation as base class
 
-	public class SinglePointWithCP24Time2a : InformationObject
+	public class SinglePointWithCP24Time2a : SinglePointInformation
 	{
-		private bool value;
-
-		public bool Value {
-			get {
-				return this.value;
-			}
-		}
-
-		private QualityDescriptor quality;
-
-		public QualityDescriptor Quality {
-			get {
-				return this.quality;
-			}
-		}
-
 		private CP24Time2a timestamp;
 
 		public CP24Time2a Timestamp {
@@ -33,18 +16,22 @@ namespace lib60870
 		public SinglePointWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
-
-			/* parse SIQ (single point information with qualitiy) */
-			byte siq = msg [startIndex++];
-
-			value = ((siq & 0x01) == 0x01);
-
-			quality = new QualityDescriptor ((byte) (siq & 0xf0));
+			startIndex += parameters.SizeOfIOA + 1; /* skip IOA  + SIQ */
 
 			/* parse CP24Time2a (time stamp) */
 			timestamp = new CP24Time2a (msg, startIndex);
 		}
-	}
 
+		public SinglePointWithCP24Time2a(int objectAddress, bool value, QualityDescriptor quality, CP24Time2a timestamp):
+		base(objectAddress, value, quality)
+		{
+			this.timestamp = timestamp;
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
+	}
 }

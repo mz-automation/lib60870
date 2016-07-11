@@ -32,6 +32,26 @@ namespace lib60870
 
 			quality = new QualityDescriptor ((byte) (siq & 0xf0));
 		}
+
+
+		public SinglePointInformation(int objectAddress, bool value, QualityDescriptor quality):
+			base(objectAddress)
+		{
+			this.value = value;
+			this.quality = quality;
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			byte val = quality.EncodedValue;
+
+			if (value)
+				val++;
+
+			frame.SetNextByte (val);
+		}
+
 	}
 
 	public class PackedSinglePointWithSCD : InformationObject
@@ -68,6 +88,8 @@ namespace lib60870
 
 			qds = new QualityDescriptor (msg [startIndex++]);
 		}
+
+		//TODO add server side functionality
 	}
 
 }

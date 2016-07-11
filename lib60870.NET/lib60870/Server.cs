@@ -47,6 +47,10 @@ namespace lib60870
 	/// </summary>
 	public delegate bool ASDUHandler (object parameter, ServerConnection connection, ASDU asdu);
 
+	/// <summary>
+	/// This class represents a single IEC 60870-5 server (slave or controlled station). It is also the
+	/// main access to the server API.
+	/// </summary>
 	public class Server {
 
 		private string localHostname = "127.0.0.1";
@@ -74,11 +78,18 @@ namespace lib60870
 		// Queue for messages (ASDUs)
 		private Queue<ASDU> enqueuedASDUs = null;
 
+		/// <summary>
+		/// Create a new server using default connection parameters
+		/// </summary>
 		public Server()
 		{
 			this.parameters = new ConnectionParameters ();
 		}
 
+		/// <summary>
+		/// Create a new server using the provided connection parameters.
+		/// </summary>
+		/// <param name="parameters">Connection parameters</param>
 		public Server(ConnectionParameters parameters) {
 			this.parameters = parameters;
 		}
@@ -101,24 +112,44 @@ namespace lib60870
 		public DelayAcquisitionHandler delayAcquisitionHandler = null;
 		public object delayAcquisitionHandlerParameter = null;
 
+		/// <summary>
+		/// Sets a callback for interrogaton requests.
+		/// </summary>
+		/// <param name="handler">The interrogation request handler callback function</param>
+		/// <param name="parameter">user provided parameter that is passed to the callback</param>
 		public void SetInterrogationHandler(InterrogationHandler handler, object parameter)
 		{
 			this.interrogationHandler = handler;
 			this.InterrogationHandlerParameter = parameter;
 		}
 
+		/// <summary>
+		/// Sets a callback for counter interrogaton requests.
+		/// </summary>
+		/// <param name="handler">The counter interrogation request handler callback function</param>
+		/// <param name="parameter">user provided parameter that is passed to the callback</param>
 		public void SetCounterInterrogationHandler(CounterInterrogationHandler handler, object parameter)
 		{
 			this.counterInterrogationHandler = handler;
 			this.counterInterrogationHandlerParameter = parameter;
 		}
 
+		/// <summary>
+		/// Sets a callback for read requests.
+		/// </summary>
+		/// <param name="handler">The read request handler callback function</param>
+		/// <param name="parameter">user provided parameter that is passed to the callback</param>
 		public void SetReadHandler(ReadHandler handler, object parameter)
 		{
 			this.readHandler = handler;
 			this.readHandlerParameter = parameter;
 		}
 
+		/// <summary>
+		/// Sets a callback for the clock synchronization request.
+		/// </summary>
+		/// <param name="handler">The clock synchronization request handler callback function</param>
+		/// <param name="parameter">user provided parameter that is passed to the callback</param>
 		public void SetClockSynchronizationHandler(ClockSynchronizationHandler handler, object parameter)
 		{
 			this.clockSynchronizationHandler = handler;
@@ -140,12 +171,22 @@ namespace lib60870
 		public ASDUHandler asduHandler = null;
 		public object asduHandlerParameter = null;
 
+		/// <summary>
+		/// Sets a callback to handle ASDUs (commands, requests) form clients. This callback can be used when
+		/// no other callback handles the message from the client/master.
+		/// </summary>
+		/// <param name="handler">The ASDU callback function</param>
+		/// <param name="parameter">user provided parameter that is passed to the callback</param>
 		public void SetASDUHandler(ASDUHandler handler, object parameter)
 		{
 			this.asduHandler = handler;
 			this.asduHandlerParameter = parameter;
 		}
 			
+		/// <summary>
+		/// Gets the number of connected master/client stations.
+		/// </summary>
+		/// <value>The number of open connections.</value>
 		public int ActiveConnections {
 			get {
 				return this.allOpenConnections.Count;
@@ -184,6 +225,9 @@ namespace lib60870
 			allOpenConnections.Remove (connection);
 		}
 
+		/// <summary>
+		/// Start the server. Listen to client connections.
+		/// </summary>
 		public void Start() 
 		{
 			IPAddress ipAddress = IPAddress.Parse(localHostname);
@@ -203,6 +247,9 @@ namespace lib60870
 
 		}
 
+		/// <summary>
+		/// Stop the server. Close all open client connections.
+		/// </summary>
 		public void Stop()
 		{
 			running = false;
@@ -223,7 +270,12 @@ namespace lib60870
 			listeningSocket.Close();
 		}
 
-
+		/// <summary>
+		/// Enqueues the ASDU to the transmission queue.
+		/// </summary>
+		/// If an active connection exists the ASDU will be sent to the active client immediately. Otherwhise
+		/// the ASDU will be added to the transmission queue for later transmission.
+		/// <param name="asdu">ASDU to be sent</param>
 		public void EnqueueASDU(ASDU asdu) 
 		{
 			if (enqueuedASDUs == null) {
