@@ -38,6 +38,8 @@ namespace testserver
 
 			newAsdu.AddInformationObject (new SinglePointWithCP56Time2a (104, true, new QualityDescriptor (), new CP56Time2a (DateTime.Now)));
 
+			connection.SendASDU (newAsdu);
+
 			connection.SendACT_TERM (asdu);
 
 			return true;
