@@ -42,6 +42,11 @@ namespace lib60870
 			get {
 				return (encodedValue[0] + (encodedValue[1] * 0x100));
 			}
+
+			set {
+				encodedValue [0] = (byte) (value % 0x100);
+				encodedValue [1] = (byte) (value / 0x100);
+			}
 		}
 
 		public byte[] GetEncodedValue() 

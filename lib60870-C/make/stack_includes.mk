@@ -1,0 +1,3 @@
+INCLUDES = -I$(LIB60870_HOME)/config
+INCLUDES += -I$(LIB60870_HOME)/src/inc
+

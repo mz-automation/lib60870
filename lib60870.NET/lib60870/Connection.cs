@@ -144,7 +144,7 @@ namespace lib60870
 		/// </summary>
 		/// <param name="cot">Cause of transmission</param>
 		/// <param name="ca">Common address</param>
-		/// <param name="qoi">Qualifier of interrogation</param>
+		/// <param name="qoi">Qualifier of interrogation (20 = station interrogation)</param>
 		public void SendInterrogationCommand(CauseOfTransmission cot, int ca, byte qoi) 
 		{
 			Frame frame = new T104Frame ();
@@ -156,7 +156,8 @@ namespace lib60870
 			/* encode COI (7.2.6.21) */
 			frame.SetNextByte (qoi); /* 20 = station interrogation */
 
-			Console.WriteLine("Encoded C_IC_NA_1 with " + frame.GetMsgSize() + " bytes.");
+			if (debugOutput)
+				Console.WriteLine("Encoded C_IC_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -178,7 +179,8 @@ namespace lib60870
 			/* encode QCC */
 			frame.SetNextByte (qcc);
 
-			Console.WriteLine("Encoded C_CI_NA_1 with " + frame.GetMsgSize() + " bytes.");
+			if (debugOutput)
+				Console.WriteLine("Encoded C_CI_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -186,18 +188,22 @@ namespace lib60870
 		/// <summary>
 		/// Sends a read command (C_RD_NA_1 typeID: 102).
 		/// </summary>
-		/// <param name="cot">Cause of transmission</param>
+		/// 
+		/// This will send a read command C_RC_NA_1 (102) to the slave/outstation. The COT is always REQUEST (5).
+		/// It is used to implement the cyclical polling of data application function.
+		/// 
 		/// <param name="ca">Common address</param>
 		/// <param name="ioa">Information object address</param>
-		public void SendReadCommand(CauseOfTransmission cot, int ca, int ioa)
+		public void SendReadCommand(int ca, int ioa)
 		{
 			Frame frame = new T104Frame ();
 
-			EncodeIdentificationField (frame, TypeID.C_RD_NA_1, 1, cot, ca);
+			EncodeIdentificationField (frame, TypeID.C_RD_NA_1, 1, CauseOfTransmission.REQUEST, ca);
 
 			EncodeIOA (frame, ioa);
 
-			Console.WriteLine("Encoded C_RD_NA_1 with " + frame.GetMsgSize() + " bytes.");
+			if (debugOutput)
+				Console.WriteLine("Encoded C_RD_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -205,20 +211,20 @@ namespace lib60870
 		/// <summary>
 		/// Sends a clock synchronization command (C_CS_NA_1 typeID: 103).
 		/// </summary>
-		/// <param name="cot">Cause of transmission</param>
 		/// <param name="ca">Common address</param>
 		/// <param name="time">the new time to set</param>
-		public void SendClockSyncCommand(CauseOfTransmission cot, int ca, CP56Time2a time)
+		public void SendClockSyncCommand(int ca, CP56Time2a time)
 		{
 			Frame frame = new T104Frame ();
 
-			EncodeIdentificationField (frame, TypeID.C_CS_NA_1, 1, cot, ca);
+			EncodeIdentificationField (frame, TypeID.C_CS_NA_1, 1, CauseOfTransmission.ACTIVATION, ca);
 
 			EncodeIOA (frame, 0);
 
 			frame.AppendBytes (time.GetEncodedValue ());
 
-			Console.WriteLine("Encoded C_CS_NA_1 with " + frame.GetMsgSize() + " bytes.");
+			if (debugOutput)
+				Console.WriteLine("Encoded C_CS_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -226,20 +232,20 @@ namespace lib60870
 		/// <summary>
 		/// Sends a test command (C_TS_NA_1 typeID: 104).
 		/// </summary>
-		/// <param name="cot">Cause of transmission</param>
 		/// <param name="ca">Common address</param>
-		public void SendTestCommand(CauseOfTransmission cot, int ca)
+		public void SendTestCommand(int ca)
 		{
 			Frame frame = new T104Frame ();
 
-			EncodeIdentificationField (frame, TypeID.C_TS_NA_1, 1, cot, ca);
+			EncodeIdentificationField (frame, TypeID.C_TS_NA_1, 1, CauseOfTransmission.ACTIVATION, ca);
 
 			EncodeIOA (frame, 0);
 
 			frame.SetNextByte (0xcc);
 			frame.SetNextByte (0x55);
 
-			Console.WriteLine("Encoded C_TS_NA_1 with " + frame.GetMsgSize() + " bytes.");
+			if (debugOutput)
+				Console.WriteLine("Encoded C_TS_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -260,7 +266,8 @@ namespace lib60870
 
 			frame.SetNextByte (qrp);
 
-			Console.WriteLine("Encoded C_RP_NA_1 with " + frame.GetMsgSize() + " bytes.");
+			if (debugOutput)
+				Console.WriteLine("Encoded C_RP_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -282,7 +289,8 @@ namespace lib60870
 
 			frame.AppendBytes (delay.GetEncodedValue ());
 
-			Console.WriteLine("Encoded C_CD_NA_1 with " + frame.GetMsgSize() + " bytes.");
+			if (debugOutput)
+				Console.WriteLine("Encoded C_CD_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -291,7 +299,7 @@ namespace lib60870
 		/// Sends the control command.
 		/// </summary>
 		/// <param name="typeId">Type ID of the control command</param>
-		/// <param name="cot">Cause of transmission</param>
+		/// <param name="cot">Cause of transmission (use ACTIVATION to start a control sequence)</param>
 		/// <param name="ca">Common address</param>
 		/// <param name="sc">Information object of the command</param>
 		public void SendControlCommand(TypeID typeId, CauseOfTransmission cot, int ca, InformationObject sc) {
@@ -301,15 +309,20 @@ namespace lib60870
 
 			sc.Encode (frame, parameters);
 
-			Console.WriteLine("Encoded " +  typeId.ToString() + " with " + frame.GetMsgSize() + " bytes.");
+			if (debugOutput)
+				Console.WriteLine("Encoded " +  typeId.ToString() + " with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
 
-		public void connect() {
+		public void Connect() {
 			Thread workerThread = new Thread(HandleConnection);
 
 			workerThread.Start ();
+		}
+
+		public void Disconnect() {
+			this.running = false;
 		}
 
 		private int receiveMessage(Socket socket, byte[] buffer) 
@@ -321,7 +334,9 @@ namespace lib60870
 				return 0;
 
 			if (buffer [0] != 0x68) {
-				Console.WriteLine ("Missing SOF indicator!");
+				if (debugOutput)
+					Console.WriteLine ("Missing SOF indicator!");
+
 				return 0;
 			}
 
@@ -333,7 +348,9 @@ namespace lib60870
 
 			// read remaining frame
 			if (socket.Receive (buffer, 2, length, SocketFlags.None) != length) {
-				Console.WriteLine ("Failed to read complete frame!");
+				if (debugOutput)
+					Console.WriteLine ("Failed to read complete frame!");
+
 				return 0;
 			}
 
@@ -370,7 +387,7 @@ namespace lib60870
                 long currentTime = SystemUtils.currentTimeMillis();
 
 				if ((unconfirmedMessages > parameters.W) || checkConfirmTimeout(currentTime)) {
-					//TODO check timeout condition /* t2 */
+
                     lastConfirmationTime = currentTime;
 
 					unconfirmedMessages = 0;
@@ -381,19 +398,13 @@ namespace lib60870
 
 				if (asduReceivedHandler != null)
 					asduReceivedHandler(asduReceivedHandlerParameter, asdu);
-
-				return true;
 			}
-
-			// Check for TESTFR_ACT message
-			if (buffer [2] == 0x43) {
+			else if (buffer [2] == 0x43) { // Check for TESTFR_ACT message
 
 				if (debugOutput)
 					Console.WriteLine ("Send TESTFR_CON");
 
 				socket.Send (TESTFR_CON_MSG);
-
-				return true;
 			}
 
 			return true;
@@ -416,7 +427,8 @@ namespace lib60870
 				try {
 					socket.Connect(remoteEP);
 
-					Console.WriteLine("Socket connected to {0}",
+					if (debugOutput)
+						Console.WriteLine("Socket connected to {0}",
 					                  socket.RemoteEndPoint.ToString());
 
 					if (autostart)
@@ -435,6 +447,7 @@ namespace lib60870
 								Console.WriteLine(
 									BitConverter.ToString(bytes, 0, bytesRec));
 						
+							//TODO call raw message handler if available
 						
 							if (checkMessage(socket, bytes, bytesRec) == false) {
 								/* close connection on error */
@@ -449,7 +462,8 @@ namespace lib60870
 						Thread.Sleep(100);
 					}
 
-					Console.WriteLine("CLOSE CONNECTION!");
+					if (debugOutput)
+						Console.WriteLine("CLOSE CONNECTION!");
 
 					// Release the socket.
 					socket.Shutdown(SocketShutdown.Both);

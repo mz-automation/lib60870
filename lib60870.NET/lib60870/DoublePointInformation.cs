@@ -57,33 +57,26 @@ namespace lib60870
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			/* parse DIQ (double point information with qualitiy) */
-			byte siq = msg [startIndex++];
+			byte diq = msg [startIndex++];
 
-			value = (DoublePointValue)(siq & 0x03);
+			value = (DoublePointValue)(diq & 0x03);
 
-			quality = new QualityDescriptor ((byte) (siq & 0xf0));
+			quality = new QualityDescriptor ((byte) (diq & 0xf0));
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			byte val = quality.EncodedValue;
+
+			val += (byte)value;
+
+			frame.SetNextByte (val);
 		}
 	}
 
-	//TODO refactor: use DoublePointInformation as common base class
-
-	public class DoublePointWithCP24Time2a : InformationObject
+	public class DoublePointWithCP24Time2a : DoublePointInformation
 	{
-		private DoublePointValue value;
-
-		public DoublePointValue Value {
-			get {
-				return this.value;
-			}
-		}
-
-		private QualityDescriptor quality;
-
-		public QualityDescriptor Quality {
-			get {
-				return this.quality;
-			}
-		}
 
 		private CP24Time2a timestamp;
 
@@ -96,38 +89,21 @@ namespace lib60870
 		public DoublePointWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
-
-			/* parse DIQ (double point information with qualitiy) */
-			byte siq = msg [startIndex++];
-
-			value = (DoublePointValue)(siq & 0x03);
-
-			quality = new QualityDescriptor ((byte) (siq & 0xf0));
+			startIndex += parameters.SizeOfIOA + 1; /* skip IOA  +  DIQ */
 
 			/* parse CP24Time2a (time stamp) */
 			timestamp = new CP24Time2a (msg, startIndex);
 		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
 	}
 
-	public class DoublePointWithCP56Time2a : InformationObject
+	public class DoublePointWithCP56Time2a : DoublePointInformation
 	{
-		private DoublePointValue value;
-
-		public DoublePointValue Value {
-			get {
-				return this.value;
-			}
-		}
-
-		private QualityDescriptor quality;
-
-		public QualityDescriptor Quality {
-			get {
-				return this.quality;
-			}
-		}
-
 		private CP56Time2a timestamp;
 
 		public CP56Time2a Timestamp {
@@ -139,17 +115,16 @@ namespace lib60870
 		public DoublePointWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			startIndex += parameters.SizeOfIOA + 1; /* skip IOA  +  DIQ */
 
-			/* parse DIQ (double point information with qualitiy) */
-			byte siq = msg [startIndex++];
-
-			value = (DoublePointValue)(siq & 0x03);
-
-			quality = new QualityDescriptor ((byte) (siq & 0xf0));
-
-			/* parse CP24Time2a (time stamp) */
+			/* parse CP56Time2a (time stamp) */
 			timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
 	}
 

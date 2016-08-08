@@ -59,26 +59,20 @@ namespace lib60870
 
 		}
 
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.SetNextByte((byte) (value % 0x100));
+			frame.SetNextByte((byte) ((value / 0x100) % 0x100));
+			frame.SetNextByte((byte) ((value / 0x10000) % 0x100));
+			frame.SetNextByte((byte) (value / 0x1000000));
+
+			frame.SetNextByte (quality.EncodedValue);
+		}
 	}
 
-	public class Bitstring32WithCP24Time2a : InformationObject
+	public class Bitstring32WithCP24Time2a : Bitstring32
 	{
-
-		private UInt32 value;
-
-		public UInt32 Value {
-			get {
-				return this.value;
-			}
-		}
-
-		private QualityDescriptor quality;
-
-		public QualityDescriptor Quality {
-			get {
-				return this.quality;
-			}
-		}
 
 		private CP24Time2a timestamp;
 
@@ -91,40 +85,22 @@ namespace lib60870
 		public Bitstring32WithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
-
-			value = msg [startIndex++];
-			value += ((uint)msg [startIndex++] * 0x100);
-			value += ((uint)msg [startIndex++] * 0x10000);
-			value += ((uint)msg [startIndex++] * 0x1000000);
-
-			quality = new QualityDescriptor (msg[startIndex++]);
+			startIndex += parameters.SizeOfIOA + 5; /* skip IOA + value + quality */
 
 			/* parse CP24Time2a (time stamp) */
 			timestamp = new CP24Time2a (msg, startIndex);
 		}
 
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
+
 	}
 
-	public class Bitstring32WithCP56Time2a : InformationObject
+	public class Bitstring32WithCP56Time2a : Bitstring32
 	{
-
-		private UInt32 value;
-
-		public UInt32 Value {
-			get {
-				return this.value;
-			}
-		}
-
-		private QualityDescriptor quality;
-
-		public QualityDescriptor Quality {
-			get {
-				return this.quality;
-			}
-		}
-
 		private CP56Time2a timestamp;
 
 		public CP56Time2a Timestamp {
@@ -136,17 +112,16 @@ namespace lib60870
 		public Bitstring32WithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
-
-			value = msg [startIndex++];
-			value += ((uint)msg [startIndex++] * 0x100);
-			value += ((uint)msg [startIndex++] * 0x10000);
-			value += ((uint)msg [startIndex++] * 0x1000000);
-
-			quality = new QualityDescriptor (msg[startIndex++]);
+			startIndex += parameters.SizeOfIOA + 5; /* skip IOA + value + quality */
 
 			/* parse CP56Time2a (time stamp) */
 			timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
 
 	}

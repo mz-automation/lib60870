@@ -75,34 +75,28 @@ namespace lib60870
 			quality = new QualityDescriptor (msg[startIndex++]);
 		}
 
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			byte vti;
+
+			if (value < 0)
+				vti = (byte)(value + 128);
+			else
+				vti = (byte)value;
+
+			if (isTransient)
+				vti += 0x80;
+
+			frame.SetNextByte (vti);
+				
+			frame.SetNextByte (quality.EncodedValue);
+		}
 
 	}
 
-	public class StepPositionWithCP24Time2a : InformationObject
+	public class StepPositionWithCP24Time2a : StepPositionInformation
 	{
-		private int value;
-
-		public int Value {
-			get {
-				return this.value;
-			}
-		}
-
-		private bool isTransient;
-
-		public bool Transient {
-			get {
-				return this.isTransient;
-			}
-		}
-
-		private QualityDescriptor quality;
-
-		public QualityDescriptor Quality {
-			get {
-				return this.quality;
-			}
-		}
 
 		private CP24Time2a timestamp;
 
@@ -111,56 +105,26 @@ namespace lib60870
 				return this.timestamp;
 			}
 		}
-
-
+			
 		public StepPositionWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
-
-			/* parse VTI (value with transient state indication) */
-			byte vti = msg [startIndex++];
-
-			isTransient = ((vti & 0x80) == 0x80);
-
-			value = (vti & 0x7f);
-
-			if (value > 63)
-				value = value - 128;
-
-			quality = new QualityDescriptor (msg[startIndex++]);
+			startIndex += parameters.SizeOfIOA + 2; /* skip IOA + VTI + quality*/
 
 			/* parse CP24Time2a (time stamp) */
 			timestamp = new CP24Time2a (msg, startIndex);
 		}
 
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
+
 	}
 
-	public class StepPositionWithCP56Time2a : InformationObject
+	public class StepPositionWithCP56Time2a : StepPositionInformation
 	{
-		private int value;
-
-		public int Value {
-			get {
-				return this.value;
-			}
-		}
-
-		private bool isTransient;
-
-		public bool Transient {
-			get {
-				return this.isTransient;
-			}
-		}
-
-		private QualityDescriptor quality;
-
-		public QualityDescriptor Quality {
-			get {
-				return this.quality;
-			}
-		}
 
 		private CP56Time2a timestamp;
 
@@ -174,24 +138,17 @@ namespace lib60870
 		public StepPositionWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
-
-			/* parse VTI (value with transient state indication) */
-			byte vti = msg [startIndex++];
-
-			isTransient = ((vti & 0x80) == 0x80);
-
-			value = (vti & 0x7f);
-
-			if (value > 63)
-				value = value - 128;
-
-			quality = new QualityDescriptor (msg[startIndex++]);
+			startIndex += parameters.SizeOfIOA + 2; /* skip IOA + VTI + quality*/
 
 			/* parse CP24Time2a (time stamp) */
 			timestamp = new CP56Time2a (msg, startIndex);
 		}
 
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
 	}
 	
 }

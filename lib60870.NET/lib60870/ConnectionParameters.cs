@@ -44,7 +44,7 @@ namespace lib60870
 
 		private int t2 = 10; /* timeout to confirm messages (in s) */
 
-		private int t3 = 20; /* time for test telegrams in case of idle connection */
+		private int t3 = 20; /* time until test telegrams in case of idle connection */
 
 		private int sizeOfTypeId = 1;
 
