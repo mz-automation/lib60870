@@ -203,7 +203,33 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
+    case M_ME_NA_1: /* 9 */
 
+        elementSize = self->parameters->sizeOfIOA + 3;
+
+        retVal = (InformationObject) MeasuredValueNormalized_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        //TODO add support for Sequence of elements in a single information object (sq = 1)
+
+        break;
+
+    case M_ME_TA_1: /* 10 */
+
+        elementSize = self->parameters->sizeOfIOA + 6;
+
+        retVal = (InformationObject) MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_ME_NB_1: /* 11 */
+
+        elementSize = self->parameters->sizeOfIOA + 3;
+
+        retVal = (InformationObject) MeasuredValueScaled_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        //TODO add support for Sequence of elements in a single information object (sq = 1)
+
+        break;
 
     case M_SP_TB_1: /* 30 */
 
@@ -234,6 +260,14 @@ ASDU_getElement(ASDU self, int index)
         elementSize = self->parameters->sizeOfIOA + 12;
 
         retVal = (InformationObject) Bitstring32WithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_ME_TD_1: /* 34 */
+
+        elementSize = self->parameters->sizeOfIOA + 10;
+
+        retVal = (InformationObject) MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
 
         break;
 

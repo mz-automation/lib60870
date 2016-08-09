@@ -224,4 +224,83 @@ Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self);
 CP24Time2a
 Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self);
 
+/**********************************************
+ * MeasuredValueNormalized
+ **********************************************/
+
+typedef struct sMeasuredValueNormalized* MeasuredValueNormalized;
+
+void
+MeasuredValueNormalized_initialize(MeasuredValueNormalized self);
+
+void
+MeasuredValueNormalized_destroy(MeasuredValueNormalized self);
+
+float
+MeasuredValueNormalized_getValue(MeasuredValueNormalized self);
+
+void
+MeasuredValueNormalized_setValue(MeasuredValueNormalized self, float value);
+
+QualityDescriptor
+MeasuredValueNormalized_getQuality(MeasuredValueNormalized self);
+
+/***********************************************************************
+ * MeasuredValueNormalizedWithCP24Time2a : MeasuredValueNormalized
+ ***********************************************************************/
+
+typedef struct sMeasuredValueNormalizedWithCP24Time2a* MeasuredValueNormalizedWithCP24Time2a;
+
+void
+MeasuredValueNormalizedWithCP24Time2a_initialize(MeasuredValueNormalizedWithCP24Time2a self);
+
+void
+MeasuredValueNormalizedWithCP24Time2a_destroy(MeasuredValueNormalizedWithCP24Time2a self);
+
+CP24Time2a
+MeasuredValueNormalizedWithCP24Time2a_getTimestamp(MeasuredValueNormalizedWithCP24Time2a self);
+
+void
+MeasuredValueNormalizedWithCP24Time2a_setTimestamp(MeasuredValueNormalizedWithCP24Time2a self, CP24Time2a value);
+
+/***********************************************************************
+ * MeasuredValueNormalizedWithCP56Time2a : MeasuredValueNormalized
+ ***********************************************************************/
+
+typedef struct sMeasuredValueNormalizedWithCP56Time2a* MeasuredValueNormalizedWithCP56Time2a;
+
+void
+MeasuredValueNormalizedWithCP56Time2a_initialize(MeasuredValueNormalizedWithCP56Time2a self);
+
+void
+MeasuredValueNormalizedWithCP56Time2a_destroy(MeasuredValueNormalizedWithCP56Time2a self);
+
+CP56Time2a
+MeasuredValueNormalizedWithCP56Time2a_getTimestamp(MeasuredValueNormalizedWithCP56Time2a self);
+
+void
+MeasuredValueNormalizedWithCP56Time2a_setTimestamp(MeasuredValueNormalizedWithCP56Time2a self, CP56Time2a value);
+
+
+/*******************************************
+ * MeasuredValueScaled
+ *******************************************/
+
+typedef struct sMeasuredValueScaled* MeasuredValueScaled;
+
+void
+MeasuredValueScaled_initialize(MeasuredValueScaled self);
+
+void
+MeasuredValueScaled_destroy(MeasuredValueScaled self);
+
+int
+MeasuredValueScaled_getValue(MeasuredValueScaled self);
+
+void
+MeasuredValueScaled_setValue(MeasuredValueScaled self, int value);
+
+QualityDescriptor
+MeasuredValueScaled_getQuality(MeasuredValueScaled self);
+
 #endif /* SRC_INC_INFORMATION_OBJECTS_H_ */

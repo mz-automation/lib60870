@@ -39,10 +39,15 @@ typedef enum {
     IEC60870_TYPE_STEP_POSITION_INFORMATION,
     IEC60870_TYPE_STEP_POSITION_WITH_CP24TIME2A,
     IEC60870_TYPE_STEP_POSITION_WITH_CP56TIME2A,
-    IEC60870_TYPE_MEAS_VALUE_SCALED_WITH_CP56TIME2A,
     IEC60870_TYPE_BITSTRING32,
     IEC60870_TYPE_BITSTRING32_WITH_CP24TIME2A,
-    IEC60870_TYPE_BITSTRING32_WITH_CP56TIME2A
+    IEC60870_TYPE_BITSTRING32_WITH_CP56TIME2A,
+    IEC60870_TYPE_MEAS_VALUE_NORM,
+    IEC60870_TYPE_MEAS_VALUE_NORM_WITH_CP24TIME2A,
+    IEC60870_TYPE_MEAS_VALUE_NORM_WITH_CP56TIME2A,
+    IEC60870_TYPE_MEAS_VALUE_SCALED,
+    IEC60870_TYPE_MEAS_VALUE_SCALED_WITH_CP24TIME2A,
+    IEC60870_TYPE_MEAS_VALUE_SCALED_WITH_CP56TIME2A
 } InformationObjectType;
 
 typedef struct sInformationObjectVFT* InformationObjectVFT;
@@ -1346,4 +1351,380 @@ Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, Connecti
 
     return self;
 }
+
+
+/**********************************************
+ * MeasuredValueNormalized
+ **********************************************/
+
+struct sMeasuredValueNormalized {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    QualityDescriptor quality;
+};
+
+static int
+getScaledValue(uint8_t* encodedValue)
+{
+    int value;
+
+    value = encodedValue[0];
+    value += (encodedValue[1] * 0x100);
+
+    if (value > 32767)
+        value = value - 65536;
+
+    return value;
+}
+
+static void
+setScaledValue(uint8_t* encodedValue, int value)
+{
+    int valueToEncode;
+
+    if (value < 0)
+        valueToEncode = value + 65536;
+    else
+        valueToEncode = value;
+
+    encodedValue[0] = (uint8_t)(valueToEncode % 256);
+    encodedValue[1] = (uint8_t)(valueToEncode / 256);
+}
+
+static void
+MeasuredValueNormalized_encode(MeasuredValueNormalized self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, self->encodedValue[0]);
+    Frame_setNextByte(frame, self->encodedValue[1]);
+
+    Frame_setNextByte(frame, (uint8_t) self->quality);
+}
+
+struct sInformationObjectVFT measuredValueNormalizedVFT = {
+        .encode = MeasuredValueNormalized_encode,
+        .destroy = MeasuredValueNormalized_destroy
+};
+
+void
+MeasuredValueNormalized_initialize(MeasuredValueNormalized self)
+{
+    self->virtualFunctionTable = &(measuredValueNormalizedVFT);
+    self->type = IEC60870_TYPE_MEAS_VALUE_NORM;
+}
+
+void
+MeasuredValueNormalized_destroy(MeasuredValueNormalized self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+
+float
+MeasuredValueNormalized_getValue(MeasuredValueNormalized self)
+{
+    float nv = (float) (getScaledValue(self->encodedValue)) / 32767.f;
+
+    return nv;
+}
+
+void
+MeasuredValueNormalized_setValue(MeasuredValueNormalized self, float value)
+{
+    //TODO check boundaries
+    int scaledValue = (int)(value * 32767.f);
+
+    setScaledValue(self->encodedValue, value);
+}
+
+QualityDescriptor
+MeasuredValueNormalized_getQuality(MeasuredValueNormalized self)
+{
+    return self->quality;
+}
+
+MeasuredValueNormalized
+MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    //TODO check message size
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalized));
+
+        if (self != NULL)
+            MeasuredValueNormalized_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->encodedValue[0] = msg [startIndex++];
+        self->encodedValue[1] = msg [startIndex++];
+
+        /* quality */
+        self->quality = (QualityDescriptor) msg [startIndex++];
+    }
+
+    return self;
+}
+
+/***********************************************************************
+ * MeasuredValueNormalizedWithCP24Time2a : MeasuredValueNormalized
+ ***********************************************************************/
+
+struct sMeasuredValueNormalizedWithCP24Time2a {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    QualityDescriptor quality;
+
+    struct sCP24Time2a timestamp;
+};
+
+static void
+MeasuredValueNormalizedWithCP24Time2a_encode(MeasuredValueNormalizedWithCP24Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters);
+
+    /* timestamp */
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+}
+
+struct sInformationObjectVFT measuredValueNormalizedWithCP24Time2aVFT = {
+        .encode = MeasuredValueNormalizedWithCP24Time2a_encode,
+        .destroy = MeasuredValueNormalizedWithCP24Time2a_destroy
+};
+
+void
+MeasuredValueNormalizedWithCP24Time2a_initialize(MeasuredValueNormalizedWithCP24Time2a self)
+{
+    self->virtualFunctionTable = &(measuredValueNormalizedWithCP24Time2aVFT);
+    self->type = IEC60870_TYPE_MEAS_VALUE_NORM_WITH_CP24TIME2A;
+}
+
+void
+MeasuredValueNormalizedWithCP24Time2a_destroy(MeasuredValueNormalizedWithCP24Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+CP24Time2a
+MeasuredValueNormalizedWithCP24Time2a_getTimestamp(MeasuredValueNormalizedWithCP24Time2a self)
+{
+    return &(self->timestamp);
+}
+
+void
+MeasuredValueNormalizedWithCP24Time2a_setTimestamp(MeasuredValueNormalizedWithCP24Time2a self,
+        CP24Time2a value)
+{
+    int i;
+    for (i = 0; i < 3; i++) {
+        self->timestamp.encodedValue[i] = self->encodedValue[i];
+    }
+}
+
+MeasuredValueNormalizedWithCP24Time2a
+MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithCP24Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    //TODO check message size
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP24Time2a));
+
+        if (self != NULL)
+            MeasuredValueNormalizedWithCP24Time2a_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->encodedValue[0] = msg [startIndex++];
+        self->encodedValue[1] = msg [startIndex++];
+
+        /* quality */
+        self->quality = (QualityDescriptor) msg [startIndex++];
+
+        /* timestamp */
+        CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+/***********************************************************************
+ * MeasuredValueNormalizedWithCP56Time2a : MeasuredValueNormalized
+ ***********************************************************************/
+
+struct sMeasuredValueNormalizedWithCP56Time2a {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    QualityDescriptor quality;
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+MeasuredValueNormalizedWithCP56Time2a_encode(MeasuredValueNormalizedWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters);
+
+    /* timestamp */
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT measuredValueNormalizedWithCP56Time2aVFT = {
+        .encode = MeasuredValueNormalizedWithCP56Time2a_encode,
+        .destroy = MeasuredValueNormalizedWithCP56Time2a_destroy
+};
+
+void
+MeasuredValueNormalizedWithCP56Time2a_initialize(MeasuredValueNormalizedWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(measuredValueNormalizedWithCP56Time2aVFT);
+    self->type = IEC60870_TYPE_MEAS_VALUE_NORM_WITH_CP56TIME2A;
+}
+
+void
+MeasuredValueNormalizedWithCP56Time2a_destroy(MeasuredValueNormalizedWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+CP56Time2a
+MeasuredValueNormalizedWithCP56Time2a_getTimestamp(MeasuredValueNormalizedWithCP56Time2a self)
+{
+    return &(self->timestamp);
+}
+
+void
+MeasuredValueNormalizedWithCP56Time2a_setTimestamp(MeasuredValueNormalizedWithCP56Time2a self,
+        CP56Time2a value)
+{
+    int i;
+    for (i = 0; i < 7; i++) {
+        self->timestamp.encodedValue[i] = self->encodedValue[i];
+    }
+}
+
+
+/*******************************************
+ * MeasuredValueScaled
+ *******************************************/
+
+struct sMeasuredValueScaled {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    QualityDescriptor quality;
+};
+
+static void
+MeasuredValueScaled_encode(MeasuredValueScaled self, Frame frame, ConnectionParameters parameters)
+{
+    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters);
+}
+
+struct sInformationObjectVFT measuredValueScaledVFT = {
+        .encode = MeasuredValueScaled_encode,
+        .destroy = MeasuredValueScaled_destroy
+};
+
+void
+MeasuredValueScaled_initialize(MeasuredValueScaled self)
+{
+    self->virtualFunctionTable = &(measuredValueScaledVFT);
+    self->type = IEC60870_TYPE_MEAS_VALUE_SCALED;
+}
+
+void
+MeasuredValueScaled_destroy(MeasuredValueScaled self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+
+int
+MeasuredValueScaled_getValue(MeasuredValueScaled self)
+{
+    return getScaledValue(self->encodedValue);
+}
+
+void
+MeasuredValueScaled_setValue(MeasuredValueScaled self, int value)
+{
+    //TODO check boundaries
+    setScaledValue(self->encodedValue, value);
+}
+
+QualityDescriptor
+MeasuredValueScaled_getQuality(MeasuredValueScaled self)
+{
+    return self->quality;
+}
+
+MeasuredValueScaled
+MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    //TODO check message size
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaled));
+
+        if (self != NULL)
+            MeasuredValueScaled_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->encodedValue[0] = msg [startIndex++];
+        self->encodedValue[1] = msg [startIndex++];
+
+        /* quality */
+        self->quality = (QualityDescriptor) msg [startIndex++];
+    }
+
+    return self;
+}
+
 
