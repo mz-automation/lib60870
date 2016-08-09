@@ -23,8 +23,8 @@ asduReceivedHandler (void* parameter, ASDU asdu)
                     (MeasuredValueScaledWithCP56Time2a) ASDU_getElement(asdu, i);
 
             printf("    IOA: %i value: %i\n",
-                    MeasuredValueScaledWithCP56Time2a_getObjectAddress(io),
-                    MeasuredValueScaledWithCP56Time2a_getScaledValue(io)
+                    InformationObject_getObjectAddress((InformationObject) io),
+                    MeasuredValueScaled_getValue((MeasuredValueScaled) io)
             );
 
             MeasuredValueScaledWithCP56Time2a_destroy(io);

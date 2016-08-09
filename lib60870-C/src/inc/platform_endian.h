@@ -1,6 +1,4 @@
 /*
- *  apl_types_internal.h
- *
  *  Copyright 2016 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
@@ -21,25 +19,33 @@
  *  See COPYING file for the complete license text.
  */
 
-#ifndef SRC_INC_APL_TYPES_INTERNAL_H_
-#define SRC_INC_APL_TYPES_INTERNAL_H_
+#ifndef ENDIAN_H_
+#define ENDIAN_H_
 
-#include <stdint.h>
+#include "lib60870_config.h"
 
-struct sCP16Time2a {
-    uint8_t encodedValue[2];
-};
+#ifndef PLATFORM_IS_BIGENDIAN
+#ifdef __GNUC__
+#ifdef __BYTE_ORDER__
+#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#define PLATFORM_IS_BIGENDIAN 1
+#endif
 
-struct sCP24Time2a {
-    uint8_t encodedValue[3];
-};
+#else
 
-struct sCP56Time2a {
-    uint8_t encodedValue[7];
-};
+/* older versions of GCC have __BYTE_ORDER__ not defined! */
+#ifdef __PPC__
+#define PLATFORM_IS_BIGENDIAN 1
+#endif
 
-struct sBinaryCounterReading {
-    uint8_t encodedValue[5];
-};
+#endif /* __BYTE_ORDER__ */
+#endif /* __GNUC__ */
+#endif
 
-#endif /* SRC_INC_APL_TYPES_INTERNAL_H_ */
+#if (PLATFORM_IS_BIGENDIAN == 1)
+#  define ORDER_LITTLE_ENDIAN 0
+#else
+#  define ORDER_LITTLE_ENDIAN 1
+#endif
+
+#endif /* ENDIAN_H_ */

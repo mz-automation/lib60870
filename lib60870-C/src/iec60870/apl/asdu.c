@@ -231,6 +231,48 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
+    case M_ME_TB_1: /* 12 */
+
+        elementSize = self->parameters->sizeOfIOA + 6;
+
+        retVal = (InformationObject) MeasuredValueScaledWithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+
+    case M_ME_NC_1: /* 13 */
+
+        elementSize = self->parameters->sizeOfIOA + 5;
+
+        retVal = (InformationObject) MeasuredValueShort_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_ME_TC_1: /* 14 */
+
+        elementSize = self->parameters->sizeOfIOA + 8;
+
+        retVal = (InformationObject) MeasuredValueShortWithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_IT_NA_1: /* 15 */
+
+        elementSize = self->parameters->sizeOfIOA + 5;
+
+        retVal = (InformationObject) IntegratedTotals_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_IT_TA_1: /* 16 */
+
+        elementSize = self->parameters->sizeOfIOA + 8;
+
+        retVal = (InformationObject) IntegratedTotalsWithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+
     case M_SP_TB_1: /* 30 */
 
         elementSize = self->parameters->sizeOfIOA + 8;
@@ -276,6 +318,22 @@ ASDU_getElement(ASDU self, int index)
         elementSize = self->parameters->sizeOfIOA + 10;
 
         retVal = (InformationObject) MeasuredValueScaledWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_ME_TF_1: /* 36 */
+
+        elementSize = self->parameters->sizeOfIOA + 12;
+
+        retVal = (InformationObject) MeasuredValueShortWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_IT_TB_1: /* 37 */
+
+        elementSize = self->parameters->sizeOfIOA + 12;
+
+        retVal = (InformationObject) IntegratedTotalsWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
 
         break;
 

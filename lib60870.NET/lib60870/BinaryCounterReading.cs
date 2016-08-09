@@ -44,11 +44,27 @@ namespace lib60870
 
 				return value;
 			}
+
+			set {
+				byte[] valueBytes = BitConverter.GetBytes (value);
+
+				if (BitConverter.IsLittleEndian == false)
+					Array.Reverse (valueBytes);
+
+				Array.Copy (valueBytes, encodedValue, 4);
+			}
 		}
 
 		public int SequenceNumber {
 			get {
 				return (encodedValue [4] & 0x1f);
+			}
+
+			set {
+				int seqNumber = value & 0x1f;
+				int flags = encodedValue[4] & 0xe0;
+
+				encodedValue[4] = (byte) (flags | seqNumber);
 			}
 		}
 
@@ -56,17 +72,38 @@ namespace lib60870
 			get {
 				return ((encodedValue[4] & 0x20) == 0x20);
 			}
+
+			set {
+				if (value)
+					encodedValue[4] |= 0x20;
+				else
+					encodedValue[4] &= 0xdf;
+			}
 		}
 
 		public bool Adjusted {
 			get {
 				return ((encodedValue[4] & 0x40) == 0x40);
 			}
+
+			set {
+				if (value)
+					encodedValue[4] |= 0x40;
+				else
+					encodedValue[4] &= 0xbf;
+			}
 		}
 
 		public bool Invalid {
 			get {
 				return ((encodedValue[4] & 0x80) == 0x80);
+			}
+
+			set {
+				if (value)
+					encodedValue[4] |= 0x80;
+				else
+					encodedValue[4] &= 0x7f;
 			}
 		}
 

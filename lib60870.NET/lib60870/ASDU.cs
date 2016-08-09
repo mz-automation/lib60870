@@ -330,7 +330,7 @@ namespace lib60870
 
 				elementSize = parameters.SizeOfIOA + 5;
 
-				retVal = new MeasuredValueShortFloat (parameters, payload, index * elementSize);
+				retVal = new MeasuredValueShort (parameters, payload, index * elementSize);
 
 				//TODO add support for Sequence of elements in a single information object (sq = 1)
 
@@ -338,9 +338,9 @@ namespace lib60870
 
 			case TypeID.M_ME_TC_1: /* 14 */
 
-				elementSize = parameters.SizeOfIOA + 5;
+				elementSize = parameters.SizeOfIOA + 8;
 
-				retVal = new MeasuredValueShortFloatWithCP24Time2a (parameters, payload, index * elementSize);
+				retVal = new MeasuredValueShortWithCP24Time2a (parameters, payload, index * elementSize);
 
 				break;
 
@@ -460,7 +460,7 @@ namespace lib60870
 
 				elementSize = parameters.SizeOfIOA + 12;
 
-				retVal = new MeasuredValueShortFloatWithCP56Time2a (parameters, payload, index * elementSize);
+				retVal = new MeasuredValueShortWithCP56Time2a (parameters, payload, index * elementSize);
 
 				break;
 

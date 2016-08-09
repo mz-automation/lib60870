@@ -35,6 +35,8 @@ typedef struct sCP24Time2a* CP24Time2a;
 
 typedef struct sCP56Time2a* CP56Time2a;
 
+typedef struct sBinaryCounterReading* BinaryCounterReading;
+
 typedef struct sConnectionParameters* ConnectionParameters;
 
 typedef struct sT104ConnectionParameters* T104ConnectionParameters;

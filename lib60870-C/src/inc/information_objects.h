@@ -38,6 +38,9 @@ typedef enum  {
 
 typedef struct sInformationObject* InformationObject;
 
+int
+InformationObject_getObjectAddress(InformationObject self);
+
 /**
  * \brief Destroy object - free all related resources
  *
@@ -53,9 +56,6 @@ InformationObject_destroy(InformationObject self);
  ************************************************/
 
 typedef struct sSinglePointInformation* SinglePointInformation;
-
-int
-SinglePointInformation_getObjectAddress(SinglePointInformation self);
 
 bool
 SinglePointInformation_getValue(SinglePointInformation self);
@@ -154,27 +154,6 @@ StepPositionWithCP56Time2a_destroy(StepPositionWithCP56Time2a self);
 
 CP56Time2a
 StepPositionWithCP56Time2a_getTimestamp(StepPositionWithCP56Time2a self);
-
-/**********************************************
- * MeasuredValueScaledWithCP56Time2a
- **********************************************/
-
-typedef struct sMeasuredValueScaledWithCP56Time2a* MeasuredValueScaledWithCP56Time2a;
-
-int
-MeasuredValueScaledWithCP56Time2a_getObjectAddress(MeasuredValueScaledWithCP56Time2a self);
-
-int
-MeasuredValueScaledWithCP56Time2a_getScaledValue(MeasuredValueScaledWithCP56Time2a self);
-
-QualityDescriptor
-MeasuredValueScaledWithCP56Time2a_getQuality(MeasuredValueScaledWithCP56Time2a self);
-
-CP56Time2a
-MeasuredValueScaledWithCP56Time2a_getTimestamp(MeasuredValueScaledWithCP56Time2a self);
-
-void
-MeasuredValueScaledWithCP56Time2a_destroy(MeasuredValueScaledWithCP56Time2a self);
 
 /**********************************************
  * BitString32 (:InformationObject)
@@ -283,7 +262,7 @@ MeasuredValueNormalizedWithCP56Time2a_setTimestamp(MeasuredValueNormalizedWithCP
 
 
 /*******************************************
- * MeasuredValueScaled
+ * MeasuredValueScaled : InformationObject
  *******************************************/
 
 typedef struct sMeasuredValueScaled* MeasuredValueScaled;
@@ -302,5 +281,156 @@ MeasuredValueScaled_setValue(MeasuredValueScaled self, int value);
 
 QualityDescriptor
 MeasuredValueScaled_getQuality(MeasuredValueScaled self);
+
+/***********************************************************************
+ * MeasuredValueScaledWithCP24Time2a : MeasuredValueScaled
+ ***********************************************************************/
+
+typedef struct sMeasuredValueScaledWithCP24Time2a* MeasuredValueScaledWithCP24Time2a;
+
+void
+MeasuredValueScaledWithCP24Time2a_initialize(MeasuredValueScaledWithCP24Time2a self);
+
+void
+MeasuredValueScaledWithCP24Time2a_destroy(MeasuredValueScaledWithCP24Time2a self);
+
+CP24Time2a
+MeasuredValueScaledWithCP24Time2a_getTimestamp(MeasuredValueScaledWithCP24Time2a self);
+
+void
+MeasuredValueScaledWithCP24Time2a_setTimestamp(MeasuredValueScaledWithCP24Time2a self, CP24Time2a value);
+
+/***********************************************************************
+ * MeasuredValueScaledWithCP56Time2a : MeasuredValueScaled
+ ***********************************************************************/
+
+typedef struct sMeasuredValueScaledWithCP56Time2a* MeasuredValueScaledWithCP56Time2a;
+
+void
+MeasuredValueScaledWithCP56Time2a_initialize(MeasuredValueScaledWithCP56Time2a self);
+
+void
+MeasuredValueScaledWithCP56Time2a_destroy(MeasuredValueScaledWithCP56Time2a self);
+
+CP56Time2a
+MeasuredValueScaledWithCP56Time2a_getTimestamp(MeasuredValueScaledWithCP56Time2a self);
+
+void
+MeasuredValueScaledWithCP56Time2a_setTimestamp(MeasuredValueScaledWithCP56Time2a self, CP56Time2a value);
+
+/*******************************************
+ * MeasuredValueShort : InformationObject
+ *******************************************/
+
+typedef struct sMeasuredValueShort* MeasuredValueShort;
+
+void
+MeasuredValueShort_initialize(MeasuredValueShort self);
+
+void
+MeasuredValueShort_destroy(MeasuredValueShort self);
+
+float
+MeasuredValueShort_getValue(MeasuredValueShort self);
+
+void
+MeasuredValueShort_setValue(MeasuredValueShort self, float value);
+
+QualityDescriptor
+MeasuredValueShort_getQuality(MeasuredValueShort self);
+
+/***********************************************************************
+ * MeasuredValueShortWithCP24Time2a : MeasuredValueShort
+ ***********************************************************************/
+
+typedef struct sMeasuredValueShortWithCP24Time2a* MeasuredValueShortWithCP24Time2a;
+
+void
+MeasuredValueShortWithCP24Time2a_initialize(MeasuredValueShortWithCP24Time2a self);
+
+void
+MeasuredValueShortWithCP24Time2a_destroy(MeasuredValueShortWithCP24Time2a self);
+
+CP24Time2a
+MeasuredValueShortWithCP24Time2a_getTimestamp(MeasuredValueShortWithCP24Time2a self);
+
+void
+MeasuredValueShortWithCP24Time2a_setTimestamp(MeasuredValueShortWithCP24Time2a self,
+        CP24Time2a value);
+
+/***********************************************************************
+ * MeasuredValueShortWithCP56Time2a : MeasuredValueShort
+ ***********************************************************************/
+
+typedef struct sMeasuredValueShortWithCP56Time2a* MeasuredValueShortWithCP56Time2a;
+
+void
+MeasuredValueShortWithCP56Time2a_initialize(MeasuredValueShortWithCP56Time2a self);
+
+void
+MeasuredValueShortWithCP56Time2a_destroy(MeasuredValueShortWithCP56Time2a self);
+
+CP56Time2a
+MeasuredValueShortWithCP56Time2a_getTimestamp(MeasuredValueShortWithCP56Time2a self);
+
+void
+MeasuredValueShortWithCP56Time2a_setTimestamp(MeasuredValueShortWithCP56Time2a self,
+        CP56Time2a value);
+
+/*******************************************
+ * IntegratedTotals : InformationObject
+ *******************************************/
+
+typedef struct sIntegratedTotals* IntegratedTotals;
+
+void
+IntegratedTotals_initialize(IntegratedTotals self);
+
+void
+IntegratedTotals_destroy(IntegratedTotals self);
+
+BinaryCounterReading
+IntegratedTotals_getBCR(IntegratedTotals self);
+
+void
+IntegratedTotals_setBCR(IntegratedTotals self, BinaryCounterReading value);
+
+/***********************************************************************
+ * IntegratedTotalsWithCP24Time2a : IntegratedTotals
+ ***********************************************************************/
+
+typedef struct sIntegratedTotalsWithCP24Time2a* IntegratedTotalsWithCP24Time2a;
+
+void
+IntegratedTotalsWithCP24Time2a_initialize(IntegratedTotalsWithCP24Time2a self);
+
+void
+IntegratedTotalsWithCP24Time2a_destroy(IntegratedTotalsWithCP24Time2a self);
+
+CP24Time2a
+IntegratedTotalsWithCP24Time2a_getTimestamp(IntegratedTotalsWithCP24Time2a self);
+
+void
+IntegratedTotalsWithCP24Time2a_setTimestamp(IntegratedTotalsWithCP24Time2a self,
+        CP24Time2a value);
+
+/***********************************************************************
+ * IntegratedTotalsWithCP56Time2a : IntegratedTotals
+ ***********************************************************************/
+
+typedef struct sIntegratedTotalsWithCP56Time2a* IntegratedTotalsWithCP56Time2a;
+
+void
+IntegratedTotalsWithCP56Time2a_initialize(IntegratedTotalsWithCP56Time2a self);
+
+void
+IntegratedTotalsWithCP56Time2a_destroy(IntegratedTotalsWithCP56Time2a self);
+
+CP56Time2a
+IntegratedTotalsWithCP56Time2a_getTimestamp(IntegratedTotalsWithCP56Time2a self);
+
+void
+IntegratedTotalsWithCP56Time2a_setTimestamp(IntegratedTotalsWithCP56Time2a self,
+        CP56Time2a value);
 
 #endif /* SRC_INC_INFORMATION_OBJECTS_H_ */

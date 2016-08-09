@@ -36,7 +36,7 @@ namespace testclient
 			} else if (asdu.TypeId == TypeID.M_ME_TF_1) {
 
 				for (int i = 0; i < asdu.NumberOfElements; i++) {
-					var mfv = (MeasuredValueShortFloatWithCP56Time2a)asdu.GetElement (i);
+					var mfv = (MeasuredValueShortWithCP56Time2a)asdu.GetElement (i);
 
 					Console.WriteLine ("  IOA: " + mfv.ObjectAddress + " float value: " + mfv.Value);
 					Console.WriteLine ("   " + mfv.Quality.ToString ());
@@ -56,7 +56,7 @@ namespace testclient
 			} else if (asdu.TypeId == TypeID.M_ME_NC_1) {
 
 				for (int i = 0; i < asdu.NumberOfElements; i++) {
-					var mfv = (MeasuredValueShortFloat)asdu.GetElement (i);
+					var mfv = (MeasuredValueShort)asdu.GetElement (i);
 
 					Console.WriteLine ("  IOA: " + mfv.ObjectAddress + " float value: " + mfv.Value);
 					Console.WriteLine ("   " + mfv.Quality.ToString ());

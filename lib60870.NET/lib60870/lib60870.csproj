@@ -49,7 +49,6 @@
     <Compile Include="CP24Time2a.cs" />
     <Compile Include="CP16Time2a.cs" />
     <Compile Include="MeasuredValueScaled.cs" />
-    <Compile Include="MeasuredValueShortFloat.cs" />
     <Compile Include="SingleCommand.cs" />
     <Compile Include="T104Frame.cs" />
     <Compile Include="Frame.cs" />
@@ -75,6 +74,7 @@
     <Compile Include="SetpointCommands.cs" />
     <Compile Include="ParameterMeasuredValues.cs" />
     <Compile Include="SystemInformationCommands.cs" />
+    <Compile Include="MeasuredValueShort.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
