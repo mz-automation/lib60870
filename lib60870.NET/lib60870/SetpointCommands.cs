@@ -129,7 +129,7 @@ namespace lib60870
 		}
 	}
 
-	public class SetpointCommandShortFloat : InformationObject 
+	public class SetpointCommandShort : InformationObject 
 	{
 		private float value;
 
@@ -147,14 +147,14 @@ namespace lib60870
 			}
 		}
 
-		public SetpointCommandShortFloat (int objectAddress, float value, SetpointCommandQualifier qos)
+		public SetpointCommandShort (int objectAddress, float value, SetpointCommandQualifier qos)
 			: base(objectAddress)
 		{
 			this.value = value;
 			this.qos = qos;
 		}
 
-		public SetpointCommandShortFloat (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		public SetpointCommandShort (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */

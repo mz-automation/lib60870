@@ -62,7 +62,10 @@ typedef enum {
 
     IEC60870_TYPE_DOUBLE_COMMAND,
     IEC60870_TYPE_STEP_COMMAND,
-    IEC60870_TYPE_SETPOINT_COMMAND_NORM
+    IEC60870_TYPE_SETPOINT_COMMAND_NORM,
+    IEC60870_TYPE_SETPOINT_COMMAND_SCALED,
+    IEC60870_TYPE_SETPOINT_COMMAND_SHORT,
+    IEC60870_TYPE_BITSTRING32_COMMAND
 } InformationObjectType;
 
 typedef struct sInformationObjectVFT* InformationObjectVFT;
@@ -1911,7 +1914,6 @@ MeasuredValueShort_encode(MeasuredValueShort self, Frame frame, ConnectionParame
 {
     InformationObject_encodeBase((InformationObject) self, frame, parameters);
 
-
     uint8_t* valueBytes = (uint8_t*) &(self->value);
 
 #if (ORDER_LITTLE_ENDIAN == 1)
@@ -3058,6 +3060,377 @@ SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, Connecti
 
         /* QOS - qualifier of setpoint command */
         self->qos = msg[startIndex];
+    }
+
+    return self;
+}
+
+/*************************************************
+ * SetpointCommandScaled: InformationObject
+ ************************************************/
+
+struct sSetpointCommandScaled {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    uint8_t qos; /* Qualifier of setpoint command */
+};
+
+static void
+SetpointCommandScaled_encode(SetpointCommandScaled self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->encodedValue, 2);
+    Frame_setNextByte(frame, self->qos);
+}
+
+struct sInformationObjectVFT setpointCommandScaledVFT = {
+        .encode = (EncodeFunction) SetpointCommandScaled_encode,
+        .destroy = (DestroyFunction) SetpointCommandScaled_destroy
+};
+
+void
+SetpointCommandScaled_initialize(SetpointCommandScaled self)
+{
+    self->virtualFunctionTable = &(setpointCommandScaledVFT);
+    self->type = IEC60870_TYPE_SETPOINT_COMMAND_SCALED;
+}
+
+void
+SetpointCommandScaled_destroy(SetpointCommandScaled self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+SetpointCommandScaled
+SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, float value, bool selectCommand, int ql)
+{
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaled));
+
+        if (self == NULL)
+            return NULL;
+        else
+            SetpointCommandScaled_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    int scaledValue = (int)(value * 32767.f);
+
+    setScaledValue(self->encodedValue, scaledValue);
+
+    uint8_t qos = ql;
+
+    if (selectCommand) qos |= 0x80;
+
+    self->qos = qos;
+
+    return self;
+}
+
+int
+SetpointCommandScaled_getValue(SetpointCommandScaled self)
+{
+    return getScaledValue(self->encodedValue);
+}
+
+int
+SetpointCommandScaled_getQL(SetpointCommandScaled self)
+{
+    return (int) (self->qos & 0x7f);
+}
+
+bool
+SetpointCommandScaled_isSelect(SetpointCommandScaled self)
+{
+    return ((self->qos & 0x80) == 0x80);
+}
+
+SetpointCommandScaled
+SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 3))
+        return NULL;
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaled));
+
+        if (self != NULL)
+            SetpointCommandScaled_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->encodedValue[0] = msg[startIndex++];
+        self->encodedValue[1] = msg[startIndex++];
+
+        /* QOS - qualifier of setpoint command */
+        self->qos = msg[startIndex];
+    }
+
+    return self;
+}
+
+/*************************************************
+ * SetpointCommandShort: InformationObject
+ ************************************************/
+
+struct sSetpointCommandShort {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    float value;
+
+    uint8_t qos; /* Qualifier of setpoint command */
+};
+
+static void
+SetpointCommandShort_encode(SetpointCommandShort self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    uint8_t* valueBytes = (uint8_t*) &(self->value);
+
+#if (ORDER_LITTLE_ENDIAN == 1)
+    Frame_appendBytes(frame, valueBytes, 4);
+#else
+    Frame_setNextByte(frame, valueBytes[3]);
+    Frame_setNextByte(frame, valueBytes[2]);
+    Frame_setNextByte(frame, valueBytes[1]);
+    Frame_setNextByte(frame, valueBytes[0]);
+#endif
+
+    Frame_setNextByte(frame, self->qos);
+}
+
+struct sInformationObjectVFT setpointCommandShortVFT = {
+        .encode = (EncodeFunction) SetpointCommandShort_encode,
+        .destroy = (DestroyFunction) SetpointCommandShort_destroy
+};
+
+void
+SetpointCommandShort_initialize(SetpointCommandShort self)
+{
+    self->virtualFunctionTable = &(setpointCommandShortVFT);
+    self->type = IEC60870_TYPE_SETPOINT_COMMAND_SHORT;
+}
+
+void
+SetpointCommandShort_destroy(SetpointCommandShort self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+SetpointCommandShort
+SetpointCommandShort_create(SetpointCommandShort self, int ioa, float value, bool selectCommand, int ql)
+{
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandShort));
+
+        if (self == NULL)
+            return NULL;
+        else
+            SetpointCommandShort_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    self->value = value;
+
+    uint8_t qos = ql & 0x7f;
+
+    if (selectCommand) qos |= 0x80;
+
+    self->qos = qos;
+
+    return self;
+}
+
+float
+SetpointCommandShort_getValue(SetpointCommandShort self)
+{
+    return self->value;
+}
+
+int
+SetpointCommandShort_getQL(SetpointCommandShort self)
+{
+    return (int) (self->qos & 0x7f);
+}
+
+bool
+SetpointCommandShort_isSelect(SetpointCommandShort self)
+{
+    return ((self->qos & 0x80) == 0x80);
+}
+
+SetpointCommandShort
+SetpointCommandShort_getFromBuffer(SetpointCommandShort self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 5))
+        return NULL;
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandShort));
+
+        if (self != NULL)
+            SetpointCommandShort_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        uint8_t* valueBytes = (uint8_t*) &(self->value);
+
+#if (ORDER_LITTLE_ENDIAN == 1)
+        valueBytes[0] = msg [startIndex++];
+        valueBytes[1] = msg [startIndex++];
+        valueBytes[2] = msg [startIndex++];
+        valueBytes[3] = msg [startIndex++];
+#else
+        valueBytes[3] = msg [startIndex++];
+        valueBytes[2] = msg [startIndex++];
+        valueBytes[1] = msg [startIndex++];
+        valueBytes[0] = msg [startIndex++];
+#endif
+
+
+        /* QOS - qualifier of setpoint command */
+        self->qos = msg[startIndex];
+    }
+
+    return self;
+}
+
+/*************************************************
+ * Bitstring32Command : InformationObject
+ ************************************************/
+
+struct sBitstring32Command {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint32_t value;
+};
+
+static void
+Bitstring32Command_encode(Bitstring32Command self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    uint8_t* valueBytes = (uint8_t*) &(self->value);
+
+#if (ORDER_LITTLE_ENDIAN == 1)
+    Frame_appendBytes(frame, valueBytes, 4);
+#else
+    Frame_setNextByte(frame, valueBytes[3]);
+    Frame_setNextByte(frame, valueBytes[2]);
+    Frame_setNextByte(frame, valueBytes[1]);
+    Frame_setNextByte(frame, valueBytes[0]);
+#endif
+}
+
+struct sInformationObjectVFT bitstring32CommandVFT = {
+        .encode = (EncodeFunction) Bitstring32Command_encode,
+        .destroy = (DestroyFunction) Bitstring32Command_destroy
+};
+
+void
+Bitstring32Command_initialize(Bitstring32Command self)
+{
+    self->virtualFunctionTable = &(bitstring32CommandVFT);
+    self->type = IEC60870_TYPE_BITSTRING32_COMMAND;
+}
+
+Bitstring32Command
+Bitstring32Command_create(Bitstring32Command self, int ioa, uint32_t value)
+{
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sBitstring32Command));
+
+        if (self == NULL)
+            return NULL;
+        else
+            Bitstring32Command_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    self->value = value;
+
+    return self;
+}
+
+void
+Bitstring32Command_destroy(Bitstring32Command self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+uint32_t
+Bitstring32Command_getValue(Bitstring32Command self)
+{
+    return self->value;
+}
+
+Bitstring32Command
+Bitstring32Command_getFromBuffer(Bitstring32Command self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 4))
+        return NULL;
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sBitstring32Command));
+
+        if (self != NULL)
+            Bitstring32Command_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        uint8_t* valueBytes = (uint8_t*) &(self->value);
+
+#if (ORDER_LITTLE_ENDIAN == 1)
+        valueBytes[0] = msg [startIndex++];
+        valueBytes[1] = msg [startIndex++];
+        valueBytes[2] = msg [startIndex++];
+        valueBytes[3] = msg [startIndex++];
+#else
+        valueBytes[3] = msg [startIndex++];
+        valueBytes[2] = msg [startIndex++];
+        valueBytes[1] = msg [startIndex++];
+        valueBytes[0] = msg [startIndex++];
+#endif
     }
 
     return self;

@@ -542,7 +542,7 @@ namespace lib60870
 
 				elementSize = parameters.SizeOfIOA + 5;
 
-				retVal = new SetpointCommandShortFloat (parameters, payload, index * elementSize);
+				retVal = new SetpointCommandShort (parameters, payload, index * elementSize);
 
 				break;
 
@@ -557,6 +557,14 @@ namespace lib60870
 			/* 52 - 57 reserved */
 
 				/* TODO */
+
+			case TypeID.C_SC_TA_1: /* 58 - Single command with CP56Time2a */
+
+				elementSize = parameters.SizeOfIOA + 8;
+
+				retVal = new SingleCommandWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
 
 			/* 65 - 69 reserved */
 

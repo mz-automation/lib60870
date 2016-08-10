@@ -605,4 +605,70 @@ SetPointCommandNormalized_getQL(SetpointCommandNormalized self);
 bool
 SetpointCommandNormalized_isSelect(SetpointCommandNormalized self);
 
+/*************************************************
+ * SetpointCommandScaled : InformationObject
+ ************************************************/
+
+typedef struct sSetpointCommandScaled* SetpointCommandScaled;
+
+void
+SetpointCommandScaled_initialize(SetpointCommandScaled self);
+
+void
+SetpointCommandScaled_destroy(SetpointCommandScaled self);
+
+SetpointCommandScaled
+SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, float value, bool selectCommand, int ql);
+
+int
+SetpointCommandScaled_getValue(SetpointCommandScaled self);
+
+int
+SetpointCommandScaled_getQL(SetpointCommandScaled self);
+
+bool
+SetpointCommandScaled_isSelect(SetpointCommandScaled self);
+
+/*************************************************
+ * SetpointCommandShort: InformationObject
+ ************************************************/
+
+typedef struct sSetpointCommandShort* SetpointCommandShort;
+
+void
+SetpointCommandShort_initialize(SetpointCommandShort self);
+
+void
+SetpointCommandShort_destroy(SetpointCommandShort self);
+
+SetpointCommandShort
+SetpointCommandShort_create(SetpointCommandShort self, int ioa, float value, bool selectCommand, int ql);
+
+float
+SetpointCommandShort_getValue(SetpointCommandShort self);
+
+int
+SetpointCommandShort_getQL(SetpointCommandShort self);
+
+bool
+SetpointCommandShort_isSelect(SetpointCommandShort self);
+
+/*************************************************
+ * Bitstring32Command : InformationObject
+ ************************************************/
+
+typedef struct sBitstring32Command* Bitstring32Command;
+
+void
+Bitstring32Command_initialize(Bitstring32Command self);
+
+Bitstring32Command
+Bitstring32Command_create(Bitstring32Command self, int ioa, uint32_t value);
+
+void
+Bitstring32Command_destroy(Bitstring32Command self);
+
+uint32_t
+Bitstring32Command_getValue(Bitstring32Command self);
+
 #endif /* SRC_INC_INFORMATION_OBJECTS_H_ */

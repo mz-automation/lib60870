@@ -130,4 +130,16 @@ SetpointCommandNormalized
 SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+SetpointCommandScaled
+SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+SetpointCommandShort
+SetpointCommandShort_getFromBuffer(SetpointCommandShort self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+Bitstring32Command
+Bitstring32Command_getFromBuffer(Bitstring32Command self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
 #endif /* SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_ */

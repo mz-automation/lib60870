@@ -372,6 +372,31 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
+
+    case C_SE_NB_1: /* 49 - Set-point command, scaled value */
+
+        elementSize = self->parameters->sizeOfIOA + 3;
+
+        retVal = (InformationObject) SetpointCommandScaled_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case C_SE_NC_1: /* 50 - Set-point command, short floating point number */
+
+        elementSize = self->parameters->sizeOfIOA + 5;
+
+        retVal = (InformationObject) SetpointCommandShort_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case C_BO_NA_1: /* 51 - Bitstring command */
+
+        elementSize = self->parameters->sizeOfIOA + 4;
+
+        retVal = (InformationObject) Bitstring32Command_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
     }
 
 

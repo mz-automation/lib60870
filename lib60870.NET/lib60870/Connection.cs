@@ -305,6 +305,10 @@ namespace lib60870
 		/// C_DC_NA_1 -> DoubleCommand
 		/// C_RC_NA_1 -> StepCommand
 		/// C_SC_TA_1 -> SingleCommandWithCP56Time2a
+		/// C_SE_NA_1 -> SetpointCommandNormalized
+		/// C_SE_NB_1 -> SetpointCommandScaled
+		/// C_SE_NC_1 -> SetpointCommandShort
+		/// C_BO_NA_1 -> Bitstring32Command
 		/// 
 		/// 
 		/// <param name="typeId">Type ID of the control command</param>
