@@ -355,6 +355,23 @@ ASDU_getElement(ASDU self, int index)
         retVal = (InformationObject) DoubleCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
 
         break;
+
+    case C_RC_NA_1: /* 47 */
+
+        elementSize = self->parameters->sizeOfIOA + 1;
+
+        retVal = (InformationObject) StepCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case C_SE_NA_1: /* 48 - Set-point command, normalized value */
+
+        elementSize = self->parameters->sizeOfIOA + 3;
+
+        retVal = (InformationObject) SetpointCommandNormalized_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
     }
 
 

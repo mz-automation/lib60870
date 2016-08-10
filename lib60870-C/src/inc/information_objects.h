@@ -24,6 +24,7 @@
 
 typedef uint8_t QualityDescriptor;
 
+typedef uint8_t SetpointCommandQualifier;
 
 typedef enum  {
     IEC60870_DOUBLE_POINT_INTERMEDIATE = 0,
@@ -31,6 +32,11 @@ typedef enum  {
     IEC60870_DOUBLE_POINT_ON = 2,
     IEC60870_DOUBLE_POINT_INDETERMINATE = 3
 } DoublePointValue;
+
+typedef enum {
+    IEC60870_STEP_LOWER = 1,
+    IEC60870_STEP_HIGHER = 2
+} StepCommandValue;
 
 /************************************************
  * InformationObject
@@ -550,5 +556,53 @@ DoubleCommand_getState(DoubleCommand self);
 
 bool
 DoubleCommand_isSelect(DoubleCommand self);
+
+/*******************************************
+ * StepCommand : InformationObject
+ *******************************************/
+
+typedef struct sStepCommand* StepCommand;
+
+void
+StepCommand_initialize(StepCommand self);
+
+void
+StepCommand_destroy(StepCommand self);
+
+StepCommand
+StepCommand_create(StepCommand self, int ioa, int command, bool selectCommand, int qu);
+
+int
+StepCommand_getQU(StepCommand self);
+
+int
+StepCommand_getState(StepCommand self);
+
+bool
+StepCommand_isSelect(StepCommand self);
+
+/*************************************************
+ * SetpointCommandNormalized : InformationObject
+ ************************************************/
+
+typedef struct sSetpointCommandNormalized* SetpointCommandNormalized;
+
+void
+SetpointCommandNormalized_initialize(SetpointCommandNormalized self);
+
+void
+SetpointCommandNormalized_destroy(SetpointCommandNormalized self);
+
+SetpointCommandNormalized
+SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float value, bool selectCommand, int ql);
+
+float
+SetpointCommandNormalized_getValue(SetpointCommandNormalized self);
+
+int
+SetPointCommandNormalized_getQL(SetpointCommandNormalized self);
+
+bool
+SetpointCommandNormalized_isSelect(SetpointCommandNormalized self);
 
 #endif /* SRC_INC_INFORMATION_OBJECTS_H_ */

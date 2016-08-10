@@ -60,7 +60,9 @@ typedef enum {
     IEC60870_TYPE_SINGLE_COMMAND,
     IEC60870_TYPE_SINGLE_COMMAND_WITH_CP56TIME2A,
 
-    IEC60870_TYPE_DOUBLE_COMMAND
+    IEC60870_TYPE_DOUBLE_COMMAND,
+    IEC60870_TYPE_STEP_COMMAND,
+    IEC60870_TYPE_SETPOINT_COMMAND_NORM
 } InformationObjectType;
 
 typedef struct sInformationObjectVFT* InformationObjectVFT;
@@ -2741,7 +2743,7 @@ DoubleCommand_encode(DoubleCommand self, Frame frame, ConnectionParameters param
     Frame_setNextByte(frame, self->dcq);
 }
 
-struct sInformationObjectVFT soubleCommandVFT = {
+struct sInformationObjectVFT doubleCommandVFT = {
         .encode = (EncodeFunction) DoubleCommand_encode,
         .destroy = (DestroyFunction) DoubleCommand_destroy
 };
@@ -2749,7 +2751,7 @@ struct sInformationObjectVFT soubleCommandVFT = {
 void
 DoubleCommand_initialize(DoubleCommand self)
 {
-    self->virtualFunctionTable = &(soubleCommandVFT);
+    self->virtualFunctionTable = &(doubleCommandVFT);
     self->type = IEC60870_TYPE_DOUBLE_COMMAND;
 }
 
@@ -2829,3 +2831,234 @@ DoubleCommand_getFromBuffer(DoubleCommand self, ConnectionParameters parameters,
     return self;
 }
 
+/*******************************************
+ * StepCommand : InformationObject
+ *******************************************/
+
+struct sStepCommand {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t dcq;
+};
+
+static void
+StepCommand_encode(StepCommand self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, self->dcq);
+}
+
+struct sInformationObjectVFT stepCommandVFT = {
+        .encode = (EncodeFunction) StepCommand_encode,
+        .destroy = (DestroyFunction) StepCommand_destroy
+};
+
+void
+StepCommand_initialize(StepCommand self)
+{
+    self->virtualFunctionTable = &(stepCommandVFT);
+    self->type = IEC60870_TYPE_STEP_COMMAND;
+}
+
+void
+StepCommand_destroy(StepCommand self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+StepCommand
+StepCommand_create(StepCommand self, int ioa, int command, bool selectCommand, int qu)
+{
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sStepCommand));
+
+        if (self == NULL)
+            return NULL;
+        else
+            StepCommand_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    uint8_t dcq = ((qu & 0x1f) * 4);
+
+    dcq += (uint8_t) (command & 0x03);
+
+    if (selectCommand) dcq |= 0x80;
+
+    self->dcq = dcq;
+
+    return self;
+}
+
+int
+StepCommand_getQU(StepCommand self)
+{
+    return ((self->dcq & 0x7c) / 4);
+}
+
+int
+StepCommand_getState(StepCommand self)
+{
+    return (self->dcq & 0x03);
+}
+
+bool
+StepCommand_isSelect(StepCommand self)
+{
+    return ((self->dcq & 0x80) == 0x80);
+}
+
+StepCommand
+StepCommand_getFromBuffer(StepCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 1))
+        return NULL;
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sStepCommand));
+
+        if (self != NULL)
+            StepCommand_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* SCO */
+        self->dcq = msg[startIndex];
+    }
+
+    return self;
+}
+
+/*************************************************
+ * SetpointCommandNormalized : InformationObject
+ ************************************************/
+
+struct sSetpointCommandNormalized {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    uint8_t qos; /* Qualifier of setpoint command */
+};
+
+static void
+SetpointCommandNormalized_encode(SetpointCommandNormalized self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->encodedValue, 2);
+    Frame_setNextByte(frame, self->qos);
+}
+
+struct sInformationObjectVFT setpointCommandNormalizedVFT = {
+        .encode = (EncodeFunction) SetpointCommandNormalized_encode,
+        .destroy = (DestroyFunction) SetpointCommandNormalized_destroy
+};
+
+void
+SetpointCommandNormalized_initialize(SetpointCommandNormalized self)
+{
+    self->virtualFunctionTable = &(setpointCommandNormalizedVFT);
+    self->type = IEC60870_TYPE_SETPOINT_COMMAND_NORM;
+}
+
+void
+SetpointCommandNormalized_destroy(SetpointCommandNormalized self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+SetpointCommandNormalized
+SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float value, bool selectCommand, int ql)
+{
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
+
+        if (self == NULL)
+            return NULL;
+        else
+            SetpointCommandNormalized_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    int scaledValue = (int)(value * 32767.f);
+
+    setScaledValue(self->encodedValue, scaledValue);
+
+    uint8_t qos = ql;
+
+    if (selectCommand) qos |= 0x80;
+
+    self->qos = qos;
+
+    return self;
+}
+
+float
+SetpointCommandNormalized_getValue(SetpointCommandNormalized self)
+{
+    float nv = (float) (getScaledValue(self->encodedValue)) / 32767.f;
+
+    return nv;
+}
+
+int
+SetPointCommandNormalized_getQL(SetpointCommandNormalized self)
+{
+    return (int) (self->qos & 0x7f);
+}
+
+bool
+SetpointCommandNormalized_isSelect(SetpointCommandNormalized self)
+{
+    return ((self->qos & 0x80) == 0x80);
+}
+
+SetpointCommandNormalized
+SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 3))
+        return NULL;
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
+
+        if (self != NULL)
+            SetpointCommandNormalized_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->encodedValue[0] = msg[startIndex++];
+        self->encodedValue[1] = msg[startIndex++];
+
+        /* QOS - qualifier of setpoint command */
+        self->qos = msg[startIndex];
+    }
+
+    return self;
+}

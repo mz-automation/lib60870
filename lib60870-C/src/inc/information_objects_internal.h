@@ -122,5 +122,12 @@ DoubleCommand
 DoubleCommand_getFromBuffer(DoubleCommand self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+StepCommand
+StepCommand_getFromBuffer(StepCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+SetpointCommandNormalized
+SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
 
 #endif /* SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_ */
