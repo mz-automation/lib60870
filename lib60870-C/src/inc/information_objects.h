@@ -57,6 +57,9 @@ InformationObject_destroy(InformationObject self);
 
 typedef struct sSinglePointInformation* SinglePointInformation;
 
+void
+SinglePointInformation_initialize(SinglePointInformation self);
+
 bool
 SinglePointInformation_getValue(SinglePointInformation self);
 
@@ -72,11 +75,29 @@ SinglePointInformation_destroy(SinglePointInformation self);
 
 typedef struct sSinglePointWithCP24Time2a* SinglePointWithCP24Time2a;
 
+void
+SinglePointWithCP24Time2a_destroy(SinglePointWithCP24Time2a self);
+
+void
+SinglePointWithCP24Time2a_initialize(SinglePointWithCP24Time2a self);
+
+CP24Time2a
+SinglePointWithCP24Time2a_getTimestamp(SinglePointWithCP24Time2a self);
+
 /********************************************************
  *  SinglePointWithCP56Time2a (:SinglePointInformation)
  ********************************************************/
 
 typedef struct sSinglePointWithCP56Time2a* SinglePointWithCP56Time2a;
+
+void
+SinglePointWithCP56Time2a_destroy(SinglePointWithCP56Time2a self);
+
+void
+SinglePointWithCP56Time2a_initialize(SinglePointWithCP56Time2a self);
+
+CP56Time2a
+SinglePointWithCP56Time2a_getTimestamp(SinglePointWithCP56Time2a self);
 
 
 /************************************************
@@ -85,17 +106,47 @@ typedef struct sSinglePointWithCP56Time2a* SinglePointWithCP56Time2a;
 
 typedef struct sDoublePointInformation* DoublePointInformation;
 
+void
+DoublePointInformation_destroy(DoublePointInformation self);
+
+void
+DoublePointInformation_initialize(DoublePointInformation self);
+
+DoublePointValue
+DoublePointInformation_getValue(DoublePointInformation self);
+
+QualityDescriptor
+DoublePointInformation_getQuality(DoublePointInformation self);
+
 /********************************************************
  *  DoublePointWithCP24Time2a (:DoublePointInformation)
  ********************************************************/
 
 typedef struct sDoublePointWithCP24Time2a* DoublePointWithCP24Time2a;
 
+void
+DoublePointWithCP24Time2a_destroy(DoublePointWithCP24Time2a self);
+
+void
+DoublePointWithCP24Time2a_initialize(DoublePointWithCP24Time2a self);
+
+CP24Time2a
+DoublePointWithCP24Time2a_getTimestamp(DoublePointWithCP24Time2a self);
+
 /********************************************************
  *  DoublePointWithCP56Time2a (:DoublePointInformation)
  ********************************************************/
 
 typedef struct sDoublePointWithCP56Time2a* DoublePointWithCP56Time2a;
+
+void
+DoublePointWithCP56Time2a_destroy(DoublePointWithCP56Time2a self);
+
+void
+DoublePointWithCP56Time2a_initialize(DoublePointWithCP56Time2a self);
+
+CP56Time2a
+DoublePointWithCP56Time2a_getTimestamp(DoublePointWithCP56Time2a self);
 
 /************************************************
  * StepPositionInformation (:InformationObject)
@@ -200,7 +251,7 @@ Bitstring32WithCP56Time2a_initialize(Bitstring32WithCP56Time2a self);
 void
 Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self);
 
-CP24Time2a
+CP56Time2a
 Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self);
 
 /**********************************************
@@ -432,5 +483,72 @@ IntegratedTotalsWithCP56Time2a_getTimestamp(IntegratedTotalsWithCP56Time2a self)
 void
 IntegratedTotalsWithCP56Time2a_setTimestamp(IntegratedTotalsWithCP56Time2a self,
         CP56Time2a value);
+
+
+/*******************************************
+ * SingleCommand
+ *******************************************/
+
+typedef struct sSingleCommand* SingleCommand;
+
+void
+SingleCommand_initialize(SingleCommand self);
+
+SingleCommand
+SingleCommand_create(SingleCommand self, int ioa, bool command, bool selectCommand, int qu);
+
+void
+SingleCommand_destroy(SingleCommand self);
+
+int
+SingleCommand_getQU(SingleCommand self);
+
+bool
+SingleCommand_getState(SingleCommand self);
+
+bool
+SingleCommand_isSelect(SingleCommand self);
+
+/***********************************************************************
+ * SingleCommandWithCP56Time2a : SingleCommand
+ ***********************************************************************/
+
+typedef struct sSingleCommandWithCP56Time2a* SingleCommandWithCP56Time2a;
+
+void
+SingleCommandWithCP56Time2a_initialize(SingleCommandWithCP56Time2a self);
+
+void
+SingleCommandWithCP56Time2a_destroy(SingleCommandWithCP56Time2a self);
+
+SingleCommandWithCP56Time2a
+SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bool command, bool selectCommand, int qu, CP56Time2a timestamp);
+
+CP56Time2a
+SingleCommandWithCP56Time2a_getTimestamp(SingleCommandWithCP56Time2a self);
+
+/*******************************************
+ * DoubleCommand : InformationObject
+ *******************************************/
+
+typedef struct sDoubleCommand* DoubleCommand;
+
+void
+DoubleCommand_initialize(DoubleCommand self);
+
+void
+DoubleCommand_destroy(DoubleCommand self);
+
+DoubleCommand
+DoubleCommand_create(DoubleCommand self, int ioa, int command, bool selectCommand, int qu);
+
+int
+DoubleCommand_getQU(DoubleCommand self);
+
+int
+DoubleCommand_getState(DoubleCommand self);
+
+bool
+DoubleCommand_isSelect(DoubleCommand self);
 
 #endif /* SRC_INC_INFORMATION_OBJECTS_H_ */

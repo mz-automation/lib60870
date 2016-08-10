@@ -58,12 +58,20 @@ namespace lib60870
 			}
 		}
 
+		/// <summary>
+		/// Gets the state (off - false / on - true) of this command
+		/// </summary>
+		/// <value><c>true</c> if on; otherwise, <c>false</c>.</value>
 		public bool State {
 			get {
 				return ((sco & 0x01) == 0x01);
 			}
 		}
 
+		/// <summary>
+		/// Indicates if the command is a select or an execute command
+		/// </summary>
+		/// <value><c>true</c> if select; execute, <c>false</c>.</value>
 		public bool Select {
 			get {
 				return ((sco & 0x80) == 0x80);

@@ -32,6 +32,8 @@
 #include "lib_memory.h"
 
 #include "t104_connection.h"
+#include "apl_types_internal.h"
+#include "information_objects_internal.h"
 
 struct sT104ConnectionParameters defaultConnectionParameters = {
         .k = 12,
@@ -199,7 +201,7 @@ receiveMessage(Socket socket, uint8_t* buffer)
 static bool
 checkConfirmTimeout(T104Connection self, long currentTime)
 {
-    if ((currentTime - self->lastConfirmationTime) >= (self->parameters.t2 * 1000))
+    if ((currentTime - self->lastConfirmationTime) >= (uint) (self->parameters.t2 * 1000))
         return true;
     else
         return false;
@@ -232,7 +234,7 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
 
         //TODO check T104 specific header
 
-        ASDU asdu = ASDU_createFromBuffer(&(self->parameters), buffer + 6, msgSize - 6);
+        ASDU asdu = ASDU_createFromBuffer((ConnectionParameters)&(self->parameters), buffer + 6, msgSize - 6);
 
         if (asdu != NULL) {
 
@@ -461,7 +463,7 @@ T104Connection_sendControlCommand(T104Connection self, TypeID typeId, CauseOfTra
 
     encodeIdentificationField (self, frame, typeId, 1 /* SQ:false; NumIX:1 */, cot, ca);
 
-    InformationObject_encode(sc, frame, &(self->parameters));
+    InformationObject_encode(sc, (Frame) frame, (ConnectionParameters) &(self->parameters));
 
     sendIMessage(self, frame);
 

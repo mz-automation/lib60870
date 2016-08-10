@@ -80,6 +80,10 @@ T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time
 void
 T104Connection_sendTestCommand(T104Connection self, int ca);
 
+void
+T104Connection_sendControlCommand(T104Connection self, TypeID typeId, CauseOfTransmission cot,
+        int ca, InformationObject command);
+
 typedef bool (*ASDUReceivedHandler) (void* parameter, ASDU asdu);
 
 void

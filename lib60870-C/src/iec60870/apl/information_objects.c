@@ -26,6 +26,7 @@
 #include "iec60870_common.h"
 #include "apl_types_internal.h"
 #include "information_objects.h"
+#include "information_objects_internal.h"
 #include "lib_memory.h"
 #include "frame.h"
 #include "platform_endian.h"
@@ -54,14 +55,23 @@ typedef enum {
     IEC60870_TYPE_MEAS_VALUE_SHORT_WITH_CP56TIME2A,
     IEC60870_TYPE_INTEGRATED_TOTALS,
     IEC60870_TYPE_INTEGRATED_TOTALS_WITH_CP24TIME2A,
-    IEC60870_TYPE_INTEGRATED_TOTALS_WITH_CP56TIME2A
+    IEC60870_TYPE_INTEGRATED_TOTALS_WITH_CP56TIME2A,
+
+    IEC60870_TYPE_SINGLE_COMMAND,
+    IEC60870_TYPE_SINGLE_COMMAND_WITH_CP56TIME2A,
+
+    IEC60870_TYPE_DOUBLE_COMMAND
 } InformationObjectType;
 
 typedef struct sInformationObjectVFT* InformationObjectVFT;
 
+
+typedef void (*EncodeFunction)(InformationObject self, Frame frame, ConnectionParameters parameters);
+typedef void (*DestroyFunction)(InformationObject self);
+
 struct sInformationObjectVFT {
-    void (*encode)(InformationObject self, Frame frame, ConnectionParameters parameters);
-    void (*destroy)(InformationObject self);
+    EncodeFunction encode;
+    DestroyFunction destroy;
 #if 0
     const char* (*toString)(InformationObject self);
 #endif
@@ -183,8 +193,8 @@ struct sSinglePointInformation {
 };
 
 struct sInformationObjectVFT singlePointInformationVFT = {
-        .encode = SinglePointInformation_encode,
-        .destroy = SinglePointInformation_destroy
+        .encode = (EncodeFunction) SinglePointInformation_encode,
+        .destroy = (DestroyFunction) SinglePointInformation_destroy
 };
 
 void
@@ -283,8 +293,8 @@ StepPositionInformation_encode(StepPositionInformation self, Frame frame, Connec
 }
 
 struct sInformationObjectVFT stepPositionInformationVFT = {
-        .encode = StepPositionInformation_encode,
-        .destroy = StepPositionInformation_destroy
+        .encode = (EncodeFunction) StepPositionInformation_encode,
+        .destroy = (DestroyFunction) StepPositionInformation_destroy
 };
 
 void
@@ -391,8 +401,8 @@ StepPositionWithCP56Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, 
 }
 
 struct sInformationObjectVFT stepPositionWithCP56Time2aVFT = {
-        .encode = StepPositionWithCP56Time2a_encode,
-        .destroy = StepPositionWithCP56Time2a_destroy
+        .encode = (EncodeFunction) StepPositionWithCP56Time2a_encode,
+        .destroy = (DestroyFunction) StepPositionWithCP56Time2a_destroy
 };
 
 void
@@ -424,7 +434,7 @@ StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, Connec
         self = GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP56Time2a));
 
         if (self != NULL)
-            StepPositionInformation_initialize(self);
+            StepPositionWithCP56Time2a_initialize(self);
     }
 
     if (self != NULL) {
@@ -478,8 +488,8 @@ StepPositionWithCP24Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, 
 }
 
 struct sInformationObjectVFT stepPositionWithCP24Time2aVFT = {
-        .encode = StepPositionWithCP24Time2a_encode,
-        .destroy = StepPositionWithCP24Time2a_destroy
+        .encode = (EncodeFunction) StepPositionWithCP24Time2a_encode,
+        .destroy = (DestroyFunction) StepPositionWithCP24Time2a_destroy
 };
 
 void
@@ -511,7 +521,7 @@ StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, Connec
         self = GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP24Time2a));
 
         if (self != NULL)
-            StepPositionInformation_initialize(self);
+            StepPositionWithCP24Time2a_initialize(self);
     }
 
     if (self != NULL) {
@@ -560,22 +570,34 @@ DoublePointInformation_encode(DoublePointInformation self, Frame frame, Connecti
     Frame_setNextByte(frame, val);
 }
 
+struct sInformationObjectVFT doublePointInformationVFT = {
+        .encode = (EncodeFunction) DoublePointInformation_encode,
+        .destroy = (DestroyFunction) DoublePointInformation_destroy
+};
+
 void
 DoublePointInformation_destroy(DoublePointInformation self)
 {
     GLOBAL_FREEMEM(self);
 }
 
-struct sInformationObjectVFT doublePointInformationVFT = {
-        .encode = DoublePointInformation_encode,
-        .destroy = DoublePointInformation_destroy
-};
-
 void
 DoublePointInformation_initialize(DoublePointInformation self)
 {
     self->virtualFunctionTable = &(doublePointInformationVFT);
     self->type = IEC60870_TYPE_DOUBLE_POINT_INFORMATION;
+}
+
+DoublePointValue
+DoublePointInformation_getValue(DoublePointInformation self)
+{
+    return self->value;
+}
+
+QualityDescriptor
+DoublePointInformation_getQuality(DoublePointInformation self)
+{
+    return self->quality;
 }
 
 DoublePointInformation
@@ -643,22 +665,28 @@ DoublePointWithCP24Time2a_encode(DoublePointWithCP24Time2a self, Frame frame, Co
 }
 
 
+struct sInformationObjectVFT doublePointWithCP24Time2aVFT = {
+        .encode = (EncodeFunction) DoublePointWithCP24Time2a_encode,
+        .destroy = (DestroyFunction) DoublePointWithCP24Time2a_destroy
+};
+
 void
 DoublePointWithCP24Time2a_destroy(DoublePointWithCP24Time2a self)
 {
     GLOBAL_FREEMEM(self);
 }
 
-struct sInformationObjectVFT doublePointWithCP24Time2aVFT = {
-        .encode = DoublePointWithCP24Time2a_encode,
-        .destroy = DoublePointWithCP24Time2a_destroy
-};
-
 void
 DoublePointWithCP24Time2a_initialize(DoublePointWithCP24Time2a self)
 {
     self->virtualFunctionTable = &(doublePointWithCP24Time2aVFT);
     self->type = IEC60870_TYPE_DOUBLE_POINT_WITH_CP24TIME2A;
+}
+
+CP24Time2a
+DoublePointWithCP24Time2a_getTimestamp(DoublePointWithCP24Time2a self)
+{
+    return &(self->timestamp);
 }
 
 DoublePointWithCP24Time2a
@@ -729,22 +757,29 @@ DoublePointWithCP56Time2a_encode(DoublePointWithCP56Time2a self, Frame frame, Co
 }
 
 
+
+struct sInformationObjectVFT doublePointWithCP56Time2aVFT = {
+        .encode = (EncodeFunction) DoublePointWithCP56Time2a_encode,
+        .destroy = (DestroyFunction) DoublePointWithCP56Time2a_destroy
+};
+
 void
 DoublePointWithCP56Time2a_destroy(DoublePointWithCP56Time2a self)
 {
     GLOBAL_FREEMEM(self);
 }
 
-struct sInformationObjectVFT doublePointWithCP56Time2aVFT = {
-        .encode = DoublePointWithCP56Time2a_encode,
-        .destroy = DoublePointWithCP56Time2a_destroy
-};
-
 void
 DoublePointWithCP56Time2a_initialize(DoublePointWithCP56Time2a self)
 {
     self->virtualFunctionTable = &(doublePointWithCP56Time2aVFT);
     self->type = IEC60870_TYPE_DOUBLE_POINT_WITH_CP56TIME2A;
+}
+
+CP56Time2a
+DoublePointWithCP56Time2a_getTimestamp(DoublePointWithCP56Time2a self)
+{
+    return &(self->timestamp);
 }
 
 DoublePointWithCP56Time2a
@@ -799,12 +834,6 @@ struct sSinglePointWithCP24Time2a {
 };
 
 
-void
-SinglePointWithCP24Time2a_destroy(SinglePointWithCP24Time2a self)
-{
-    GLOBAL_FREEMEM(self);
-}
-
 static void
 SinglePointWithCP24Time2a_encode(SinglePointWithCP24Time2a self, Frame frame, ConnectionParameters parameters)
 {
@@ -822,15 +851,27 @@ SinglePointWithCP24Time2a_encode(SinglePointWithCP24Time2a self, Frame frame, Co
 }
 
 struct sInformationObjectVFT singlePointWithCP24Time2aVFT = {
-        .encode = SinglePointWithCP24Time2a_encode,
-        .destroy = SinglePointWithCP24Time2a_destroy
+        .encode = (EncodeFunction) SinglePointWithCP24Time2a_encode,
+        .destroy = (DestroyFunction) SinglePointWithCP24Time2a_destroy
 };
+
+void
+SinglePointWithCP24Time2a_destroy(SinglePointWithCP24Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
 
 void
 SinglePointWithCP24Time2a_initialize(SinglePointWithCP24Time2a self)
 {
     self->virtualFunctionTable = &(singlePointWithCP24Time2aVFT);
     self->type = IEC60870_TYPE_SINGLE_POINT_WITH_CP24TIME2A;
+}
+
+CP24Time2a
+SinglePointWithCP24Time2a_getTimestamp(SinglePointWithCP24Time2a self)
+{
+    return &(self->timestamp);
 }
 
 SinglePointWithCP24Time2a
@@ -886,12 +927,6 @@ struct sSinglePointWithCP56Time2a {
 };
 
 
-void
-SinglePointWithCP56Time2a_destroy(SinglePointWithCP56Time2a self)
-{
-    GLOBAL_FREEMEM(self);
-}
-
 static void
 SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
 {
@@ -910,16 +945,27 @@ SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, Co
 
 
 struct sInformationObjectVFT singlePointWithCP56Time2aVFT = {
-        .encode = SinglePointWithCP56Time2a_encode,
-        .destroy = SinglePointWithCP56Time2a_destroy
+        .encode = (EncodeFunction) SinglePointWithCP56Time2a_encode,
+        .destroy = (DestroyFunction) SinglePointWithCP56Time2a_destroy
 };
 
+void
+SinglePointWithCP56Time2a_destroy(SinglePointWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
 
 void
 SinglePointWithCP56Time2a_initialize(SinglePointWithCP56Time2a self)
 {
     self->virtualFunctionTable = &(singlePointWithCP56Time2aVFT);
     self->type = IEC60870_TYPE_SINGLE_POINT_WITH_CP56TIME2A;
+}
+
+CP56Time2a
+SinglePointWithCP56Time2a_getTimestamp(SinglePointWithCP56Time2a self)
+{
+    return &(self->timestamp);
 }
 
 
@@ -990,8 +1036,8 @@ BitString32_encode(BitString32 self, Frame frame, ConnectionParameters parameter
 }
 
 struct sInformationObjectVFT bitString32VFT = {
-        .encode = BitString32_encode,
-        .destroy = BitString32_destroy
+        .encode = (EncodeFunction) BitString32_encode,
+        .destroy = (DestroyFunction) BitString32_destroy
 };
 
 void
@@ -1089,8 +1135,8 @@ Bitstring32WithCP24Time2a_encode(Bitstring32WithCP24Time2a self, Frame frame, Co
 }
 
 struct sInformationObjectVFT bitstring32WithCP24Time2aVFT = {
-        .encode = Bitstring32WithCP24Time2a_encode,
-        .destroy = Bitstring32WithCP24Time2a_destroy
+        .encode = (EncodeFunction) Bitstring32WithCP24Time2a_encode,
+        .destroy = (DestroyFunction) Bitstring32WithCP24Time2a_destroy
 };
 
 void
@@ -1185,8 +1231,8 @@ Bitstring32WithCP56Time2a_encode(Bitstring32WithCP56Time2a self, Frame frame, Co
 }
 
 struct sInformationObjectVFT bitstring32WithCP56Time2aVFT = {
-        .encode = Bitstring32WithCP56Time2a_encode,
-        .destroy = Bitstring32WithCP56Time2a_destroy
+        .encode = (EncodeFunction) Bitstring32WithCP56Time2a_encode,
+        .destroy = (DestroyFunction) Bitstring32WithCP56Time2a_destroy
 };
 
 void
@@ -1202,7 +1248,7 @@ Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self)
     GLOBAL_FREEMEM(self);
 }
 
-CP24Time2a
+CP56Time2a
 Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self)
 {
     return &(self->timestamp);
@@ -1286,8 +1332,8 @@ setScaledValue(uint8_t* encodedValue, int value)
     else
         valueToEncode = value;
 
-    encodedValue[0] = (uint8_t)(valueToEncode % 256);
-    encodedValue[1] = (uint8_t)(valueToEncode / 256);
+    encodedValue[0] = (uint8_t) (valueToEncode % 256);
+    encodedValue[1] = (uint8_t) (valueToEncode / 256);
 }
 
 static void
@@ -1302,8 +1348,8 @@ MeasuredValueNormalized_encode(MeasuredValueNormalized self, Frame frame, Connec
 }
 
 struct sInformationObjectVFT measuredValueNormalizedVFT = {
-        .encode = MeasuredValueNormalized_encode,
-        .destroy = MeasuredValueNormalized_destroy
+        .encode = (EncodeFunction) MeasuredValueNormalized_encode,
+        .destroy = (DestroyFunction) MeasuredValueNormalized_destroy
 };
 
 void
@@ -1334,7 +1380,7 @@ MeasuredValueNormalized_setValue(MeasuredValueNormalized self, float value)
     //TODO check boundaries
     int scaledValue = (int)(value * 32767.f);
 
-    setScaledValue(self->encodedValue, value);
+    setScaledValue(self->encodedValue, scaledValue);
 }
 
 QualityDescriptor
@@ -1401,8 +1447,8 @@ MeasuredValueNormalizedWithCP24Time2a_encode(MeasuredValueNormalizedWithCP24Time
 }
 
 struct sInformationObjectVFT measuredValueNormalizedWithCP24Time2aVFT = {
-        .encode = MeasuredValueNormalizedWithCP24Time2a_encode,
-        .destroy = MeasuredValueNormalizedWithCP24Time2a_destroy
+        .encode = (EncodeFunction) MeasuredValueNormalizedWithCP24Time2a_encode,
+        .destroy = (DestroyFunction) MeasuredValueNormalizedWithCP24Time2a_destroy
 };
 
 void
@@ -1495,8 +1541,8 @@ MeasuredValueNormalizedWithCP56Time2a_encode(MeasuredValueNormalizedWithCP56Time
 }
 
 struct sInformationObjectVFT measuredValueNormalizedWithCP56Time2aVFT = {
-        .encode = MeasuredValueNormalizedWithCP56Time2a_encode,
-        .destroy = MeasuredValueNormalizedWithCP56Time2a_destroy
+        .encode = (EncodeFunction) MeasuredValueNormalizedWithCP56Time2a_encode,
+        .destroy = (DestroyFunction) MeasuredValueNormalizedWithCP56Time2a_destroy
 };
 
 void
@@ -1586,8 +1632,8 @@ MeasuredValueScaled_encode(MeasuredValueScaled self, Frame frame, ConnectionPara
 }
 
 struct sInformationObjectVFT measuredValueScaledVFT = {
-        .encode = MeasuredValueScaled_encode,
-        .destroy = MeasuredValueScaled_destroy
+        .encode = (EncodeFunction) MeasuredValueScaled_encode,
+        .destroy = (DestroyFunction) MeasuredValueScaled_destroy
 };
 
 void
@@ -1680,8 +1726,8 @@ MeasuredValueScaledWithCP24Time2a_encode(MeasuredValueScaledWithCP24Time2a self,
 }
 
 struct sInformationObjectVFT measuredValueScaledWithCP24Time2aVFT = {
-        .encode = MeasuredValueScaledWithCP24Time2a_encode,
-        .destroy = MeasuredValueScaled_destroy
+        .encode = (EncodeFunction) MeasuredValueScaledWithCP24Time2a_encode,
+        .destroy = (DestroyFunction) MeasuredValueScaled_destroy
 };
 
 void
@@ -1774,8 +1820,8 @@ MeasuredValueScaledWithCP56Time2a_encode(MeasuredValueScaledWithCP56Time2a self,
 }
 
 struct sInformationObjectVFT measuredValueScaledWithCP56Time2aVFT = {
-        .encode = MeasuredValueScaledWithCP56Time2a_encode,
-        .destroy = MeasuredValueScaledWithCP56Time2a_destroy
+        .encode = (EncodeFunction) MeasuredValueScaledWithCP56Time2a_encode,
+        .destroy = (DestroyFunction) MeasuredValueScaledWithCP56Time2a_destroy
 };
 
 void
@@ -1879,8 +1925,8 @@ MeasuredValueShort_encode(MeasuredValueShort self, Frame frame, ConnectionParame
 }
 
 struct sInformationObjectVFT measuredValueShortVFT = {
-        .encode = MeasuredValueShort_encode,
-        .destroy = MeasuredValueShort_destroy
+        .encode = (EncodeFunction) MeasuredValueShort_encode,
+        .destroy = (DestroyFunction) MeasuredValueShort_destroy
 };
 
 void
@@ -1983,8 +2029,8 @@ MeasuredValueShortWithCP24Time2a_encode(MeasuredValueShortWithCP24Time2a self, F
 }
 
 struct sInformationObjectVFT measuredValueShortWithCP24Time2aVFT = {
-        .encode = MeasuredValueShortWithCP24Time2a_encode,
-        .destroy = MeasuredValueShortWithCP24Time2a_destroy
+        .encode = (EncodeFunction) MeasuredValueShortWithCP24Time2a_encode,
+        .destroy = (DestroyFunction) MeasuredValueShortWithCP24Time2a_destroy
 };
 
 void
@@ -2087,8 +2133,8 @@ MeasuredValueShortWithCP56Time2a_encode(MeasuredValueShortWithCP56Time2a self, F
 }
 
 struct sInformationObjectVFT measuredValueShortWithCP56Time2aVFT = {
-        .encode = MeasuredValueShortWithCP56Time2a_encode,
-        .destroy = MeasuredValueShortWithCP56Time2a_destroy
+        .encode = (EncodeFunction) MeasuredValueShortWithCP56Time2a_encode,
+        .destroy = (DestroyFunction) MeasuredValueShortWithCP56Time2a_destroy
 };
 
 void
@@ -2192,8 +2238,8 @@ IntegratedTotals_encode(IntegratedTotals self, Frame frame, ConnectionParameters
 }
 
 struct sInformationObjectVFT integratedTotalsVFT = {
-        .encode = IntegratedTotals_encode,
-        .destroy = IntegratedTotals_destroy
+        .encode = (EncodeFunction) IntegratedTotals_encode,
+        .destroy = (DestroyFunction) IntegratedTotals_destroy
 };
 
 void
@@ -2284,8 +2330,8 @@ IntegratedTotalsWithCP24Time2a_encode(IntegratedTotalsWithCP24Time2a self, Frame
 }
 
 struct sInformationObjectVFT integratedTotalsWithCP24Time2aVFT = {
-        .encode = IntegratedTotalsWithCP24Time2a_encode,
-        .destroy = IntegratedTotalsWithCP24Time2a_destroy
+        .encode = (EncodeFunction) IntegratedTotalsWithCP24Time2a_encode,
+        .destroy = (DestroyFunction) IntegratedTotalsWithCP24Time2a_destroy
 };
 
 void
@@ -2381,8 +2427,8 @@ IntegratedTotalsWithCP56Time2a_encode(IntegratedTotalsWithCP56Time2a self, Frame
 }
 
 struct sInformationObjectVFT integratedTotalsWithCP56Time2aVFT = {
-        .encode = IntegratedTotalsWithCP56Time2a_encode,
-        .destroy = IntegratedTotalsWithCP56Time2a_destroy
+        .encode = (EncodeFunction) IntegratedTotalsWithCP56Time2a_encode,
+        .destroy = (DestroyFunction) IntegratedTotalsWithCP56Time2a_destroy
 };
 
 void
@@ -2445,6 +2491,339 @@ IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+/*******************************************
+ * SingleCommand
+ *******************************************/
+
+struct sSingleCommand {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t sco;
+};
+
+static void
+SingleCommand_encode(SingleCommand self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, self->sco);
+}
+
+struct sInformationObjectVFT singleCommandVFT = {
+        .encode = (EncodeFunction) SingleCommand_encode,
+        .destroy = (DestroyFunction) SingleCommand_destroy
+};
+
+void
+SingleCommand_initialize(SingleCommand self)
+{
+    self->virtualFunctionTable = &(singleCommandVFT);
+    self->type = IEC60870_TYPE_SINGLE_COMMAND;
+}
+
+void
+SingleCommand_destroy(SingleCommand self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+SingleCommand
+SingleCommand_create(SingleCommand self, int ioa, bool command, bool selectCommand, int qu)
+{
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sSingleCommand));
+
+        if (self == NULL)
+            return NULL;
+        else
+            SingleCommand_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    uint8_t sco = ((qu & 0x1f) * 4);
+
+    if (command) sco |= 0x01;
+
+    if (selectCommand) sco |= 0x80;
+
+    self->sco = sco;
+
+    return self;
+}
+
+int
+SingleCommand_getQU(SingleCommand self)
+{
+    return ((self->sco & 0x7c) / 4);
+}
+
+bool
+SingleCommand_getState(SingleCommand self)
+{
+    return ((self->sco & 0x01) == 0x01);
+}
+
+bool
+SingleCommand_isSelect(SingleCommand self)
+{
+    return ((self->sco & 0x80) == 0x80);
+}
+
+SingleCommand
+SingleCommand_getFromBuffer(SingleCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 1))
+        return NULL;
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sSingleCommand));
+
+        if (self != NULL)
+            SingleCommand_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* SCO */
+        self->sco = msg[startIndex];
+    }
+
+    return self;
+}
+
+
+/***********************************************************************
+ * SingleCommandWithCP56Time2a : SingleCommand
+ ***********************************************************************/
+
+struct sSingleCommandWithCP56Time2a {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t sco;
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+SingleCommandWithCP56Time2a_encode(SingleCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    SingleCommand_encode((SingleCommand) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT singleCommandWithCP56Time2aVFT = {
+        .encode = (EncodeFunction) SingleCommandWithCP56Time2a_encode,
+        .destroy = (DestroyFunction) SingleCommandWithCP56Time2a_destroy
+};
+
+void
+SingleCommandWithCP56Time2a_initialize(SingleCommandWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(singleCommandWithCP56Time2aVFT);
+    self->type = IEC60870_TYPE_SINGLE_COMMAND_WITH_CP56TIME2A;
+}
+
+void
+SingleCommandWithCP56Time2a_destroy(SingleCommandWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+SingleCommandWithCP56Time2a
+SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bool command, bool selectCommand, int qu, CP56Time2a timestamp)
+{
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sSingleCommandWithCP56Time2a));
+
+        if (self == NULL)
+            return NULL;
+        else
+            SingleCommandWithCP56Time2a_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    uint8_t sco = ((qu & 0x1f) * 4);
+
+    if (command) sco |= 0x01;
+
+    if (selectCommand) sco |= 0x80;
+
+    self->sco = sco;
+
+    int i;
+    for (i = 0; i < 7; i++) {
+        self->timestamp.encodedValue[i] = timestamp->encodedValue[i];
+    }
+
+    return self;
+}
+
+CP56Time2a
+SingleCommandWithCP56Time2a_getTimestamp(SingleCommandWithCP56Time2a self)
+{
+    return &(self->timestamp);
+}
+
+SingleCommandWithCP56Time2a
+SingleCommandWithCP56Time2a_getFromBuffer(SingleCommandWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 1))
+        return NULL;
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sSingleCommandWithCP56Time2a));
+
+        if (self != NULL)
+            SingleCommandWithCP56Time2a_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* SCO */
+        self->sco = msg[startIndex];
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+
+/*******************************************
+ * DoubleCommand : InformationObject
+ *******************************************/
+
+struct sDoubleCommand {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t dcq;
+};
+
+static void
+DoubleCommand_encode(DoubleCommand self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, self->dcq);
+}
+
+struct sInformationObjectVFT soubleCommandVFT = {
+        .encode = (EncodeFunction) DoubleCommand_encode,
+        .destroy = (DestroyFunction) DoubleCommand_destroy
+};
+
+void
+DoubleCommand_initialize(DoubleCommand self)
+{
+    self->virtualFunctionTable = &(soubleCommandVFT);
+    self->type = IEC60870_TYPE_DOUBLE_COMMAND;
+}
+
+void
+DoubleCommand_destroy(DoubleCommand self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+DoubleCommand
+DoubleCommand_create(DoubleCommand self, int ioa, int command, bool selectCommand, int qu)
+{
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sDoubleCommand));
+
+        if (self == NULL)
+            return NULL;
+        else
+            DoubleCommand_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    uint8_t dcq = ((qu & 0x1f) * 4);
+
+    dcq += (uint8_t) (command & 0x03);
+
+    if (selectCommand) dcq |= 0x80;
+
+    self->dcq = dcq;
+
+    return self;
+}
+
+int
+DoubleCommand_getQU(DoubleCommand self)
+{
+    return ((self->dcq & 0x7c) / 4);
+}
+
+int
+DoubleCommand_getState(DoubleCommand self)
+{
+    return (self->dcq & 0x03);
+}
+
+bool
+DoubleCommand_isSelect(DoubleCommand self)
+{
+    return ((self->dcq & 0x80) == 0x80);
+}
+
+DoubleCommand
+DoubleCommand_getFromBuffer(DoubleCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 1))
+        return NULL;
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sDoubleCommand));
+
+        if (self != NULL)
+            DoubleCommand_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* SCO */
+        self->dcq = msg[startIndex];
     }
 
     return self;

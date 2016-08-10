@@ -210,4 +210,105 @@ ASDU_getElement(ASDU self, int index);
 ASDU
 ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLength);
 
+
+int
+CP16Time2a_getEplapsedTimeInMs(CP16Time2a self);
+
+void
+CP16Time2a_setEplapsedTimeInMs(CP16Time2a self, int value);
+
+
+int
+CP24Time2a_getSecond(CP24Time2a self);
+
+void
+CP24Time2a_setSecond(CP24Time2a self, int value);
+
+int
+CP24Time2a_getMinute(CP24Time2a self);
+
+void
+CP24Time2a_setMinute(CP24Time2a self, int value);
+
+bool
+CP24Time2a_isInvalid(CP24Time2a self);
+
+void
+CP24Time2a_setInvalid(CP24Time2a self, bool value);
+
+bool
+CP24Time2a_isSubstituted(CP24Time2a self);
+
+void
+CP24Time2a_setSubstituted(CP24Time2a self, bool value);
+
+
+
+int
+CP56Time2a_getMillisecond(CP56Time2a self);
+
+void
+CP56Time2a_setMillisecond(CP56Time2a self, int value);
+
+int
+CP56Time2a_getSecond(CP56Time2a self);
+
+void
+CP56Time2a_setSecond(CP56Time2a self, int value);
+
+int
+CP56Time2a_getMinute(CP56Time2a self);
+
+void
+CP56Time2a_setMinute(CP56Time2a self, int value);
+
+int
+CP56Time2a_getHour(CP56Time2a self);
+
+void
+CP56Time2a_setHour(CP56Time2a self, int value);
+
+int
+CP56Time2a_getDayOfWeek(CP56Time2a self);
+
+void
+CP56Time2a_setDayOfWeek(CP56Time2a self, int value);
+
+int
+CP56Time2a_getDayOfMonth(CP56Time2a self);
+
+void
+CP56Time2a_setDayOfMonth(CP56Time2a self, int value);
+
+int
+CP56Time2a_getMonth(CP56Time2a self);
+
+void
+CP56Time2a_setMonth(CP56Time2a self, int value);
+
+int
+CP56Time2a_getYear(CP56Time2a self);
+
+void
+CP56Time2a_setYear(CP56Time2a self, int value);
+
+bool
+CP56Time2a_isSummerTime(CP56Time2a self);
+
+void
+CP56Time2a_setSummerTime(CP56Time2a self, bool value);
+
+bool
+CP56Time2a_isInvalid(CP56Time2a self);
+
+void
+CP56Time2a_setInvalid(CP56Time2a self, bool value);
+
+bool
+CP56Time2a_isSubstituted(CP56Time2a self);
+
+void
+CP56Time2a_setSubstituted(CP56Time2a self, bool value);
+
+
 #endif /* SRC_INC_IEC60870_COMMON_H_ */

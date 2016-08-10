@@ -337,7 +337,28 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
+    /* 41 - 44 reserved */
+
+    case C_SC_NA_1: /* 45 */
+
+        elementSize = self->parameters->sizeOfIOA + 1;
+
+        retVal = (InformationObject) SingleCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+
+    case C_DC_NA_1: /* 46 */
+
+        elementSize = self->parameters->sizeOfIOA + 1;
+
+        retVal = (InformationObject) DoubleCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
     }
+
+
+
 
     return retVal;
 }

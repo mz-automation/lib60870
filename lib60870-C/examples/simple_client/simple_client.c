@@ -51,6 +51,15 @@ main(int argc, char** argv)
         T104Connection_sendInterrogationCommand(con, ACTIVATION, 1, 20);
 
         Thread_sleep(5000);
+
+        InformationObject sc = (InformationObject)
+                SingleCommand_create(NULL, 5000, true, false, 0);
+
+        T104Connection_sendControlCommand(con, C_SC_NA_1, ACTIVATION, 1, sc);
+
+        InformationObject_destroy(sc);
+
+        Thread_sleep(5000);
     }
     else
         printf("Connect failed!\n");

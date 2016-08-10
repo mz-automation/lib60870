@@ -298,6 +298,15 @@ namespace lib60870
 		/// <summary>
 		/// Sends the control command.
 		/// </summary>
+		/// 
+		/// The type ID has to match the type of the InformationObject!
+		/// 
+		/// C_SC_NA_1 -> SingleCommand
+		/// C_DC_NA_1 -> DoubleCommand
+		/// C_RC_NA_1 -> StepCommand
+		/// C_SC_TA_1 -> SingleCommandWithCP56Time2a
+		/// 
+		/// 
 		/// <param name="typeId">Type ID of the control command</param>
 		/// <param name="cot">Cause of transmission (use ACTIVATION to start a control sequence)</param>
 		/// <param name="ca">Common address</param>
