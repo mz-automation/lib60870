@@ -69,7 +69,8 @@ namespace lib60870
 				this.vsq = 0;
 		}
 
-		public void AddInformationObject(InformationObject io) {
+		public void AddInformationObject(InformationObject io) 
+		{
 			if (informationObjects == null)
 				informationObjects = new List<InformationObject> ();
 

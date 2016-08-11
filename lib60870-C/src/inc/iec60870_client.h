@@ -28,10 +28,4 @@
 #include "iec60870_common.h"
 #include "t104_connection.h"
 
-//typedef struct sIEC60870_Connection* IEC60870_Connection;
-
-//typedef bool (*ASDUReceivedHandler) (void* parameter, ASDU asdu);
-
-
-
 #endif /* SRC_IEC60870_CLIENT_H_ */

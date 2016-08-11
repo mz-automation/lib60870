@@ -19,34 +19,41 @@
  *  See COPYING file for the complete license text.
  */
 
-#ifndef SRC_IEC60750_SERVER_H_
-#define SRC_IEC60750_SERVER_H_
 
-#include <stdint.h>
-#include <stdbool.h>
+#include <stdlib.h>
 
-typedef struct sServerConnection* ServerConnection;
+#include "iec60870_slave.h"
+#include "hal_socket.h"
 
-typedef struct sIEC60750_Server* IEC60750_Server;
+struct sMaster {
+    struct sConnectionParameters parameters;
+};
 
-typedef struct sConnectionParameters* ConnectionParameters;
+Master
+T104Master_create(ConnectionParameters parameters)
+{
+    return NULL;
+}
 
-/**
- *\brief default handler for ASDUs received by a client connection
- */
-typedef bool (*ASDUHandler) (void* parameter, ServerConnection connection, ASDU asdu);
-
-IEC60750_Server
-IEC60750_5_104_Server_create(ConnectionParameters connectionParameters);
-
-void
-IEC60750_Server_setASDUHandler(IEC60750_Server self, ASDUHandler asduHandler, void* parameter);
+int
+T104Master_getActiveConnections(T104Master self);
 
 void
-IEC60750_Server_start(IEC60750_Server self);
+Master_setInterrogationHandler(Master self, InterrogationHandler handler, void*  parameter);
 
 void
-IEC60750_Server_stop(IEC60750_Server self);
+Master_setASDUHandler(Master self, ASDUHandler handler, void* parameter);
 
+void
+Master_start(Master self);
 
-#endif /* SRC_IEC60750_SERVER_H_ */
+bool
+Master_isRunning(Master self);
+
+void
+Master_stop(Master self);
+
+void
+Master_enqueueASDU(Master self, ASDU asdu);
+
+Master_destroy(Master self);

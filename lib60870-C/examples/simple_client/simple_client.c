@@ -37,7 +37,7 @@ asduReceivedHandler (void* parameter, ASDU asdu)
 int
 main(int argc, char** argv)
 {
-    T104Connection con = T104Connection_create("127.0.0.1", IEC_60870_5_104_DEFAULT_PORT);
+    T104Connection con = T104Connection_create("192.168.1.50", IEC_60870_5_104_DEFAULT_PORT);
 
     if (T104Connection_connectBlocking(con)) {
         printf("Connected!\n");
@@ -48,7 +48,7 @@ main(int argc, char** argv)
 
         Thread_sleep(5000);
 
-        T104Connection_sendInterrogationCommand(con, ACTIVATION, 1, 20);
+        T104Connection_sendInterrogationCommand(con, ACTIVATION, 1, INTERROGATION_STATION);
 
         Thread_sleep(5000);
 

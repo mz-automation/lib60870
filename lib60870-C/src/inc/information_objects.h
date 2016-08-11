@@ -671,4 +671,55 @@ Bitstring32Command_destroy(Bitstring32Command self);
 uint32_t
 Bitstring32Command_getValue(Bitstring32Command self);
 
+/*************************************************
+ * InterrogationCommand : InformationObject
+ ************************************************/
+
+typedef struct sInterrogationCommand* InterrogationCommand;
+
+void
+InterrogationCommand_initialize(InterrogationCommand self);
+
+InterrogationCommand
+InterrogationCommand_create(InterrogationCommand self, int ioa, uint8_t qoi);
+
+void
+InterrogationCommand_destroy(InterrogationCommand self);
+
+uint8_t
+InterrogationCommand_getQOI(InterrogationCommand self);
+
+/*************************************************
+ * ReadCommand : InformationObject
+ ************************************************/
+
+typedef struct sReadCommand* ReadCommand;
+
+void
+ReadCommand_initialize(ReadCommand self);
+
+ReadCommand
+ReadCommand_create(ReadCommand self, int ioa);
+
+void
+ReadCommand_destroy(ReadCommand self);
+
+/***************************************************
+ * ClockSynchronizationCommand : InformationObject
+ **************************************************/
+
+typedef struct sClockSynchronizationCommand* ClockSynchronizationCommand;
+
+void
+ClockSynchronizationCommand_initialize(ClockSynchronizationCommand self);
+
+ClockSynchronizationCommand
+ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa);
+
+void
+ClockSynchronizationCommand_destroy(ClockSynchronizationCommand self);
+
+CP56Time2a
+ClockSynchronizationCommand_getTime(ClockSynchronizationCommand self);
+
 #endif /* SRC_INC_INFORMATION_OBJECTS_H_ */

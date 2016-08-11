@@ -27,90 +27,204 @@
 #include "lib_memory.h"
 
 struct sASDU {
-    TypeID typeId;
-    uint8_t vsq;
-    CauseOfTransmission cot;
-    uint8_t oa; /* originator address */
-    bool isTest; /* is message a test message */
-    bool isNegative; /* is message a negative confirmation */
-    int ca; /* Common address */
-
+    ConnectionParameters parameters;
+    uint8_t* asdu;
+    int asduHeaderLength;
     uint8_t* payload;
     int payloadSize;
-    ConnectionParameters parameters;
 };
 
+typedef struct sStaticASDU* StaticASDU;
+
+struct sStaticASDU {
+    ConnectionParameters parameters;
+    uint8_t* asdu;
+    int asduHeaderLength;
+    uint8_t* payload;
+    int payloadSize;
+    uint8_t encodedData[256];
+};
+
+typedef struct sASDUFrame* ASDUFrame;
+
+struct sASDUFrame {
+    FrameVFT virtualFunctionTable;
+    ASDU asdu;
+};
+
+static void
+asduFrame_destroy(Frame self)
+{
+}
+
+static void
+asduFrame_setNextByte(Frame self, uint8_t byte)
+{
+    ASDUFrame frame = (ASDUFrame) self;
+
+    frame->asdu->payload[frame->asdu->payloadSize++] = byte;
+}
+
+static void
+asduFrame_appendBytes(Frame self, uint8_t* bytes, int numberOfBytes)
+{
+    ASDUFrame frame = (ASDUFrame) self;
+
+    uint8_t* target = frame->asdu->payload + frame->asdu->payloadSize;
+
+    int i;
+    for (i = 0; i < numberOfBytes; i++)
+        target[i] = bytes[i];
+
+    frame->asdu->payloadSize = numberOfBytes;
+}
+
+struct sFrameVFT asduFrameVFT = {
+        .destroy = asduFrame_destroy,
+        .resetFrame = NULL,
+        .setNextByte = asduFrame_setNextByte,
+        .appendBytes = asduFrame_appendBytes,
+        .getMsgSize = NULL,
+        .getBuffer = NULL
+};
+
+ASDU
+ASDU_create(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission cot, int oa, int ca,
+        bool isTest, bool isNegative)
+{
+    StaticASDU self = (StaticASDU) GLOBAL_MALLOC(sizeof(struct sStaticASDU));
+    //TODO support allocation from static pool
+
+    if (self != NULL) {
+        int asduHeaderLength = 2 + parameters->sizeOfCOT + parameters->sizeOfCA;
+
+        self->encodedData[0] = (uint8_t) typeId;
+        self->encodedData[1] = 0;
+        self->encodedData[2] = (uint8_t) (cot & 0x3f);
+
+        if (isTest)
+            self->encodedData[2] |= 0x80;
+
+        if (isNegative)
+            self->encodedData[2] |= 0x40;
+
+        int caIndex;
+
+        if (parameters->sizeOfCOT > 1) {
+            self->encodedData[4] = (uint8_t) oa;
+            caIndex = 5;
+        }
+        else
+            caIndex = 4;
+
+        self->encodedData[caIndex] = ca % 0x100;
+
+        if (parameters->sizeOfCA > 1)
+            self->encodedData[caIndex + 1] = ca / 0x100;
+
+        self->asdu = self->encodedData;
+        self->asduHeaderLength = asduHeaderLength;
+        self->payload = self->encodedData + asduHeaderLength;
+        self->payloadSize = 0;
+        self->parameters = parameters;
+    }
+
+    return (ASDU) self;
+}
 
 ASDU
 ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLength)
 {
-    //TODO check if header fits in length
+    int asduHeaderLength = 2 + parameters->sizeOfCOT + parameters->sizeOfCA;
+
+    if (msgLength < asduHeaderLength)
+        return NULL;
 
     ASDU self = (ASDU) GLOBAL_MALLOC(sizeof(struct sASDU));
     //TODO support allocation from static pool
 
-    self->parameters = parameters;
+    if (self != NULL) {
+        self->parameters = parameters;
 
-    //int bufPos = 6; /* ignore header */
+        self->asdu = msg;
+        self->asduHeaderLength = asduHeaderLength;
 
-    int bufPos = 0;
-
-    self->typeId = (TypeID) msg[bufPos++];
-    self->vsq = msg[bufPos++];
-
-    uint8_t cotByte = msg[bufPos++];
-
-    if ((cotByte / 0x80) != 0)
-        self->isTest = true;
-    else
-        self->isTest = false;
-
-    if ((cotByte & 0x40) != 0)
-        self->isNegative = true;
-    else
-        self->isNegative = false;
-
-    self->cot = (CauseOfTransmission) (cotByte & 0x3f);
-
-    if (parameters->sizeOfCOT == 2)
-        self->oa = msg[bufPos++];
-    else
-        self->oa = 0;
-
-    self->ca = msg[bufPos++];
-
-    if (parameters->sizeOfCA > 1)
-        self->ca += (msg[bufPos++] * 0x100);
-
-    self->payloadSize = msgLength - bufPos;
-
-    self->payload = msg + bufPos;
+        self->payload = msg + asduHeaderLength;
+        self->payloadSize = msgLength - asduHeaderLength;
+    }
 
     return self;
+}
+
+void
+ASDU_addInformationObject(ASDU self, InformationObject io)
+{
+    self->asdu[1]++; // increase number of elements in VSQ
+
+    struct sASDUFrame asduFrame = {
+            .virtualFunctionTable = &asduFrameVFT,
+            .asdu = self
+    };
+
+    InformationObject_encode(io, (Frame) &asduFrame, self->parameters);
+}
+
+bool
+ASDU_isTest(ASDU self)
+{
+    if ((self->asdu[2] & 0x80) == 0x80)
+        return true;
+    else
+        return false;
+}
+
+bool
+ASDU_isNegative(ASDU self)
+{
+    if ((self->asdu[2] & 0x40) == 0x40)
+        return true;
+    else
+        return false;
+}
+
+int
+ASDU_getOA(ASDU self)
+{
+    if (self->parameters->sizeOfCOT < 2)
+        return -1;
+    else
+        return (int) self->asdu[4];
 }
 
 CauseOfTransmission
 ASDU_getCOT(ASDU self)
 {
-    return self->cot;
+    return (CauseOfTransmission) (self->asdu[2] & 0x3f);
 }
 
 int
 ASDU_getCA(ASDU self)
 {
-    return self->ca;
+    int caIndex = 2 + self->parameters->sizeOfCOT;
+
+    int ca = self->asdu[caIndex];
+
+    if (self->parameters->sizeOfCA > 1)
+        ca += (self->asdu[caIndex + 1] * 0x100);
+
+    return ca;
 }
 
 TypeID
 ASDU_getTypeID(ASDU self)
 {
-    return self->typeId;
+    return (TypeID) (self->asdu[0]);
 }
 
 bool
 ASDU_isSequence(ASDU self)
 {
-    if ((self->vsq & 0x80) != 0)
+    if ((self->asdu[1] & 0x80) != 0)
         return true;
     else
         return false;
@@ -119,7 +233,7 @@ ASDU_isSequence(ASDU self)
 int
 ASDU_getNumberOfElements(ASDU self)
 {
-    return (self->vsq & 0x7f);
+    return (self->asdu[1] & 0x7f);
 }
 
 InformationObject
@@ -129,7 +243,7 @@ ASDU_getElement(ASDU self, int index)
 
     int elementSize;
 
-    switch (self->typeId) {
+    switch (ASDU_getTypeID(self)) {
 
     case M_SP_NA_1: /* 1 */
 
@@ -397,6 +511,39 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
+    /* 52 - 57 reserved */
+
+    case C_SC_TA_1: /* 58 - Single command with CP56Time2a */
+
+        elementSize = self->parameters->sizeOfIOA + 8;
+
+        retVal = (InformationObject) SingleCommandWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case C_IC_NA_1: /* 100 - Interrogation command */
+
+        elementSize = self->parameters->sizeOfIOA + 1;
+
+        retVal = (InformationObject) InterrogationCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case C_RD_NA_1: /* 102 - Read command */
+
+        elementSize = self->parameters->sizeOfIOA;
+
+        retVal = (InformationObject) ReadCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case C_CS_NA_1: /* 103 - Clock synchronization command */
+
+        elementSize = self->parameters->sizeOfIOA;
+
+        retVal = (InformationObject) ClockSynchronizationCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
     }
 
 
@@ -445,6 +592,21 @@ TypeID_toString(TypeID self)
 
     case M_ME_TB_1:
         return "M_ME_TB_1";
+
+    case M_ME_NC_1:
+        return "M_ME_NC_1";
+
+    case M_ME_TC_1:
+        return "M_ME_TC_1";
+
+    case M_IT_NA_1:
+        return "M_IT_NA_1";
+
+    case M_IT_TA_1:
+        return "M_IT_TA_1";
+
+    case M_EP_TA_1:
+        return "M_EP_TA_1";
 
     case M_EP_TB_1:
         return "M_EP_TB_1";

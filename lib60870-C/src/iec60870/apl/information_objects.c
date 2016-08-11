@@ -65,7 +65,11 @@ typedef enum {
     IEC60870_TYPE_SETPOINT_COMMAND_NORM,
     IEC60870_TYPE_SETPOINT_COMMAND_SCALED,
     IEC60870_TYPE_SETPOINT_COMMAND_SHORT,
-    IEC60870_TYPE_BITSTRING32_COMMAND
+    IEC60870_TYPE_BITSTRING32_COMMAND,
+
+    IEC60870_TYPE_INTERROGATION_COMMAND,
+    IEC60870_TYPE_READ_COMMAND,
+    IEC60870_TYPE_CLOCK_SYNC_COMMAND
 } InformationObjectType;
 
 typedef struct sInformationObjectVFT* InformationObjectVFT;
@@ -3431,6 +3435,265 @@ Bitstring32Command_getFromBuffer(Bitstring32Command self, ConnectionParameters p
         valueBytes[1] = msg [startIndex++];
         valueBytes[0] = msg [startIndex++];
 #endif
+    }
+
+    return self;
+}
+
+
+/*************************************************
+ * ReadCommand : InformationObject
+ ************************************************/
+
+struct sReadCommand {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+};
+
+static void
+ReadCommand_encode(ReadCommand self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+}
+
+struct sInformationObjectVFT readCommandVFT = {
+        .encode = (EncodeFunction) ReadCommand_encode,
+        .destroy = (DestroyFunction) ReadCommand_destroy
+};
+
+void
+ReadCommand_initialize(ReadCommand self)
+{
+    self->virtualFunctionTable = &(readCommandVFT);
+    self->type = IEC60870_TYPE_READ_COMMAND;
+}
+
+ReadCommand
+ReadCommand_create(ReadCommand self, int ioa)
+{
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sReadCommand));
+
+        if (self == NULL)
+            return NULL;
+        else
+            ReadCommand_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    return self;
+}
+
+void
+ReadCommand_destroy(ReadCommand self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+
+ReadCommand
+ReadCommand_getFromBuffer(ReadCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA))
+        return NULL;
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sReadCommand));
+
+        if (self != NULL)
+            ReadCommand_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+    }
+
+    return self;
+}
+
+/***************************************************
+ * ClockSynchronizationCommand : InformationObject
+ **************************************************/
+
+struct sClockSynchronizationCommand {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+ClockSynchronizationCommand_encode(ClockSynchronizationCommand self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT clockSynchronizationCommandVFT = {
+        .encode = (EncodeFunction) ClockSynchronizationCommand_encode,
+        .destroy = (DestroyFunction) ClockSynchronizationCommand_destroy
+};
+
+void
+ClockSynchronizationCommand_initialize(ClockSynchronizationCommand self)
+{
+    self->virtualFunctionTable = &(clockSynchronizationCommandVFT);
+    self->type = IEC60870_TYPE_CLOCK_SYNC_COMMAND;
+}
+
+ClockSynchronizationCommand
+ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa)
+{
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
+
+        if (self == NULL)
+            return NULL;
+        else
+            ClockSynchronizationCommand_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    return self;
+}
+
+void
+ClockSynchronizationCommand_destroy(ClockSynchronizationCommand self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+CP56Time2a
+ClockSynchronizationCommand_getTime(ClockSynchronizationCommand self)
+{
+    return &(self->timestamp);
+}
+
+ClockSynchronizationCommand
+ClockSynchronizationCommand_getFromBuffer(ClockSynchronizationCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 7)
+        return NULL;
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
+
+        if (self != NULL)
+            ClockSynchronizationCommand_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+/*************************************************
+ * InterrogationCommand : InformationObject
+ ************************************************/
+
+struct sInterrogationCommand {
+
+    int objectAddress;
+
+    InformationObjectType type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t qoi;
+};
+
+static void
+InterrogationCommand_encode(InterrogationCommand self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, self->qoi);
+}
+
+struct sInformationObjectVFT interrogationCommandVFT = {
+        .encode = (EncodeFunction) InterrogationCommand_encode,
+        .destroy = (DestroyFunction) InterrogationCommand_destroy
+};
+
+void
+InterrogationCommand_initialize(InterrogationCommand self)
+{
+    self->virtualFunctionTable = &(interrogationCommandVFT);
+    self->type = IEC60870_TYPE_INTERROGATION_COMMAND;
+}
+
+InterrogationCommand
+InterrogationCommand_create(InterrogationCommand self, int ioa, uint8_t qoi)
+{
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sInterrogationCommand));
+
+        if (self == NULL)
+            return NULL;
+        else
+            InterrogationCommand_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    self->qoi = qoi;
+
+    return self;
+}
+
+void
+InterrogationCommand_destroy(InterrogationCommand self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+uint8_t
+InterrogationCommand_getQOI(InterrogationCommand self)
+{
+    return self->qoi;
+}
+
+InterrogationCommand
+InterrogationCommand_getFromBuffer(InterrogationCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 1)
+        return NULL;
+
+    if (self == NULL) {
+        self = GLOBAL_MALLOC(sizeof(struct sInterrogationCommand));
+
+        if (self != NULL)
+            InterrogationCommand_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* QUI */
+        self->qoi = msg[startIndex];
     }
 
     return self;

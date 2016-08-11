@@ -24,6 +24,27 @@ using System;
 namespace lib60870
 {
 
+	public class QualifierOfInterrogation 
+	{	
+		public static byte STATION = 20;
+		public static byte GROUP_1 = 21;
+		public static byte GROUP_2 = 22;
+		public static byte GROUP_3 = 23;
+		public static byte GROUP_4 = 24;
+		public static byte GROUP_5 = 25;
+		public static byte GROUP_6 = 26;
+		public static byte GROUP_7 = 27;
+		public static byte GROUP_8 = 28;
+		public static byte GROUP_9 = 29;
+		public static byte GROUP_10 = 30;
+		public static byte GROUP_11 = 31;
+		public static byte GROUP_12 = 32;
+		public static byte GROUP_13 = 33;
+		public static byte GROUP_14 = 34;
+		public static byte GROUP_15 = 35;
+		public static byte GROUP_16 = 36;
+	}
+
 	public class InterrogationCommand : InformationObject
 	{
 		byte qoi;

@@ -64,7 +64,7 @@ namespace lib60870
 
 
 	/// <summary>
-	/// Handler for ASDUs that are not handled by other handlers
+	/// Handler for ASDUs that are not handled by other handlers (default handler)
 	/// </summary>
 	public delegate bool ASDUHandler (object parameter, ServerConnection connection, ASDU asdu);
 

@@ -188,6 +188,32 @@ typedef enum {
     UNKNOWN_INFORMATION_OBJECT_ADDRESS = 47
 } CauseOfTransmission;
 
+#define INTERROGATION_STATION 20
+#define INTERROGATION_GROUP_1 21
+#define INTERROGATION_GROUP_2 22
+#define INTERROGATION_GROUP_3 23
+#define INTERROGATION_GROUP_4 24
+#define INTERROGATION_GROUP_5 25
+#define INTERROGATION_GROUP_6 26
+#define INTERROGATION_GROUP_7 27
+#define INTERROGATION_GROUP_8 28
+#define INTERROGATION_GROUP_9 29
+#define INTERROGATION_GROUP_10 30
+#define INTERROGATION_GROUP_11 31
+#define INTERROGATION_GROUP_12 32
+#define INTERROGATION_GROUP_13 33
+#define INTERROGATION_GROUP_14 34
+#define INTERROGATION_GROUP_15 35
+#define INTERROGATION_GROUP_16 36
+
+bool
+ASDU_isTest(ASDU self);
+
+bool
+ASDU_isNegative(ASDU self);
+
+int
+ASDU_getOA(ASDU self);
 
 CauseOfTransmission
 ASDU_getCOT(ASDU self);
@@ -207,6 +233,19 @@ ASDU_getNumberOfElements(ASDU self);
 InformationObject
 ASDU_getElement(ASDU self, int index);
 
+
+ASDU
+ASDU_create(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission cot, int oa, int ca,
+        bool isTest, bool isNegative);
+
+void
+ASDU_addInformationObject(ASDU self, InformationObject io);
+
+/**
+ * \brief create a new (read-only) instance
+ *
+ * NOTE: Do not try to append information objects to the instance!
+ */
 ASDU
 ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLength);
 

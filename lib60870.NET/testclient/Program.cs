@@ -92,7 +92,7 @@ namespace testclient
 
 			con.SendTestCommand (1);
 
-			con.SendInterrogationCommand (CauseOfTransmission.ACTIVATION, 1, 20);
+			con.SendInterrogationCommand (CauseOfTransmission.ACTIVATION, 1, QualifierOfInterrogation.STATION);
 
 			Thread.Sleep (5000);
 
