@@ -26,9 +26,10 @@
 
 #include <stdint.h>
 
-struct sCP16Time2a {
-    uint8_t encodedValue[2];
-};
+#include "frame.h"
+
+void
+ASDU_encode(ASDU self, Frame frame);
 
 bool
 CP16Time2a_getFromBuffer (CP16Time2a self, uint8_t* msg, int msgSize, int startIndex);
@@ -36,18 +37,8 @@ CP16Time2a_getFromBuffer (CP16Time2a self, uint8_t* msg, int msgSize, int startI
 uint8_t*
 CP16Time2a_getEncodedValue(CP16Time2a self);
 
-struct sCP24Time2a {
-    uint8_t encodedValue[3];
-};
-
 bool
 CP24Time2a_getFromBuffer (CP24Time2a self, uint8_t* msg, int msgSize, int startIndex);
-
-
-
-struct sCP56Time2a {
-    uint8_t encodedValue[7];
-};
 
 bool
 CP56Time2a_getFromBuffer (CP56Time2a self, uint8_t* msg, int msgSize, int startIndex);
@@ -55,8 +46,5 @@ CP56Time2a_getFromBuffer (CP56Time2a self, uint8_t* msg, int msgSize, int startI
 uint8_t*
 CP56Time2a_getEncodedValue(CP56Time2a self);
 
-struct sBinaryCounterReading {
-    uint8_t encodedValue[5];
-};
 
 #endif /* SRC_INC_APL_TYPES_INTERNAL_H_ */

@@ -179,6 +179,30 @@ T104Connection_getConnectionParameters(T104Connection self)
 static int
 receiveMessage(Socket socket, uint8_t* buffer)
 {
+    int readFirst = Socket_read(socket, buffer, 1);
+
+    if (readFirst < 1)
+        return readFirst;
+
+    if (buffer[0] != 0x68)
+        return -1; /* message error */
+
+    if (Socket_read(socket, buffer + 1, 1) != 1)
+        return -1;
+
+    int length = buffer[1];
+
+    /* read remaining frame */
+    if (Socket_read(socket, buffer + 2, length) != length)
+        return -1;
+
+    return length + 2;
+}
+
+#if 0
+static int
+receiveMessage(Socket socket, uint8_t* buffer)
+{
 
     if (Socket_read(socket, buffer, 1) != 1)
         return 0;
@@ -197,6 +221,7 @@ receiveMessage(Socket socket, uint8_t* buffer)
 
     return length + 2;
 }
+#endif
 
 static bool
 checkConfirmTimeout(T104Connection self, long currentTime)

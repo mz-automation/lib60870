@@ -1,0 +1,117 @@
+= lib60870 User Guide
+Michael Zillgith
+
+== Introduction
+
+lib60870 is a new implementation of the IEC 60870-5-104. protocol for client (master station) and server (controlled station). The library implements all data types from the IEC 60870-5-101/104 specifications. It comes with two flavors which are actually two different implementations which share a similar API:
+
+* *lib60870-C* is an implementation written in the C99 standard. It is designed to be used on resource restricted embedded systems but it easy to use as well.
+* *lib60870.NET* is a pure C#/.NET implementation. It is designed to be as easy to use as possible.is an C#/.NET implementation.  Since it is using only standardized .NET features it is compatible with Windows systems and the Microsoft .NET implementation as well as on Linux with Mono.
+
+The client/server API is strictly asynchronous. You send the requests with non-blocking functions and will have to handle the response and other events in callback functions.
+
+== Create a connection
+
+Since an IEC 60870-5-104 connection is based on a TCP client/server connection the connection will be established by the client(master). The server(slave or outstation) is passively waiting for connections.
+
+In C# a connection is simple created by calling a Constructor of the Connection class:
+
+  Connection con = new Connection ("127.0.0.1");
+
+This creates a new Connection object that is ready to connect to the server. If you can live with the default connection parameters (TCP port 2404 and a common set of the IEC 60870-5-104 parameters) you can now simply call the _Connect_ method:
+
+  con.Connect ();
+
+When the connection was established correctly you can use the connection object to send commands and receive data.
+
+== Sending a read request
+
+The IEC 60870 documents don't recommend this service (cyclical data requests or polling) but it is an easy way to get the required data. You just need to know the common address (CA) and the information object address (IOA) to create the proper request.
+
+  con.SendReadCommand(1 /* CA */, 2001 /* IOA */);
+
+The call is non-blocking. You have to evaluate the response in the ASDUReceivedHandler callback function.
+
+Typically it is expected that the server response contains only the basic data type without timestamps!
+
+== Interrogation
+
+You can also request a group of data items from a slave with a single request.
+
+  con.SendInterrogationCommand (CauseOfTransmission.ACTIVATION, 1, 20);
+
+The client/master side method signature looks like this:
+
+  public void SendInterrogationCommand(CauseOfTransmission cot, int ca, byte qoi)
+
+The parameter ca is the common address (CA) as in the other methods. The parameter qoi is the "Qualifier of interrogation" (QOI).
+
+== Clock synchronization procedure
+
+For the clock synchronization procedure the controlling station (master) sends a C_CS_NA_1 ACT message to the controlled station (slave) containing the current valid time information as a CP56Time2a typed time value. The controlled station has to update its internal time and respond with a C_CS_NA_1 ACT_CON message after all queued time-tagged PDUs have been sent.
+
+Clock synchronization of the controlled station can be done with a with the _SendClockSyncCommand_ method of the Connection class.
+
+  CP56Time2a currentTime = new CP56Time2a (DateTime.Now);
+  con.SendClockSyncCommand (1 /* CA */, currentTime);
+
+For the C implementation it is only slightly different:
+
+    struct sCP56Time2a currentTime;
+    CP56Time2a_createFromMsTimestamp(&currentTime, Hal_getTimeInMs());
+    T104Connection_sendClockSyncCommand(con, 1 /* CA */, &currentTime);
+
+Or when using dynamic memory allocation:
+
+  CP56Time2a currentTime = CP56Time2a_createFromMsTimestamp(NULL, Hal_getTimeInMs());
+  T104Connection_sendClockSyncCommand(con, 1 /* CA */, currentTime);
+
+== Command procedures
+
+
+The following command types (data types are available for commands):
+
+* C_SC (single command) - to control binary data (switch...)
+* C_DC (double command) - to control binary data with transition state (moving switch...)
+* S_RC
+* S_SE (setpoint command) - to control a setpoint (scaled value, normalized value, floating point values) - may also be used to set parameters, alarm limits etc.
+
+== lib60870-C specific topics
+
+=== Dynamic or static memory allocation
+
+Depending on the type of system you can use *dynamic* or *static* memory allocation. Static memory allocation is preferable for very resource constraint embedded systems where dynamic memory allocation is either not available or not wanted e.g. because memory is very scarce and you have to prevent memory fragmentation or you need predictable behavior.
+
+The difference between dynamic and static memory allocation will be illustrated here.
+
+Dynamic memory allocation:
+
+  SingleCommand sc = SingleCommand_create(NULL, 1001, true, false, 0);
+
+The above command creates a new SingleCommand information object instance. It allocates all required memory by using dynamic memory allocation (e.g. using system calls like *malloc*). The _NULL_ as first argument indicates the function that it has to allocate the memory by itself.
+
+Static memory allocation:
+
+  struct sSingleCommand sc;
+
+  SingleCommand_initialize(&sc);
+
+  SingleCommand_create(&sc, 1001, true, false, 0);
+
+== Reference information
+
+=== IEC 60870-5-104 parameters
+
+The following parameters are stored in *T104ConnectionParameter* objects.
+
+.IEC 60870-5-105 parameters
+[width="90%",cols="n,10",frame="topbot",options="header"]
+|==========================
+|Parameter        |Description
+|k       |Number of unconfirmed APDUs in I format. Sender will stop transmission after k unconfirmed I messages.
+|w       |Number of unconfirmed APDUs in I format. Receiver will confirm latest after w messages
+|t0      |connection establishment (in s)
+|t1      |timeout for transmitted APDUs in I/U format (in s) when timeout elapsed without confirmation the connection will be closed
+|t2      |timeout to confirm messages (in s)
+|t3      |time until test telegrams in case of idle connection
+|==========================

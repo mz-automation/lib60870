@@ -105,6 +105,15 @@ namespace testclient
 			con.SendControlCommand (TypeID.C_SC_TA_1, CauseOfTransmission.ACTIVATION, 1, 
 			                        new SingleCommandWithCP56Time2a (5000, false, false, 0, new CP56Time2a (DateTime.Now)));
 
+			/* Synchronize clock of the controlled station */
+
+			CP56Time2a currentTime = new CP56Time2a (DateTime.Now);
+
+			con.SendClockSyncCommand (1 /* CA */, currentTime); 
+
+
+
+
 			con.SendTestCommand (1);
 		}
 	}

@@ -94,7 +94,10 @@ namespace lib60870
 			}
 		}
 
-
+		/// <summary>
+		/// Gets or sets the second (range 0 to 59)
+		/// </summary>
+		/// <value>The second.</value>
 		public int Second {
 			get {
 				return  (encodedValue[0] + (encodedValue[1] * 0x100)) / 1000;
@@ -112,6 +115,10 @@ namespace lib60870
 			}
 		}
 
+		/// <summary>
+		/// Gets or sets the minute (range 0 to 59)
+		/// </summary>
+		/// <value>The minute.</value>
 		public int Minute {
 			get {
 				return (encodedValue [2] & 0x3f);
@@ -122,6 +129,10 @@ namespace lib60870
 			}
 		}
 
+		/// <summary>
+		/// Gets or sets the hour (range 0 to 23)
+		/// </summary>
+		/// <value>The hour.</value>
 		public int Hour {
 			get {
 				return (encodedValue [3] & 0x1f);
@@ -132,6 +143,10 @@ namespace lib60870
 			}
 		}
 
+		/// <summary>
+		/// Gets or sets the day of week in range from 1 (Monday) until 7 (Sunday)
+		/// </summary>
+		/// <value>The day of week.</value>
 		public int DayOfWeek {
 			get {
 				return ((encodedValue [4] & 0xe0) >> 5);
@@ -142,6 +157,10 @@ namespace lib60870
 			}
 		}
 
+		/// <summary>
+		/// Gets or sets the day of month in range 1 to 31.
+		/// </summary>
+		/// <value>The day of month.</value>
 		public int DayOfMonth {
 			get {
 				return (encodedValue [4] & 0x1f);

@@ -37,7 +37,7 @@ asduReceivedHandler (void* parameter, ASDU asdu)
 int
 main(int argc, char** argv)
 {
-    T104Connection con = T104Connection_create("192.168.1.50", IEC_60870_5_104_DEFAULT_PORT);
+    T104Connection con = T104Connection_create("localhost", IEC_60870_5_104_DEFAULT_PORT);
 
     if (T104Connection_connectBlocking(con)) {
         printf("Connected!\n");
@@ -58,6 +58,13 @@ main(int argc, char** argv)
         T104Connection_sendControlCommand(con, C_SC_NA_1, ACTIVATION, 1, sc);
 
         InformationObject_destroy(sc);
+
+        /* Send clock synchronization command */
+        struct sCP56Time2a newTime;
+
+        CP56Time2a_setFromMsTimestamp(&newTime, Hal_getTimeInMs());
+
+        T104Connection_sendClockSyncCommand(con, 1, &newTime);
 
         Thread_sleep(5000);
     }

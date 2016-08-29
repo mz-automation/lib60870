@@ -132,6 +132,12 @@ ASDU_create(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission 
     return (ASDU) self;
 }
 
+void
+ASDU_encode(ASDU self, Frame frame)
+{
+    Frame_appendBytes(frame, self->asdu, self->asduHeaderLength + self->payloadSize);
+}
+
 ASDU
 ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLength)
 {
@@ -200,6 +206,15 @@ CauseOfTransmission
 ASDU_getCOT(ASDU self)
 {
     return (CauseOfTransmission) (self->asdu[2] & 0x3f);
+}
+
+void
+ASDU_setCOT(ASDU self, CauseOfTransmission value)
+{
+    uint8_t cot = self->asdu[2] & 0xc0;
+    cot += ((int) value) & 0x3f;
+
+    self->asdu[2] = cot;
 }
 
 int

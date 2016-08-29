@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
+#include <time.h>
 
 #include "lib_memory.h"
 
@@ -201,8 +203,143 @@ CP24Time2a_setSubstituted(CP24Time2a self, bool value)
  *  CP56Time2a type
  **********************************/
 
+CP56Time2a
+CP56Time2a_createFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
+{
+    if (self == NULL)
+        self = (CP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sCP56Time2a));
+    else
+        memset (self, 0, sizeof(struct sCP56Time2a));
+
+    if (self != NULL)
+        CP56Time2a_setFromMsTimestamp(self, timestamp);
+
+    return self;
+}
+
+#if 0
+
+
+// function found here: http://stackoverflow.com/questions/530519/stdmktime-and-timezone-info
+time_t my_timegm(register struct tm * t)
+/* struct tm to seconds since Unix epoch */
+{
+    register long year;
+    register time_t result;
+#define MONTHSPERYEAR   12      /* months per calendar year */
+    static const int cumdays[MONTHSPERYEAR] =
+        { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
+
+    /*@ +matchanyintegral @*/
+    year = 1900 + t->tm_year + t->tm_mon / MONTHSPERYEAR;
+    result = (year - 1970) * 365 + cumdays[t->tm_mon % MONTHSPERYEAR];
+    result += (year - 1968) / 4;
+    result -= (year - 1900) / 100;
+    result += (year - 1600) / 400;
+    if ((year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0) &&
+        (t->tm_mon % MONTHSPERYEAR) < 2)
+        result--;
+    result += t->tm_mday - 1;
+    result *= 24;
+    result += t->tm_hour;
+    result *= 60;
+    result += t->tm_min;
+    result *= 60;
+    result += t->tm_sec;
+    if (t->tm_isdst == 1)
+        result -= 3600;
+    /*@ -matchanyintegral @*/
+    return (result);
+}
+#endif
+
+// Conversion from UTC date to second, unsigned 32-bit Unix epoch version.
+// Written by François Grieu, 2015-07-21; public domain.
+//
+// my_mktime  converts from  struct tm  UTC to non-leap seconds since
+// 00:00:00 on the first UTC day of year 1970 (fixed).
+// It works from 1970 to 2105 inclusive. It strives to be compatible
+// with C compilers supporting // comments and claiming C89 conformance.
+//
+// input:   Pointer to a  struct tm  with field tm_year, tm_mon, tm_mday,
+//          tm_hour, tm_min, tm_sec set per  mktime  convention; thus
+//          - tm_year is year minus 1900
+//          - tm_mon is [0..11] for January to December, but [-2..14]
+//            works for November of previous year to February of next year
+//          - tm_mday, tm_hour, tm_min, tm_sec similarly can be offset to
+//            the full range [-32767 to 32768], as long as the combination
+//            with tm_year gives a result within years [1970..2105], and
+//            tm_year>0.
+// output:  Number of non-leap seconds since beginning of the first UTC
+//          day of year 1970, as an unsigned at-least-32-bit integer.
+//          The input is not changed (in particular, fields tm_wday,
+//          tm_yday, and tm_isdst are unchanged and ignored).
+static time_t
+my_mktime(const struct tm * ptm)
+{
+    int m, y = ptm->tm_year;
+
+    if ((m = ptm->tm_mon) < 2) {
+        m += 12;
+        --y;
+    }
+
+    return ((((time_t) (y - 69) * 365u + y / 4 - y / 100 * 3 / 4 + (m + 2) * 153 / 5 - 446 +
+            ptm->tm_mday) * 24u + ptm->tm_hour) * 60u + ptm->tm_min) * 60u + ptm->tm_sec;
+}
+
+void
+CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
+{
+    time_t timeVal = timestamp / 1000;
+
+    int msPart = timestamp % 1000;
+
+    struct tm tmTime;
+
+    //TODO replace with portable implementation
+    gmtime_r(&timeVal, &tmTime);
+
+    CP56Time2a_setSecond(self, tmTime.tm_sec);
+
+    CP56Time2a_setMillisecond(self, msPart);
+
+    CP56Time2a_setMinute(self, tmTime.tm_min);
+
+    CP56Time2a_setHour(self, tmTime.tm_hour);
+
+    CP56Time2a_setDayOfMonth(self, tmTime.tm_mday);
+
+    /* set day of week to 0 = not present */
+    CP56Time2a_setDayOfWeek(self, 0);
+
+    CP56Time2a_setMonth(self, tmTime.tm_mon);
+
+    CP56Time2a_setYear(self, tmTime.tm_year - 100);
+}
+
+
+uint64_t
+CP56Time2a_toMsTimestamp(CP56Time2a self)
+{
+    struct tm tmTime;
+
+    tmTime.tm_sec = CP56Time2a_getSecond(self);
+    tmTime.tm_min = CP56Time2a_getMinute(self);
+    tmTime.tm_hour = CP56Time2a_getHour(self);
+    tmTime.tm_mday = CP56Time2a_getDayOfMonth(self);
+    tmTime.tm_mon = CP56Time2a_getMonth(self);
+    tmTime.tm_year = CP56Time2a_getYear(self) + 100;
+
+    time_t timestamp = my_mktime(&tmTime);
+
+    uint64_t msTimestamp = ((uint64_t) (timestamp * (uint64_t) 1000)) + CP56Time2a_getMillisecond(self);
+
+    return msTimestamp;
+}
+
 bool
-CP56Time2a_getFromBuffer (CP56Time2a self, uint8_t* msg, int msgSize, int startIndex)
+CP56Time2a_getFromBuffer(CP56Time2a self, uint8_t* msg, int msgSize, int startIndex)
 {
     if (msgSize < startIndex + 7)
         return false;

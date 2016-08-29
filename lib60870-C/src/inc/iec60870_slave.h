@@ -26,7 +26,7 @@
 #include <stdbool.h>
 #include "iec60870_common.h"
 
-typedef struct sServerConnection* MasterConnection;
+typedef struct sMasterConnection* MasterConnection;
 
 typedef struct sMaster* Master;
 typedef struct sT104Master* T104Master;
@@ -83,6 +83,12 @@ T104Master_getActiveConnections(T104Master self);
 void
 Master_setInterrogationHandler(Master self, InterrogationHandler handler, void*  parameter);
 
+/**
+ * \brief set handler for read request (C_RD_NA_1 - 102)
+ */
+void
+Master_setReadHandler(Master self, ReadHandler handler, void* parameter);
+
 void
 Master_setASDUHandler(Master self, ASDUHandler handler, void* parameter);
 
@@ -98,8 +104,12 @@ Master_stop(Master self);
 void
 Master_enqueueASDU(Master self, ASDU asdu);
 
+void
 Master_destroy(Master self);
 
+
+void
+MasterConnection_sendASDU(MasterConnection self, ASDU asdu);
 
 
 

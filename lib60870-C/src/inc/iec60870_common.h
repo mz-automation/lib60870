@@ -31,11 +31,27 @@ typedef struct sASDU* ASDU;
 
 typedef struct sCP16Time2a* CP16Time2a;
 
+struct sCP16Time2a {
+    uint8_t encodedValue[2];
+};
+
 typedef struct sCP24Time2a* CP24Time2a;
+
+struct sCP24Time2a {
+    uint8_t encodedValue[3];
+};
 
 typedef struct sCP56Time2a* CP56Time2a;
 
+struct sCP56Time2a {
+    uint8_t encodedValue[7];
+};
+
 typedef struct sBinaryCounterReading* BinaryCounterReading;
+
+struct sBinaryCounterReading {
+    uint8_t encodedValue[5];
+};
 
 typedef struct sConnectionParameters* ConnectionParameters;
 
@@ -218,6 +234,9 @@ ASDU_getOA(ASDU self);
 CauseOfTransmission
 ASDU_getCOT(ASDU self);
 
+void
+ASDU_setCOT(ASDU self, CauseOfTransmission value);
+
 int
 ASDU_getCA(ASDU self);
 
@@ -248,7 +267,6 @@ ASDU_addInformationObject(ASDU self, InformationObject io);
  */
 ASDU
 ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLength);
-
 
 int
 CP16Time2a_getEplapsedTimeInMs(CP16Time2a self);
@@ -282,6 +300,14 @@ void
 CP24Time2a_setSubstituted(CP24Time2a self, bool value);
 
 
+CP56Time2a
+CP56Time2a_createFromMsTimestamp(CP56Time2a self, uint64_t timestamp);
+
+void
+CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp);
+
+uint64_t
+CP56Time2a_toMsTimestamp(CP56Time2a self);
 
 int
 CP56Time2a_getMillisecond(CP56Time2a self);

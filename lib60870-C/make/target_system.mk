@@ -153,6 +153,8 @@ endif
 
 LIB_NAME = $(LIB_OBJS_DIR)/lib60870.a
 
+TEST_NAME = $(LIB_OBJS_DIR)/tests.exe
+
 ifeq ($(TARGET), BSD)
 CFLAGS += -arch i386
 LDFLAGS += -arch i386

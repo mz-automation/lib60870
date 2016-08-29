@@ -77,10 +77,12 @@ namespace lib60870
 			set {
 				isActive = value;
 
-				if (isActive)
-					Console.WriteLine (this.ToString () + " is active");
-				else
-					Console.WriteLine (this.ToString () + " is not active");
+				if (debugOutput) {
+					if (isActive)
+						Console.WriteLine (this.ToString () + " is active");
+					else
+						Console.WriteLine (this.ToString () + " is not active");
+				}
 			}
 		}
 
@@ -102,7 +104,8 @@ namespace lib60870
 					return 0;
 
 				if (buffer [0] != 0x68) {
-					Console.WriteLine ("Missing SOF indicator!");
+					if (debugOutput)
+						Console.WriteLine ("Missing SOF indicator!");
 					return 0;
 				}
 
@@ -114,7 +117,8 @@ namespace lib60870
 
 				// read remaining frame
 				if (socket.Receive (buffer, 2, length, SocketFlags.None) != length) {
-					Console.WriteLine ("Failed to read complete frame!");
+					if (debugOutput)
+						Console.WriteLine ("Failed to read complete frame!");
 					return 0;
 				}
 
@@ -149,7 +153,6 @@ namespace lib60870
 
 			Frame frame = new T104Frame ();
 			asdu.Encode (frame, parameters);
-			frame.PrepareToSend (sendCount, receiveCount);
 
 			sendIMessage (frame);
 		}
@@ -160,7 +163,6 @@ namespace lib60870
 
 			Frame frame = new T104Frame ();
 			asdu.Encode (frame, parameters);
-			frame.PrepareToSend (sendCount, receiveCount);
 
 			sendIMessage (frame);
 		}
@@ -168,7 +170,6 @@ namespace lib60870
 		public void SendASDU(ASDU asdu) {
 			Frame frame = new T104Frame ();
 			asdu.Encode (frame, parameters);
-			frame.PrepareToSend (sendCount, receiveCount);
 
 			sendIMessage (frame);
 		}
@@ -189,7 +190,8 @@ namespace lib60870
 
 				if ((unconfirmedMessages > parameters.W) || checkConfirmTimeout (currentTime)) {
 
-					Console.WriteLine ("Send S message");
+					if (debugOutput)
+						Console.WriteLine ("Send S message");
 
 					//TODO check timeout condition /* t2 */
 					lastConfirmationTime = currentTime;
@@ -210,7 +212,7 @@ namespace lib60870
 			}
 		}
 
-		private bool checkMessage(Socket socket, byte[] buffer, int msgSize)
+		private bool HandleMessage(Socket socket, byte[] buffer, int msgSize)
 		{
 
 			if ((buffer [2] & 1) == 0) {
@@ -239,7 +241,8 @@ namespace lib60870
 
 					case TypeID.C_IC_NA_1: /* 100 - interrogation command */
 
-						Console.WriteLine ("Rcvd interrogation command C_IC_NA_1");
+						if (debugOutput)
+							Console.WriteLine ("Rcvd interrogation command C_IC_NA_1");
 
 						if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.DEACTIVATION)) {
 							if (server.interrogationHandler != null) {
@@ -249,37 +252,44 @@ namespace lib60870
 								if (server.interrogationHandler (server.InterrogationHandlerParameter, this, asdu, irc.QOI))
 									messageHandled = true;
 							}
-						}
-						else
+						} 
+						else {
 							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+							this.SendASDU (asdu);
+						}
 
 						break;
 
 					case TypeID.C_CI_NA_1: /* 101 - counter interrogation command */
 
-						Console.WriteLine ("Rcvd counter interrogation command C_CI_NA_1");
+						if (debugOutput)
+							Console.WriteLine ("Rcvd counter interrogation command C_CI_NA_1");
 
 						if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.DEACTIVATION)) {
 							if (server.counterInterrogationHandler != null) {
 
 								CounterInterrogationCommand cic = (CounterInterrogationCommand)asdu.GetElement (0);
 
-								if (server.counterInterrogationHandler(server.counterInterrogationHandlerParameter, this, asdu, cic.QCC))
+								if (server.counterInterrogationHandler (server.counterInterrogationHandlerParameter, this, asdu, cic.QCC))
 									messageHandled = true;
 							}
-						}
-						else
+						} 
+						else {
 							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+							this.SendASDU (asdu);
+						}
 
 						break;
 
 					case TypeID.C_RD_NA_1: /* 102 - read command */
 
-						Console.WriteLine ("Rcvd read command C_RD_NA_1");
+						if (debugOutput)
+							Console.WriteLine ("Rcvd read command C_RD_NA_1");
 
 						if (asdu.Cot == CauseOfTransmission.REQUEST) {
 
-							Console.WriteLine ("Read request for object: " + asdu.Ca);
+							if (debugOutput)
+								Console.WriteLine ("Read request for object: " + asdu.Ca);
 
 							if (server.readHandler != null) {
 								ReadCommand rc = (ReadCommand)asdu.GetElement (0);
@@ -289,7 +299,32 @@ namespace lib60870
 
 							}
 
-						} else {
+						} 
+						else {
+							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+							this.SendASDU (asdu);
+						}
+
+						break;
+
+					case TypeID.C_CS_NA_1: /* 103 - Clock synchronization command */
+
+						if (debugOutput)
+							Console.WriteLine("Rcvd clock sync command C_CS_NA_1");
+
+						if (asdu.Cot == CauseOfTransmission.ACTIVATION) {
+
+							if (server.clockSynchronizationHandler != null) {
+
+								ClockSynchronizationCommand csc = (ClockSynchronizationCommand)asdu.GetElement (0);
+
+								if (server.clockSynchronizationHandler (server.clockSynchronizationHandlerParameter,
+									    this, asdu, csc.NewTime))
+									messageHandled = true;
+							}
+
+						} 
+						else {
 							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
 							this.SendASDU (asdu);
 						}
@@ -298,7 +333,8 @@ namespace lib60870
 
 					case TypeID.C_TS_NA_1: /* 104 - test command */
 
-						Console.WriteLine ("Rcvd test command C_TS_NA_1");
+						if (debugOutput)
+							Console.WriteLine ("Rcvd test command C_TS_NA_1");
 
 						if (asdu.Cot != CauseOfTransmission.ACTIVATION)
 							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
@@ -316,13 +352,18 @@ namespace lib60870
 					}
 
 					if ((messageHandled == false) && (server.asduHandler != null))
-					if (server.asduHandler (server.asduHandlerParameter, this, asdu))
-						messageHandled = true;
+						if (server.asduHandler (server.asduHandlerParameter, this, asdu))
+							messageHandled = true;
+
+					if (messageHandled == false) {
+						asdu.Cot = CauseOfTransmission.UNKNOWN_TYPE_ID;
+						this.SendASDU (asdu);
+					}
+						
 				} else {
 					// connection not activated --> skip message
-					Console.WriteLine("Message not activated. Skip I message");
-
-
+					if (debugOutput)
+						Console.WriteLine ("Message not activated. Skip I message");
 				}
 
 
@@ -330,7 +371,7 @@ namespace lib60870
 			}
 
 			// Check for TESTFR_ACT message
-			if ((buffer [2] & 0x43) == 0x43) {
+			else if ((buffer [2] & 0x43) == 0x43) {
 
 				if (debugOutput)
 					Console.WriteLine ("Send TESTFR_CON");
@@ -339,7 +380,7 @@ namespace lib60870
 			} 
 
 			// Check for STARTDT_ACT message
-			if ((buffer [2] & 0x07) == 0x07) {
+			else if ((buffer [2] & 0x07) == 0x07) {
 
 				if (debugOutput)
 					Console.WriteLine ("Send STARTDT_CON");
@@ -350,7 +391,7 @@ namespace lib60870
 			}
 
 			// Check for STOPDT_ACT message
-			if ((buffer [2] & 0x13) == 0x13) {
+			else if ((buffer [2] & 0x13) == 0x13) {
 				
 				if (debugOutput)
 					Console.WriteLine ("Send STOPDT_CON");
@@ -358,7 +399,8 @@ namespace lib60870
 				this.isActive = false;
 
 				socket.Send (STOPDT_CON_MSG);
-			}
+			} else
+				return false;
 
 			return true;
 		}
@@ -375,12 +417,9 @@ namespace lib60870
 
 			byte[] bytes = new byte[300];
 
-			// Connect to a remote device.
 			try {
 
 				try {
-
-					Console.WriteLine("Socket connected");
 
 					running = true;
 
@@ -396,7 +435,7 @@ namespace lib60870
 									Console.WriteLine(
 										BitConverter.ToString(bytes, 0, bytesRec));
 							
-								if (checkMessage(socket, bytes, bytesRec) == false) {
+								if (HandleMessage(socket, bytes, bytesRec) == false) {
 									/* close connection on error */
 									running = false;
 								}
