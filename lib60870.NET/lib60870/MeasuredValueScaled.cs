@@ -43,6 +43,12 @@ namespace lib60870
 			}
 		}
 
+		/// <summary>
+		/// Initializes a new instance of the <see cref="lib60870.MeasuredValueScaled"/> class.
+		/// </summary>
+		/// <param name="objectAddress">Information object address</param>
+		/// <param name="value">scaled value (range -32768 - 32767) </param>
+		/// <param name="quality">quality descriptor (according to IEC 60870-5-101:2003 7.2.6.3)</param>
 		public MeasuredValueScaled (int objectAddress, int value, QualityDescriptor quality)
 			: base(objectAddress)
 		{

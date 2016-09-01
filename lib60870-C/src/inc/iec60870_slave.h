@@ -93,6 +93,12 @@ void
 Master_setASDUHandler(Master self, ASDUHandler handler, void* parameter);
 
 void
+Master_setClockSyncHandler(Master self, ClockSynchronizationHandler handler, void* parameter);
+
+ConnectionParameters
+Master_getConnectionParameters(Master self);
+
+void
 Master_start(Master self);
 
 bool
@@ -111,7 +117,11 @@ Master_destroy(Master self);
 void
 MasterConnection_sendASDU(MasterConnection self, ASDU asdu);
 
+void
+MasterConnection_sendACT_CON(MasterConnection self, ASDU asdu, bool negative);
 
+void
+MasterConnection_sendACT_TERM(MasterConnection self, ASDU asdu);
 
 
 #endif /* SRC_IEC60750_SLAVE_H_ */

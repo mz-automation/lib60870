@@ -111,11 +111,11 @@ ASDU_create(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission 
         int caIndex;
 
         if (parameters->sizeOfCOT > 1) {
-            self->encodedData[4] = (uint8_t) oa;
-            caIndex = 5;
+            self->encodedData[3] = (uint8_t) oa;
+            caIndex = 4;
         }
         else
-            caIndex = 4;
+            caIndex = 3;
 
         self->encodedData[caIndex] = ca % 0x100;
 
@@ -184,6 +184,15 @@ ASDU_isTest(ASDU self)
         return false;
 }
 
+void
+ASDU_setTest(ASDU self, bool value)
+{
+    if (value)
+        self->asdu[2] |= 0x80;
+    else
+        self->asdu[2] &= ~(0x80);
+}
+
 bool
 ASDU_isNegative(ASDU self)
 {
@@ -191,6 +200,15 @@ ASDU_isNegative(ASDU self)
         return true;
     else
         return false;
+}
+
+void
+ASDU_setNegative(ASDU self, bool value)
+{
+    if (value)
+        self->asdu[2] |= 0x40;
+    else
+        self->asdu[2] &= ~(0x40);
 }
 
 int

@@ -24,6 +24,13 @@
 
 typedef uint8_t QualityDescriptor;
 
+#define IEC60870_QUALITY_GOOD        0
+#define IEC60870_QUALITY_OVERFLOW    0x01
+#define IEC60870_QUALITY_BLOCKED     0x10
+#define IEC60870_QUALITY_SUBSTITUTED 0x20
+#define IEC60870_QUALITY_NON_TOPICAL 0x40
+#define IEC60870_QUALITY_INVALID     0x80
+
 typedef uint8_t SetpointCommandQualifier;
 
 typedef enum  {
@@ -327,6 +334,19 @@ typedef struct sMeasuredValueScaled* MeasuredValueScaled;
 void
 MeasuredValueScaled_initialize(MeasuredValueScaled self);
 
+/**
+ * \brief Create a new instance of MeasuredValueScaled information object
+ *
+ * \param self Reference to an existing instance to reuse, if NULL a new instance will we dynamically allocated
+ * \param ioa Information object address
+ * \param value scaled value (range -32768 - 32767)
+ * \param quality quality descriptor (according to IEC 60870-5-101:2003 7.2.6.3)
+ *
+ * \return Reference to the new instance
+ */
+MeasuredValueScaled
+MeasuredValueScaled_create(MeasuredValueScaled self, int ioa, int value, QualityDescriptor quality);
+
 void
 MeasuredValueScaled_destroy(MeasuredValueScaled self);
 
@@ -338,6 +358,9 @@ MeasuredValueScaled_setValue(MeasuredValueScaled self, int value);
 
 QualityDescriptor
 MeasuredValueScaled_getQuality(MeasuredValueScaled self);
+
+void
+MeasuredValueScaled_setQuality(MeasuredValueScaled self, QualityDescriptor quality);
 
 /***********************************************************************
  * MeasuredValueScaledWithCP24Time2a : MeasuredValueScaled

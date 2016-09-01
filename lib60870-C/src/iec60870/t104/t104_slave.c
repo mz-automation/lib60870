@@ -140,6 +140,19 @@ Master_setASDUHandler(Master self, ASDUHandler handler, void* parameter)
     self->asduHandlerParameter = parameter;
 }
 
+void
+Master_setClockSyncHandler(Master self, ClockSynchronizationHandler handler, void* parameter)
+{
+    self->clockSyncHandler = handler;
+    self->clockSyncHandlerParameter = parameter;
+}
+
+ConnectionParameters
+Master_getConnectionParameters(Master self)
+{
+    return self->parameters;
+}
+
 struct sMasterConnection {
     Socket socket;
     Master master;
@@ -222,7 +235,7 @@ handleASDU(MasterConnection self, ASDU asdu)
 
     case C_IC_NA_1: /* 100 - interrogation command */
 
-        printf("Rcvd interrogation command C_IC_NA_1");
+        printf("Rcvd interrogation command C_IC_NA_1\n");
 
         if ((cot == ACTIVATION) || (cot == DEACTIVATION)) {
             if (master->interrogationHandler != NULL) {
@@ -245,7 +258,7 @@ handleASDU(MasterConnection self, ASDU asdu)
 
     case C_CI_NA_1: /* 101 - counter interrogation command */
 
-        printf("Rcvd counter interrogation command C_CI_NA_1");
+        printf("Rcvd counter interrogation command C_CI_NA_1\n");
 
         if ((cot == ACTIVATION) || (cot == DEACTIVATION)) {
 
@@ -271,7 +284,7 @@ handleASDU(MasterConnection self, ASDU asdu)
 
     case C_RD_NA_1: /* 102 - read command */
 
-        printf("Rcvd read command C_RD_NA_1");
+        printf("Rcvd read command C_RD_NA_1\n");
 
         if (cot == REQUEST) {
             if (master->readHandler != NULL) {
@@ -292,14 +305,18 @@ handleASDU(MasterConnection self, ASDU asdu)
 
     case C_CS_NA_1: /* 103 - Clock synchronization command */
 
-        printf("Rcvd clock sync command C_CS_NA_1");
+        printf("Rcvd clock sync command C_CS_NA_1\n");
 
         if (cot == ACTIVATION) {
-            ClockSynchronizationCommand csc = (ClockSynchronizationCommand) ASDU_getElement(asdu, 0);
 
-            if (master->clockSyncHandler(master->clockSyncHandlerParameter,
-                    self, asdu, ClockSynchronizationCommand_getTime(csc)))
-                messageHandled = true;
+            if (master->clockSyncHandler != NULL) {
+
+                ClockSynchronizationCommand csc = (ClockSynchronizationCommand) ASDU_getElement(asdu, 0);
+
+                if (master->clockSyncHandler(master->clockSyncHandlerParameter,
+                        self, asdu, ClockSynchronizationCommand_getTime(csc)))
+                    messageHandled = true;
+            }
         }
         else {
             ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
@@ -311,7 +328,7 @@ handleASDU(MasterConnection self, ASDU asdu)
 
     case C_TS_NA_1: /* 104 - test command */
 
-        printf("Rcvd test command C_TS_NA_1");
+        printf("Rcvd test command C_TS_NA_1\n");
 
         if (cot != ACTIVATION)
             ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
@@ -385,8 +402,16 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
         Socket_write(self->socket, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE);
     }
-    else
-        return false;
+    else if ((buffer [2] == 0x01)) /* S-message */ {
+        int messageCount = (buffer[4] + buffer[5] * 0x100) / 2;
+
+        printf("Rcvd S(%i) (own sendcounter = %i)\n", messageCount, self->sendCount);
+    }
+
+    else {
+        printf("unknown message - IGNORE\n");
+        return true;
+    }
 
     return true;
 }
@@ -403,8 +428,10 @@ connectionHandlingThread(void* parameter)
     while (self->isRunning) {
         int bytesRec = receiveMessage(self->socket, buffer);
 
-        if (bytesRec == -1)
+        if (bytesRec == -1) {
+            printf("Error reading from socket\n");
             break;
+        }
 
         if (bytesRec > 0) {
             printf("Connection: rcvd msg(%i bytes)\n", bytesRec);
@@ -447,6 +474,35 @@ MasterConnection_create(Master master, Socket socket)
     }
 
     return self;
+}
+
+void
+MasterConnection_sendASDU(MasterConnection self, ASDU asdu)
+{
+    Frame frame = (Frame) T104Frame_create();
+    ASDU_encode(asdu, frame);
+
+    sendIMessage(self, frame);
+
+    Frame_destroy(frame);
+}
+
+void
+MasterConnection_sendACT_CON(MasterConnection self, ASDU asdu, bool negative)
+{
+    ASDU_setCOT(asdu, ACTIVATION_CON);
+    ASDU_setNegative(asdu, negative);
+
+    MasterConnection_sendASDU(self, asdu);
+}
+
+void
+MasterConnection_sendACT_TERM(MasterConnection self, ASDU asdu)
+{
+    ASDU_setCOT(asdu, ACTIVATION_TERMINATION);
+    ASDU_setNegative(asdu, false);
+
+    MasterConnection_sendASDU(self, asdu);
 }
 
 void*

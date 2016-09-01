@@ -147,31 +147,25 @@ namespace lib60870
 			socket.Send (msg);
 		}
 
-		public void SendACT_CON(ASDU asdu, bool negative) {
-			asdu.Cot = CauseOfTransmission.ACTIVATION_CON;
-			asdu.IsNegative = negative;
-
+		public void SendASDU(ASDU asdu) {
 			Frame frame = new T104Frame ();
 			asdu.Encode (frame, parameters);
 
 			sendIMessage (frame);
+		}
+
+		public void SendACT_CON(ASDU asdu, bool negative) {
+			asdu.Cot = CauseOfTransmission.ACTIVATION_CON;
+			asdu.IsNegative = negative;
+
+			SendASDU (asdu);
 		}
 
 		public void SendACT_TERM(ASDU asdu) {
 			asdu.Cot = CauseOfTransmission.ACTIVATION_TERMINATION;
 			asdu.IsNegative = false;
 
-			Frame frame = new T104Frame ();
-			asdu.Encode (frame, parameters);
-
-			sendIMessage (frame);
-		}
-
-		public void SendASDU(ASDU asdu) {
-			Frame frame = new T104Frame ();
-			asdu.Encode (frame, parameters);
-
-			sendIMessage (frame);
+			SendASDU (asdu);
 		}
 
 
@@ -252,8 +246,7 @@ namespace lib60870
 								if (server.interrogationHandler (server.InterrogationHandlerParameter, this, asdu, irc.QOI))
 									messageHandled = true;
 							}
-						} 
-						else {
+						} else {
 							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
 							this.SendASDU (asdu);
 						}
@@ -273,8 +266,7 @@ namespace lib60870
 								if (server.counterInterrogationHandler (server.counterInterrogationHandlerParameter, this, asdu, cic.QCC))
 									messageHandled = true;
 							}
-						} 
-						else {
+						} else {
 							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
 							this.SendASDU (asdu);
 						}
@@ -299,8 +291,7 @@ namespace lib60870
 
 							}
 
-						} 
-						else {
+						} else {
 							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
 							this.SendASDU (asdu);
 						}
@@ -310,7 +301,7 @@ namespace lib60870
 					case TypeID.C_CS_NA_1: /* 103 - Clock synchronization command */
 
 						if (debugOutput)
-							Console.WriteLine("Rcvd clock sync command C_CS_NA_1");
+							Console.WriteLine ("Rcvd clock sync command C_CS_NA_1");
 
 						if (asdu.Cot == CauseOfTransmission.ACTIVATION) {
 
@@ -323,8 +314,7 @@ namespace lib60870
 									messageHandled = true;
 							}
 
-						} 
-						else {
+						} else {
 							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
 							this.SendASDU (asdu);
 						}
@@ -352,8 +342,8 @@ namespace lib60870
 					}
 
 					if ((messageHandled == false) && (server.asduHandler != null))
-						if (server.asduHandler (server.asduHandlerParameter, this, asdu))
-							messageHandled = true;
+					if (server.asduHandler (server.asduHandlerParameter, this, asdu))
+						messageHandled = true;
 
 					if (messageHandled == false) {
 						asdu.Cot = CauseOfTransmission.UNKNOWN_TYPE_ID;
@@ -399,8 +389,21 @@ namespace lib60870
 				this.isActive = false;
 
 				socket.Send (STOPDT_CON_MSG);
-			} else
-				return false;
+			} 
+
+			// S-message
+			else if (buffer [2] == 0x01) {
+
+				int messageCount = (buffer[4] + buffer[5] * 0x100) / 2;
+
+				Console.WriteLine ("Recv S(" + messageCount + ") (own sendcounter = " + sendCount + ")");
+			}
+			else {
+
+				Console.WriteLine ("Unknown message");
+
+				return true;
+			}
 
 			return true;
 		}

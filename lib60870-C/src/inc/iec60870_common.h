@@ -225,8 +225,14 @@ typedef enum {
 bool
 ASDU_isTest(ASDU self);
 
+void
+ASDU_setTest(ASDU self, bool value);
+
 bool
 ASDU_isNegative(ASDU self);
+
+void
+ASDU_setNegative(ASDU self, bool value);
 
 int
 ASDU_getOA(ASDU self);

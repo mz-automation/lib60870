@@ -1652,6 +1652,23 @@ MeasuredValueScaled_initialize(MeasuredValueScaled self)
     self->type = IEC60870_TYPE_MEAS_VALUE_SCALED;
 }
 
+MeasuredValueScaled
+MeasuredValueScaled_create(MeasuredValueScaled self, int ioa, int value, QualityDescriptor quality)
+{
+    if (self == NULL)
+        self = (MeasuredValueScaled) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaled));
+
+    if (self != NULL)
+        MeasuredValueScaled_initialize(self);
+
+    self->objectAddress = ioa;
+    setScaledValue(self->encodedValue, value);
+    self->quality = quality;
+
+    return self;
+}
+
+
 void
 MeasuredValueScaled_destroy(MeasuredValueScaled self)
 {
@@ -1676,6 +1693,12 @@ QualityDescriptor
 MeasuredValueScaled_getQuality(MeasuredValueScaled self)
 {
     return self->quality;
+}
+
+void
+MeasuredValueScaled_setQuality(MeasuredValueScaled self, QualityDescriptor quality)
+{
+    self->quality = quality;
 }
 
 MeasuredValueScaled

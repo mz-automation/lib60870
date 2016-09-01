@@ -1,5 +1,7 @@
 #include "iec60870_client.h"
 #include "iec60870_common.h"
+#include "hal_time.h"
+#include "hal_thread.h"
 
 #include <stdio.h>
 
@@ -55,6 +57,7 @@ main(int argc, char** argv)
         InformationObject sc = (InformationObject)
                 SingleCommand_create(NULL, 5000, true, false, 0);
 
+        printf("Send control command C_SC_NA_1\n");
         T104Connection_sendControlCommand(con, C_SC_NA_1, ACTIVATION, 1, sc);
 
         InformationObject_destroy(sc);
@@ -64,6 +67,7 @@ main(int argc, char** argv)
 
         CP56Time2a_setFromMsTimestamp(&newTime, Hal_getTimeInMs());
 
+        printf("Send time sync command\n");
         T104Connection_sendClockSyncCommand(con, 1, &newTime);
 
         Thread_sleep(5000);
