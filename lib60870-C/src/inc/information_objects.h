@@ -73,6 +73,10 @@ typedef struct sSinglePointInformation* SinglePointInformation;
 void
 SinglePointInformation_initialize(SinglePointInformation self);
 
+SinglePointInformation
+SinglePointInformation_create(SinglePointInformation self, int ioa, bool value,
+        QualityDescriptor quality);
+
 bool
 SinglePointInformation_getValue(SinglePointInformation self);
 
@@ -88,6 +92,10 @@ SinglePointInformation_destroy(SinglePointInformation self);
 
 typedef struct sSinglePointWithCP24Time2a* SinglePointWithCP24Time2a;
 
+SinglePointWithCP24Time2a
+SinglePointWithCP24Time2a_create(SinglePointWithCP24Time2a self, int ioa, bool value,
+        QualityDescriptor quality, CP24Time2a timestamp);
+
 void
 SinglePointWithCP24Time2a_destroy(SinglePointWithCP24Time2a self);
 
@@ -102,6 +110,10 @@ SinglePointWithCP24Time2a_getTimestamp(SinglePointWithCP24Time2a self);
  ********************************************************/
 
 typedef struct sSinglePointWithCP56Time2a* SinglePointWithCP56Time2a;
+
+SinglePointWithCP56Time2a
+SinglePointWithCP56Time2a_create(SinglePointWithCP56Time2a self, int ioa, bool value,
+        QualityDescriptor quality, CP56Time2a timestamp);
 
 void
 SinglePointWithCP56Time2a_destroy(SinglePointWithCP56Time2a self);
@@ -125,6 +137,10 @@ DoublePointInformation_destroy(DoublePointInformation self);
 void
 DoublePointInformation_initialize(DoublePointInformation self);
 
+DoublePointInformation
+DoublePointInformation_create(DoublePointInformation self, int ioa, DoublePointValue value,
+        QualityDescriptor quality);
+
 DoublePointValue
 DoublePointInformation_getValue(DoublePointInformation self);
 
@@ -140,6 +156,10 @@ typedef struct sDoublePointWithCP24Time2a* DoublePointWithCP24Time2a;
 void
 DoublePointWithCP24Time2a_destroy(DoublePointWithCP24Time2a self);
 
+DoublePointWithCP24Time2a
+DoublePointWithCP24Time2a_create(DoublePointWithCP24Time2a self, int ioa, DoublePointValue value,
+        QualityDescriptor quality, CP24Time2a timestamp);
+
 void
 DoublePointWithCP24Time2a_initialize(DoublePointWithCP24Time2a self);
 
@@ -151,6 +171,10 @@ DoublePointWithCP24Time2a_getTimestamp(DoublePointWithCP24Time2a self);
  ********************************************************/
 
 typedef struct sDoublePointWithCP56Time2a* DoublePointWithCP56Time2a;
+
+DoublePointWithCP56Time2a
+DoublePointWithCP56Time2a_create(DoublePointWithCP56Time2a self, int ioa, DoublePointValue value,
+        QualityDescriptor quality, CP56Time2a timestamp);
 
 void
 DoublePointWithCP56Time2a_destroy(DoublePointWithCP56Time2a self);
@@ -166,6 +190,21 @@ DoublePointWithCP56Time2a_getTimestamp(DoublePointWithCP56Time2a self);
  ************************************************/
 
 typedef struct sStepPositionInformation* StepPositionInformation;
+
+/**
+* \brief Create a new instance of StepPositionInformation information object
+*
+* \param self Reference to an existing instance to reuse, if NULL a new instance will we dynamically allocated
+* \param ioa Information object address
+* \param value Step position (range -64 ... +63)
+* \param isTransient true if position is transient, false otherwise
+* \param quality quality descriptor (according to IEC 60870-5-101:2003 7.2.6.3)
+*
+* \return Reference to the new instance
+*/
+StepPositionInformation
+StepPositionInformation_create(StepPositionInformation self, int ioa, int value, bool isTransient,
+        QualityDescriptor quality);
 
 void
 StepPositionInformation_initialize(StepPositionInformation self);
@@ -200,6 +239,10 @@ StepPositionWithCP24Time2a_initialize(StepPositionWithCP24Time2a self);
 void
 StepPositionWithCP24Time2a_destroy(StepPositionWithCP24Time2a self);
 
+StepPositionWithCP24Time2a
+StepPositionWithCP24Time2a_create(StepPositionWithCP24Time2a self, int ioa, int value, bool isTransient,
+        QualityDescriptor quality, CP24Time2a timestamp);
+
 CP24Time2a
 StepPositionWithCP24Time2a_getTimestamp(StepPositionWithCP24Time2a self);
 
@@ -216,6 +259,10 @@ StepPositionWithCP56Time2a_initialize(StepPositionWithCP56Time2a self);
 void
 StepPositionWithCP56Time2a_destroy(StepPositionWithCP56Time2a self);
 
+StepPositionWithCP56Time2a
+StepPositionWithCP56Time2a_create(StepPositionWithCP56Time2a self, int ioa, int value, bool isTransient,
+        QualityDescriptor quality, CP56Time2a timestamp);
+
 CP56Time2a
 StepPositionWithCP56Time2a_getTimestamp(StepPositionWithCP56Time2a self);
 
@@ -230,6 +277,9 @@ BitString32_initialize(BitString32 self);
 
 void
 BitString32_destroy(BitString32 self);
+
+BitString32
+BitString32_create(BitString32 self, int ioa, uint32_t value);
 
 uint32_t
 BitString32_getValue(BitString32 self);
@@ -249,6 +299,9 @@ Bitstring32WithCP24Time2a_initialize(Bitstring32WithCP24Time2a self);
 void
 Bitstring32WithCP24Time2a_destroy(Bitstring32WithCP24Time2a self);
 
+Bitstring32WithCP24Time2a
+Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, CP24Time2a timestamp);
+
 CP24Time2a
 Bitstring32WithCP24Time2a_getTimestamp(Bitstring32WithCP24Time2a self);
 
@@ -264,6 +317,9 @@ Bitstring32WithCP56Time2a_initialize(Bitstring32WithCP56Time2a self);
 void
 Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self);
 
+Bitstring32WithCP56Time2a
+Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, CP56Time2a timestamp);
+
 CP56Time2a
 Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self);
 
@@ -278,6 +334,9 @@ MeasuredValueNormalized_initialize(MeasuredValueNormalized self);
 
 void
 MeasuredValueNormalized_destroy(MeasuredValueNormalized self);
+
+MeasuredValueNormalized
+MeasuredValueNormalized_create(MeasuredValueNormalized self, int ioa, float value, QualityDescriptor quality);
 
 float
 MeasuredValueNormalized_getValue(MeasuredValueNormalized self);
@@ -300,6 +359,10 @@ MeasuredValueNormalizedWithCP24Time2a_initialize(MeasuredValueNormalizedWithCP24
 void
 MeasuredValueNormalizedWithCP24Time2a_destroy(MeasuredValueNormalizedWithCP24Time2a self);
 
+MeasuredValueNormalizedWithCP24Time2a
+MeasuredValueNormalizedWithCP24Time2a_create(MeasuredValueNormalizedWithCP24Time2a self, int ioa,
+            float value, QualityDescriptor quality, CP24Time2a timestamp);
+
 CP24Time2a
 MeasuredValueNormalizedWithCP24Time2a_getTimestamp(MeasuredValueNormalizedWithCP24Time2a self);
 
@@ -317,6 +380,10 @@ MeasuredValueNormalizedWithCP56Time2a_initialize(MeasuredValueNormalizedWithCP56
 
 void
 MeasuredValueNormalizedWithCP56Time2a_destroy(MeasuredValueNormalizedWithCP56Time2a self);
+
+MeasuredValueNormalizedWithCP56Time2a
+MeasuredValueNormalizedWithCP56Time2a_create(MeasuredValueNormalizedWithCP56Time2a self, int ioa,
+            float value, QualityDescriptor quality, CP56Time2a timestamp);
 
 CP56Time2a
 MeasuredValueNormalizedWithCP56Time2a_getTimestamp(MeasuredValueNormalizedWithCP56Time2a self);
@@ -374,6 +441,10 @@ MeasuredValueScaledWithCP24Time2a_initialize(MeasuredValueScaledWithCP24Time2a s
 void
 MeasuredValueScaledWithCP24Time2a_destroy(MeasuredValueScaledWithCP24Time2a self);
 
+MeasuredValueScaledWithCP24Time2a
+MeasuredValueScaledWithCP24Time2a_create(MeasuredValueScaledWithCP24Time2a self, int ioa,
+        int value, QualityDescriptor quality, CP24Time2a timestamp);
+
 CP24Time2a
 MeasuredValueScaledWithCP24Time2a_getTimestamp(MeasuredValueScaledWithCP24Time2a self);
 
@@ -392,6 +463,10 @@ MeasuredValueScaledWithCP56Time2a_initialize(MeasuredValueScaledWithCP56Time2a s
 void
 MeasuredValueScaledWithCP56Time2a_destroy(MeasuredValueScaledWithCP56Time2a self);
 
+MeasuredValueScaledWithCP56Time2a
+MeasuredValueScaledWithCP56Time2a_create(MeasuredValueScaledWithCP56Time2a self, int ioa,
+        int value, QualityDescriptor quality, CP56Time2a timestamp);
+
 CP56Time2a
 MeasuredValueScaledWithCP56Time2a_getTimestamp(MeasuredValueScaledWithCP56Time2a self);
 
@@ -409,6 +484,9 @@ MeasuredValueShort_initialize(MeasuredValueShort self);
 
 void
 MeasuredValueShort_destroy(MeasuredValueShort self);
+
+MeasuredValueShort
+MeasuredValueShort_create(MeasuredValueShort self, int ioa, float value, QualityDescriptor quality);
 
 float
 MeasuredValueShort_getValue(MeasuredValueShort self);
@@ -431,6 +509,10 @@ MeasuredValueShortWithCP24Time2a_initialize(MeasuredValueShortWithCP24Time2a sel
 void
 MeasuredValueShortWithCP24Time2a_destroy(MeasuredValueShortWithCP24Time2a self);
 
+MeasuredValueShortWithCP24Time2a
+MeasuredValueShortWithCP24Time2a_create(MeasuredValueShortWithCP24Time2a self, int ioa,
+        float value, QualityDescriptor quality, CP24Time2a timestamp);
+
 CP24Time2a
 MeasuredValueShortWithCP24Time2a_getTimestamp(MeasuredValueShortWithCP24Time2a self);
 
@@ -449,6 +531,10 @@ MeasuredValueShortWithCP56Time2a_initialize(MeasuredValueShortWithCP56Time2a sel
 
 void
 MeasuredValueShortWithCP56Time2a_destroy(MeasuredValueShortWithCP56Time2a self);
+
+MeasuredValueShortWithCP56Time2a
+MeasuredValueShortWithCP56Time2a_create(MeasuredValueShortWithCP56Time2a self, int ioa,
+        float value, QualityDescriptor quality, CP56Time2a timestamp);
 
 CP56Time2a
 MeasuredValueShortWithCP56Time2a_getTimestamp(MeasuredValueShortWithCP56Time2a self);
@@ -469,6 +555,22 @@ IntegratedTotals_initialize(IntegratedTotals self);
 void
 IntegratedTotals_destroy(IntegratedTotals self);
 
+//
+
+/**
+ * \brief Create a new instance of IntegratedTotals information object
+ *
+ * For message type: M_IT_NA_1 (15)
+ *
+ * \param self Reference to an existing instance to reuse, if NULL a new instance will we dynamically allocated
+ * \param ioa Information object address
+ * \param value binary counter reading value and state
+ *
+ * \return Reference to the new instance
+ */
+IntegratedTotals
+IntegratedTotals_create(IntegratedTotals self, int ioa, BinaryCounterReading value);
+
 BinaryCounterReading
 IntegratedTotals_getBCR(IntegratedTotals self);
 
@@ -481,11 +583,29 @@ IntegratedTotals_setBCR(IntegratedTotals self, BinaryCounterReading value);
 
 typedef struct sIntegratedTotalsWithCP24Time2a* IntegratedTotalsWithCP24Time2a;
 
+/**
+ * \brief Create a new instance of IntegratedTotalsWithCP24Time2a information object
+ *
+ * For message type: M_IT_TA_1 (16)
+ *
+ * \param self Reference to an existing instance to reuse, if NULL a new instance will we dynamically allocated
+ * \param ioa Information object address
+ * \param value binary counter reading value and state
+ * \param timestamp timestamp of the reading
+ *
+ * \return Reference to the new instance
+ */
+IntegratedTotalsWithCP24Time2a
+IntegratedTotalsWithCP24Time2a_create(IntegratedTotalsWithCP24Time2a self, int ioa,
+        BinaryCounterReading value, CP24Time2a timestamp);
+
 void
 IntegratedTotalsWithCP24Time2a_initialize(IntegratedTotalsWithCP24Time2a self);
 
 void
 IntegratedTotalsWithCP24Time2a_destroy(IntegratedTotalsWithCP24Time2a self);
+
+
 
 CP24Time2a
 IntegratedTotalsWithCP24Time2a_getTimestamp(IntegratedTotalsWithCP24Time2a self);
@@ -499,6 +619,22 @@ IntegratedTotalsWithCP24Time2a_setTimestamp(IntegratedTotalsWithCP24Time2a self,
  ***********************************************************************/
 
 typedef struct sIntegratedTotalsWithCP56Time2a* IntegratedTotalsWithCP56Time2a;
+
+/**
+ * \brief Create a new instance of IntegratedTotalsWithCP56Time2a information object
+ *
+ * For message type: M_IT_TB_1 (37)
+ *
+ * \param self Reference to an existing instance to reuse, if NULL a new instance will we dynamically allocated
+ * \param ioa Information object address
+ * \param value binary counter reading value and state
+ * \param timestamp timestamp of the reading
+ *
+ * \return Reference to the new instance
+ */
+IntegratedTotalsWithCP56Time2a
+IntegratedTotalsWithCP56Time2a_create(IntegratedTotalsWithCP56Time2a self, int ioa,
+        BinaryCounterReading value, CP56Time2a timestamp);
 
 void
 IntegratedTotalsWithCP56Time2a_initialize(IntegratedTotalsWithCP56Time2a self);

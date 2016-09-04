@@ -178,9 +178,10 @@ namespace lib60870
 		}
 
 		private void SendSMessageIfRequired() {
-			long currentTime = SystemUtils.currentTimeMillis();
 
 			if (unconfirmedMessages > 0) {
+
+				long currentTime = SystemUtils.currentTimeMillis();
 
 				if ((unconfirmedMessages > parameters.W) || checkConfirmTimeout (currentTime)) {
 

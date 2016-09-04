@@ -42,8 +42,6 @@ namespace lib60870
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			bcr = new BinaryCounterReading(msg, startIndex);
-
-			startIndex += 5;
 		}
 	}
 

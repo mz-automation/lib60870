@@ -30,25 +30,25 @@ T104Frame
 T104Frame_create(void);
 
 void
-T104Frame_destroy(T104Frame self);
+T104Frame_destroy(Frame self);
 
 void
-T104Frame_resetFrame(T104Frame self);
+T104Frame_resetFrame(Frame self);
 
 void
 T104Frame_prepareToSend(T104Frame self, int sendCounter, int receiveCounter);
 
 void
-T104Frame_setNextByte(T104Frame self, uint8_t byte);
+T104Frame_setNextByte(Frame self, uint8_t byte);
 
 void
-T104Frame_appendBytes(T104Frame self, uint8_t* bytes, int numberOfBytes);
+T104Frame_appendBytes(Frame self, uint8_t* bytes, int numberOfBytes);
 
 int
-T104Frame_getMsgSize(T104Frame self);
+T104Frame_getMsgSize(Frame self);
 
 uint8_t*
-T104Frame_getBuffer(T104Frame self);
+T104Frame_getBuffer(Frame self);
 
 
 #endif /* SRC_INC_T104_FRAME_H_ */

@@ -120,8 +120,10 @@ T104Frame_create()
 }
 
 void
-T104Frame_destroy(T104Frame self)
+T104Frame_destroy(Frame super)
 {
+    T104Frame self = (T104Frame) super;
+
 #if (CONFIG_LIB60870_STATIC_FRAMES == 1)
     self->allocated = 0;
 #else
@@ -130,8 +132,10 @@ T104Frame_destroy(T104Frame self)
 }
 
 void
-T104Frame_resetFrame(T104Frame self)
+T104Frame_resetFrame(Frame super)
 {
+    T104Frame self = (T104Frame) super;
+
     self->msgSize = 6;
 }
 
@@ -150,14 +154,18 @@ T104Frame_prepareToSend(T104Frame self, int sendCounter, int receiveCounter)
 }
 
 void
-T104Frame_setNextByte(T104Frame self, uint8_t byte)
+T104Frame_setNextByte(Frame super, uint8_t byte)
 {
+    T104Frame self = (T104Frame) super;
+
     self->buffer[self->msgSize++] = byte;
 }
 
 void
-T104Frame_appendBytes(T104Frame self, uint8_t* bytes, int numberOfBytes)
+T104Frame_appendBytes(Frame super, uint8_t* bytes, int numberOfBytes)
 {
+    T104Frame self = (T104Frame) super;
+
     int i;
 
     uint8_t* target = self->buffer + self->msgSize;
@@ -169,13 +177,17 @@ T104Frame_appendBytes(T104Frame self, uint8_t* bytes, int numberOfBytes)
 }
 
 int
-T104Frame_getMsgSize(T104Frame self)
+T104Frame_getMsgSize(Frame super)
 {
+    T104Frame self = (T104Frame) super;
+
     return self->msgSize;
 }
 
 uint8_t*
-T104Frame_getBuffer(T104Frame self)
+T104Frame_getBuffer(Frame super)
 {
+    T104Frame self = (T104Frame) super;
+
     return self->buffer;
 }

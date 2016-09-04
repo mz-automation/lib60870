@@ -28,8 +28,8 @@
 
 typedef struct sMasterConnection* MasterConnection;
 
-typedef struct sMaster* Master;
-typedef struct sT104Master* T104Master;
+typedef struct sSlave* Slave;
+typedef struct sT104Slave* T104Slave;
 
 typedef struct sIEC60750_Server* IEC60750_Server;
 
@@ -74,46 +74,55 @@ typedef bool (*DelayAcquisitionHandler) (void* parameter, MasterConnection conne
  */
 typedef bool (*ASDUHandler) (void* parameter, MasterConnection connection, ASDU asdu);
 
-Master
-T104Master_create(ConnectionParameters parameters);
+Slave
+T104Slave_create(ConnectionParameters parameters, int maxQueueSize);
 
 int
-T104Master_getActiveConnections(T104Master self);
+T104Slave_getOpenConnections(Slave self);
 
 void
-Master_setInterrogationHandler(Master self, InterrogationHandler handler, void*  parameter);
+Slave_setInterrogationHandler(Slave self, InterrogationHandler handler, void*  parameter);
 
 /**
  * \brief set handler for read request (C_RD_NA_1 - 102)
  */
 void
-Master_setReadHandler(Master self, ReadHandler handler, void* parameter);
+Slave_setReadHandler(Slave self, ReadHandler handler, void* parameter);
 
 void
-Master_setASDUHandler(Master self, ASDUHandler handler, void* parameter);
+Slave_setASDUHandler(Slave self, ASDUHandler handler, void* parameter);
 
 void
-Master_setClockSyncHandler(Master self, ClockSynchronizationHandler handler, void* parameter);
+Slave_setClockSyncHandler(Slave self, ClockSynchronizationHandler handler, void* parameter);
 
 ConnectionParameters
-Master_getConnectionParameters(Master self);
+Slave_getConnectionParameters(Slave self);
 
 void
-Master_start(Master self);
+Slave_start(Slave self);
 
 bool
-Master_isRunning(Master self);
+Slave_isRunning(Slave self);
 
 void
-Master_stop(Master self);
+Slave_stop(Slave self);
 
 void
-Master_enqueueASDU(Master self, ASDU asdu);
+Slave_enqueueASDU(Slave self, ASDU asdu);
+
+//TODO internal - remove from API
+ASDU
+Slave_dequeueASDU(Slave self);
 
 void
-Master_destroy(Master self);
+Slave_destroy(Slave self);
 
-
+/**
+ * \brief Send an ASDU to the client/master
+ *
+ * \param self the connection object (this is usually received as a parameter of a callback function)
+ * \param asdu the ASDU to send to the client/master
+ */
 void
 MasterConnection_sendASDU(MasterConnection self, ASDU asdu);
 

@@ -47,8 +47,7 @@ namespace testserver
 
 		private static bool asduHandler(object parameter, ServerConnection connection, ASDU asdu)
 		{
-
-
+			
 			if (asdu.TypeId == TypeID.C_SC_NA_1) {
 				Console.WriteLine ("Single command");
 

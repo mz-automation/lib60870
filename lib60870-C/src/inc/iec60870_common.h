@@ -264,6 +264,9 @@ ASDU_create(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission 
         bool isTest, bool isNegative);
 
 void
+ASDU_destroy(ASDU self);
+
+void
 ASDU_addInformationObject(ASDU self, InformationObject io);
 
 /**
@@ -271,8 +274,13 @@ ASDU_addInformationObject(ASDU self, InformationObject io);
  *
  * NOTE: Do not try to append information objects to the instance!
  */
+//TODO internal - remove from API
 ASDU
 ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLength);
+
+//TODO internal - remove from API
+bool
+ASDU_isStackCreated(ASDU self);
 
 int
 CP16Time2a_getEplapsedTimeInMs(CP16Time2a self);
@@ -381,5 +389,41 @@ CP56Time2a_isSubstituted(CP56Time2a self);
 void
 CP56Time2a_setSubstituted(CP56Time2a self, bool value);
 
+BinaryCounterReading
+BinaryCounterReading_create(BinaryCounterReading self, int32_t value, int seqNumber,
+        bool hasCarry, bool isAdjusted, bool isInvalid);
+
+void
+BinaryCounterReading_destroy(BinaryCounterReading self);
+
+int32_t
+BinaryCounterReading_getValue(BinaryCounterReading self);
+
+void
+BinaryCounterReading_setValue(BinaryCounterReading self, int32_t value);
+
+int
+BinaryCounterReading_getSequenceNumber(BinaryCounterReading self);
+
+bool
+BinaryCounterReading_hasCarry(BinaryCounterReading self);
+
+bool
+BinaryCounterReading_isAdjusted(BinaryCounterReading self);
+
+bool
+BinaryCounterReading_isInvalid(BinaryCounterReading self);
+
+void
+BinaryCounterReading_setSequenceNumber(BinaryCounterReading self, int value);
+
+void
+BinaryCounterReading_setCarry(BinaryCounterReading self, bool value);
+
+void
+BinaryCounterReading_setAdjusted(BinaryCounterReading self, bool value);
+
+void
+BinaryCounterReading_setInvalid(BinaryCounterReading self, bool value);
 
 #endif /* SRC_INC_IEC60870_COMMON_H_ */

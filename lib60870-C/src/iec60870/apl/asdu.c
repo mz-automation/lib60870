@@ -27,6 +27,7 @@
 #include "lib_memory.h"
 
 struct sASDU {
+    bool stackCreated;
     ConnectionParameters parameters;
     uint8_t* asdu;
     int asduHeaderLength;
@@ -37,6 +38,7 @@ struct sASDU {
 typedef struct sStaticASDU* StaticASDU;
 
 struct sStaticASDU {
+    bool stackCreated;
     ConnectionParameters parameters;
     uint8_t* asdu;
     int asduHeaderLength;
@@ -76,7 +78,7 @@ asduFrame_appendBytes(Frame self, uint8_t* bytes, int numberOfBytes)
     for (i = 0; i < numberOfBytes; i++)
         target[i] = bytes[i];
 
-    frame->asdu->payloadSize = numberOfBytes;
+    frame->asdu->payloadSize += numberOfBytes;
 }
 
 struct sFrameVFT asduFrameVFT = {
@@ -96,6 +98,8 @@ ASDU_create(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission 
     //TODO support allocation from static pool
 
     if (self != NULL) {
+        self->stackCreated = false;
+
         int asduHeaderLength = 2 + parameters->sizeOfCOT + parameters->sizeOfCA;
 
         self->encodedData[0] = (uint8_t) typeId;
@@ -133,6 +137,19 @@ ASDU_create(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission 
 }
 
 void
+ASDU_destroy(ASDU self)
+{
+    printf("ASDU_destroy(%p)\n", self);
+    GLOBAL_FREEMEM(self);
+}
+
+bool
+ASDU_isStackCreated(ASDU self)
+{
+    return self->stackCreated;
+}
+
+void
 ASDU_encode(ASDU self, Frame frame)
 {
     Frame_appendBytes(frame, self->asdu, self->asduHeaderLength + self->payloadSize);
@@ -150,6 +167,8 @@ ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLeng
     //TODO support allocation from static pool
 
     if (self != NULL) {
+
+        self->stackCreated = true;
         self->parameters = parameters;
 
         self->asdu = msg;

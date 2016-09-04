@@ -21,6 +21,7 @@
 
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "iec60870_slave.h"
 #include "frame.h"
@@ -30,7 +31,9 @@
 #include "hal_time.h"
 #include "lib_memory.h"
 
-#include <stdio.h>
+#include "lib60870_config.h"
+
+#include "apl_types_internal.h"
 
 #define T104_DEFAULT_PORT 2404
 
@@ -50,7 +53,25 @@ static struct sT104ConnectionParameters defaultConnectionParameters = {
         .sizeOfIOA = 3
 };
 
-struct sMaster {
+
+struct sMessageQueue {
+    int size;
+    int entryCounter;
+    int lastMsgIndex;
+    int firstMsgIndex;
+
+#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
+    ASDU asdus[CONFIG_SLAVE_MESSAGE_QUEUE_SIZE];
+#else
+    ASDU* asdus;
+#endif
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore queueLock;
+#endif
+};
+
+struct sSlave {
     InterrogationHandler interrogationHandler;
     void* interrogationHandlerParameter;
 
@@ -63,7 +84,7 @@ struct sMaster {
     ASDUHandler asduHandler;
     void* asduHandlerParameter;
 
-
+    struct sMessageQueue messageQueue;
 
     ConnectionParameters parameters;
 
@@ -73,6 +94,12 @@ struct sMaster {
     int openConnections;
     int tcpPort;
 };
+
+#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
+
+static struct sSlave singleStaticSlaveInstance;
+
+#endif
 
 static uint8_t STARTDT_CON_MSG[] = { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
 
@@ -86,17 +113,46 @@ static uint8_t TESTFR_CON_MSG[] = { 0x68, 0x04, 0x83, 0x00, 0x00, 0x00 };
 
 #define TESTFR_CON_MSG_SIZE 6
 
-Master
-T104Master_create(ConnectionParameters parameters)
+
+static void
+initializeMessageQueue(Slave self, int maxQueueSize)
 {
-    Master self = (Master) GLOBAL_MALLOC(sizeof(struct sMaster));
+#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
+    maxQueueSize = CONFIG_SLAVE_MESSAGE_QUEUE_SIZE;
+#else
+    if (maxQueueSize < 1)
+        maxQueueSize = CONFIG_SLAVE_MESSAGE_QUEUE_SIZE;
+
+    self->messageQueue.asdus = GLOBAL_CALLOC(maxQueueSize, sizeof(ASDU));
+#endif
+
+    self->messageQueue.entryCounter = 0;
+    self->messageQueue.firstMsgIndex = 0;
+    self->messageQueue.lastMsgIndex = 0;
+    self->messageQueue.size = maxQueueSize;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    self->messageQueue.queueLock = Semaphore_create(1);
+#endif
+}
+
+Slave
+T104Slave_create(ConnectionParameters parameters, int maxQueueSize)
+{
+#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
+    Slave self = &(singleStaticSlaveInstance);
+#else
+    Slave self = (Slave) GLOBAL_MALLOC(sizeof(struct sSlave));
+#endif
 
     if (self != NULL) {
+
+        initializeMessageQueue(self, maxQueueSize);
 
         if (parameters != NULL)
             self->parameters = parameters;
         else
-            self->parameters = &defaultConnectionParameters;
+            self->parameters = (ConnectionParameters) &defaultConnectionParameters;
 
         self->asduHandler = NULL;
         self->interrogationHandler = NULL;
@@ -114,48 +170,142 @@ T104Master_create(ConnectionParameters parameters)
 }
 
 int
-T104Master_getOpenConnections(Master self)
+T104Slave_getOpenConnections(Slave self)
 {
     return self->openConnections;
 }
 
 void
-Master_setInterrogationHandler(Master self, InterrogationHandler handler, void*  parameter)
+Slave_setInterrogationHandler(Slave self, InterrogationHandler handler, void*  parameter)
 {
     self->interrogationHandler = handler;
     self->interrogationHandlerParameter = parameter;
 }
 
 void
-Master_setReadHandler(Master self, ReadHandler handler, void* parameter)
+Slave_setReadHandler(Slave self, ReadHandler handler, void* parameter)
 {
     self->readHandler = handler;
     self->readHandlerParameter = parameter;
 }
 
 void
-Master_setASDUHandler(Master self, ASDUHandler handler, void* parameter)
+Slave_setASDUHandler(Slave self, ASDUHandler handler, void* parameter)
 {
     self->asduHandler = handler;
     self->asduHandlerParameter = parameter;
 }
 
 void
-Master_setClockSyncHandler(Master self, ClockSynchronizationHandler handler, void* parameter)
+Slave_setClockSyncHandler(Slave self, ClockSynchronizationHandler handler, void* parameter)
 {
     self->clockSyncHandler = handler;
     self->clockSyncHandlerParameter = parameter;
 }
 
 ConnectionParameters
-Master_getConnectionParameters(Master self)
+Slave_getConnectionParameters(Slave self)
 {
     return self->parameters;
 }
 
+void
+Slave_enqueueASDU(Slave self, ASDU asdu)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->messageQueue.queueLock);
+#endif
+
+    int nextIndex;
+    bool removeEntry = false;
+
+    if (self->messageQueue.entryCounter == 0)
+        nextIndex = self->messageQueue.lastMsgIndex;
+    else
+        nextIndex = self->messageQueue.lastMsgIndex + 1;
+
+    if (nextIndex == self->messageQueue.size)
+        nextIndex = 0;
+
+    if (self->messageQueue.entryCounter == self->messageQueue.size)
+        removeEntry = true;
+
+    if (removeEntry == false) {
+        printf("add entry (nextIndex:%i)\n", nextIndex);
+        self->messageQueue.asdus[nextIndex] = asdu;
+        self->messageQueue.lastMsgIndex = nextIndex;
+        self->messageQueue.entryCounter++;
+    }
+    else
+    {
+        printf("add entry (nextIndex:%i) -> remove oldest\n", nextIndex);
+
+        /* remove oldest entry */
+        ASDU_destroy(self->messageQueue.asdus[nextIndex]);
+        self->messageQueue.asdus[nextIndex] = asdu;
+        self->messageQueue.lastMsgIndex = nextIndex;
+
+        int firstIndex = nextIndex + 1;
+
+        if (firstIndex == self->messageQueue.size)
+            firstIndex = 0;
+
+        self->messageQueue.firstMsgIndex = firstIndex;
+    }
+
+    printf("ASDUs in FIFO: %i (first: %i, last: %i)\n", self->messageQueue.entryCounter,
+            self->messageQueue.firstMsgIndex, self->messageQueue.lastMsgIndex);
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->messageQueue.queueLock);
+#endif
+
+    //TODO trigger active connection to send message
+}
+
+
+ASDU
+Slave_dequeueASDU(Slave self)
+{
+    ASDU asdu = NULL;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->messageQueue.queueLock);
+#endif
+
+    if (self->messageQueue.entryCounter != 0) {
+        int firstMsgIndex = self->messageQueue.firstMsgIndex;
+
+        printf("remove entry (%i)\n", firstMsgIndex);
+
+        asdu = self->messageQueue.asdus[firstMsgIndex];
+
+        firstMsgIndex++;
+
+        if (firstMsgIndex == self->messageQueue.size)
+            firstMsgIndex = 0;
+
+        self->messageQueue.firstMsgIndex = firstMsgIndex;
+        self->messageQueue.entryCounter--;
+
+        if (self->messageQueue.entryCounter == 0)
+            self->messageQueue.lastMsgIndex = firstMsgIndex;
+
+        printf("-->ASDUs in FIFO: %i (first: %i, last: %i)\n", self->messageQueue.entryCounter,
+                self->messageQueue.firstMsgIndex, self->messageQueue.lastMsgIndex);
+
+    }
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->messageQueue.queueLock);
+#endif
+
+    return asdu;
+}
+
 struct sMasterConnection {
     Socket socket;
-    Master master;
+    Slave slave;
     bool isActive;
     bool isRunning;
 
@@ -213,13 +363,13 @@ sendIMessage(MasterConnection self, T104Frame frame)
 static void
 sendASDU(MasterConnection self, ASDU asdu)
 {
-    T104Frame frame = (Frame) T104Frame_create();
+    Frame frame = (Frame) T104Frame_create();
 
     ASDU_encode(asdu, frame);
 
-    sendIMessage(self, frame);
+    sendIMessage(self, (T104Frame) frame);
 
-    T104Frame_destroy(frame);
+    T104Frame_destroy((T104Frame) frame);
 }
 
 static void
@@ -227,7 +377,7 @@ handleASDU(MasterConnection self, ASDU asdu)
 {
     bool messageHandled = false;
 
-    Master master = self->master;
+    Slave master = self->slave;
 
     uint8_t cot = ASDU_getCOT(asdu);
 
@@ -241,7 +391,6 @@ handleASDU(MasterConnection self, ASDU asdu)
             if (master->interrogationHandler != NULL) {
 
                 InterrogationCommand irc = (InterrogationCommand) ASDU_getElement(asdu, 0);
-
 
                 if (master->interrogationHandler(master->interrogationHandlerParameter,
                         self, asdu, InterrogationCommand_getQOI(irc)))
@@ -263,12 +412,12 @@ handleASDU(MasterConnection self, ASDU asdu)
         if ((cot == ACTIVATION) || (cot == DEACTIVATION)) {
 
 #if 0
-            if (master->counterIn != NULL) {
+            if (slave->counterIn != NULL) {
 
                 CounterInterrogationCommand irc = (CounterInterrogationCommand) ASDU_getElement(asdu, 0);
 
 
-                if (master->interrogationHandler(master->interrogationHandlerParameter,
+                if (slave->interrogationHandler(slave->interrogationHandlerParameter,
                         self, asdu, InterrogationCommand_getQOI(irc)))
                     messageHandled = true;
             }
@@ -341,7 +490,8 @@ handleASDU(MasterConnection self, ASDU asdu)
 
         break;
 
-
+    default: /* no special handler available -> use default handler */
+        break;
     }
 
     if ((messageHandled == false) && (master->asduHandler != NULL))
@@ -371,7 +521,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
         if (self->isActive) {
 
-            ASDU asdu = ASDU_createFromBuffer(self->master->parameters, buffer + 6, msgSize - 6);
+            ASDU asdu = ASDU_createFromBuffer(self->slave->parameters, buffer + 6, msgSize - 6);
 
             handleASDU(self, asdu);
             //ASDU_destroy(asdu);
@@ -416,6 +566,80 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
     return true;
 }
 
+static void
+checkServerQueue(MasterConnection self)
+{
+    ASDU asdu = Slave_dequeueASDU(self->slave);
+
+    if (asdu != NULL) {
+        sendASDU(self, asdu);
+
+        ASDU_destroy(asdu);
+    }
+}
+
+#if 0
+        private void sendSMessage() {
+            byte[] msg = new byte[6];
+
+            msg [0] = 0x68;
+            msg [1] = 0x04;
+            msg [2] = 0x01;
+            msg [3] = 0;
+            msg [4] = (byte) ((receiveCount % 128) * 2);
+            msg [5] = (byte) (receiveCount / 128);
+
+            socket.Send (msg);
+        }
+#endif
+
+static void sendSMessage(MasterConnection self)
+{
+    uint8_t msg[6];
+
+    msg[0] = 0x68;
+    msg[1] = 0x04;
+    msg[2] = 0x01;
+    msg[3] = 0;
+    msg[4] = (uint8_t) ((self->receiveCount % 128) * 2);
+    msg[5] = (uint8_t) (self->receiveCount / 128);
+
+    Socket_write(self->socket, msg, 6);
+}
+
+
+static bool
+checkConfirmTimeout(MasterConnection self, uint64_t currentTime)
+{
+    T104ConnectionParameters parameters = self->slave->parameters;
+
+    if ((currentTime - self->lastConfirmationTime) >= (parameters->t2 * 1000))
+        return true;
+    else
+        return false;
+}
+
+static void
+sendSMessageIfRequired(MasterConnection self)
+{
+    if (self->unconfirmedMessages > 0) {
+        uint64_t currentTime = Hal_getTimeInMs();
+
+        T104ConnectionParameters parameters = self->slave->parameters;
+
+        if ((self->unconfirmedMessages > parameters->w) || checkConfirmTimeout(self, currentTime)) {
+
+            printf("Send S message\n");
+
+            self->lastConfirmationTime = currentTime;
+
+            self->unconfirmedMessages = 0;
+
+            sendSMessage(self);
+        }
+    }
+}
+
 static void*
 connectionHandlingThread(void* parameter)
 {
@@ -439,24 +663,29 @@ connectionHandlingThread(void* parameter)
             if (handleMessage(self, buffer, bytesRec) == false)
                 self->isRunning = false;
         }
+
+        if (self->isActive)
+            checkServerQueue(self);
+
+        sendSMessageIfRequired(self);
     }
 
     printf("Connection closed\n");
 
     self->isRunning = false;
-    self->master->openConnections--;
+    self->slave->openConnections--;
 
     return NULL;
 }
 
-MasterConnection
-MasterConnection_create(Master master, Socket socket)
+static MasterConnection
+MasterConnection_create(Slave slave, Socket socket)
 {
     MasterConnection self = (MasterConnection) GLOBAL_MALLOC(sizeof(struct sMasterConnection));
 
     if (self != NULL) {
 
-        self->master = master;
+        self->slave = slave;
         self->socket = socket;
         self->isActive = false;
         self->isRunning = false;
@@ -482,7 +711,10 @@ MasterConnection_sendASDU(MasterConnection self, ASDU asdu)
     Frame frame = (Frame) T104Frame_create();
     ASDU_encode(asdu, frame);
 
-    sendIMessage(self, frame);
+    if (ASDU_isStackCreated(asdu) == false)
+        ASDU_destroy(asdu);
+
+    sendIMessage(self, (T104Frame) frame);
 
     Frame_destroy(frame);
 }
@@ -505,10 +737,10 @@ MasterConnection_sendACT_TERM(MasterConnection self, ASDU asdu)
     MasterConnection_sendASDU(self, asdu);
 }
 
-void*
+static void*
 serverThread (void* parameter)
 {
-    Master self = (Master) parameter;
+    Slave self = (Slave) parameter;
 
     ServerSocket serverSocket = TcpServerSocket_create("127.0.0.1", self->tcpPort);
 
@@ -521,7 +753,9 @@ serverThread (void* parameter)
 
         if (newSocket != NULL) {
 
-            MasterConnection connection = MasterConnection_create(self, newSocket);
+            //MasterConnection connection =
+            //TODO save connection reference
+            MasterConnection_create(self, newSocket);
 
         }
         else
@@ -535,7 +769,7 @@ serverThread (void* parameter)
 }
 
 void
-Master_start(Master self)
+Slave_start(Slave self)
 {
     if (self->isRunning == false) {
         self->stopRunning = false;
@@ -547,25 +781,27 @@ Master_start(Master self)
 }
 
 bool
-Master_isRunning(Master self)
+Slave_isRunning(Slave self)
 {
     return self->isRunning;
 }
 
 void
-Master_stop(Master self)
+Slave_stop(Slave self)
 {
     self->stopRunning = true;
 }
 
-void
-Master_enqueueASDU(Master self, ASDU asdu)
-{
-
-}
 
 void
-Master_destroy(Master self)
+Slave_destroy(Slave self)
 {
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_destroy(self->messageQueue.queueLock);
+#endif
 
+#if  (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 0)
+    GLOBAL_FREEMEM(self->messageQueue.frames);
+    GLOBAL_FREEMEM(self);
+#endif
 }

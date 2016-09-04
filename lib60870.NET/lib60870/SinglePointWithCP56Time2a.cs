@@ -24,6 +24,9 @@ using System;
 namespace lib60870
 {
 
+	/// <summary>
+	/// Single point with CP56Time2a timestamp (M_SP_TB_1)
+	/// </summary>
 	public class SinglePointWithCP56Time2a : SinglePointInformation
 	{
 		private CP56Time2a timestamp;

@@ -1,9 +1,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #include "iec60870_slave.h"
 
 #include "hal_thread.h"
+#include "hal_time.h"
 
 static bool running = true;
 
@@ -33,6 +35,10 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
 {
     printf("Received interrogation for group %i\n", qoi);
 
+    struct sCP56Time2a timestamp;
+
+    CP56Time2a_createFromMsTimestamp(&timestamp, Hal_getTimeInMs());
+
     MasterConnection_sendACT_CON(connection, asdu, false);
 
     ASDU newAsdu = ASDU_create(connectionParameters, M_ME_NB_1, INTERROGATED_BY_STATION,
@@ -42,8 +48,43 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
 
     ASDU_addInformationObject(newAsdu, io);
 
-    ASDU_addInformationObject(newAsdu, MeasuredValueScaled_create(io, 101, 23, IEC60870_QUALITY_GOOD));
-    ASDU_addInformationObject(newAsdu, MeasuredValueScaled_create(io, 102, 2300, IEC60870_QUALITY_GOOD));
+    ASDU_addInformationObject(newAsdu, (InformationObject)
+            MeasuredValueScaled_create(io, 101, 23, IEC60870_QUALITY_GOOD));
+
+    ASDU_addInformationObject(newAsdu, (InformationObject)
+            MeasuredValueScaled_create(io, 102, 2300, IEC60870_QUALITY_GOOD));
+
+    MeasuredValueScaled_destroy(io);
+
+    MasterConnection_sendASDU(connection, newAsdu);
+
+    newAsdu = ASDU_create(connectionParameters, M_SP_TB_1, INTERROGATED_BY_STATION,
+                0, 1, false, false);
+
+    io = (InformationObject) SinglePointWithCP56Time2a_create(NULL, 104, true, IEC60870_QUALITY_GOOD, &timestamp);
+
+    ASDU_addInformationObject(newAsdu, io);
+
+    ASDU_addInformationObject(newAsdu, (InformationObject)
+                SinglePointWithCP56Time2a_create(io, 105, false, IEC60870_QUALITY_GOOD, &timestamp));
+
+    SinglePointWithCP56Time2a_destroy(io);
+
+    MasterConnection_sendASDU(connection, newAsdu);
+
+
+    newAsdu = ASDU_create(connectionParameters, M_IT_TB_1, INTERROGATED_BY_STATION,
+                0, 1, false, false);
+
+    BinaryCounterReading bcr = BinaryCounterReading_create(NULL, 12345678, 0, false, false, true);
+
+    io = (InformationObject) IntegratedTotalsWithCP56Time2a_create(NULL, 200, bcr, &timestamp);
+
+    ASDU_addInformationObject(newAsdu, io);
+
+    BinaryCounterReading_destroy(bcr);
+
+    InformationObject_destroy(io);
 
     MasterConnection_sendASDU(connection, newAsdu);
 
@@ -55,24 +96,39 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
 int
 main(int argc, char** argv)
 {
-    /* create a new master instance with default connection parameters */
-    Master master = T104Master_create(NULL);
+    /* create a new slave/server instance with default connection parameters and
+     * default message queue size */
+    Slave slave = T104Slave_create(NULL, 0);
 
     /* get the connection parameters - we need them to create correct ASDUs */
-    connectionParameters = Master_getConnectionParameters(master);
+    connectionParameters = Slave_getConnectionParameters(slave);
 
-    Master_start(master);
+    Slave_start(slave);
 
     /* set the callback handler for the clock synchronization command */
-    Master_setClockSyncHandler(master, clockSyncHandler, NULL);
+    Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);
 
     /* set the callback handler for the interrogation command */
-    Master_setInterrogationHandler(master, interrogationHandler, NULL);
+    Slave_setInterrogationHandler(slave, interrogationHandler, NULL);
+
+    int16_t scaledValue = 0;
 
     while (running) {
-        Thread_sleep(10000);
+        Thread_sleep(1000);
+
+        ASDU newAsdu = ASDU_create(connectionParameters, M_ME_NB_1, PERIODIC, 0, 1, false, false);
+
+        InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
+
+        scaledValue++;
+
+        ASDU_addInformationObject(newAsdu, io);
+
+        InformationObject_destroy(io);
+
+        Slave_enqueueASDU(slave, newAsdu);
     }
 
-    Master_stop(master);
+    Slave_stop(slave);
 
 }

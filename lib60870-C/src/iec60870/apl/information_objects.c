@@ -213,6 +213,23 @@ SinglePointInformation_initialize(SinglePointInformation self)
     self->type = IEC60870_TYPE_SINGLE_POINT_INFORMATION;
 }
 
+SinglePointInformation
+SinglePointInformation_create(SinglePointInformation self, int ioa, bool value,
+        QualityDescriptor quality)
+{
+    if (self == NULL)
+        self = (SinglePointInformation) GLOBAL_CALLOC(1, sizeof(struct sSinglePointInformation));
+
+    if (self != NULL)
+        SinglePointInformation_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+    self->quality = quality;
+
+    return self;
+}
+
 void
 SinglePointInformation_destroy(SinglePointInformation self)
 {
@@ -311,6 +328,36 @@ StepPositionInformation_initialize(StepPositionInformation self)
 {
     self->virtualFunctionTable = &(stepPositionInformationVFT);
     self->type = IEC60870_TYPE_STEP_POSITION_INFORMATION;
+}
+
+StepPositionInformation
+StepPositionInformation_create(StepPositionInformation self, int ioa, int value, bool isTransient,
+        QualityDescriptor quality)
+{
+    if (self == NULL)
+        self = (StepPositionInformation) GLOBAL_CALLOC(1, sizeof(struct sStepPositionInformation));
+
+    if (self != NULL)
+        StepPositionInformation_initialize(self);
+
+    self->objectAddress = ioa;
+
+    if (value > 63)
+        value = 63;
+    else if (value < -64)
+        value = -64;
+
+    if (value < 0)
+        value = value + 128;
+
+    self->vti = value;
+
+    if (isTransient)
+        self->vti |= 0x80;
+
+    self->quality = quality;
+
+    return self;
 }
 
 void
@@ -427,6 +474,38 @@ StepPositionWithCP56Time2a_destroy(StepPositionWithCP56Time2a self)
     GLOBAL_FREEMEM(self);
 }
 
+StepPositionWithCP56Time2a
+StepPositionWithCP56Time2a_create(StepPositionWithCP56Time2a self, int ioa, int value, bool isTransient,
+        QualityDescriptor quality, CP56Time2a timestamp)
+{
+    if (self == NULL)
+        self = (StepPositionWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sStepPositionWithCP56Time2a));
+
+    if (self != NULL)
+        StepPositionWithCP56Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+
+    if (value > 63)
+        value = 63;
+    else if (value < -64)
+        value = -64;
+
+    if (value < 0)
+        value = value + 128;
+
+    self->vti = value;
+
+    if (isTransient)
+        self->vti |= 0x80;
+
+    self->quality = quality;
+
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
 CP56Time2a
 StepPositionWithCP56Time2a_getTimestamp(StepPositionWithCP56Time2a self)
 {
@@ -514,6 +593,39 @@ StepPositionWithCP24Time2a_destroy(StepPositionWithCP24Time2a self)
     GLOBAL_FREEMEM(self);
 }
 
+StepPositionWithCP24Time2a
+StepPositionWithCP24Time2a_create(StepPositionWithCP24Time2a self, int ioa, int value, bool isTransient,
+        QualityDescriptor quality, CP24Time2a timestamp)
+{
+    if (self == NULL)
+        self = (StepPositionWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sStepPositionWithCP24Time2a));
+
+    if (self != NULL)
+        StepPositionWithCP24Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+
+    if (value > 63)
+        value = 63;
+    else if (value < -64)
+        value = -64;
+
+    if (value < 0)
+        value = value + 128;
+
+    self->vti = value;
+
+    if (isTransient)
+        self->vti |= 0x80;
+
+    self->quality = quality;
+
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+
 CP24Time2a
 StepPositionWithCP24Time2a_getTimestamp(StepPositionWithCP24Time2a self)
 {
@@ -588,6 +700,23 @@ void
 DoublePointInformation_destroy(DoublePointInformation self)
 {
     GLOBAL_FREEMEM(self);
+}
+
+DoublePointInformation
+DoublePointInformation_create(DoublePointInformation self, int ioa, DoublePointValue value,
+        QualityDescriptor quality)
+{
+    if (self == NULL)
+        self = (DoublePointInformation) GLOBAL_CALLOC(1, sizeof(struct sDoublePointInformation));
+
+    if (self != NULL)
+        DoublePointInformation_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+    self->quality = quality;
+
+    return self;
 }
 
 void
@@ -692,6 +821,24 @@ DoublePointWithCP24Time2a_initialize(DoublePointWithCP24Time2a self)
     self->type = IEC60870_TYPE_DOUBLE_POINT_WITH_CP24TIME2A;
 }
 
+DoublePointWithCP24Time2a
+DoublePointWithCP24Time2a_create(DoublePointWithCP24Time2a self, int ioa, DoublePointValue value,
+        QualityDescriptor quality, CP24Time2a timestamp)
+{
+    if (self == NULL)
+        self = (DoublePointWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sDoublePointWithCP24Time2a));
+
+    if (self != NULL)
+        DoublePointWithCP24Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+    self->quality = quality;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
 CP24Time2a
 DoublePointWithCP24Time2a_getTimestamp(DoublePointWithCP24Time2a self)
 {
@@ -785,6 +932,25 @@ DoublePointWithCP56Time2a_initialize(DoublePointWithCP56Time2a self)
     self->type = IEC60870_TYPE_DOUBLE_POINT_WITH_CP56TIME2A;
 }
 
+DoublePointWithCP56Time2a
+DoublePointWithCP56Time2a_create(DoublePointWithCP56Time2a self, int ioa, DoublePointValue value,
+        QualityDescriptor quality, CP56Time2a timestamp)
+{
+    if (self == NULL)
+        self = (DoublePointWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sDoublePointWithCP56Time2a));
+
+    if (self != NULL)
+        DoublePointWithCP56Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+    self->quality = quality;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+
 CP56Time2a
 DoublePointWithCP56Time2a_getTimestamp(DoublePointWithCP56Time2a self)
 {
@@ -877,6 +1043,24 @@ SinglePointWithCP24Time2a_initialize(SinglePointWithCP24Time2a self)
     self->type = IEC60870_TYPE_SINGLE_POINT_WITH_CP24TIME2A;
 }
 
+SinglePointWithCP24Time2a
+SinglePointWithCP24Time2a_create(SinglePointWithCP24Time2a self, int ioa, bool value,
+        QualityDescriptor quality, CP24Time2a timestamp)
+{
+    if (self == NULL)
+        self = (SinglePointWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sSinglePointWithCP24Time2a));
+
+    if (self != NULL)
+        SinglePointWithCP24Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+    self->quality = quality;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
 CP24Time2a
 SinglePointWithCP24Time2a_getTimestamp(SinglePointWithCP24Time2a self)
 {
@@ -959,16 +1143,34 @@ struct sInformationObjectVFT singlePointWithCP56Time2aVFT = {
 };
 
 void
-SinglePointWithCP56Time2a_destroy(SinglePointWithCP56Time2a self)
-{
-    GLOBAL_FREEMEM(self);
-}
-
-void
 SinglePointWithCP56Time2a_initialize(SinglePointWithCP56Time2a self)
 {
     self->virtualFunctionTable = &(singlePointWithCP56Time2aVFT);
     self->type = IEC60870_TYPE_SINGLE_POINT_WITH_CP56TIME2A;
+}
+
+SinglePointWithCP56Time2a
+SinglePointWithCP56Time2a_create(SinglePointWithCP56Time2a self, int ioa, bool value,
+        QualityDescriptor quality, CP56Time2a timestamp)
+{
+    if (self == NULL)
+        self = (SinglePointWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sSinglePointWithCP56Time2a));
+
+    if (self != NULL)
+        SinglePointWithCP56Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+    self->quality = quality;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+void
+SinglePointWithCP56Time2a_destroy(SinglePointWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
 }
 
 CP56Time2a
@@ -1060,6 +1262,21 @@ void
 BitString32_destroy(BitString32 self)
 {
     GLOBAL_FREEMEM(self);
+}
+
+BitString32
+BitString32_create(BitString32 self, int ioa, uint32_t value)
+{
+    if (self == NULL)
+         self = (BitString32) GLOBAL_CALLOC(1, sizeof(struct sBitString32));
+
+    if (self != NULL)
+        BitString32_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+
+    return self;
 }
 
 uint32_t
@@ -1161,6 +1378,22 @@ Bitstring32WithCP24Time2a_destroy(Bitstring32WithCP24Time2a self)
     GLOBAL_FREEMEM(self);
 }
 
+Bitstring32WithCP24Time2a
+Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, CP24Time2a timestamp)
+{
+    if (self == NULL)
+         self = (Bitstring32WithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sBitstring32WithCP24Time2a));
+
+    if (self != NULL)
+        Bitstring32WithCP24Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
 CP24Time2a
 Bitstring32WithCP24Time2a_getTimestamp(Bitstring32WithCP24Time2a self)
 {
@@ -1256,6 +1489,23 @@ Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self)
 {
     GLOBAL_FREEMEM(self);
 }
+
+Bitstring32WithCP56Time2a
+Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, CP56Time2a timestamp)
+{
+    if (self == NULL)
+         self = (Bitstring32WithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sBitstring32WithCP56Time2a));
+
+    if (self != NULL)
+        Bitstring32WithCP56Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
 
 CP56Time2a
 Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self)
@@ -1374,6 +1624,23 @@ MeasuredValueNormalized_destroy(MeasuredValueNormalized self)
     GLOBAL_FREEMEM(self);
 }
 
+MeasuredValueNormalized
+MeasuredValueNormalized_create(MeasuredValueNormalized self, int ioa, float value, QualityDescriptor quality)
+{
+    if (self == NULL)
+        self = (MeasuredValueNormalized) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalized));
+
+    if (self != NULL)
+        MeasuredValueNormalized_initialize(self);
+
+    self->objectAddress = ioa;
+
+    MeasuredValueNormalized_setValue(self, value);
+
+    self->quality = quality;
+
+    return self;
+}
 
 float
 MeasuredValueNormalized_getValue(MeasuredValueNormalized self)
@@ -1473,6 +1740,27 @@ MeasuredValueNormalizedWithCP24Time2a_destroy(MeasuredValueNormalizedWithCP24Tim
     GLOBAL_FREEMEM(self);
 }
 
+MeasuredValueNormalizedWithCP24Time2a
+MeasuredValueNormalizedWithCP24Time2a_create(MeasuredValueNormalizedWithCP24Time2a self, int ioa,
+            float value, QualityDescriptor quality, CP24Time2a timestamp)
+{
+    if (self == NULL)
+        self = (MeasuredValueNormalizedWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalizedWithCP24Time2a));
+
+    if (self != NULL)
+        MeasuredValueNormalizedWithCP24Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+
+    MeasuredValueNormalized_setValue((MeasuredValueNormalized) self, value);
+
+    self->quality = quality;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+
 CP24Time2a
 MeasuredValueNormalizedWithCP24Time2a_getTimestamp(MeasuredValueNormalizedWithCP24Time2a self)
 {
@@ -1566,6 +1854,27 @@ MeasuredValueNormalizedWithCP56Time2a_destroy(MeasuredValueNormalizedWithCP56Tim
 {
     GLOBAL_FREEMEM(self);
 }
+
+MeasuredValueNormalizedWithCP56Time2a
+MeasuredValueNormalizedWithCP56Time2a_create(MeasuredValueNormalizedWithCP56Time2a self, int ioa,
+            float value, QualityDescriptor quality, CP56Time2a timestamp)
+{
+    if (self == NULL)
+        self = (MeasuredValueNormalizedWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalizedWithCP56Time2a));
+
+    if (self != NULL)
+        MeasuredValueNormalizedWithCP56Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+
+    MeasuredValueNormalized_setValue((MeasuredValueNormalized) self, value);
+
+    self->quality = quality;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
 
 CP56Time2a
 MeasuredValueNormalizedWithCP56Time2a_getTimestamp(MeasuredValueNormalizedWithCP56Time2a self)
@@ -1775,6 +2084,24 @@ MeasuredValueScaledWithCP24Time2a_destroy(MeasuredValueScaledWithCP24Time2a self
     GLOBAL_FREEMEM(self);
 }
 
+MeasuredValueScaledWithCP24Time2a
+MeasuredValueScaledWithCP24Time2a_create(MeasuredValueScaledWithCP24Time2a self, int ioa,
+        int value, QualityDescriptor quality, CP24Time2a timestamp)
+{
+    if (self == NULL)
+        self = (MeasuredValueScaledWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaledWithCP24Time2a));
+
+    if (self != NULL)
+        MeasuredValueScaledWithCP24Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    setScaledValue(self->encodedValue, value);
+    self->quality = quality;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
 CP24Time2a
 MeasuredValueScaledWithCP24Time2a_getTimestamp(MeasuredValueScaledWithCP24Time2a self)
 {
@@ -1867,6 +2194,24 @@ void
 MeasuredValueScaledWithCP56Time2a_destroy(MeasuredValueScaledWithCP56Time2a self)
 {
     GLOBAL_FREEMEM(self);
+}
+
+MeasuredValueScaledWithCP56Time2a
+MeasuredValueScaledWithCP56Time2a_create(MeasuredValueScaledWithCP56Time2a self, int ioa,
+        int value, QualityDescriptor quality, CP56Time2a timestamp)
+{
+    if (self == NULL)
+        self = (MeasuredValueScaledWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaledWithCP56Time2a));
+
+    if (self != NULL)
+        MeasuredValueScaledWithCP56Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    setScaledValue(self->encodedValue, value);
+    self->quality = quality;
+    self->timestamp = *timestamp;
+
+    return self;
 }
 
 CP56Time2a
@@ -1973,6 +2318,21 @@ MeasuredValueShort_destroy(MeasuredValueShort self)
     GLOBAL_FREEMEM(self);
 }
 
+MeasuredValueShort
+MeasuredValueShort_create(MeasuredValueShort self, int ioa, float value, QualityDescriptor quality)
+{
+    if (self == NULL)
+        self = (MeasuredValueShort) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShort));
+
+    if (self != NULL)
+        MeasuredValueShort_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+    self->quality = quality;
+
+    return self;
+}
 
 float
 MeasuredValueShort_getValue(MeasuredValueShort self)
@@ -2075,6 +2435,24 @@ void
 MeasuredValueShortWithCP24Time2a_destroy(MeasuredValueShortWithCP24Time2a self)
 {
     GLOBAL_FREEMEM(self);
+}
+
+MeasuredValueShortWithCP24Time2a
+MeasuredValueShortWithCP24Time2a_create(MeasuredValueShortWithCP24Time2a self, int ioa,
+        float value, QualityDescriptor quality, CP24Time2a timestamp)
+{
+    if (self == NULL)
+        self = (MeasuredValueShortWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShortWithCP24Time2a));
+
+    if (self != NULL)
+        MeasuredValueShortWithCP24Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+    self->quality = quality;
+    self->timestamp = *timestamp;
+
+    return self;
 }
 
 CP24Time2a
@@ -2181,6 +2559,24 @@ MeasuredValueShortWithCP56Time2a_destroy(MeasuredValueShortWithCP56Time2a self)
     GLOBAL_FREEMEM(self);
 }
 
+MeasuredValueShortWithCP56Time2a
+MeasuredValueShortWithCP56Time2a_create(MeasuredValueShortWithCP56Time2a self, int ioa,
+        float value, QualityDescriptor quality, CP56Time2a timestamp)
+{
+    if (self == NULL)
+        self = (MeasuredValueShortWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShortWithCP56Time2a));
+
+    if (self != NULL)
+        MeasuredValueShortWithCP56Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->value = value;
+    self->quality = quality;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
 CP56Time2a
 MeasuredValueShortWithCP56Time2a_getTimestamp(MeasuredValueShortWithCP56Time2a self)
 {
@@ -2254,8 +2650,6 @@ struct sIntegratedTotals {
     InformationObjectVFT virtualFunctionTable;
 
     struct sBinaryCounterReading totals;
-
-    QualityDescriptor quality;
 };
 
 static void
@@ -2264,8 +2658,6 @@ IntegratedTotals_encode(IntegratedTotals self, Frame frame, ConnectionParameters
     InformationObject_encodeBase((InformationObject) self, frame, parameters);
 
     Frame_appendBytes(frame, self->totals.encodedValue, 5);
-
-    Frame_setNextByte(frame, (uint8_t) self->quality);
 }
 
 struct sInformationObjectVFT integratedTotalsVFT = {
@@ -2284,6 +2676,21 @@ void
 IntegratedTotals_destroy(IntegratedTotals self)
 {
     GLOBAL_FREEMEM(self);
+}
+
+IntegratedTotals
+IntegratedTotals_create(IntegratedTotals self, int ioa, BinaryCounterReading value)
+{
+    if (self == NULL)
+        self = (IntegratedTotals) GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotals));
+
+    if (self != NULL)
+        IntegratedTotals_initialize(self);
+
+    self->objectAddress = ioa;
+    self->totals = *value;
+
+    return self;
 }
 
 BinaryCounterReading
@@ -2325,9 +2732,6 @@ IntegratedTotals_getFromBuffer(IntegratedTotals self, ConnectionParameters param
 
         for (i = 0; i < 5; i++)
             self->totals.encodedValue[i] = msg [startIndex++];
-
-        /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
     }
 
     return self;
@@ -2346,8 +2750,6 @@ struct sIntegratedTotalsWithCP24Time2a {
     InformationObjectVFT virtualFunctionTable;
 
     struct sBinaryCounterReading totals;
-
-    QualityDescriptor quality;
 
     struct sCP24Time2a timestamp;
 };
@@ -2377,6 +2779,24 @@ IntegratedTotalsWithCP24Time2a_destroy(IntegratedTotalsWithCP24Time2a self)
 {
     GLOBAL_FREEMEM(self);
 }
+
+IntegratedTotalsWithCP24Time2a
+IntegratedTotalsWithCP24Time2a_create(IntegratedTotalsWithCP24Time2a self, int ioa,
+        BinaryCounterReading value, CP24Time2a timestamp)
+{
+    if (self == NULL)
+        self = (IntegratedTotalsWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotalsWithCP24Time2a));
+
+    if (self != NULL)
+        IntegratedTotalsWithCP24Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->totals = *value;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
 
 CP24Time2a
 IntegratedTotalsWithCP24Time2a_getTimestamp(IntegratedTotalsWithCP24Time2a self)
@@ -2420,9 +2840,6 @@ IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self
         for (i = 0; i < 5; i++)
             self->totals.encodedValue[i] = msg [startIndex++];
 
-        /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
-
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
     }
@@ -2443,8 +2860,6 @@ struct sIntegratedTotalsWithCP56Time2a {
     InformationObjectVFT virtualFunctionTable;
 
     struct sBinaryCounterReading totals;
-
-    QualityDescriptor quality;
 
     struct sCP56Time2a timestamp;
 };
@@ -2473,6 +2888,23 @@ void
 IntegratedTotalsWithCP56Time2a_destroy(IntegratedTotalsWithCP56Time2a self)
 {
     GLOBAL_FREEMEM(self);
+}
+
+IntegratedTotalsWithCP56Time2a
+IntegratedTotalsWithCP56Time2a_create(IntegratedTotalsWithCP56Time2a self, int ioa,
+        BinaryCounterReading value, CP56Time2a timestamp)
+{
+    if (self == NULL)
+        self = (IntegratedTotalsWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotalsWithCP56Time2a));
+
+    if (self != NULL)
+        IntegratedTotalsWithCP56Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->totals = *value;
+    self->timestamp = *timestamp;
+
+    return self;
 }
 
 CP56Time2a
@@ -2516,9 +2948,6 @@ IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self
 
         for (i = 0; i < 5; i++)
             self->totals.encodedValue[i] = msg [startIndex++];
-
-        /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);

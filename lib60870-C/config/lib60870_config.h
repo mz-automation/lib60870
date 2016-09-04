@@ -23,4 +23,24 @@
 /* number of not missing keepalive responses until socket is considered dead */
 #define CONFIG_TCP_KEEPALIVE_CNT 2
 
+/**
+ * Use static memory for the slave (outstation) message queue.
+ *
+ * Note: Use only when statically linking the library. You can only have
+ * a single slave instance!
+ * */
+#define CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE 1
+
+/**
+ * Compile the slave/server stack using threads. This will require semaphores also
+ */
+#define CONFIG_SLAVE_USING_THREADS 1
+
+/**
+ * Define the default size for the slave (outstation) message queue.
+ *
+ * For each queued message about 256 bytes of memory are required.
+ */
+#define CONFIG_SLAVE_MESSAGE_QUEUE_SIZE 10
+
 #endif /* CONFIG_LIB60870_CONFIG_H_ */

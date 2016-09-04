@@ -23,10 +23,38 @@
  *  See COPYING file for the complete license text.
  */
 
-#include "bcr.h"
+#include "iec60870_common.h"
+
+#include <stdlib.h>
 
 #include "platform_endian.h"
 #include "apl_types_internal.h"
+#include "lib_memory.h"
+
+
+BinaryCounterReading
+BinaryCounterReading_create(BinaryCounterReading self, int32_t value, int seqNumber,
+        bool hasCarry, bool isAdjusted, bool isInvalid)
+{
+    if (self == NULL)
+        self = (BinaryCounterReading) GLOBAL_MALLOC(sizeof(struct sBinaryCounterReading));
+
+    if (self != NULL) {
+        BinaryCounterReading_setValue(self, value);
+        BinaryCounterReading_setSequenceNumber(self, seqNumber);
+        BinaryCounterReading_setCarry(self, hasCarry);
+        BinaryCounterReading_setAdjusted(self, isAdjusted);
+        BinaryCounterReading_setInvalid(self, isInvalid);
+    }
+
+    return self;
+}
+
+void
+BinaryCounterReading_destroy(BinaryCounterReading self)
+{
+    GLOBAL_FREEMEM(self);
+}
 
 int32_t
 BinaryCounterReading_getValue(BinaryCounterReading self)
