@@ -93,6 +93,38 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
     return true;
 }
 
+static bool
+asduHandler (void* parameter, MasterConnection connection, ASDU asdu)
+{
+    if (ASDU_getTypeID(asdu) == C_SC_NA_1) {
+        printf("received single command\n");
+
+        if  (ASDU_getCOT(asdu) == ACTIVATION) {
+            InformationObject io = ASDU_getElement(asdu, 0);
+
+            if (InformationObject_getObjectAddress(io) == 5000) {
+                SingleCommand sc = (SingleCommand) io;
+
+                printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
+                        SingleCommand_getState(sc));
+
+                ASDU_setCOT(asdu, ACTIVATION_CON);
+            }
+            else
+                ASDU_setCOT(asdu, UNKNOWN_INFORMATION_OBJECT_ADDRESS);
+
+        }
+        else
+            ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
+
+        MasterConnection_sendASDU(connection, asdu);
+
+        return true;
+    }
+
+    return false;
+}
+
 int
 main(int argc, char** argv)
 {
@@ -110,6 +142,9 @@ main(int argc, char** argv)
 
     /* set the callback handler for the interrogation command */
     Slave_setInterrogationHandler(slave, interrogationHandler, NULL);
+
+    /* set handler for other message types */
+    Slave_setASDUHandler(slave, asduHandler, NULL);
 
     int16_t scaledValue = 0;
 
