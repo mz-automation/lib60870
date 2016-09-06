@@ -25,6 +25,7 @@
 #define SRC_INC_APL_TYPES_INTERNAL_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "frame.h"
 

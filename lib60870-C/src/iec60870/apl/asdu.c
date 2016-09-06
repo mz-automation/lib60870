@@ -24,6 +24,7 @@
 
 #include "iec60870_common.h"
 #include "information_objects_internal.h"
+#include "apl_types_internal.h"
 #include "lib_memory.h"
 
 struct sASDU {
@@ -139,7 +140,6 @@ ASDU_create(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission 
 void
 ASDU_destroy(ASDU self)
 {
-    printf("ASDU_destroy(%p)\n", self);
     GLOBAL_FREEMEM(self);
 }
 

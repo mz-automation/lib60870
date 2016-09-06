@@ -24,6 +24,8 @@
 
 #include <stdint.h>
 
+#include "frame.h"
+
 typedef struct sT104Frame* T104Frame;
 
 T104Frame

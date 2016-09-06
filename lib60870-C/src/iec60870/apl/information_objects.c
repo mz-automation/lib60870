@@ -31,47 +31,6 @@
 #include "frame.h"
 #include "platform_endian.h"
 
-typedef enum {
-    IEC60870_TYPE_SINGLE_POINT_INFORMATION = 1,
-    IEC60870_TYPE_SINGLE_POINT_WITH_CP24TIME2A,
-    IEC60870_TYPE_SINGLE_POINT_WITH_CP56TIME2A,
-    IEC60870_TYPE_DOUBLE_POINT_INFORMATION,
-    IEC60870_TYPE_DOUBLE_POINT_WITH_CP24TIME2A,
-    IEC60870_TYPE_DOUBLE_POINT_WITH_CP56TIME2A,
-    IEC60870_TYPE_STEP_POSITION_INFORMATION,
-    IEC60870_TYPE_STEP_POSITION_WITH_CP24TIME2A,
-    IEC60870_TYPE_STEP_POSITION_WITH_CP56TIME2A,
-    IEC60870_TYPE_BITSTRING32,
-    IEC60870_TYPE_BITSTRING32_WITH_CP24TIME2A,
-    IEC60870_TYPE_BITSTRING32_WITH_CP56TIME2A,
-    IEC60870_TYPE_MEAS_VALUE_NORM,
-    IEC60870_TYPE_MEAS_VALUE_NORM_WITH_CP24TIME2A,
-    IEC60870_TYPE_MEAS_VALUE_NORM_WITH_CP56TIME2A,
-    IEC60870_TYPE_MEAS_VALUE_SCALED,
-    IEC60870_TYPE_MEAS_VALUE_SCALED_WITH_CP24TIME2A,
-    IEC60870_TYPE_MEAS_VALUE_SCALED_WITH_CP56TIME2A,
-    IEC60870_TYPE_MEAS_VALUE_SHORT,
-    IEC60870_TYPE_MEAS_VALUE_SHORT_WITH_CP24TIME2A,
-    IEC60870_TYPE_MEAS_VALUE_SHORT_WITH_CP56TIME2A,
-    IEC60870_TYPE_INTEGRATED_TOTALS,
-    IEC60870_TYPE_INTEGRATED_TOTALS_WITH_CP24TIME2A,
-    IEC60870_TYPE_INTEGRATED_TOTALS_WITH_CP56TIME2A,
-
-    IEC60870_TYPE_SINGLE_COMMAND,
-    IEC60870_TYPE_SINGLE_COMMAND_WITH_CP56TIME2A,
-
-    IEC60870_TYPE_DOUBLE_COMMAND,
-    IEC60870_TYPE_STEP_COMMAND,
-    IEC60870_TYPE_SETPOINT_COMMAND_NORM,
-    IEC60870_TYPE_SETPOINT_COMMAND_SCALED,
-    IEC60870_TYPE_SETPOINT_COMMAND_SHORT,
-    IEC60870_TYPE_BITSTRING32_COMMAND,
-
-    IEC60870_TYPE_INTERROGATION_COMMAND,
-    IEC60870_TYPE_READ_COMMAND,
-    IEC60870_TYPE_CLOCK_SYNC_COMMAND
-} InformationObjectType;
-
 typedef struct sInformationObjectVFT* InformationObjectVFT;
 
 
@@ -86,14 +45,9 @@ struct sInformationObjectVFT {
 #endif
 };
 
-static void
-SinglePointInformation_encode(SinglePointInformation self, Frame frame, ConnectionParameters parameters);
-
-
 /*****************************************
  * Information object hierarchy
  *****************************************/
-
 
 /*****************************************
  * InformationObject (base class)
@@ -103,7 +57,7 @@ struct sInformationObject {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 };
@@ -154,37 +108,6 @@ InformationObject_getFromBuffer(InformationObject self, ConnectionParameters par
 }
 
 
-struct sSinglePointInformationWithCP24Time2a {
-
-    int objectAddress;
-
-    InformationObjectType type;
-
-    InformationObjectVFT virtualFunctionTable;
-
-    bool value;
-    QualityDescriptor quality;
-
-    struct sCP24Time2a timestamp;
-};
-
-struct sSinglePointInformationWithCP56Time2a {
-
-    int objectAddress;
-
-    InformationObjectType type;
-
-    InformationObjectVFT virtualFunctionTable;
-
-    bool value;
-    QualityDescriptor quality;
-
-    struct sCP56Time2a timestamp;
-};
-
-
-
-
 /**********************************************
  * SinglePointInformation
  **********************************************/
@@ -193,7 +116,7 @@ struct sSinglePointInformation {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -201,16 +124,29 @@ struct sSinglePointInformation {
     QualityDescriptor quality;
 };
 
+static void
+SinglePointInformation_encode(SinglePointInformation self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    uint8_t val = (uint8_t) self->quality;
+
+    if (self->value)
+        val++;
+
+    Frame_setNextByte(frame, val);
+}
+
 struct sInformationObjectVFT singlePointInformationVFT = {
         .encode = (EncodeFunction) SinglePointInformation_encode,
         .destroy = (DestroyFunction) SinglePointInformation_destroy
 };
 
-void
+static void
 SinglePointInformation_initialize(SinglePointInformation self)
 {
     self->virtualFunctionTable = &(singlePointInformationVFT);
-    self->type = IEC60870_TYPE_SINGLE_POINT_INFORMATION;
+    self->type = M_SP_NA_1;
 }
 
 SinglePointInformation
@@ -278,19 +214,6 @@ SinglePointInformation_getQuality(SinglePointInformation self)
     return self->quality;
 }
 
-static void
-SinglePointInformation_encode(SinglePointInformation self, Frame frame, ConnectionParameters parameters)
-{
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
-
-    uint8_t val = (uint8_t) self->quality;
-
-    if (self->value)
-        val++;
-
-    Frame_setNextByte(frame, val);
-}
-
 
 /**********************************************
  * StepPositionInformation
@@ -300,7 +223,7 @@ struct sStepPositionInformation {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -323,11 +246,11 @@ struct sInformationObjectVFT stepPositionInformationVFT = {
         .destroy = (DestroyFunction) StepPositionInformation_destroy
 };
 
-void
+static void
 StepPositionInformation_initialize(StepPositionInformation self)
 {
     self->virtualFunctionTable = &(stepPositionInformationVFT);
-    self->type = IEC60870_TYPE_STEP_POSITION_INFORMATION;
+    self->type = M_ST_NA_1;
 }
 
 StepPositionInformation
@@ -433,7 +356,7 @@ struct sStepPositionWithCP56Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -461,11 +384,11 @@ struct sInformationObjectVFT stepPositionWithCP56Time2aVFT = {
         .destroy = (DestroyFunction) StepPositionWithCP56Time2a_destroy
 };
 
-void
+static void
 StepPositionWithCP56Time2a_initialize(StepPositionWithCP56Time2a self)
 {
     self->virtualFunctionTable = &(stepPositionWithCP56Time2aVFT);
-    self->type = IEC60870_TYPE_STEP_POSITION_WITH_CP56TIME2A;
+    self->type = M_ST_TB_1;
 }
 
 void
@@ -551,7 +474,7 @@ struct sStepPositionWithCP24Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -580,11 +503,11 @@ struct sInformationObjectVFT stepPositionWithCP24Time2aVFT = {
         .destroy = (DestroyFunction) StepPositionWithCP24Time2a_destroy
 };
 
-void
+static void
 StepPositionWithCP24Time2a_initialize(StepPositionWithCP24Time2a self)
 {
     self->virtualFunctionTable = &(stepPositionWithCP24Time2aVFT);
-    self->type = IEC60870_TYPE_STEP_POSITION_WITH_CP24TIME2A;
+    self->type = M_ST_TA_1;
 }
 
 void
@@ -671,7 +594,7 @@ struct sDoublePointInformation {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -702,6 +625,13 @@ DoublePointInformation_destroy(DoublePointInformation self)
     GLOBAL_FREEMEM(self);
 }
 
+static void
+DoublePointInformation_initialize(DoublePointInformation self)
+{
+    self->virtualFunctionTable = &(doublePointInformationVFT);
+    self->type = M_DP_NA_1;
+}
+
 DoublePointInformation
 DoublePointInformation_create(DoublePointInformation self, int ioa, DoublePointValue value,
         QualityDescriptor quality)
@@ -717,13 +647,6 @@ DoublePointInformation_create(DoublePointInformation self, int ioa, DoublePointV
     self->quality = quality;
 
     return self;
-}
-
-void
-DoublePointInformation_initialize(DoublePointInformation self)
-{
-    self->virtualFunctionTable = &(doublePointInformationVFT);
-    self->type = IEC60870_TYPE_DOUBLE_POINT_INFORMATION;
 }
 
 DoublePointValue
@@ -777,7 +700,7 @@ struct sDoublePointWithCP24Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -814,11 +737,11 @@ DoublePointWithCP24Time2a_destroy(DoublePointWithCP24Time2a self)
     GLOBAL_FREEMEM(self);
 }
 
-void
+static void
 DoublePointWithCP24Time2a_initialize(DoublePointWithCP24Time2a self)
 {
     self->virtualFunctionTable = &(doublePointWithCP24Time2aVFT);
-    self->type = IEC60870_TYPE_DOUBLE_POINT_WITH_CP24TIME2A;
+    self->type = M_DP_TA_1;
 }
 
 DoublePointWithCP24Time2a
@@ -887,7 +810,7 @@ struct sDoublePointWithCP56Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -925,11 +848,11 @@ DoublePointWithCP56Time2a_destroy(DoublePointWithCP56Time2a self)
     GLOBAL_FREEMEM(self);
 }
 
-void
+static void
 DoublePointWithCP56Time2a_initialize(DoublePointWithCP56Time2a self)
 {
     self->virtualFunctionTable = &(doublePointWithCP56Time2aVFT);
-    self->type = IEC60870_TYPE_DOUBLE_POINT_WITH_CP56TIME2A;
+    self->type = M_DP_TB_1;
 }
 
 DoublePointWithCP56Time2a
@@ -998,7 +921,7 @@ DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, Connecti
 struct sSinglePointWithCP24Time2a {
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -1036,11 +959,11 @@ SinglePointWithCP24Time2a_destroy(SinglePointWithCP24Time2a self)
     GLOBAL_FREEMEM(self);
 }
 
-void
+static void
 SinglePointWithCP24Time2a_initialize(SinglePointWithCP24Time2a self)
 {
     self->virtualFunctionTable = &(singlePointWithCP24Time2aVFT);
-    self->type = IEC60870_TYPE_SINGLE_POINT_WITH_CP24TIME2A;
+    self->type = M_SP_TA_1;
 }
 
 SinglePointWithCP24Time2a
@@ -1109,7 +1032,7 @@ SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, Connecti
 struct sSinglePointWithCP56Time2a {
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -1142,11 +1065,11 @@ struct sInformationObjectVFT singlePointWithCP56Time2aVFT = {
         .destroy = (DestroyFunction) SinglePointWithCP56Time2a_destroy
 };
 
-void
+static void
 SinglePointWithCP56Time2a_initialize(SinglePointWithCP56Time2a self)
 {
     self->virtualFunctionTable = &(singlePointWithCP56Time2aVFT);
-    self->type = IEC60870_TYPE_SINGLE_POINT_WITH_CP56TIME2A;
+    self->type = M_SP_TB_1;
 }
 
 SinglePointWithCP56Time2a
@@ -1223,7 +1146,7 @@ struct sBitString32 {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -1251,11 +1174,11 @@ struct sInformationObjectVFT bitString32VFT = {
         .destroy = (DestroyFunction) BitString32_destroy
 };
 
-void
+static void
 BitString32_initialize(BitString32 self)
 {
     self->virtualFunctionTable = &(bitString32VFT);
-    self->type = IEC60870_TYPE_BITSTRING32;
+    self->type = M_BO_NA_1;
 }
 
 void
@@ -1332,7 +1255,7 @@ struct sBitstring32WithCP24Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -1365,11 +1288,11 @@ struct sInformationObjectVFT bitstring32WithCP24Time2aVFT = {
         .destroy = (DestroyFunction) Bitstring32WithCP24Time2a_destroy
 };
 
-void
+static void
 Bitstring32WithCP24Time2a_initialize(Bitstring32WithCP24Time2a self)
 {
     self->virtualFunctionTable = &(bitstring32WithCP24Time2aVFT);
-    self->type = IEC60870_TYPE_BITSTRING32_WITH_CP24TIME2A;
+    self->type = M_BO_TA_1;
 }
 
 void
@@ -1444,7 +1367,7 @@ struct sBitstring32WithCP56Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -1477,11 +1400,11 @@ struct sInformationObjectVFT bitstring32WithCP56Time2aVFT = {
         .destroy = (DestroyFunction) Bitstring32WithCP56Time2a_destroy
 };
 
-void
+static void
 Bitstring32WithCP56Time2a_initialize(Bitstring32WithCP56Time2a self)
 {
     self->virtualFunctionTable = &(bitstring32WithCP56Time2aVFT);
-    self->type = IEC60870_TYPE_BITSTRING32_WITH_CP56TIME2A;
+    self->type = M_BO_TB_1;
 }
 
 void
@@ -1558,7 +1481,7 @@ struct sMeasuredValueNormalized {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -1611,11 +1534,11 @@ struct sInformationObjectVFT measuredValueNormalizedVFT = {
         .destroy = (DestroyFunction) MeasuredValueNormalized_destroy
 };
 
-void
+static void
 MeasuredValueNormalized_initialize(MeasuredValueNormalized self)
 {
     self->virtualFunctionTable = &(measuredValueNormalizedVFT);
-    self->type = IEC60870_TYPE_MEAS_VALUE_NORM;
+    self->type = M_ME_NA_1;
 }
 
 void
@@ -1653,7 +1576,11 @@ MeasuredValueNormalized_getValue(MeasuredValueNormalized self)
 void
 MeasuredValueNormalized_setValue(MeasuredValueNormalized self, float value)
 {
-    //TODO check boundaries
+    if (value > 1.0f)
+        value = 1.0f;
+    else if (value < -1.0f)
+        value = -1.0f;
+
     int scaledValue = (int)(value * 32767.f);
 
     setScaledValue(self->encodedValue, scaledValue);
@@ -1702,7 +1629,7 @@ struct sMeasuredValueNormalizedWithCP24Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -1727,11 +1654,11 @@ struct sInformationObjectVFT measuredValueNormalizedWithCP24Time2aVFT = {
         .destroy = (DestroyFunction) MeasuredValueNormalizedWithCP24Time2a_destroy
 };
 
-void
+static void
 MeasuredValueNormalizedWithCP24Time2a_initialize(MeasuredValueNormalizedWithCP24Time2a self)
 {
     self->virtualFunctionTable = &(measuredValueNormalizedWithCP24Time2aVFT);
-    self->type = IEC60870_TYPE_MEAS_VALUE_NORM_WITH_CP24TIME2A;
+    self->type = M_ME_TA_1;
 }
 
 void
@@ -1817,7 +1744,7 @@ struct sMeasuredValueNormalizedWithCP56Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -1842,11 +1769,11 @@ struct sInformationObjectVFT measuredValueNormalizedWithCP56Time2aVFT = {
         .destroy = (DestroyFunction) MeasuredValueNormalizedWithCP56Time2a_destroy
 };
 
-void
+static void
 MeasuredValueNormalizedWithCP56Time2a_initialize(MeasuredValueNormalizedWithCP56Time2a self)
 {
     self->virtualFunctionTable = &(measuredValueNormalizedWithCP56Time2aVFT);
-    self->type = IEC60870_TYPE_MEAS_VALUE_NORM_WITH_CP56TIME2A;
+    self->type = M_ME_TD_1;
 }
 
 void
@@ -1934,7 +1861,7 @@ struct sMeasuredValueScaled {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -1954,11 +1881,11 @@ struct sInformationObjectVFT measuredValueScaledVFT = {
         .destroy = (DestroyFunction) MeasuredValueScaled_destroy
 };
 
-void
+static void
 MeasuredValueScaled_initialize(MeasuredValueScaled self)
 {
     self->virtualFunctionTable = &(measuredValueScaledVFT);
-    self->type = IEC60870_TYPE_MEAS_VALUE_SCALED;
+    self->type = M_ME_NB_1;
 }
 
 MeasuredValueScaled
@@ -2047,7 +1974,7 @@ struct sMeasuredValueScaledWithCP24Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -2071,11 +1998,11 @@ struct sInformationObjectVFT measuredValueScaledWithCP24Time2aVFT = {
         .destroy = (DestroyFunction) MeasuredValueScaled_destroy
 };
 
-void
+static void
 MeasuredValueScaledWithCP24Time2a_initialize(MeasuredValueScaledWithCP24Time2a self)
 {
     self->virtualFunctionTable = &(measuredValueScaledWithCP24Time2aVFT);
-    self->type = IEC60870_TYPE_MEAS_VALUE_SCALED_WITH_CP56TIME2A;
+    self->type = M_ME_TB_1;
 }
 
 void
@@ -2158,7 +2085,7 @@ struct sMeasuredValueScaledWithCP56Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -2183,11 +2110,11 @@ struct sInformationObjectVFT measuredValueScaledWithCP56Time2aVFT = {
         .destroy = (DestroyFunction) MeasuredValueScaledWithCP56Time2a_destroy
 };
 
-void
+static void
 MeasuredValueScaledWithCP56Time2a_initialize(MeasuredValueScaledWithCP56Time2a self)
 {
     self->virtualFunctionTable = &measuredValueScaledWithCP56Time2aVFT;
-    self->type = IEC60870_TYPE_MEAS_VALUE_SCALED_WITH_CP56TIME2A;
+    self->type = M_ME_TE_1;
 }
 
 void
@@ -2272,7 +2199,7 @@ struct sMeasuredValueShort {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -2305,11 +2232,11 @@ struct sInformationObjectVFT measuredValueShortVFT = {
         .destroy = (DestroyFunction) MeasuredValueShort_destroy
 };
 
-void
+static void
 MeasuredValueShort_initialize(MeasuredValueShort self)
 {
     self->virtualFunctionTable = &(measuredValueShortVFT);
-    self->type = IEC60870_TYPE_MEAS_VALUE_SHORT;
+    self->type = M_ME_NC_1;
 }
 
 void
@@ -2400,7 +2327,7 @@ struct sMeasuredValueShortWithCP24Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -2424,11 +2351,11 @@ struct sInformationObjectVFT measuredValueShortWithCP24Time2aVFT = {
         .destroy = (DestroyFunction) MeasuredValueShortWithCP24Time2a_destroy
 };
 
-void
+static void
 MeasuredValueShortWithCP24Time2a_initialize(MeasuredValueShortWithCP24Time2a self)
 {
     self->virtualFunctionTable = &(measuredValueShortWithCP24Time2aVFT);
-    self->type = IEC60870_TYPE_MEAS_VALUE_SHORT_WITH_CP24TIME2A;
+    self->type = M_ME_TC_1;
 }
 
 void
@@ -2522,7 +2449,7 @@ struct sMeasuredValueShortWithCP56Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -2546,11 +2473,11 @@ struct sInformationObjectVFT measuredValueShortWithCP56Time2aVFT = {
         .destroy = (DestroyFunction) MeasuredValueShortWithCP56Time2a_destroy
 };
 
-void
+static void
 MeasuredValueShortWithCP56Time2a_initialize(MeasuredValueShortWithCP56Time2a self)
 {
     self->virtualFunctionTable = &(measuredValueShortWithCP56Time2aVFT);
-    self->type = IEC60870_TYPE_MEAS_VALUE_SHORT_WITH_CP56TIME2A;
+    self->type = M_ME_TF_1;
 }
 
 void
@@ -2645,7 +2572,7 @@ struct sIntegratedTotals {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -2665,11 +2592,11 @@ struct sInformationObjectVFT integratedTotalsVFT = {
         .destroy = (DestroyFunction) IntegratedTotals_destroy
 };
 
-void
+static void
 IntegratedTotals_initialize(IntegratedTotals self)
 {
     self->virtualFunctionTable = &(integratedTotalsVFT);
-    self->type = IEC60870_TYPE_INTEGRATED_TOTALS;
+    self->type = M_IT_NA_1;
 }
 
 void
@@ -2745,7 +2672,7 @@ struct sIntegratedTotalsWithCP24Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -2767,11 +2694,11 @@ struct sInformationObjectVFT integratedTotalsWithCP24Time2aVFT = {
         .destroy = (DestroyFunction) IntegratedTotalsWithCP24Time2a_destroy
 };
 
-void
+static void
 IntegratedTotalsWithCP24Time2a_initialize(IntegratedTotalsWithCP24Time2a self)
 {
     self->virtualFunctionTable = &(integratedTotalsWithCP24Time2aVFT);
-    self->type = IEC60870_TYPE_INTEGRATED_TOTALS_WITH_CP24TIME2A;
+    self->type = M_IT_TA_1;
 }
 
 void
@@ -2855,7 +2782,7 @@ struct sIntegratedTotalsWithCP56Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -2877,11 +2804,11 @@ struct sInformationObjectVFT integratedTotalsWithCP56Time2aVFT = {
         .destroy = (DestroyFunction) IntegratedTotalsWithCP56Time2a_destroy
 };
 
-void
+static void
 IntegratedTotalsWithCP56Time2a_initialize(IntegratedTotalsWithCP56Time2a self)
 {
     self->virtualFunctionTable = &(integratedTotalsWithCP56Time2aVFT);
-    self->type = IEC60870_TYPE_INTEGRATED_TOTALS_WITH_CP56TIME2A;
+    self->type = M_IT_TB_1;
 }
 
 void
@@ -2964,7 +2891,7 @@ struct sSingleCommand {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -2984,11 +2911,11 @@ struct sInformationObjectVFT singleCommandVFT = {
         .destroy = (DestroyFunction) SingleCommand_destroy
 };
 
-void
+static void
 SingleCommand_initialize(SingleCommand self)
 {
     self->virtualFunctionTable = &(singleCommandVFT);
-    self->type = IEC60870_TYPE_SINGLE_COMMAND;
+    self->type = C_SC_NA_1;
 }
 
 void
@@ -3076,7 +3003,7 @@ struct sSingleCommandWithCP56Time2a {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -3098,11 +3025,11 @@ struct sInformationObjectVFT singleCommandWithCP56Time2aVFT = {
         .destroy = (DestroyFunction) SingleCommandWithCP56Time2a_destroy
 };
 
-void
+static void
 SingleCommandWithCP56Time2a_initialize(SingleCommandWithCP56Time2a self)
 {
     self->virtualFunctionTable = &(singleCommandWithCP56Time2aVFT);
-    self->type = IEC60870_TYPE_SINGLE_COMMAND_WITH_CP56TIME2A;
+    self->type = C_SC_TA_1;
 }
 
 void
@@ -3186,7 +3113,7 @@ struct sDoubleCommand {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -3206,11 +3133,11 @@ struct sInformationObjectVFT doubleCommandVFT = {
         .destroy = (DestroyFunction) DoubleCommand_destroy
 };
 
-void
+static void
 DoubleCommand_initialize(DoubleCommand self)
 {
     self->virtualFunctionTable = &(doubleCommandVFT);
-    self->type = IEC60870_TYPE_DOUBLE_COMMAND;
+    self->type = C_DC_NA_1;
 }
 
 void
@@ -3297,7 +3224,7 @@ struct sStepCommand {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -3317,11 +3244,11 @@ struct sInformationObjectVFT stepCommandVFT = {
         .destroy = (DestroyFunction) StepCommand_destroy
 };
 
-void
+static void
 StepCommand_initialize(StepCommand self)
 {
     self->virtualFunctionTable = &(stepCommandVFT);
-    self->type = IEC60870_TYPE_STEP_COMMAND;
+    self->type = C_RC_NA_1;
 }
 
 void
@@ -3408,7 +3335,7 @@ struct sSetpointCommandNormalized {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -3431,11 +3358,11 @@ struct sInformationObjectVFT setpointCommandNormalizedVFT = {
         .destroy = (DestroyFunction) SetpointCommandNormalized_destroy
 };
 
-void
+static void
 SetpointCommandNormalized_initialize(SetpointCommandNormalized self)
 {
     self->virtualFunctionTable = &(setpointCommandNormalizedVFT);
-    self->type = IEC60870_TYPE_SETPOINT_COMMAND_NORM;
+    self->type = C_SE_NA_1;
 }
 
 void
@@ -3529,7 +3456,7 @@ struct sSetpointCommandScaled {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -3552,11 +3479,11 @@ struct sInformationObjectVFT setpointCommandScaledVFT = {
         .destroy = (DestroyFunction) SetpointCommandScaled_destroy
 };
 
-void
+static void
 SetpointCommandScaled_initialize(SetpointCommandScaled self)
 {
     self->virtualFunctionTable = &(setpointCommandScaledVFT);
-    self->type = IEC60870_TYPE_SETPOINT_COMMAND_SCALED;
+    self->type = C_SE_NB_1;
 }
 
 void
@@ -3648,7 +3575,7 @@ struct sSetpointCommandShort {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -3681,11 +3608,11 @@ struct sInformationObjectVFT setpointCommandShortVFT = {
         .destroy = (DestroyFunction) SetpointCommandShort_destroy
 };
 
-void
+static void
 SetpointCommandShort_initialize(SetpointCommandShort self)
 {
     self->virtualFunctionTable = &(setpointCommandShortVFT);
-    self->type = IEC60870_TYPE_SETPOINT_COMMAND_SHORT;
+    self->type = C_SE_NC_1;
 }
 
 void
@@ -3787,7 +3714,7 @@ struct sBitstring32Command {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -3816,11 +3743,11 @@ struct sInformationObjectVFT bitstring32CommandVFT = {
         .destroy = (DestroyFunction) Bitstring32Command_destroy
 };
 
-void
+static void
 Bitstring32Command_initialize(Bitstring32Command self)
 {
     self->virtualFunctionTable = &(bitstring32CommandVFT);
-    self->type = IEC60870_TYPE_BITSTRING32_COMMAND;
+    self->type = C_BO_NA_1;
 }
 
 Bitstring32Command
@@ -3901,7 +3828,7 @@ struct sReadCommand {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 };
@@ -3917,11 +3844,11 @@ struct sInformationObjectVFT readCommandVFT = {
         .destroy = (DestroyFunction) ReadCommand_destroy
 };
 
-void
+static void
 ReadCommand_initialize(ReadCommand self)
 {
     self->virtualFunctionTable = &(readCommandVFT);
-    self->type = IEC60870_TYPE_READ_COMMAND;
+    self->type = C_RD_NA_1;
 }
 
 ReadCommand
@@ -3977,7 +3904,7 @@ struct sClockSynchronizationCommand {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -3997,11 +3924,11 @@ struct sInformationObjectVFT clockSynchronizationCommandVFT = {
         .destroy = (DestroyFunction) ClockSynchronizationCommand_destroy
 };
 
-void
+static void
 ClockSynchronizationCommand_initialize(ClockSynchronizationCommand self)
 {
     self->virtualFunctionTable = &(clockSynchronizationCommandVFT);
-    self->type = IEC60870_TYPE_CLOCK_SYNC_COMMAND;
+    self->type = C_CS_NA_1;
 }
 
 ClockSynchronizationCommand
@@ -4067,7 +3994,7 @@ struct sInterrogationCommand {
 
     int objectAddress;
 
-    InformationObjectType type;
+    TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
@@ -4087,11 +4014,11 @@ struct sInformationObjectVFT interrogationCommandVFT = {
         .destroy = (DestroyFunction) InterrogationCommand_destroy
 };
 
-void
+static void
 InterrogationCommand_initialize(InterrogationCommand self)
 {
     self->virtualFunctionTable = &(interrogationCommandVFT);
-    self->type = IEC60870_TYPE_INTERROGATION_COMMAND;
+    self->type = C_IC_NA_1;
 }
 
 InterrogationCommand
@@ -4149,4 +4076,49 @@ InterrogationCommand_getFromBuffer(InterrogationCommand self, ConnectionParamete
     }
 
     return self;
+}
+
+
+union uInformationObject {
+    struct sSinglePointInformation m1;
+    struct sStepPositionInformation m2;
+    struct sStepPositionWithCP24Time2a m3;
+    struct sStepPositionWithCP56Time2a m4;
+    struct sDoublePointInformation m5;
+    struct sDoublePointWithCP24Time2a m6;
+    struct sDoublePointWithCP56Time2a m7;
+    struct sSinglePointWithCP24Time2a m8;
+    struct sSinglePointWithCP56Time2a m9;
+    struct sBitString32 m10;
+    struct sBitstring32WithCP24Time2a m11;
+    struct sBitstring32WithCP56Time2a m12;
+    struct sMeasuredValueNormalized m13;
+    struct sMeasuredValueNormalizedWithCP24Time2a m14;
+    struct sMeasuredValueNormalizedWithCP56Time2a m15;
+    struct sMeasuredValueScaled m16;
+    struct sMeasuredValueScaledWithCP24Time2a m17;
+    struct sMeasuredValueScaledWithCP56Time2a m18;
+    struct sMeasuredValueShort m19;
+    struct sMeasuredValueShortWithCP24Time2a m20;
+    struct sMeasuredValueShortWithCP56Time2a m21;
+    struct sIntegratedTotals m22;
+    struct sIntegratedTotalsWithCP24Time2a m23;
+    struct sIntegratedTotalsWithCP56Time2a m24;
+    struct sSingleCommand m25;
+    struct sSingleCommandWithCP56Time2a m26;
+    struct sDoubleCommand m27;
+    struct sStepCommand m28;
+    struct sSetpointCommandNormalized m29;
+    struct sSetpointCommandScaled m30;
+    struct sSetpointCommandShort m31;
+    struct sBitstring32Command m32;
+    struct sReadCommand m33;
+    struct sClockSynchronizationCommand m34;
+    struct sInterrogationCommand m35;
+};
+
+int
+InformationObject_getMaxSizeInMemory()
+{
+    return sizeof(union uInformationObject);
 }

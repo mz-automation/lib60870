@@ -50,9 +50,23 @@ T104Connection_setConnectTimeout(T104Connection self, int millies);
 void
 T104Connection_connect(T104Connection self);
 
+/**
+ * \brief blocking connect
+ *
+ * Establishes a connection to a server. This function is blocking and will return
+ * after the connection is established or the connect timeout elapsed.
+ *
+ * \return true when connected, false otherwise
+ */
 bool
 T104Connection_connectBlocking(T104Connection self);
 
+/**
+ * \brief start data transmission on this connection
+ *
+ * After issuing this command the client (master) will receive spontaneous
+ * (unsolicited) messages from the server (slave).
+ */
 void
 T104Connection_sendStartDT(T104Connection self);
 

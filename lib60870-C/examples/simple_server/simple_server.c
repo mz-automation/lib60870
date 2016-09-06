@@ -128,6 +128,8 @@ asduHandler (void* parameter, MasterConnection connection, ASDU asdu)
 int
 main(int argc, char** argv)
 {
+    printf("InfoObjSize: %i\n", InformationObject_getMaxSizeInMemory());
+
     /* create a new slave/server instance with default connection parameters and
      * default message queue size */
     Slave slave = T104Slave_create(NULL, 0);

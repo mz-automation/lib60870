@@ -19,8 +19,8 @@
  *  See COPYING file for the complete license text.
  */
 
-#ifndef SRC_IEC60870_CLIENT_H_
-#define SRC_IEC60870_CLIENT_H_
+#ifndef SRC_IEC60870_MASTER_H_
+#define SRC_IEC60870_MASTER_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -28,4 +28,4 @@
 #include "iec60870_common.h"
 #include "t104_connection.h"
 
-#endif /* SRC_IEC60870_CLIENT_H_ */
+#endif /* SRC_IEC60870_MASTER_H_ */

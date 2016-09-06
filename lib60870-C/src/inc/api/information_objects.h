@@ -51,6 +51,14 @@ typedef enum {
 
 typedef struct sInformationObject* InformationObject;
 
+/**
+ * \brief return the size in memory of a generic InformationObject instance
+ *
+ * This function can be used to determine the required memory for malloc
+ */
+int
+InformationObject_getMaxSizeInMemory(void);
+
 int
 InformationObject_getObjectAddress(InformationObject self);
 
@@ -69,9 +77,6 @@ InformationObject_destroy(InformationObject self);
  ************************************************/
 
 typedef struct sSinglePointInformation* SinglePointInformation;
-
-void
-SinglePointInformation_initialize(SinglePointInformation self);
 
 SinglePointInformation
 SinglePointInformation_create(SinglePointInformation self, int ioa, bool value,
@@ -99,9 +104,6 @@ SinglePointWithCP24Time2a_create(SinglePointWithCP24Time2a self, int ioa, bool v
 void
 SinglePointWithCP24Time2a_destroy(SinglePointWithCP24Time2a self);
 
-void
-SinglePointWithCP24Time2a_initialize(SinglePointWithCP24Time2a self);
-
 CP24Time2a
 SinglePointWithCP24Time2a_getTimestamp(SinglePointWithCP24Time2a self);
 
@@ -118,9 +120,6 @@ SinglePointWithCP56Time2a_create(SinglePointWithCP56Time2a self, int ioa, bool v
 void
 SinglePointWithCP56Time2a_destroy(SinglePointWithCP56Time2a self);
 
-void
-SinglePointWithCP56Time2a_initialize(SinglePointWithCP56Time2a self);
-
 CP56Time2a
 SinglePointWithCP56Time2a_getTimestamp(SinglePointWithCP56Time2a self);
 
@@ -133,9 +132,6 @@ typedef struct sDoublePointInformation* DoublePointInformation;
 
 void
 DoublePointInformation_destroy(DoublePointInformation self);
-
-void
-DoublePointInformation_initialize(DoublePointInformation self);
 
 DoublePointInformation
 DoublePointInformation_create(DoublePointInformation self, int ioa, DoublePointValue value,
@@ -160,9 +156,6 @@ DoublePointWithCP24Time2a
 DoublePointWithCP24Time2a_create(DoublePointWithCP24Time2a self, int ioa, DoublePointValue value,
         QualityDescriptor quality, CP24Time2a timestamp);
 
-void
-DoublePointWithCP24Time2a_initialize(DoublePointWithCP24Time2a self);
-
 CP24Time2a
 DoublePointWithCP24Time2a_getTimestamp(DoublePointWithCP24Time2a self);
 
@@ -178,9 +171,6 @@ DoublePointWithCP56Time2a_create(DoublePointWithCP56Time2a self, int ioa, Double
 
 void
 DoublePointWithCP56Time2a_destroy(DoublePointWithCP56Time2a self);
-
-void
-DoublePointWithCP56Time2a_initialize(DoublePointWithCP56Time2a self);
 
 CP56Time2a
 DoublePointWithCP56Time2a_getTimestamp(DoublePointWithCP56Time2a self);
@@ -207,9 +197,6 @@ StepPositionInformation_create(StepPositionInformation self, int ioa, int value,
         QualityDescriptor quality);
 
 void
-StepPositionInformation_initialize(StepPositionInformation self);
-
-void
 StepPositionInformation_destroy(StepPositionInformation self);
 
 int
@@ -234,9 +221,6 @@ StepPositionInformation_getQuality(StepPositionInformation self);
 typedef struct sStepPositionWithCP24Time2a* StepPositionWithCP24Time2a;
 
 void
-StepPositionWithCP24Time2a_initialize(StepPositionWithCP24Time2a self);
-
-void
 StepPositionWithCP24Time2a_destroy(StepPositionWithCP24Time2a self);
 
 StepPositionWithCP24Time2a
@@ -254,9 +238,6 @@ StepPositionWithCP24Time2a_getTimestamp(StepPositionWithCP24Time2a self);
 typedef struct sStepPositionWithCP56Time2a* StepPositionWithCP56Time2a;
 
 void
-StepPositionWithCP56Time2a_initialize(StepPositionWithCP56Time2a self);
-
-void
 StepPositionWithCP56Time2a_destroy(StepPositionWithCP56Time2a self);
 
 StepPositionWithCP56Time2a
@@ -271,9 +252,6 @@ StepPositionWithCP56Time2a_getTimestamp(StepPositionWithCP56Time2a self);
  **********************************************/
 
 typedef struct sBitString32* BitString32;
-
-void
-BitString32_initialize(BitString32 self);
 
 void
 BitString32_destroy(BitString32 self);
@@ -294,9 +272,6 @@ BitString32_getQuality(BitString32 self);
 typedef struct sBitstring32WithCP24Time2a* Bitstring32WithCP24Time2a;
 
 void
-Bitstring32WithCP24Time2a_initialize(Bitstring32WithCP24Time2a self);
-
-void
 Bitstring32WithCP24Time2a_destroy(Bitstring32WithCP24Time2a self);
 
 Bitstring32WithCP24Time2a
@@ -312,9 +287,6 @@ Bitstring32WithCP24Time2a_getTimestamp(Bitstring32WithCP24Time2a self);
 typedef struct sBitstring32WithCP56Time2a* Bitstring32WithCP56Time2a;
 
 void
-Bitstring32WithCP56Time2a_initialize(Bitstring32WithCP56Time2a self);
-
-void
 Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self);
 
 Bitstring32WithCP56Time2a
@@ -328,9 +300,6 @@ Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self);
  **********************************************/
 
 typedef struct sMeasuredValueNormalized* MeasuredValueNormalized;
-
-void
-MeasuredValueNormalized_initialize(MeasuredValueNormalized self);
 
 void
 MeasuredValueNormalized_destroy(MeasuredValueNormalized self);
@@ -354,9 +323,6 @@ MeasuredValueNormalized_getQuality(MeasuredValueNormalized self);
 typedef struct sMeasuredValueNormalizedWithCP24Time2a* MeasuredValueNormalizedWithCP24Time2a;
 
 void
-MeasuredValueNormalizedWithCP24Time2a_initialize(MeasuredValueNormalizedWithCP24Time2a self);
-
-void
 MeasuredValueNormalizedWithCP24Time2a_destroy(MeasuredValueNormalizedWithCP24Time2a self);
 
 MeasuredValueNormalizedWithCP24Time2a
@@ -374,9 +340,6 @@ MeasuredValueNormalizedWithCP24Time2a_setTimestamp(MeasuredValueNormalizedWithCP
  ***********************************************************************/
 
 typedef struct sMeasuredValueNormalizedWithCP56Time2a* MeasuredValueNormalizedWithCP56Time2a;
-
-void
-MeasuredValueNormalizedWithCP56Time2a_initialize(MeasuredValueNormalizedWithCP56Time2a self);
 
 void
 MeasuredValueNormalizedWithCP56Time2a_destroy(MeasuredValueNormalizedWithCP56Time2a self);
@@ -397,9 +360,6 @@ MeasuredValueNormalizedWithCP56Time2a_setTimestamp(MeasuredValueNormalizedWithCP
  *******************************************/
 
 typedef struct sMeasuredValueScaled* MeasuredValueScaled;
-
-void
-MeasuredValueScaled_initialize(MeasuredValueScaled self);
 
 /**
  * \brief Create a new instance of MeasuredValueScaled information object
@@ -436,9 +396,6 @@ MeasuredValueScaled_setQuality(MeasuredValueScaled self, QualityDescriptor quali
 typedef struct sMeasuredValueScaledWithCP24Time2a* MeasuredValueScaledWithCP24Time2a;
 
 void
-MeasuredValueScaledWithCP24Time2a_initialize(MeasuredValueScaledWithCP24Time2a self);
-
-void
 MeasuredValueScaledWithCP24Time2a_destroy(MeasuredValueScaledWithCP24Time2a self);
 
 MeasuredValueScaledWithCP24Time2a
@@ -458,9 +415,6 @@ MeasuredValueScaledWithCP24Time2a_setTimestamp(MeasuredValueScaledWithCP24Time2a
 typedef struct sMeasuredValueScaledWithCP56Time2a* MeasuredValueScaledWithCP56Time2a;
 
 void
-MeasuredValueScaledWithCP56Time2a_initialize(MeasuredValueScaledWithCP56Time2a self);
-
-void
 MeasuredValueScaledWithCP56Time2a_destroy(MeasuredValueScaledWithCP56Time2a self);
 
 MeasuredValueScaledWithCP56Time2a
@@ -478,9 +432,6 @@ MeasuredValueScaledWithCP56Time2a_setTimestamp(MeasuredValueScaledWithCP56Time2a
  *******************************************/
 
 typedef struct sMeasuredValueShort* MeasuredValueShort;
-
-void
-MeasuredValueShort_initialize(MeasuredValueShort self);
 
 void
 MeasuredValueShort_destroy(MeasuredValueShort self);
@@ -504,9 +455,6 @@ MeasuredValueShort_getQuality(MeasuredValueShort self);
 typedef struct sMeasuredValueShortWithCP24Time2a* MeasuredValueShortWithCP24Time2a;
 
 void
-MeasuredValueShortWithCP24Time2a_initialize(MeasuredValueShortWithCP24Time2a self);
-
-void
 MeasuredValueShortWithCP24Time2a_destroy(MeasuredValueShortWithCP24Time2a self);
 
 MeasuredValueShortWithCP24Time2a
@@ -525,9 +473,6 @@ MeasuredValueShortWithCP24Time2a_setTimestamp(MeasuredValueShortWithCP24Time2a s
  ***********************************************************************/
 
 typedef struct sMeasuredValueShortWithCP56Time2a* MeasuredValueShortWithCP56Time2a;
-
-void
-MeasuredValueShortWithCP56Time2a_initialize(MeasuredValueShortWithCP56Time2a self);
 
 void
 MeasuredValueShortWithCP56Time2a_destroy(MeasuredValueShortWithCP56Time2a self);
@@ -550,12 +495,7 @@ MeasuredValueShortWithCP56Time2a_setTimestamp(MeasuredValueShortWithCP56Time2a s
 typedef struct sIntegratedTotals* IntegratedTotals;
 
 void
-IntegratedTotals_initialize(IntegratedTotals self);
-
-void
 IntegratedTotals_destroy(IntegratedTotals self);
-
-//
 
 /**
  * \brief Create a new instance of IntegratedTotals information object
@@ -600,12 +540,7 @@ IntegratedTotalsWithCP24Time2a_create(IntegratedTotalsWithCP24Time2a self, int i
         BinaryCounterReading value, CP24Time2a timestamp);
 
 void
-IntegratedTotalsWithCP24Time2a_initialize(IntegratedTotalsWithCP24Time2a self);
-
-void
 IntegratedTotalsWithCP24Time2a_destroy(IntegratedTotalsWithCP24Time2a self);
-
-
 
 CP24Time2a
 IntegratedTotalsWithCP24Time2a_getTimestamp(IntegratedTotalsWithCP24Time2a self);
@@ -637,9 +572,6 @@ IntegratedTotalsWithCP56Time2a_create(IntegratedTotalsWithCP56Time2a self, int i
         BinaryCounterReading value, CP56Time2a timestamp);
 
 void
-IntegratedTotalsWithCP56Time2a_initialize(IntegratedTotalsWithCP56Time2a self);
-
-void
 IntegratedTotalsWithCP56Time2a_destroy(IntegratedTotalsWithCP56Time2a self);
 
 CP56Time2a
@@ -655,9 +587,6 @@ IntegratedTotalsWithCP56Time2a_setTimestamp(IntegratedTotalsWithCP56Time2a self,
  *******************************************/
 
 typedef struct sSingleCommand* SingleCommand;
-
-void
-SingleCommand_initialize(SingleCommand self);
 
 SingleCommand
 SingleCommand_create(SingleCommand self, int ioa, bool command, bool selectCommand, int qu);
@@ -681,9 +610,6 @@ SingleCommand_isSelect(SingleCommand self);
 typedef struct sSingleCommandWithCP56Time2a* SingleCommandWithCP56Time2a;
 
 void
-SingleCommandWithCP56Time2a_initialize(SingleCommandWithCP56Time2a self);
-
-void
 SingleCommandWithCP56Time2a_destroy(SingleCommandWithCP56Time2a self);
 
 SingleCommandWithCP56Time2a
@@ -697,9 +623,6 @@ SingleCommandWithCP56Time2a_getTimestamp(SingleCommandWithCP56Time2a self);
  *******************************************/
 
 typedef struct sDoubleCommand* DoubleCommand;
-
-void
-DoubleCommand_initialize(DoubleCommand self);
 
 void
 DoubleCommand_destroy(DoubleCommand self);
@@ -723,9 +646,6 @@ DoubleCommand_isSelect(DoubleCommand self);
 typedef struct sStepCommand* StepCommand;
 
 void
-StepCommand_initialize(StepCommand self);
-
-void
 StepCommand_destroy(StepCommand self);
 
 StepCommand
@@ -745,9 +665,6 @@ StepCommand_isSelect(StepCommand self);
  ************************************************/
 
 typedef struct sSetpointCommandNormalized* SetpointCommandNormalized;
-
-void
-SetpointCommandNormalized_initialize(SetpointCommandNormalized self);
 
 void
 SetpointCommandNormalized_destroy(SetpointCommandNormalized self);
@@ -771,9 +688,6 @@ SetpointCommandNormalized_isSelect(SetpointCommandNormalized self);
 typedef struct sSetpointCommandScaled* SetpointCommandScaled;
 
 void
-SetpointCommandScaled_initialize(SetpointCommandScaled self);
-
-void
 SetpointCommandScaled_destroy(SetpointCommandScaled self);
 
 SetpointCommandScaled
@@ -793,9 +707,6 @@ SetpointCommandScaled_isSelect(SetpointCommandScaled self);
  ************************************************/
 
 typedef struct sSetpointCommandShort* SetpointCommandShort;
-
-void
-SetpointCommandShort_initialize(SetpointCommandShort self);
 
 void
 SetpointCommandShort_destroy(SetpointCommandShort self);
@@ -818,9 +729,6 @@ SetpointCommandShort_isSelect(SetpointCommandShort self);
 
 typedef struct sBitstring32Command* Bitstring32Command;
 
-void
-Bitstring32Command_initialize(Bitstring32Command self);
-
 Bitstring32Command
 Bitstring32Command_create(Bitstring32Command self, int ioa, uint32_t value);
 
@@ -835,9 +743,6 @@ Bitstring32Command_getValue(Bitstring32Command self);
  ************************************************/
 
 typedef struct sInterrogationCommand* InterrogationCommand;
-
-void
-InterrogationCommand_initialize(InterrogationCommand self);
 
 InterrogationCommand
 InterrogationCommand_create(InterrogationCommand self, int ioa, uint8_t qoi);
@@ -854,9 +759,6 @@ InterrogationCommand_getQOI(InterrogationCommand self);
 
 typedef struct sReadCommand* ReadCommand;
 
-void
-ReadCommand_initialize(ReadCommand self);
-
 ReadCommand
 ReadCommand_create(ReadCommand self, int ioa);
 
@@ -869,9 +771,6 @@ ReadCommand_destroy(ReadCommand self);
 
 typedef struct sClockSynchronizationCommand* ClockSynchronizationCommand;
 
-void
-ClockSynchronizationCommand_initialize(ClockSynchronizationCommand self);
-
 ClockSynchronizationCommand
 ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa);
 
@@ -880,5 +779,6 @@ ClockSynchronizationCommand_destroy(ClockSynchronizationCommand self);
 
 CP56Time2a
 ClockSynchronizationCommand_getTime(ClockSynchronizationCommand self);
+
 
 #endif /* SRC_INC_INFORMATION_OBJECTS_H_ */

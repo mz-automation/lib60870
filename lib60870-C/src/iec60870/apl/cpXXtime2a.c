@@ -350,6 +350,7 @@ CP56Time2a_getFromBuffer(CP56Time2a self, uint8_t* msg, int msgSize, int startIn
     return true;
 }
 
+#if 0
 CP56Time2a
 CP56Time2a_createFromBuffer(uint8_t* msg, int msgSize, int startIndex)
 {
@@ -365,6 +366,7 @@ CP56Time2a_createFromBuffer(uint8_t* msg, int msgSize, int startIndex)
 
     return self;
 }
+#endif
 
 int
 CP56Time2a_getMillisecond(CP56Time2a self)

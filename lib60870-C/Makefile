@@ -22,9 +22,10 @@ LIB_SOURCE_DIRS += src/hal/time/unix
 endif
 
 LIB_INCLUDE_DIRS += config
-LIB_INCLUDE_DIRS += src/inc
+LIB_INCLUDE_DIRS += src/inc/api
+LIB_INCLUDE_DIRS += src/inc/internal
 LIB_INCLUDE_DIRS += src/hal/inc
-LIB_INCLUDE_DIRS += src/common/inc
+LIB_INCLUDE_DIRS += src/common
 
 LIB_INCLUDES = $(addprefix -I,$(LIB_INCLUDE_DIRS))
 
@@ -35,8 +36,12 @@ endif
 LIB_API_HEADER_FILES = src/hal/inc/hal_time.h 
 LIB_API_HEADER_FILES += src/hal/inc/hal_thread.h
 LIB_API_HEADER_FILES += src/hal/inc/hal_filesystem.h 
-LIB_API_HEADER_FILES += src/inc/iec60870_client.h
-LIB_API_HEADER_FILES += src/inc/iec60870_server.h
+LIB_API_HEADER_FILES += src/inc/api/iec60870_master.h
+LIB_API_HEADER_FILES += src/inc/api/iec60870_server.h
+LIB_API_HEADER_FILES += src/inc/api/iec60870_common.h
+LIB_API_HEADER_FILES += src/inc/api/information_objects.h
+LIB_API_HEADER_FILES += src/inc/api/t104_connection.h
+
 
 LIB_TEST_SOURCES = tests/all_tests.c
 LIB_TEST_SOURCES += tests/unity/unity.c

@@ -3,7 +3,7 @@ Michael Zillgith
 
 == Introduction
 
-lib60870 is a new implementation of the IEC 60870-5-104. protocol for client (master station) and server (controlled station). The library implements all data types from the IEC 60870-5-101/104 specifications. It comes with two flavors which are actually two different implementations which share a similar API:
+lib60870 is a new implementation of the IEC 60870-5-104. protocol for client (master station) and server (controlled station). The library implements all data types from the IEC 60870-5-101/104 specifications. It comes with two flavors which are actually two different implementations that share a similar API:
 
 * *lib60870-C* is an implementation written in the C99 standard. It is designed to be used on resource restricted embedded systems but it easy to use as well.
 * *lib60870.NET* is a pure C#/.NET implementation. It is designed to be as easy to use as possible.is an C#/.NET implementation.  Since it is using only standardized .NET features it is compatible with Windows systems and the Microsoft .NET implementation as well as on Linux with Mono.
@@ -36,7 +36,7 @@ Typically it is expected that the server response contains only the basic data t
 
 == Interrogation
 
-You can also request a group of data items from a slave with a single request.
+You can also request a group of data items from a slave with a single request. On the master (client) side you have can simply use the SendInterrogationCommand method of the Connection object:
 
   con.SendInterrogationCommand (CauseOfTransmission.ACTIVATION, 1, 20);
 
@@ -44,7 +44,43 @@ The client/master side method signature looks like this:
 
   public void SendInterrogationCommand(CauseOfTransmission cot, int ca, byte qoi)
 
-The parameter ca is the common address (CA) as in the other methods. The parameter qoi is the "Qualifier of interrogation" (QOI).
+The parameter ca is the common address (CA) as in the other methods. The parameter qoi is the "Qualifier of interrogation" (QOI). The value "20" (indicating "station interrogation") for the QOI indicates that it is an request for all data points. Other values for QOI will indicate that the client (master) only wants to receive data from a specific interrogation group.
+
+On the server side you should use the InterrogationHandler delegate (or callback function in the C library) to handle the Interrogation request. Depending on the QOI value your should return different information objects. For a simple system it is enough to only handle station interrogation requests (QOI = 20).
+
+According to the specification the server has to respond the ACTIVATION request from the client with the ACT_CON response followed by ASDUs containing the information objects with the COT = INTERROGATED_BY_STATION. After sending all information objects the server has to send the initial interrogation command message with COT = ACT_TERM to indicate that the transmission of the interrogation data is finished.
+
+[[app-listing]]
+[source, csharp]
+.Example how to implement an InterrogationHandler in C#
+----
+  private static bool interrogationHandler(object parameter, ServerConnection connection, ASDU asdu, byte qoi)
+  {
+    Console.WriteLine ("Interrogation for group " + qoi);
+
+    // send ACT_CON
+    connection.SendACT_CON (asdu, false);
+
+    // send information objects
+    newAsdu.AddInformationObject (new MeasuredValueScaled (100, -1, new QualityDescriptor ()));
+    newAsdu.AddInformationObject (new MeasuredValueScaled (101, 23, new QualityDescriptor ()));
+    newAsdu.AddInformationObject (new MeasuredValueScaled (102, 2300, new QualityDescriptor ()));
+    connection.SendASDU (newAsdu);
+
+    newAsdu = new ASDU (TypeID.M_ME_TE_1, CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 3, 1, false);
+    newAsdu.AddInformationObject(new MeasuredValueScaledWithCP56Time2a(103, 3456, new QualityDescriptor (), new CP56Time2a(DateTime.Now)));
+    connection.SendASDU (newAsdu);
+
+    newAsdu = new ASDU (TypeID.M_SP_TB_1, CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 2, 1, false);
+    newAsdu.AddInformationObject (new SinglePointWithCP56Time2a (104, true, new QualityDescriptor (), new CP56Time2a (DateTime.Now)));
+    connection.SendASDU (newAsdu);
+
+    // send ACT_TERM
+    connection.SendACT_TERM (asdu);
+
+    return true;
+  }
+----
 
 == Clock synchronization procedure
 
