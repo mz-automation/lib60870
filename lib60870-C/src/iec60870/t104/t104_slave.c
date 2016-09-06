@@ -39,18 +39,19 @@
 
 //TODO refactor: move to separate file/class
 static struct sT104ConnectionParameters defaultConnectionParameters = {
-        .k = 12,
-        .w = 8,
-        .t0 = 10,
-        .t1 = 15,
-        .t2 = 10,
-        .t3 = 20,
-        .sizeOfTypeId = 1,
-        .sizeOfVSQ = 1,
-        .sizeOfCOT = 2,
-        .originatorAddress = 0,
-        .sizeOfCA = 2,
-        .sizeOfIOA = 3
+	/* .sizeOfTypeId =  */ 1,
+	/* .sizeOfVSQ = */ 1,
+	/* .sizeOfCOT = */ 2,
+	/* .originatorAddress = */ 0,
+	/* .sizeOfCA = */ 2,
+	/* .sizeOfIOA = */ 3,
+
+	/* .k = */ 12,
+	/* .w = */ 8,
+	/* .t0 = */ 10,
+	/* .t1 = */ 15,
+	/* .t2 = */ 10,
+	/* .t3 = */ 20
 };
 
 
@@ -356,7 +357,7 @@ static void
 sendIMessage(MasterConnection self, T104Frame frame)
 {
     T104Frame_prepareToSend(frame, self->sendCount, self->receiveCount);
-    Socket_write(self->socket, T104Frame_getBuffer(frame), T104Frame_getMsgSize(frame));
+    Socket_write(self->socket, T104Frame_getBuffer((Frame) frame), T104Frame_getMsgSize((Frame) frame));
     self->sendCount++;
 }
 
@@ -369,7 +370,7 @@ sendASDU(MasterConnection self, ASDU asdu)
 
     sendIMessage(self, (T104Frame) frame);
 
-    T104Frame_destroy((T104Frame) frame);
+    T104Frame_destroy(frame);
 }
 
 static void
@@ -611,7 +612,7 @@ static void sendSMessage(MasterConnection self)
 static bool
 checkConfirmTimeout(MasterConnection self, uint64_t currentTime)
 {
-    T104ConnectionParameters parameters = self->slave->parameters;
+	T104ConnectionParameters parameters = (T104ConnectionParameters) self->slave->parameters;
 
     if ((currentTime - self->lastConfirmationTime) >= (parameters->t2 * 1000))
         return true;
@@ -625,7 +626,7 @@ sendSMessageIfRequired(MasterConnection self)
     if (self->unconfirmedMessages > 0) {
         uint64_t currentTime = Hal_getTimeInMs();
 
-        T104ConnectionParameters parameters = self->slave->parameters;
+		T104ConnectionParameters parameters = (T104ConnectionParameters) self->slave->parameters;
 
         if ((self->unconfirmedMessages > parameters->w) || checkConfirmTimeout(self, currentTime)) {
 

@@ -36,18 +36,19 @@
 #include "information_objects_internal.h"
 
 struct sT104ConnectionParameters defaultConnectionParameters = {
-        .k = 12,
-        .w = 8,
-        .t0 = 10,
-        .t1 = 15,
-        .t2 = 10,
-        .t3 = 20,
-        .sizeOfTypeId = 1,
-        .sizeOfVSQ = 1,
-        .sizeOfCOT = 2,
-        .originatorAddress = 0,
-        .sizeOfCA = 2,
-        .sizeOfIOA = 3
+        /* .sizeOfTypeId =  */ 1,
+        /* .sizeOfVSQ = */ 1,
+        /* .sizeOfCOT = */ 2,
+		/* .originatorAddress = */ 0,
+		/* .sizeOfCA = */ 2,
+		/* .sizeOfIOA = */ 3,
+
+		/* .k = */ 12,
+		/* .w = */ 8,
+		/* .t0 = */ 10,
+		/* .t1 = */ 15,
+		/* .t2 = */ 10,
+		/* .t3 = */ 20
 };
 
 #ifndef HOST_NAME_MAX
@@ -102,9 +103,9 @@ sendSMessage(T104Connection self)
 }
 
 static void
-sendIMessage(T104Connection self, T104Frame frame)
+sendIMessage(T104Connection self, Frame frame)
 {
-    T104Frame_prepareToSend(frame, self->sendCount, self->receiveCount);
+    T104Frame_prepareToSend((T104Frame) frame, self->sendCount, self->receiveCount);
 
     Socket_write(self->socket, T104Frame_getBuffer(frame), T104Frame_getMsgSize(frame));
 
@@ -226,7 +227,7 @@ receiveMessage(Socket socket, uint8_t* buffer)
 static bool
 checkConfirmTimeout(T104Connection self, long currentTime)
 {
-    if ((currentTime - self->lastConfirmationTime) >= (uint) (self->parameters.t2 * 1000))
+    if ((currentTime - self->lastConfirmationTime) >= (uint32_t) (self->parameters.t2 * 1000))
         return true;
     else
         return false;
@@ -365,7 +366,7 @@ T104Connection_setASDUReceivedHandler(T104Connection self, ASDUReceivedHandler h
 }
 
 static void
-encodeIdentificationField(T104Connection self, T104Frame frame, TypeID typeId,
+encodeIdentificationField(T104Connection self, Frame frame, TypeID typeId,
         int vsq, CauseOfTransmission cot, int ca)
 {
     T104Frame_setNextByte(frame, typeId);
@@ -383,7 +384,7 @@ encodeIdentificationField(T104Connection self, T104Frame frame, TypeID typeId,
 }
 
 static void
-encodeIOA(T104Connection self, T104Frame frame, int ioa)
+encodeIOA(T104Connection self, Frame frame, int ioa)
 {
     T104Frame_setNextByte(frame, (uint8_t) (ioa & 0xff));
 
@@ -403,7 +404,7 @@ T104Connection_sendStartDT(T104Connection self)
 void
 T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, uint8_t qoi)
 {
-    T104Frame frame = T104Frame_create();
+    Frame frame = (Frame) T104Frame_create();
 
     encodeIdentificationField(self, frame, C_IC_NA_1, 1, cot, ca);
 
@@ -420,7 +421,7 @@ T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission
 void
 T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, uint8_t qcc)
 {
-    T104Frame frame = T104Frame_create();
+    Frame frame = (Frame) T104Frame_create();
 
     encodeIdentificationField(self, frame, C_CI_NA_1, 1, cot, ca);
 
@@ -437,7 +438,7 @@ T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTrans
 void
 T104Connection_sendReadCommend(T104Connection self, int ca, int ioa)
 {
-    T104Frame frame = T104Frame_create();
+    Frame frame = (Frame) T104Frame_create();
 
     encodeIdentificationField(self, frame, C_RD_NA_1, 1, REQUEST, ca);
 
@@ -451,7 +452,7 @@ T104Connection_sendReadCommend(T104Connection self, int ca, int ioa)
 void
 T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time)
 {
-    T104Frame frame = T104Frame_create();
+    Frame frame = (Frame) T104Frame_create();
 
     encodeIdentificationField(self, frame, C_CS_NA_1, 1, ACTIVATION, ca);
 
@@ -467,7 +468,7 @@ T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time
 void
 T104Connection_sendTestCommand(T104Connection self, int ca)
 {
-    T104Frame frame = T104Frame_create();
+    Frame frame = (Frame) T104Frame_create();
 
     encodeIdentificationField(self, frame, C_TS_NA_1, 1, ACTIVATION, ca);
 
@@ -484,11 +485,11 @@ T104Connection_sendTestCommand(T104Connection self, int ca)
 void
 T104Connection_sendControlCommand(T104Connection self, TypeID typeId, CauseOfTransmission cot, int ca, InformationObject sc)
 {
-    T104Frame frame = T104Frame_create();
+    Frame frame = (Frame) T104Frame_create();
 
     encodeIdentificationField (self, frame, typeId, 1 /* SQ:false; NumIX:1 */, cot, ca);
 
-    InformationObject_encode(sc, (Frame) frame, (ConnectionParameters) &(self->parameters));
+    InformationObject_encode(sc, frame, (ConnectionParameters) &(self->parameters));
 
     sendIMessage(self, frame);
 

@@ -298,7 +298,11 @@ CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
     struct tm tmTime;
 
     //TODO replace with portable implementation
+#ifdef _WIN32
+	gmtime_s(&tmTime, &timeVal);
+#else
     gmtime_r(&timeVal, &tmTime);
+#endif
 
     CP56Time2a_setSecond(self, tmTime.tm_sec);
 

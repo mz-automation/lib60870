@@ -43,12 +43,12 @@ struct sT104Frame {
 };
 
 static struct sFrameVFT t104FrameVFT = {
-        .destroy = T104Frame_destroy,
-        .resetFrame = T104Frame_resetFrame,
-        .setNextByte = T104Frame_setNextByte,
-        .appendBytes = T104Frame_appendBytes,
-        .getMsgSize = T104Frame_getMsgSize,
-        .getBuffer = T104Frame_getBuffer
+        T104Frame_destroy,
+        T104Frame_resetFrame,
+        T104Frame_setNextByte,
+        T104Frame_appendBytes,
+        T104Frame_getMsgSize,
+        T104Frame_getBuffer
 };
 
 #if (CONFIG_LIB60870_STATIC_FRAMES == 1)

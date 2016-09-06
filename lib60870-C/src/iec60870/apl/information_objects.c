@@ -138,8 +138,8 @@ SinglePointInformation_encode(SinglePointInformation self, Frame frame, Connecti
 }
 
 struct sInformationObjectVFT singlePointInformationVFT = {
-        .encode = (EncodeFunction) SinglePointInformation_encode,
-        .destroy = (DestroyFunction) SinglePointInformation_destroy
+        (EncodeFunction) SinglePointInformation_encode,
+        (DestroyFunction) SinglePointInformation_destroy
 };
 
 static void
@@ -179,7 +179,7 @@ SinglePointInformation_getFromBuffer(SinglePointInformation self, ConnectionPara
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSinglePointInformation));
+		self = (SinglePointInformation) GLOBAL_MALLOC(sizeof(struct sSinglePointInformation));
 
         if (self != NULL)
             SinglePointInformation_initialize(self);
@@ -242,8 +242,8 @@ StepPositionInformation_encode(StepPositionInformation self, Frame frame, Connec
 }
 
 struct sInformationObjectVFT stepPositionInformationVFT = {
-        .encode = (EncodeFunction) StepPositionInformation_encode,
-        .destroy = (DestroyFunction) StepPositionInformation_destroy
+        (EncodeFunction) StepPositionInformation_encode,
+        (DestroyFunction) StepPositionInformation_destroy
 };
 
 static void
@@ -326,7 +326,7 @@ StepPositionInformation_getFromBuffer(StepPositionInformation self, ConnectionPa
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sStepPositionInformation));
+		self = (StepPositionInformation) GLOBAL_MALLOC(sizeof(struct sStepPositionInformation));
 
         if (self != NULL)
             StepPositionInformation_initialize(self);
@@ -380,8 +380,8 @@ StepPositionWithCP56Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, 
 }
 
 struct sInformationObjectVFT stepPositionWithCP56Time2aVFT = {
-        .encode = (EncodeFunction) StepPositionWithCP56Time2a_encode,
-        .destroy = (DestroyFunction) StepPositionWithCP56Time2a_destroy
+        (EncodeFunction) StepPositionWithCP56Time2a_encode,
+        (DestroyFunction) StepPositionWithCP56Time2a_destroy
 };
 
 static void
@@ -442,7 +442,7 @@ StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, Connec
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP56Time2a));
+		self = (StepPositionWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP56Time2a));
 
         if (self != NULL)
             StepPositionWithCP56Time2a_initialize(self);
@@ -499,8 +499,8 @@ StepPositionWithCP24Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, 
 }
 
 struct sInformationObjectVFT stepPositionWithCP24Time2aVFT = {
-        .encode = (EncodeFunction) StepPositionWithCP24Time2a_encode,
-        .destroy = (DestroyFunction) StepPositionWithCP24Time2a_destroy
+        (EncodeFunction) StepPositionWithCP24Time2a_encode,
+        (DestroyFunction) StepPositionWithCP24Time2a_destroy
 };
 
 static void
@@ -562,7 +562,7 @@ StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, Connec
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP24Time2a));
+		self = (StepPositionWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP24Time2a));
 
         if (self != NULL)
             StepPositionWithCP24Time2a_initialize(self);
@@ -615,8 +615,8 @@ DoublePointInformation_encode(DoublePointInformation self, Frame frame, Connecti
 }
 
 struct sInformationObjectVFT doublePointInformationVFT = {
-        .encode = (EncodeFunction) DoublePointInformation_encode,
-        .destroy = (DestroyFunction) DoublePointInformation_destroy
+        (EncodeFunction) DoublePointInformation_encode,
+        (DestroyFunction) DoublePointInformation_destroy
 };
 
 void
@@ -668,7 +668,7 @@ DoublePointInformation_getFromBuffer(DoublePointInformation self, ConnectionPara
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sDoublePointInformation));
+		self = (DoublePointInformation) GLOBAL_MALLOC(sizeof(struct sDoublePointInformation));
 
         if (self != NULL)
             DoublePointInformation_initialize(self);
@@ -727,8 +727,8 @@ DoublePointWithCP24Time2a_encode(DoublePointWithCP24Time2a self, Frame frame, Co
 
 
 struct sInformationObjectVFT doublePointWithCP24Time2aVFT = {
-        .encode = (EncodeFunction) DoublePointWithCP24Time2a_encode,
-        .destroy = (DestroyFunction) DoublePointWithCP24Time2a_destroy
+        (EncodeFunction) DoublePointWithCP24Time2a_encode,
+        (DestroyFunction) DoublePointWithCP24Time2a_destroy
 };
 
 void
@@ -775,7 +775,7 @@ DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, Connecti
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP24Time2a));
+		self = (DoublePointWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP24Time2a));
 
         if (self != NULL)
             DoublePointWithCP24Time2a_initialize(self);
@@ -838,8 +838,8 @@ DoublePointWithCP56Time2a_encode(DoublePointWithCP56Time2a self, Frame frame, Co
 
 
 struct sInformationObjectVFT doublePointWithCP56Time2aVFT = {
-        .encode = (EncodeFunction) DoublePointWithCP56Time2a_encode,
-        .destroy = (DestroyFunction) DoublePointWithCP56Time2a_destroy
+        (EncodeFunction) DoublePointWithCP56Time2a_encode,
+        (DestroyFunction) DoublePointWithCP56Time2a_destroy
 };
 
 void
@@ -887,7 +887,7 @@ DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, Connecti
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP56Time2a));
+		self = (DoublePointWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP56Time2a));
 
         if (self != NULL)
             DoublePointWithCP56Time2a_initialize(self);
@@ -949,8 +949,8 @@ SinglePointWithCP24Time2a_encode(SinglePointWithCP24Time2a self, Frame frame, Co
 }
 
 struct sInformationObjectVFT singlePointWithCP24Time2aVFT = {
-        .encode = (EncodeFunction) SinglePointWithCP24Time2a_encode,
-        .destroy = (DestroyFunction) SinglePointWithCP24Time2a_destroy
+        (EncodeFunction) SinglePointWithCP24Time2a_encode,
+        (DestroyFunction) SinglePointWithCP24Time2a_destroy
 };
 
 void
@@ -997,7 +997,7 @@ SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, Connecti
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP24Time2a));
+		self = (SinglePointWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP24Time2a));
 
         if (self != NULL)
             SinglePointWithCP24Time2a_initialize(self);
@@ -1061,8 +1061,8 @@ SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, Co
 
 
 struct sInformationObjectVFT singlePointWithCP56Time2aVFT = {
-        .encode = (EncodeFunction) SinglePointWithCP56Time2a_encode,
-        .destroy = (DestroyFunction) SinglePointWithCP56Time2a_destroy
+        (EncodeFunction) SinglePointWithCP56Time2a_encode,
+        (DestroyFunction) SinglePointWithCP56Time2a_destroy
 };
 
 static void
@@ -1110,7 +1110,7 @@ SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, Connecti
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP56Time2a));
+		self = (SinglePointWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP56Time2a));
 
         if (self != NULL)
             SinglePointWithCP56Time2a_initialize(self);
@@ -1170,8 +1170,8 @@ BitString32_encode(BitString32 self, Frame frame, ConnectionParameters parameter
 }
 
 struct sInformationObjectVFT bitString32VFT = {
-        .encode = (EncodeFunction) BitString32_encode,
-        .destroy = (DestroyFunction) BitString32_destroy
+        (EncodeFunction) BitString32_encode,
+        (DestroyFunction) BitString32_destroy
 };
 
 static void
@@ -1221,7 +1221,7 @@ BitString32_getFromBuffer(BitString32 self, ConnectionParameters parameters,
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sBitString32));
+		self = (BitString32) GLOBAL_MALLOC(sizeof(struct sBitString32));
 
         if (self != NULL)
             BitString32_initialize(self);
@@ -1284,8 +1284,8 @@ Bitstring32WithCP24Time2a_encode(Bitstring32WithCP24Time2a self, Frame frame, Co
 }
 
 struct sInformationObjectVFT bitstring32WithCP24Time2aVFT = {
-        .encode = (EncodeFunction) Bitstring32WithCP24Time2a_encode,
-        .destroy = (DestroyFunction) Bitstring32WithCP24Time2a_destroy
+        (EncodeFunction) Bitstring32WithCP24Time2a_encode,
+        (DestroyFunction) Bitstring32WithCP24Time2a_destroy
 };
 
 static void
@@ -1330,7 +1330,7 @@ Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, Connecti
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sBitString32));
+		self = (Bitstring32WithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sBitString32));
 
         if (self != NULL)
             Bitstring32WithCP24Time2a_initialize(self);
@@ -1396,8 +1396,8 @@ Bitstring32WithCP56Time2a_encode(Bitstring32WithCP56Time2a self, Frame frame, Co
 }
 
 struct sInformationObjectVFT bitstring32WithCP56Time2aVFT = {
-        .encode = (EncodeFunction) Bitstring32WithCP56Time2a_encode,
-        .destroy = (DestroyFunction) Bitstring32WithCP56Time2a_destroy
+        (EncodeFunction) Bitstring32WithCP56Time2a_encode,
+        (DestroyFunction) Bitstring32WithCP56Time2a_destroy
 };
 
 static void
@@ -1443,7 +1443,7 @@ Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, Connecti
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sBitString32));
+		self = (Bitstring32WithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitString32));
 
         if (self != NULL)
             Bitstring32WithCP56Time2a_initialize(self);
@@ -1530,8 +1530,8 @@ MeasuredValueNormalized_encode(MeasuredValueNormalized self, Frame frame, Connec
 }
 
 struct sInformationObjectVFT measuredValueNormalizedVFT = {
-        .encode = (EncodeFunction) MeasuredValueNormalized_encode,
-        .destroy = (DestroyFunction) MeasuredValueNormalized_destroy
+        (EncodeFunction) MeasuredValueNormalized_encode,
+        (DestroyFunction) MeasuredValueNormalized_destroy
 };
 
 static void
@@ -1599,7 +1599,7 @@ MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, ConnectionPa
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalized));
+		self = (MeasuredValueNormalized) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalized));
 
         if (self != NULL)
             MeasuredValueNormalized_initialize(self);
@@ -1650,8 +1650,8 @@ MeasuredValueNormalizedWithCP24Time2a_encode(MeasuredValueNormalizedWithCP24Time
 }
 
 struct sInformationObjectVFT measuredValueNormalizedWithCP24Time2aVFT = {
-        .encode = (EncodeFunction) MeasuredValueNormalizedWithCP24Time2a_encode,
-        .destroy = (DestroyFunction) MeasuredValueNormalizedWithCP24Time2a_destroy
+        (EncodeFunction) MeasuredValueNormalizedWithCP24Time2a_encode,
+        (DestroyFunction) MeasuredValueNormalizedWithCP24Time2a_destroy
 };
 
 static void
@@ -1711,7 +1711,7 @@ MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithC
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP24Time2a));
+		self = (MeasuredValueNormalizedWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP24Time2a));
 
         if (self != NULL)
             MeasuredValueNormalizedWithCP24Time2a_initialize(self);
@@ -1765,8 +1765,8 @@ MeasuredValueNormalizedWithCP56Time2a_encode(MeasuredValueNormalizedWithCP56Time
 }
 
 struct sInformationObjectVFT measuredValueNormalizedWithCP56Time2aVFT = {
-        .encode = (EncodeFunction) MeasuredValueNormalizedWithCP56Time2a_encode,
-        .destroy = (DestroyFunction) MeasuredValueNormalizedWithCP56Time2a_destroy
+        (EncodeFunction) MeasuredValueNormalizedWithCP56Time2a_encode,
+        (DestroyFunction) MeasuredValueNormalizedWithCP56Time2a_destroy
 };
 
 static void
@@ -1826,7 +1826,7 @@ MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithC
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP56Time2a));
+		self = (MeasuredValueNormalizedWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP56Time2a));
 
         if (self != NULL)
             MeasuredValueNormalizedWithCP56Time2a_initialize(self);
@@ -1877,8 +1877,8 @@ MeasuredValueScaled_encode(MeasuredValueScaled self, Frame frame, ConnectionPara
 }
 
 struct sInformationObjectVFT measuredValueScaledVFT = {
-        .encode = (EncodeFunction) MeasuredValueScaled_encode,
-        .destroy = (DestroyFunction) MeasuredValueScaled_destroy
+        (EncodeFunction) MeasuredValueScaled_encode,
+        (DestroyFunction) MeasuredValueScaled_destroy
 };
 
 static void
@@ -1944,7 +1944,7 @@ MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, ConnectionParameters
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaled));
+		self = (MeasuredValueScaled) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaled));
 
         if (self != NULL)
             MeasuredValueScaled_initialize(self);
@@ -1994,8 +1994,8 @@ MeasuredValueScaledWithCP24Time2a_encode(MeasuredValueScaledWithCP24Time2a self,
 }
 
 struct sInformationObjectVFT measuredValueScaledWithCP24Time2aVFT = {
-        .encode = (EncodeFunction) MeasuredValueScaledWithCP24Time2a_encode,
-        .destroy = (DestroyFunction) MeasuredValueScaled_destroy
+        (EncodeFunction) MeasuredValueScaledWithCP24Time2a_encode,
+        (DestroyFunction) MeasuredValueScaled_destroy
 };
 
 static void
@@ -2052,7 +2052,7 @@ MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP24Time2a));
+		self = (MeasuredValueScaledWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP24Time2a));
 
         if (self != NULL)
             MeasuredValueScaledWithCP24Time2a_initialize(self);
@@ -2106,8 +2106,8 @@ MeasuredValueScaledWithCP56Time2a_encode(MeasuredValueScaledWithCP56Time2a self,
 }
 
 struct sInformationObjectVFT measuredValueScaledWithCP56Time2aVFT = {
-        .encode = (EncodeFunction) MeasuredValueScaledWithCP56Time2a_encode,
-        .destroy = (DestroyFunction) MeasuredValueScaledWithCP56Time2a_destroy
+        (EncodeFunction) MeasuredValueScaledWithCP56Time2a_encode,
+        (DestroyFunction) MeasuredValueScaledWithCP56Time2a_destroy
 };
 
 static void
@@ -2165,7 +2165,7 @@ MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP56Time2a));
+		self = (MeasuredValueScaledWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP56Time2a));
 
         if (self != NULL)
             MeasuredValueScaledWithCP56Time2a_initialize(self);
@@ -2228,8 +2228,8 @@ MeasuredValueShort_encode(MeasuredValueShort self, Frame frame, ConnectionParame
 }
 
 struct sInformationObjectVFT measuredValueShortVFT = {
-        .encode = (EncodeFunction) MeasuredValueShort_encode,
-        .destroy = (DestroyFunction) MeasuredValueShort_destroy
+        (EncodeFunction) MeasuredValueShort_encode,
+        (DestroyFunction) MeasuredValueShort_destroy
 };
 
 static void
@@ -2286,7 +2286,7 @@ MeasuredValueShort_getFromBuffer(MeasuredValueShort self, ConnectionParameters p
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueShort));
+		self = (MeasuredValueShort) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShort));
 
         if (self != NULL)
             MeasuredValueShort_initialize(self);
@@ -2347,8 +2347,8 @@ MeasuredValueShortWithCP24Time2a_encode(MeasuredValueShortWithCP24Time2a self, F
 }
 
 struct sInformationObjectVFT measuredValueShortWithCP24Time2aVFT = {
-        .encode = (EncodeFunction) MeasuredValueShortWithCP24Time2a_encode,
-        .destroy = (DestroyFunction) MeasuredValueShortWithCP24Time2a_destroy
+        (EncodeFunction) MeasuredValueShortWithCP24Time2a_encode,
+        (DestroyFunction) MeasuredValueShortWithCP24Time2a_destroy
 };
 
 static void
@@ -2405,7 +2405,7 @@ MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a 
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP24Time2a));
+		self = (MeasuredValueShortWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP24Time2a));
 
         if (self != NULL)
             MeasuredValueShortWithCP24Time2a_initialize(self);
@@ -2469,8 +2469,8 @@ MeasuredValueShortWithCP56Time2a_encode(MeasuredValueShortWithCP56Time2a self, F
 }
 
 struct sInformationObjectVFT measuredValueShortWithCP56Time2aVFT = {
-        .encode = (EncodeFunction) MeasuredValueShortWithCP56Time2a_encode,
-        .destroy = (DestroyFunction) MeasuredValueShortWithCP56Time2a_destroy
+        (EncodeFunction) MeasuredValueShortWithCP56Time2a_encode,
+        (DestroyFunction) MeasuredValueShortWithCP56Time2a_destroy
 };
 
 static void
@@ -2527,7 +2527,7 @@ MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a 
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP56Time2a));
+		self = (MeasuredValueShortWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP56Time2a));
 
         if (self != NULL)
             MeasuredValueShortWithCP56Time2a_initialize(self);
@@ -2588,8 +2588,8 @@ IntegratedTotals_encode(IntegratedTotals self, Frame frame, ConnectionParameters
 }
 
 struct sInformationObjectVFT integratedTotalsVFT = {
-        .encode = (EncodeFunction) IntegratedTotals_encode,
-        .destroy = (DestroyFunction) IntegratedTotals_destroy
+        (EncodeFunction) IntegratedTotals_encode,
+        (DestroyFunction) IntegratedTotals_destroy
 };
 
 static void
@@ -2642,7 +2642,7 @@ IntegratedTotals_getFromBuffer(IntegratedTotals self, ConnectionParameters param
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sIntegratedTotals));
+		self = (IntegratedTotals) GLOBAL_MALLOC(sizeof(struct sIntegratedTotals));
 
         if (self != NULL)
             IntegratedTotals_initialize(self);
@@ -2690,8 +2690,8 @@ IntegratedTotalsWithCP24Time2a_encode(IntegratedTotalsWithCP24Time2a self, Frame
 }
 
 struct sInformationObjectVFT integratedTotalsWithCP24Time2aVFT = {
-        .encode = (EncodeFunction) IntegratedTotalsWithCP24Time2a_encode,
-        .destroy = (DestroyFunction) IntegratedTotalsWithCP24Time2a_destroy
+        (EncodeFunction) IntegratedTotalsWithCP24Time2a_encode,
+        (DestroyFunction) IntegratedTotalsWithCP24Time2a_destroy
 };
 
 static void
@@ -2749,7 +2749,7 @@ IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP24Time2a));
+		self = (IntegratedTotalsWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP24Time2a));
 
         if (self != NULL)
             IntegratedTotalsWithCP24Time2a_initialize(self);
@@ -2800,8 +2800,8 @@ IntegratedTotalsWithCP56Time2a_encode(IntegratedTotalsWithCP56Time2a self, Frame
 }
 
 struct sInformationObjectVFT integratedTotalsWithCP56Time2aVFT = {
-        .encode = (EncodeFunction) IntegratedTotalsWithCP56Time2a_encode,
-        .destroy = (DestroyFunction) IntegratedTotalsWithCP56Time2a_destroy
+        (EncodeFunction) IntegratedTotalsWithCP56Time2a_encode,
+        (DestroyFunction) IntegratedTotalsWithCP56Time2a_destroy
 };
 
 static void
@@ -2858,7 +2858,7 @@ IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self
     //TODO check message size
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP56Time2a));
+		self = (IntegratedTotalsWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP56Time2a));
 
         if (self != NULL)
             IntegratedTotalsWithCP56Time2a_initialize(self);
@@ -2907,8 +2907,8 @@ SingleCommand_encode(SingleCommand self, Frame frame, ConnectionParameters param
 }
 
 struct sInformationObjectVFT singleCommandVFT = {
-        .encode = (EncodeFunction) SingleCommand_encode,
-        .destroy = (DestroyFunction) SingleCommand_destroy
+        (EncodeFunction) SingleCommand_encode,
+        (DestroyFunction) SingleCommand_destroy
 };
 
 static void
@@ -2928,7 +2928,7 @@ SingleCommand
 SingleCommand_create(SingleCommand self, int ioa, bool command, bool selectCommand, int qu)
 {
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSingleCommand));
+		self = (SingleCommand) GLOBAL_MALLOC(sizeof(struct sSingleCommand));
 
         if (self == NULL)
             return NULL;
@@ -2975,7 +2975,7 @@ SingleCommand_getFromBuffer(SingleCommand self, ConnectionParameters parameters,
         return NULL;
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSingleCommand));
+		self = (SingleCommand) GLOBAL_MALLOC(sizeof(struct sSingleCommand));
 
         if (self != NULL)
             SingleCommand_initialize(self);
@@ -3021,8 +3021,8 @@ SingleCommandWithCP56Time2a_encode(SingleCommandWithCP56Time2a self, Frame frame
 }
 
 struct sInformationObjectVFT singleCommandWithCP56Time2aVFT = {
-        .encode = (EncodeFunction) SingleCommandWithCP56Time2a_encode,
-        .destroy = (DestroyFunction) SingleCommandWithCP56Time2a_destroy
+        (EncodeFunction) SingleCommandWithCP56Time2a_encode,
+        (DestroyFunction) SingleCommandWithCP56Time2a_destroy
 };
 
 static void
@@ -3042,7 +3042,7 @@ SingleCommandWithCP56Time2a
 SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bool command, bool selectCommand, int qu, CP56Time2a timestamp)
 {
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSingleCommandWithCP56Time2a));
+		self = (SingleCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSingleCommandWithCP56Time2a));
 
         if (self == NULL)
             return NULL;
@@ -3082,7 +3082,7 @@ SingleCommandWithCP56Time2a_getFromBuffer(SingleCommandWithCP56Time2a self, Conn
         return NULL;
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSingleCommandWithCP56Time2a));
+		self = (SingleCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSingleCommandWithCP56Time2a));
 
         if (self != NULL)
             SingleCommandWithCP56Time2a_initialize(self);
@@ -3129,8 +3129,8 @@ DoubleCommand_encode(DoubleCommand self, Frame frame, ConnectionParameters param
 }
 
 struct sInformationObjectVFT doubleCommandVFT = {
-        .encode = (EncodeFunction) DoubleCommand_encode,
-        .destroy = (DestroyFunction) DoubleCommand_destroy
+        (EncodeFunction) DoubleCommand_encode,
+        (DestroyFunction) DoubleCommand_destroy
 };
 
 static void
@@ -3150,7 +3150,7 @@ DoubleCommand
 DoubleCommand_create(DoubleCommand self, int ioa, int command, bool selectCommand, int qu)
 {
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sDoubleCommand));
+		self = (DoubleCommand) GLOBAL_MALLOC(sizeof(struct sDoubleCommand));
 
         if (self == NULL)
             return NULL;
@@ -3197,7 +3197,7 @@ DoubleCommand_getFromBuffer(DoubleCommand self, ConnectionParameters parameters,
         return NULL;
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sDoubleCommand));
+		self = (DoubleCommand) GLOBAL_MALLOC(sizeof(struct sDoubleCommand));
 
         if (self != NULL)
             DoubleCommand_initialize(self);
@@ -3240,8 +3240,8 @@ StepCommand_encode(StepCommand self, Frame frame, ConnectionParameters parameter
 }
 
 struct sInformationObjectVFT stepCommandVFT = {
-        .encode = (EncodeFunction) StepCommand_encode,
-        .destroy = (DestroyFunction) StepCommand_destroy
+        (EncodeFunction) StepCommand_encode,
+        (DestroyFunction) StepCommand_destroy
 };
 
 static void
@@ -3261,7 +3261,7 @@ StepCommand
 StepCommand_create(StepCommand self, int ioa, int command, bool selectCommand, int qu)
 {
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sStepCommand));
+		self = (StepCommand) GLOBAL_MALLOC(sizeof(struct sStepCommand));
 
         if (self == NULL)
             return NULL;
@@ -3308,7 +3308,7 @@ StepCommand_getFromBuffer(StepCommand self, ConnectionParameters parameters,
         return NULL;
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sStepCommand));
+		self = (StepCommand) GLOBAL_MALLOC(sizeof(struct sStepCommand));
 
         if (self != NULL)
             StepCommand_initialize(self);
@@ -3354,8 +3354,8 @@ SetpointCommandNormalized_encode(SetpointCommandNormalized self, Frame frame, Co
 }
 
 struct sInformationObjectVFT setpointCommandNormalizedVFT = {
-        .encode = (EncodeFunction) SetpointCommandNormalized_encode,
-        .destroy = (DestroyFunction) SetpointCommandNormalized_destroy
+        (EncodeFunction) SetpointCommandNormalized_encode,
+        (DestroyFunction) SetpointCommandNormalized_destroy
 };
 
 static void
@@ -3375,7 +3375,7 @@ SetpointCommandNormalized
 SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float value, bool selectCommand, int ql)
 {
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
+		self = (SetpointCommandNormalized) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
 
         if (self == NULL)
             return NULL;
@@ -3426,7 +3426,7 @@ SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, Connecti
         return NULL;
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
+		self = (SetpointCommandNormalized) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
 
         if (self != NULL)
             SetpointCommandNormalized_initialize(self);
@@ -3475,8 +3475,8 @@ SetpointCommandScaled_encode(SetpointCommandScaled self, Frame frame, Connection
 }
 
 struct sInformationObjectVFT setpointCommandScaledVFT = {
-        .encode = (EncodeFunction) SetpointCommandScaled_encode,
-        .destroy = (DestroyFunction) SetpointCommandScaled_destroy
+        (EncodeFunction) SetpointCommandScaled_encode,
+        (DestroyFunction) SetpointCommandScaled_destroy
 };
 
 static void
@@ -3496,7 +3496,7 @@ SetpointCommandScaled
 SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, float value, bool selectCommand, int ql)
 {
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaled));
+		self = (SetpointCommandScaled) GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaled));
 
         if (self == NULL)
             return NULL;
@@ -3545,7 +3545,7 @@ SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, ConnectionParame
         return NULL;
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaled));
+		self = (SetpointCommandScaled) GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaled));
 
         if (self != NULL)
             SetpointCommandScaled_initialize(self);
@@ -3604,8 +3604,8 @@ SetpointCommandShort_encode(SetpointCommandShort self, Frame frame, ConnectionPa
 }
 
 struct sInformationObjectVFT setpointCommandShortVFT = {
-        .encode = (EncodeFunction) SetpointCommandShort_encode,
-        .destroy = (DestroyFunction) SetpointCommandShort_destroy
+        (EncodeFunction) SetpointCommandShort_encode,
+        (DestroyFunction) SetpointCommandShort_destroy
 };
 
 static void
@@ -3625,7 +3625,7 @@ SetpointCommandShort
 SetpointCommandShort_create(SetpointCommandShort self, int ioa, float value, bool selectCommand, int ql)
 {
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandShort));
+		self = (SetpointCommandShort) GLOBAL_MALLOC(sizeof(struct sSetpointCommandShort));
 
         if (self == NULL)
             return NULL;
@@ -3672,7 +3672,7 @@ SetpointCommandShort_getFromBuffer(SetpointCommandShort self, ConnectionParamete
         return NULL;
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sSetpointCommandShort));
+		self = (SetpointCommandShort) GLOBAL_MALLOC(sizeof(struct sSetpointCommandShort));
 
         if (self != NULL)
             SetpointCommandShort_initialize(self);
@@ -3739,8 +3739,8 @@ Bitstring32Command_encode(Bitstring32Command self, Frame frame, ConnectionParame
 }
 
 struct sInformationObjectVFT bitstring32CommandVFT = {
-        .encode = (EncodeFunction) Bitstring32Command_encode,
-        .destroy = (DestroyFunction) Bitstring32Command_destroy
+        (EncodeFunction) Bitstring32Command_encode,
+        (DestroyFunction) Bitstring32Command_destroy
 };
 
 static void
@@ -3754,7 +3754,7 @@ Bitstring32Command
 Bitstring32Command_create(Bitstring32Command self, int ioa, uint32_t value)
 {
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sBitstring32Command));
+		self = (Bitstring32Command) GLOBAL_MALLOC(sizeof(struct sBitstring32Command));
 
         if (self == NULL)
             return NULL;
@@ -3789,7 +3789,7 @@ Bitstring32Command_getFromBuffer(Bitstring32Command self, ConnectionParameters p
         return NULL;
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sBitstring32Command));
+		self = (Bitstring32Command) GLOBAL_MALLOC(sizeof(struct sBitstring32Command));
 
         if (self != NULL)
             Bitstring32Command_initialize(self);
@@ -3840,8 +3840,8 @@ ReadCommand_encode(ReadCommand self, Frame frame, ConnectionParameters parameter
 }
 
 struct sInformationObjectVFT readCommandVFT = {
-        .encode = (EncodeFunction) ReadCommand_encode,
-        .destroy = (DestroyFunction) ReadCommand_destroy
+        (EncodeFunction) ReadCommand_encode,
+        (DestroyFunction) ReadCommand_destroy
 };
 
 static void
@@ -3855,7 +3855,7 @@ ReadCommand
 ReadCommand_create(ReadCommand self, int ioa)
 {
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sReadCommand));
+		self = (ReadCommand) GLOBAL_MALLOC(sizeof(struct sReadCommand));
 
         if (self == NULL)
             return NULL;
@@ -3883,7 +3883,7 @@ ReadCommand_getFromBuffer(ReadCommand self, ConnectionParameters parameters,
         return NULL;
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sReadCommand));
+		self = (ReadCommand) GLOBAL_MALLOC(sizeof(struct sReadCommand));
 
         if (self != NULL)
             ReadCommand_initialize(self);
@@ -3920,8 +3920,8 @@ ClockSynchronizationCommand_encode(ClockSynchronizationCommand self, Frame frame
 }
 
 struct sInformationObjectVFT clockSynchronizationCommandVFT = {
-        .encode = (EncodeFunction) ClockSynchronizationCommand_encode,
-        .destroy = (DestroyFunction) ClockSynchronizationCommand_destroy
+        (EncodeFunction) ClockSynchronizationCommand_encode,
+        (DestroyFunction) ClockSynchronizationCommand_destroy
 };
 
 static void
@@ -3935,7 +3935,7 @@ ClockSynchronizationCommand
 ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa)
 {
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
+		self = (ClockSynchronizationCommand) GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
 
         if (self == NULL)
             return NULL;
@@ -3968,7 +3968,7 @@ ClockSynchronizationCommand_getFromBuffer(ClockSynchronizationCommand self, Conn
         return NULL;
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
+		self = (ClockSynchronizationCommand) GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
 
         if (self != NULL)
             ClockSynchronizationCommand_initialize(self);
@@ -4010,8 +4010,8 @@ InterrogationCommand_encode(InterrogationCommand self, Frame frame, ConnectionPa
 }
 
 struct sInformationObjectVFT interrogationCommandVFT = {
-        .encode = (EncodeFunction) InterrogationCommand_encode,
-        .destroy = (DestroyFunction) InterrogationCommand_destroy
+        (EncodeFunction) InterrogationCommand_encode,
+        (DestroyFunction) InterrogationCommand_destroy
 };
 
 static void
@@ -4025,7 +4025,7 @@ InterrogationCommand
 InterrogationCommand_create(InterrogationCommand self, int ioa, uint8_t qoi)
 {
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sInterrogationCommand));
+		self = (InterrogationCommand) GLOBAL_MALLOC(sizeof(struct sInterrogationCommand));
 
         if (self == NULL)
             return NULL;
@@ -4060,7 +4060,7 @@ InterrogationCommand_getFromBuffer(InterrogationCommand self, ConnectionParamete
         return NULL;
 
     if (self == NULL) {
-        self = GLOBAL_MALLOC(sizeof(struct sInterrogationCommand));
+		self = (InterrogationCommand) GLOBAL_MALLOC(sizeof(struct sInterrogationCommand));
 
         if (self != NULL)
             InterrogationCommand_initialize(self);

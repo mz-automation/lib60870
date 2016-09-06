@@ -83,12 +83,12 @@ asduFrame_appendBytes(Frame self, uint8_t* bytes, int numberOfBytes)
 }
 
 struct sFrameVFT asduFrameVFT = {
-        .destroy = asduFrame_destroy,
-        .resetFrame = NULL,
-        .setNextByte = asduFrame_setNextByte,
-        .appendBytes = asduFrame_appendBytes,
-        .getMsgSize = NULL,
-        .getBuffer = NULL
+        asduFrame_destroy,
+        NULL,
+        asduFrame_setNextByte,
+        asduFrame_appendBytes,
+        NULL,
+        NULL
 };
 
 ASDU
@@ -187,8 +187,8 @@ ASDU_addInformationObject(ASDU self, InformationObject io)
     self->asdu[1]++; // increase number of elements in VSQ
 
     struct sASDUFrame asduFrame = {
-            .virtualFunctionTable = &asduFrameVFT,
-            .asdu = self
+            &asduFrameVFT,
+            self
     };
 
     InformationObject_encode(io, (Frame) &asduFrame, self->parameters);

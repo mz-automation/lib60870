@@ -36,6 +36,11 @@ set_source_files_properties(${lib_common_SRCS} ${lib_windows_SRCS}
                                        PROPERTIES LANGUAGE CXX)
 ENDIF()
 
+set (library_SRCS
+    ${lib_common_SRCS}
+    ${lib_windows_SRCS}
+)
+
 set (CMAKE_MODULE_LINKER_FLAGS   "${CMAKE_MODULE_LINKER_FLAGS}\"/DEF:${CMAKE_CURRENT_SOURCE_DIR}/vs/lib60870.def\"") 
 
 ELSEIF(UNIX)
