@@ -45,6 +45,47 @@ struct sInformationObjectVFT {
 #endif
 };
 
+
+/*****************************************
+ * Basic data types
+ ****************************************/
+
+void
+SingleEvent_setEventState(SingleEvent self, EventState eventState)
+{
+    uint8_t value = *self;
+
+    value &= 0xfc;
+
+    value += eventState;
+
+    *self = value;
+}
+
+EventState
+SingleEvent_getEventState(SingleEvent self)
+{
+    return (EventState) (*self & 0x3);
+}
+
+void
+SingleEvent_setQDP(SingleEvent self, QualityDescriptorP qdp)
+{
+    uint8_t value = *self;
+
+    value &= 0x03;
+
+    value += qdp;
+
+    *self = value;
+}
+
+QualityDescriptorP
+SingleEvent_getQDP(SingleEvent self)
+{
+    return (QualityDescriptor) (*self & 0xfc);
+}
+
 /*****************************************
  * Information object hierarchy
  *****************************************/

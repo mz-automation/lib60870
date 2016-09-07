@@ -25,7 +25,7 @@ LIB_INCLUDE_DIRS += config
 LIB_INCLUDE_DIRS += src/inc/api
 LIB_INCLUDE_DIRS += src/inc/internal
 LIB_INCLUDE_DIRS += src/hal/inc
-LIB_INCLUDE_DIRS += src/common
+LIB_INCLUDE_DIRS += src/common/inc
 
 LIB_INCLUDES = $(addprefix -I,$(LIB_INCLUDE_DIRS))
 

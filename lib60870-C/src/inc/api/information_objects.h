@@ -29,12 +29,19 @@ extern "C" {
 
 typedef uint8_t QualityDescriptor;
 
-#define IEC60870_QUALITY_GOOD        0
-#define IEC60870_QUALITY_OVERFLOW    0x01
-#define IEC60870_QUALITY_BLOCKED     0x10
-#define IEC60870_QUALITY_SUBSTITUTED 0x20
-#define IEC60870_QUALITY_NON_TOPICAL 0x40
-#define IEC60870_QUALITY_INVALID     0x80
+/**
+ * \brief QDP - Quality descriptor for events of protection equipment according to IEC 60870-5-101:2003 7.2.6.4
+ */
+typedef uint8_t QualityDescriptorP;
+
+#define IEC60870_QUALITY_GOOD                 0
+#define IEC60870_QUALITY_OVERFLOW             0x01 /* QualityDescriptor */
+#define IEC60780_QUALITY_RESERVED             0x04 /* QualityDescriptorP */
+#define IEC60780_QUALITY_ELAPSED_TIME_INVALID 0x08 /* QualityDescriptorP */
+#define IEC60870_QUALITY_BLOCKED              0x10 /* QualityDescriptor, QualityDescriptorP */
+#define IEC60870_QUALITY_SUBSTITUTED          0x20 /* QualityDescriptor, QualityDescriptorP */
+#define IEC60870_QUALITY_NON_TOPICAL          0x40 /* QualityDescriptor, QualityDescriptorP */
+#define IEC60870_QUALITY_INVALID              0x80 /* QualityDescriptor, QualityDescriptorP */
 
 typedef uint8_t SetpointCommandQualifier;
 
@@ -46,9 +53,33 @@ typedef enum  {
 } DoublePointValue;
 
 typedef enum {
+    IEC60870_EVENTSTATE_INDETERMINATE_0 = 0,
+    IEC60870_EVENTSTATE_OFF = 1,
+    IEC60870_EVENTSTATE_ON = 2,
+    IEC60870_EVENTSTATE_INDETERMINATE_3 = 3
+} EventState;
+
+typedef enum {
     IEC60870_STEP_LOWER = 1,
     IEC60870_STEP_HIGHER = 2
 } StepCommandValue;
+
+typedef uint8_t tSingleEvent;
+
+typedef tSingleEvent* SingleEvent;
+
+void
+SingleEvent_setEventState(SingleEvent self, EventState eventState);
+
+EventState
+SingleEvent_getEventState(SingleEvent self);
+
+void
+SingleEvent_setQDP(SingleEvent self, QualityDescriptorP qdp);
+
+QualityDescriptorP
+SingleEvent_getQDP(SingleEvent self);
+
 
 /************************************************
  * InformationObject
