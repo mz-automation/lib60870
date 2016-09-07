@@ -22,6 +22,11 @@
 #ifndef SRC_INC_INFORMATION_OBJECTS_H_
 #define SRC_INC_INFORMATION_OBJECTS_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 typedef uint8_t QualityDescriptor;
 
 #define IEC60870_QUALITY_GOOD        0
@@ -780,5 +785,8 @@ ClockSynchronizationCommand_destroy(ClockSynchronizationCommand self);
 CP56Time2a
 ClockSynchronizationCommand_getTime(ClockSynchronizationCommand self);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_INC_INFORMATION_OBJECTS_H_ */

@@ -25,6 +25,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct sT104Connection* T104Connection;
 
 T104Connection
@@ -109,5 +113,8 @@ T104Connection_setASDUReceivedHandler(T104Connection self, ASDUReceivedHandler h
 void
 T104Connection_destroy(T104Connection self);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_INC_T104_CONNECTION_H_ */

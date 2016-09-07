@@ -29,6 +29,10 @@
 
 #include "frame.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void
 ASDU_encode(ASDU self, Frame frame);
 
@@ -47,5 +51,8 @@ CP56Time2a_getFromBuffer (CP56Time2a self, uint8_t* msg, int msgSize, int startI
 uint8_t*
 CP56Time2a_getEncodedValue(CP56Time2a self);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_INC_APL_TYPES_INTERNAL_H_ */

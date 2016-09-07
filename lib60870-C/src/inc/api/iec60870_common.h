@@ -25,6 +25,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define IEC_60870_5_104_DEFAULT_PORT 2404
 
 typedef struct sASDU* ASDU;
@@ -425,5 +429,9 @@ BinaryCounterReading_setAdjusted(BinaryCounterReading self, bool value);
 
 void
 BinaryCounterReading_setInvalid(BinaryCounterReading self, bool value);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_INC_IEC60870_COMMON_H_ */

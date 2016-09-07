@@ -26,6 +26,10 @@
 #include <stdbool.h>
 #include "iec60870_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct sMasterConnection* MasterConnection;
 
 typedef struct sSlave* Slave;
@@ -131,6 +135,10 @@ MasterConnection_sendACT_CON(MasterConnection self, ASDU asdu, bool negative);
 
 void
 MasterConnection_sendACT_TERM(MasterConnection self, ASDU asdu);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* SRC_IEC60750_SLAVE_H_ */
