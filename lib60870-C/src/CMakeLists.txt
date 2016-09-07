@@ -115,8 +115,8 @@ IF(UNIX)
   ENDIF (CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
 ENDIF(UNIX)
 IF(MINGW)
-  target_link_libraries(iec61850-shared ws2_32 iphlpapi)
-  target_link_libraries(iec61850 ws2_32 iphlpapi)
+  target_link_libraries(iec60870-shared ws2_32 iphlpapi)
+  target_link_libraries(iec60870 ws2_32 iphlpapi)
 ENDIF(MINGW)
 
 

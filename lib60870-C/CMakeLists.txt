@@ -26,6 +26,7 @@ test_big_endian(PLATFORM_IS_BIGENDIAN)
 
 
 option(BUILD_EXAMPLES "Build the examples" ON)
+option(BUILD_TESTS "Build the tests" ON)
 
 include_directories(
     config
@@ -50,9 +51,13 @@ set(API_HEADERS
 # write the detected stuff to this file
 # configure_file(config/stack_config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config/stack_config.h)
 
-#if(BUILD_EXAMPLES)
-#	add_subdirectory(examples)
-#endif(BUILD_EXAMPLES)
+if(BUILD_EXAMPLES)
+	add_subdirectory(examples)
+endif(BUILD_EXAMPLES)
+
+if(BUILD_TESTS)
+	add_subdirectory(tests)
+endif(BUILD_TESTS)
 
 add_subdirectory(src)
 

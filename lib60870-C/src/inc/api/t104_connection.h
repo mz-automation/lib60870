@@ -48,9 +48,22 @@ T104Connection_setConnectionParameters(T104Connection self, T104ConnectionParame
 T104ConnectionParameters
 T104Connection_getConnectionParameters(T104Connection self);
 
+/**
+ * \brief Sets the timeout for connecting to the server (in ms)
+ *
+ * \param self
+ * \param millies timeout value in ms
+ */
 void
 T104Connection_setConnectTimeout(T104Connection self, int millies);
 
+/**
+ * \brief non-blocking connect.
+ *
+ * Invokes a connection establishment to the server and returns immediately.
+ *
+ * \param self
+ */
 void
 T104Connection_connect(T104Connection self);
 

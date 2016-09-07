@@ -1,4 +1,4 @@
-#include "iec60870_client.h"
+#include "iec60870_master.h"
 #include "iec60870_common.h"
 #include "hal_time.h"
 #include "hal_thread.h"

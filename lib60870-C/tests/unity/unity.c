@@ -1163,8 +1163,8 @@ void UnityAssertEqualMemory( UNITY_INTERNAL_PTR expected,
                 UnityAddMsgIfSpecified(msg);
                 UNITY_FAIL_AND_BAIL;
             }
-            ptr_exp = (UNITY_INTERNAL_PTR)((_UP)ptr_exp + 1);
-            ptr_act = (UNITY_INTERNAL_PTR)((_UP)ptr_act + 1);
+            ptr_exp = (unsigned char*)((_UP)ptr_exp + 1);
+            ptr_act = (unsigned char*)((_UP)ptr_act + 1);
         }
     }
 }

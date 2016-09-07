@@ -2,6 +2,8 @@
 #include "iec60870_common.h"
 #include "hal_time.h"
 
+void setUp(void) { }
+void tearDown(void) {}
 
 
 void

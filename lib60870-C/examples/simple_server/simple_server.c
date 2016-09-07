@@ -49,12 +49,12 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
     ASDU_addInformationObject(newAsdu, io);
 
     ASDU_addInformationObject(newAsdu, (InformationObject)
-            MeasuredValueScaled_create(io, 101, 23, IEC60870_QUALITY_GOOD));
+		MeasuredValueScaled_create((MeasuredValueScaled) io, 101, 23, IEC60870_QUALITY_GOOD));
 
     ASDU_addInformationObject(newAsdu, (InformationObject)
-            MeasuredValueScaled_create(io, 102, 2300, IEC60870_QUALITY_GOOD));
+		MeasuredValueScaled_create((MeasuredValueScaled) io, 102, 2300, IEC60870_QUALITY_GOOD));
 
-    MeasuredValueScaled_destroy(io);
+    InformationObject_destroy(io);
 
     MasterConnection_sendASDU(connection, newAsdu);
 
@@ -66,9 +66,9 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
     ASDU_addInformationObject(newAsdu, io);
 
     ASDU_addInformationObject(newAsdu, (InformationObject)
-                SinglePointWithCP56Time2a_create(io, 105, false, IEC60870_QUALITY_GOOD, &timestamp));
+		SinglePointWithCP56Time2a_create((SinglePointWithCP56Time2a) io, 105, false, IEC60870_QUALITY_GOOD, &timestamp));
 
-    SinglePointWithCP56Time2a_destroy(io);
+    InformationObject_destroy(io);
 
     MasterConnection_sendASDU(connection, newAsdu);
 
