@@ -438,6 +438,45 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
+    case M_EP_TA_1: /* 17 */
+
+        elementSize = self->parameters->sizeOfIOA + 6;
+
+        retVal = (InformationObject) EventOfProtectionEquipment_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_EP_TB_1: /* 18 */
+
+        elementSize = self->parameters->sizeOfIOA + 7;
+
+        retVal = (InformationObject) PackedStartEventsOfProtectionEquipment_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_EP_TC_1: /* 19 */
+
+        elementSize = self->parameters->sizeOfIOA + 7;
+
+        retVal = (InformationObject) PackedOutputCircuitInfo_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_PS_NA_1: /* 20 */
+
+        elementSize = self->parameters->sizeOfIOA + 5;
+
+        retVal = (InformationObject) PackedSinglePointWithSCD_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_ME_ND_1: /* 21 */
+
+        elementSize = self->parameters->sizeOfIOA + 2;
+
+        retVal = (InformationObject) MeasuredValueNormalizedWithoutQuality_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
 
     case M_SP_TB_1: /* 30 */
 

@@ -36,12 +36,37 @@ typedef uint8_t QualityDescriptorP;
 
 #define IEC60870_QUALITY_GOOD                 0
 #define IEC60870_QUALITY_OVERFLOW             0x01 /* QualityDescriptor */
-#define IEC60780_QUALITY_RESERVED             0x04 /* QualityDescriptorP */
-#define IEC60780_QUALITY_ELAPSED_TIME_INVALID 0x08 /* QualityDescriptorP */
+#define IEC60870_QUALITY_RESERVED             0x04 /* QualityDescriptorP */
+#define IEC60870_QUALITY_ELAPSED_TIME_INVALID 0x08 /* QualityDescriptorP */
 #define IEC60870_QUALITY_BLOCKED              0x10 /* QualityDescriptor, QualityDescriptorP */
 #define IEC60870_QUALITY_SUBSTITUTED          0x20 /* QualityDescriptor, QualityDescriptorP */
 #define IEC60870_QUALITY_NON_TOPICAL          0x40 /* QualityDescriptor, QualityDescriptorP */
 #define IEC60870_QUALITY_INVALID              0x80 /* QualityDescriptor, QualityDescriptorP */
+
+/**
+ * \brief SPE - Start events of protection equipment according to IEC 60870-5-101:2003 7.2.6.11
+ */
+typedef uint8_t StartEvent;
+
+#define IEC60870_START_EVENT_NONE   0
+#define IEC60870_START_EVENT_GS     0x01 /* General start of operation */
+#define IEC60870_START_EVENT_SL1    0x02 /* Start of operation phase L1 */
+#define IEC60870_START_EVENT_SL2    0x04 /* Start of operation phase L2 */
+#define IEC60870_START_EVENT_SL3    0x08 /* Start of operation phase L3 */
+#define IEC60870_START_EVENT_SIE    0x10 /* Start of operation IE (earth current) */
+#define IEC60870_START_EVENT_SRD    0x20 /* Start of operation in reverse direction */
+#define IEC60870_START_EVENT_RES1   0x40 /* Reserved bit */
+#define IEC60870_START_EVENT_RES2   0x80 /* Reserved bit */
+
+/**
+ * \brief Output circuit information (OCI) of protection equipment according to IEC 60870-5-101:2003 7.2.6.12
+ */
+typedef uint8_t OutputCircuitInfo;
+
+#define IEC60870_OUTPUT_CI_GC   0x01 /* General command to output circuit */
+#define IEC60870_OUTPUT_CI_CL1  0x02 /* Command to output circuit phase L1 */
+#define IEC60870_OUTPUT_CI_CL2  0x04 /* Command to output circuit phase L2 */
+#define IEC60870_OUTPUT_CI_CL3  0x08 /* Command to output circuit phase L3 */
 
 typedef uint8_t SetpointCommandQualifier;
 
@@ -79,6 +104,30 @@ SingleEvent_setQDP(SingleEvent self, QualityDescriptorP qdp);
 
 QualityDescriptorP
 SingleEvent_getQDP(SingleEvent self);
+
+
+typedef struct sStatusAndStatusChangeDetection tStatusAndStatusChangeDetection;
+
+typedef tStatusAndStatusChangeDetection* StatusAndStatusChangeDetection;
+
+struct sStatusAndStatusChangeDetection {
+    uint8_t encodedValue[4];
+};
+
+uint16_t
+StatusAndStatusChangeDetection_getSTn(StatusAndStatusChangeDetection self);
+
+uint16_t
+StatusAndStatusChangeDetection_getCDn(StatusAndStatusChangeDetection self);
+
+void
+StatusAndStatusChangeDetection_setSTn(StatusAndStatusChangeDetection self, uint16_t value);
+
+bool
+StatusAndStatusChangeDetection_getST(StatusAndStatusChangeDetection self, int index);
+
+bool
+StatusAndStatusChangeDetection_getCD(StatusAndStatusChangeDetection self, int index);
 
 
 /************************************************
@@ -330,6 +379,24 @@ Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32
 
 CP56Time2a
 Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self);
+
+/*************************************************************
+ * MeasuredValueNormalizedWithoutQuality : InformationObject
+ *************************************************************/
+
+typedef struct sMeasuredValueNormalizedWithoutQuality* MeasuredValueNormalizedWithoutQuality;
+
+void
+MeasuredValueNormalizedWithoutQuality_destroy(MeasuredValueNormalizedWithoutQuality self);
+
+MeasuredValueNormalizedWithoutQuality
+MeasuredValueNormalizedWithoutQuality_create(MeasuredValueNormalizedWithoutQuality self, int ioa, float value);
+
+float
+MeasuredValueNormalizedWithoutQuality_getValue(MeasuredValueNormalizedWithoutQuality self);
+
+void
+MeasuredValueNormalizedWithoutQuality_setValue(MeasuredValueNormalizedWithoutQuality self, float value);
 
 /**********************************************
  * MeasuredValueNormalized
@@ -616,6 +683,97 @@ IntegratedTotalsWithCP56Time2a_getTimestamp(IntegratedTotalsWithCP56Time2a self)
 void
 IntegratedTotalsWithCP56Time2a_setTimestamp(IntegratedTotalsWithCP56Time2a self,
         CP56Time2a value);
+
+/***********************************************************************
+ * EventOfProtectionEquipment : InformationObject
+ ***********************************************************************/
+
+typedef struct sEventOfProtectionEquipment* EventOfProtectionEquipment;
+
+void
+EventOfProtectionEquipment_destroy(EventOfProtectionEquipment self);
+
+EventOfProtectionEquipment
+EventOfProtectionEquipment_create(EventOfProtectionEquipment self, int ioa,
+        SingleEvent event, CP16Time2a elapsedTime, CP24Time2a timestamp);
+
+SingleEvent
+EventOfProtectionEquipment_getEvent(EventOfProtectionEquipment self);
+
+CP16Time2a
+EventOfProtectionEquipment_getElapsedTime(EventOfProtectionEquipment self);
+
+CP24Time2a
+EventOfProtectionEquipment_getTimestamp(EventOfProtectionEquipment self);
+
+/***********************************************************************
+ * PackedStartEventsOfProtectionEquipment : InformationObject
+ ***********************************************************************/
+
+typedef struct sPackedStartEventsOfProtectionEquipment* PackedStartEventsOfProtectionEquipment;
+
+PackedStartEventsOfProtectionEquipment
+PackedStartEventsOfProtectionEquipment_create(PackedStartEventsOfProtectionEquipment self, int ioa,
+        StartEvent event, QualityDescriptorP qdp, CP16Time2a elapsedTime, CP24Time2a timestamp);
+
+void
+PackedStartEventsOfProtectionEquipment_destroy(PackedStartEventsOfProtectionEquipment self);
+
+StartEvent
+PackedStartEventsOfProtectionEquipment_getEvent(PackedStartEventsOfProtectionEquipment self);
+
+QualityDescriptorP
+PackedStartEventsOfProtectionEquipment_getQuality(PackedStartEventsOfProtectionEquipment self);
+
+CP16Time2a
+PackedStartEventsOfProtectionEquipment_getElapsedTime(PackedStartEventsOfProtectionEquipment self);
+
+CP24Time2a
+PackedStartEventsOfProtectionEquipment_getTimestamp(PackedStartEventsOfProtectionEquipment self);
+
+/***********************************************************************
+ * PacketOutputCircuitInfo : InformationObject
+ ***********************************************************************/
+
+typedef struct sPackedOutputCircuitInfo* PackedOutputCircuitInfo;
+
+void
+PackedOutputCircuitInfo_destroy(PackedOutputCircuitInfo self);
+
+PackedOutputCircuitInfo
+PackedOutputCircuitInfo_create(PackedOutputCircuitInfo self, int ioa,
+        OutputCircuitInfo oci, QualityDescriptorP qdp, CP16Time2a operatingTime, CP24Time2a timestamp);
+
+OutputCircuitInfo
+PackedOutputCircuitInfo_getOCI(PackedOutputCircuitInfo self);
+
+QualityDescriptorP
+PackedOutputCircuitInfo_getQuality(PackedOutputCircuitInfo self);
+
+CP16Time2a
+PackedOutputCircuitInfo_getOperatingTime(PackedOutputCircuitInfo self);
+
+CP24Time2a
+PackedOutputCircuitInfo_getTimestamp(PackedOutputCircuitInfo self);
+
+/***********************************************************************
+ * PackedSinglePointWithSCD : InformationObject
+ ***********************************************************************/
+
+typedef struct sPackedSinglePointWithSCD* PackedSinglePointWithSCD;
+
+void
+PackedSinglePointWithSCD_destroy(PackedSinglePointWithSCD self);
+
+PackedSinglePointWithSCD
+PackedSinglePointWithSCD_create(PackedSinglePointWithSCD self, int ioa,
+        StatusAndStatusChangeDetection scd, QualityDescriptor qds);
+
+QualityDescriptor
+PackedSinglePointWithSCD_getQuality(PackedSinglePointWithSCD self);
+
+StatusAndStatusChangeDetection
+PackedSinglePointWithSCD_getSCD(PackedSinglePointWithSCD self);
 
 
 /*******************************************

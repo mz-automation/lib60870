@@ -68,13 +68,13 @@
     <Compile Include="PackedStartEventsOfProtectionEquipment.cs" />
     <Compile Include="StartEvent.cs" />
     <Compile Include="OutputCircuitInfo.cs" />
-    <Compile Include="PacketOutputCircuitInfo.cs" />
     <Compile Include="StatusAndStatusChangeDetection.cs" />
     <Compile Include="ScaledValue.cs" />
     <Compile Include="SetpointCommands.cs" />
     <Compile Include="ParameterMeasuredValues.cs" />
     <Compile Include="SystemInformationCommands.cs" />
     <Compile Include="MeasuredValueShort.cs" />
+    <Compile Include="PackedOutputCircuitInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

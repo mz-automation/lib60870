@@ -86,6 +86,44 @@ SingleEvent_getQDP(SingleEvent self)
     return (QualityDescriptor) (*self & 0xfc);
 }
 
+uint16_t
+StatusAndStatusChangeDetection_getSTn(StatusAndStatusChangeDetection self)
+{
+    return (uint16_t) (self->encodedValue[0] + 256 * self->encodedValue[1]);
+}
+
+uint16_t
+StatusAndStatusChangeDetection_getCDn(StatusAndStatusChangeDetection self)
+{
+    return (uint16_t) (self->encodedValue[2] + 256 * self->encodedValue[3]);
+}
+
+void
+StatusAndStatusChangeDetection_setSTn(StatusAndStatusChangeDetection self, uint16_t value)
+{
+    self->encodedValue[0] = (uint8_t) (value % 256);
+    self->encodedValue[1] = (uint8_t) (value / 256);
+}
+
+bool
+StatusAndStatusChangeDetection_getST(StatusAndStatusChangeDetection self, int index)
+{
+    if ((index >= 0) && (index < 16))
+        return ((int) (StatusAndStatusChangeDetection_getSTn(self) & (2^index)) != 0);
+    else
+        return false;
+}
+
+bool
+StatusAndStatusChangeDetection_getCD(StatusAndStatusChangeDetection self, int index)
+{
+    if ((index >= 0) && (index < 16))
+        return ((int) (StatusAndStatusChangeDetection_getCDn(self) & (2^index)) != 0);
+    else
+        return false;
+}
+
+
 /*****************************************
  * Information object hierarchy
  *****************************************/
@@ -1662,6 +1700,113 @@ MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, ConnectionPa
     return self;
 }
 
+/*************************************************************
+ * MeasuredValueNormalizedWithoutQuality : InformationObject
+ *************************************************************/
+
+typedef struct sMeasuredValueNormalizedWithoutQuality* MeasuredValueNormalizedWithoutQuality;
+
+struct sMeasuredValueNormalizedWithoutQuality {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+};
+
+static void
+MeasuredValueNormalizedWithoutQuality_encode(MeasuredValueNormalizedWithoutQuality self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, self->encodedValue[0]);
+    Frame_setNextByte(frame, self->encodedValue[1]);
+}
+
+struct sInformationObjectVFT measuredValueNormalizedWithoutQualityVFT = {
+        (EncodeFunction) MeasuredValueNormalizedWithoutQuality_encode,
+        (DestroyFunction) MeasuredValueNormalizedWithoutQuality_destroy
+};
+
+static void
+MeasuredValueNormalizedWithoutQuality_initialize(MeasuredValueNormalizedWithoutQuality self)
+{
+    self->virtualFunctionTable = &(measuredValueNormalizedWithoutQualityVFT);
+    self->type = M_ME_ND_1;
+}
+
+void
+MeasuredValueNormalizedWithoutQuality_destroy(MeasuredValueNormalizedWithoutQuality self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+MeasuredValueNormalizedWithoutQuality
+MeasuredValueNormalizedWithoutQuality_create(MeasuredValueNormalizedWithoutQuality self, int ioa, float value)
+{
+    if (self == NULL)
+        self = (MeasuredValueNormalizedWithoutQuality) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalizedWithoutQuality));
+
+    if (self != NULL)
+        MeasuredValueNormalizedWithoutQuality_initialize(self);
+
+    self->objectAddress = ioa;
+
+    MeasuredValueNormalizedWithoutQuality_setValue(self, value);
+
+    return self;
+}
+
+float
+MeasuredValueNormalizedWithoutQuality_getValue(MeasuredValueNormalizedWithoutQuality self)
+{
+    float nv = (float) (getScaledValue(self->encodedValue)) / 32767.f;
+
+    return nv;
+}
+
+void
+MeasuredValueNormalizedWithoutQuality_setValue(MeasuredValueNormalizedWithoutQuality self, float value)
+{
+    if (value > 1.0f)
+        value = 1.0f;
+    else if (value < -1.0f)
+        value = -1.0f;
+
+    int scaledValue = (int)(value * 32767.f);
+
+    setScaledValue(self->encodedValue, scaledValue);
+}
+
+MeasuredValueNormalizedWithoutQuality
+MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWithoutQuality self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    //TODO check message size
+
+    if (self == NULL) {
+        self = (MeasuredValueNormalizedWithoutQuality) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithoutQuality));
+
+        if (self != NULL)
+            MeasuredValueNormalizedWithoutQuality_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->encodedValue[0] = msg [startIndex++];
+        self->encodedValue[1] = msg [startIndex++];
+    }
+
+    return self;
+}
+
 /***********************************************************************
  * MeasuredValueNormalizedWithCP24Time2a : MeasuredValueNormalized
  ***********************************************************************/
@@ -2924,6 +3069,503 @@ IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self
     return self;
 }
 
+
+/***********************************************************************
+ * EventOfProtectionEquipment : InformationObject
+ ***********************************************************************/
+
+struct sEventOfProtectionEquipment {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    tSingleEvent event;
+
+    struct sCP16Time2a elapsedTime;
+
+    struct sCP24Time2a timestamp;
+};
+
+static void
+EventOfProtectionEquipment_encode(EventOfProtectionEquipment self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, (uint8_t) self->event);
+
+    Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+}
+
+struct sInformationObjectVFT eventOfProtectionEquipmentVFT = {
+        (EncodeFunction) EventOfProtectionEquipment_encode,
+        (DestroyFunction) EventOfProtectionEquipment_destroy
+};
+
+static void
+EventOfProtectionEquipment_initialize(EventOfProtectionEquipment self)
+{
+    self->virtualFunctionTable = &(eventOfProtectionEquipmentVFT);
+    self->type = M_EP_TA_1;
+}
+
+void
+EventOfProtectionEquipment_destroy(EventOfProtectionEquipment self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+EventOfProtectionEquipment
+EventOfProtectionEquipment_create(EventOfProtectionEquipment self, int ioa,
+        SingleEvent event, CP16Time2a elapsedTime, CP24Time2a timestamp)
+{
+    if (self == NULL)
+        self = (EventOfProtectionEquipment) GLOBAL_CALLOC(1, sizeof(struct sEventOfProtectionEquipment));
+
+    if (self != NULL)
+        EventOfProtectionEquipment_initialize(self);
+
+    self->objectAddress = ioa;
+    self->event = *event;
+    self->elapsedTime = *elapsedTime;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+EventOfProtectionEquipment
+EventOfProtectionEquipment_getFromBuffer(EventOfProtectionEquipment self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 6))
+        return NULL;
+
+    if (self == NULL) {
+        self = (EventOfProtectionEquipment) GLOBAL_MALLOC(sizeof(struct sEventOfProtectionEquipment));
+
+        if (self != NULL)
+            EventOfProtectionEquipment_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* event */
+        self->event = msg[startIndex++];
+
+        /* elapsed time */
+        CP16Time2a_getFromBuffer(&(self->elapsedTime), msg, msgSize, startIndex);
+        startIndex += 2;
+
+        /* timestamp */
+        CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+
+SingleEvent
+EventOfProtectionEquipment_getEvent(EventOfProtectionEquipment self)
+{
+    return &(self->event);
+}
+
+CP16Time2a
+EventOfProtectionEquipment_getElapsedTime(EventOfProtectionEquipment self)
+{
+    return &(self->elapsedTime);
+}
+
+CP24Time2a
+EventOfProtectionEquipment_getTimestamp(EventOfProtectionEquipment self)
+{
+    return &(self->timestamp);
+}
+
+
+/***********************************************************************
+ * PackedStartEventsOfProtectionEquipment : InformationObject
+ ***********************************************************************/
+
+struct sPackedStartEventsOfProtectionEquipment {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    StartEvent event;
+
+    QualityDescriptorP qdp;
+
+    struct sCP16Time2a elapsedTime;
+
+    struct sCP24Time2a timestamp;
+};
+
+static void
+PackedStartEventsOfProtectionEquipment_encode(PackedStartEventsOfProtectionEquipment self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, (uint8_t) self->event);
+
+    Frame_setNextByte(frame, (uint8_t) self->qdp);
+
+    Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+}
+
+struct sInformationObjectVFT packedStartEventsOfProtectionEquipmentVFT = {
+        (EncodeFunction) PackedStartEventsOfProtectionEquipment_encode,
+        (DestroyFunction) PackedStartEventsOfProtectionEquipment_destroy
+};
+
+static void
+PackedStartEventsOfProtectionEquipment_initialize(PackedStartEventsOfProtectionEquipment self)
+{
+    self->virtualFunctionTable = &(packedStartEventsOfProtectionEquipmentVFT);
+    self->type = M_EP_TB_1;
+}
+
+void
+PackedStartEventsOfProtectionEquipment_destroy(PackedStartEventsOfProtectionEquipment self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+PackedStartEventsOfProtectionEquipment
+PackedStartEventsOfProtectionEquipment_create(PackedStartEventsOfProtectionEquipment self, int ioa,
+        StartEvent event, QualityDescriptorP qdp, CP16Time2a elapsedTime, CP24Time2a timestamp)
+{
+    if (self == NULL)
+        self = (PackedStartEventsOfProtectionEquipment) GLOBAL_CALLOC(1, sizeof(struct sPackedStartEventsOfProtectionEquipment));
+
+    if (self != NULL)
+        PackedStartEventsOfProtectionEquipment_initialize(self);
+
+    self->objectAddress = ioa;
+    self->event = event;
+    self->qdp = qdp;
+    self->elapsedTime = *elapsedTime;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+StartEvent
+PackedStartEventsOfProtectionEquipment_getEvent(PackedStartEventsOfProtectionEquipment self)
+{
+    return self->event;
+}
+
+QualityDescriptorP
+PackedStartEventsOfProtectionEquipment_getQuality(PackedStartEventsOfProtectionEquipment self)
+{
+    return self->qdp;
+}
+
+CP16Time2a
+PackedStartEventsOfProtectionEquipment_getElapsedTime(PackedStartEventsOfProtectionEquipment self)
+{
+    return &(self->elapsedTime);
+}
+
+CP24Time2a
+PackedStartEventsOfProtectionEquipment_getTimestamp(PackedStartEventsOfProtectionEquipment self)
+{
+    return &(self->timestamp);
+}
+
+PackedStartEventsOfProtectionEquipment
+PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtectionEquipment self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 7))
+        return NULL;
+
+    if (self == NULL) {
+        self = (PackedStartEventsOfProtectionEquipment) GLOBAL_MALLOC(sizeof(struct sPackedStartEventsOfProtectionEquipment));
+
+        if (self != NULL)
+            PackedStartEventsOfProtectionEquipment_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* event */
+        self->event = msg[startIndex++];
+
+        /* qdp */
+        self->qdp = msg[startIndex++];
+
+        /* elapsed time */
+        CP16Time2a_getFromBuffer(&(self->elapsedTime), msg, msgSize, startIndex);
+        startIndex += 2;
+
+        /* timestamp */
+        CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+/***********************************************************************
+ * PacketOutputCircuitInfo : InformationObject
+ ***********************************************************************/
+
+struct sPackedOutputCircuitInfo {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    OutputCircuitInfo oci;
+
+    QualityDescriptorP qdp;
+
+    struct sCP16Time2a operatingTime;
+
+    struct sCP24Time2a timestamp;
+};
+
+static void
+PacketOutputCircuitInfo_encode(PackedOutputCircuitInfo self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, (uint8_t) self->oci);
+
+    Frame_setNextByte(frame, (uint8_t) self->qdp);
+
+    Frame_appendBytes(frame, self->operatingTime.encodedValue, 2);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+}
+
+struct sInformationObjectVFT packedOutputCircuitInfoVFT = {
+        (EncodeFunction) PacketOutputCircuitInfo_encode,
+        (DestroyFunction) PackedOutputCircuitInfo_destroy
+};
+
+static void
+PacketOutputCircuitInfo_initialize(PackedOutputCircuitInfo self)
+{
+    self->virtualFunctionTable = &(packedOutputCircuitInfoVFT);
+    self->type = M_EP_TC_1;
+}
+
+void
+PackedOutputCircuitInfo_destroy(PackedOutputCircuitInfo self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+PackedOutputCircuitInfo
+PackedOutputCircuitInfo_create(PackedOutputCircuitInfo self, int ioa,
+        OutputCircuitInfo oci, QualityDescriptorP qdp, CP16Time2a operatingTime, CP24Time2a timestamp)
+{
+    if (self == NULL)
+        self = (PackedOutputCircuitInfo) GLOBAL_CALLOC(1, sizeof(struct sPackedOutputCircuitInfo));
+
+    if (self != NULL)
+        PacketOutputCircuitInfo_initialize(self);
+
+    self->objectAddress = ioa;
+    self->oci = oci;
+    self->qdp = qdp;
+    self->operatingTime = *operatingTime;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+OutputCircuitInfo
+PackedOutputCircuitInfo_getOCI(PackedOutputCircuitInfo self)
+{
+    return self->oci;
+}
+
+QualityDescriptorP
+PackedOutputCircuitInfo_getQuality(PackedOutputCircuitInfo self)
+{
+    return self->qdp;
+}
+
+CP16Time2a
+PackedOutputCircuitInfo_getOperatingTime(PackedOutputCircuitInfo self)
+{
+    return &(self->operatingTime);
+}
+
+CP24Time2a
+PackedOutputCircuitInfo_getTimestamp(PackedOutputCircuitInfo self)
+{
+    return &(self->timestamp);
+}
+
+PackedOutputCircuitInfo
+PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 7))
+        return NULL;
+
+    if (self == NULL) {
+        self = (PackedOutputCircuitInfo) GLOBAL_MALLOC(sizeof(struct sPackedOutputCircuitInfo));
+
+        if (self != NULL)
+            PacketOutputCircuitInfo_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* OCI - output circuit information */
+        self->oci = msg[startIndex++];
+
+        /* qdp */
+        self->qdp = msg[startIndex++];
+
+        /* operating time */
+        CP16Time2a_getFromBuffer(&(self->operatingTime), msg, msgSize, startIndex);
+        startIndex += 2;
+
+        /* timestamp */
+        CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+
+/***********************************************************************
+ * PackedSinglePointWithSCD : InformationObject
+ ***********************************************************************/
+
+struct sPackedSinglePointWithSCD {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    tStatusAndStatusChangeDetection scd;
+
+    QualityDescriptor qds;
+};
+
+static void
+PackedSinglePointWithSCD_encode(PackedSinglePointWithSCD self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->scd.encodedValue, 4);
+
+    Frame_setNextByte(frame, (uint8_t) self->qds);
+}
+
+struct sInformationObjectVFT packedSinglePointWithSCDVFT = {
+        (EncodeFunction) PackedSinglePointWithSCD_encode,
+        (DestroyFunction) PackedSinglePointWithSCD_destroy
+};
+
+static void
+PackedSinglePointWithSCD_initialize(PackedSinglePointWithSCD self)
+{
+    self->virtualFunctionTable = &(packedSinglePointWithSCDVFT);
+    self->type = M_PS_NA_1;
+}
+
+void
+PackedSinglePointWithSCD_destroy(PackedSinglePointWithSCD self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+PackedSinglePointWithSCD
+PackedSinglePointWithSCD_create(PackedSinglePointWithSCD self, int ioa,
+        StatusAndStatusChangeDetection scd, QualityDescriptor qds)
+{
+    if (self == NULL)
+        self = (PackedSinglePointWithSCD) GLOBAL_CALLOC(1, sizeof(struct sPackedSinglePointWithSCD));
+
+    if (self != NULL)
+        PackedSinglePointWithSCD_initialize(self);
+
+    self->objectAddress = ioa;
+    self->scd = *scd;
+    self->qds = qds;
+
+    return self;
+}
+
+QualityDescriptor
+PackedSinglePointWithSCD_getQuality(PackedSinglePointWithSCD self)
+{
+    return self->qds;
+}
+
+StatusAndStatusChangeDetection
+PackedSinglePointWithSCD_getSCD(PackedSinglePointWithSCD self)
+{
+    return &(self->scd);
+}
+
+PackedSinglePointWithSCD
+PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 5))
+        return NULL;
+
+    if (self == NULL) {
+        self = (PackedSinglePointWithSCD) GLOBAL_MALLOC(sizeof(struct sPackedSinglePointWithSCD));
+
+        if (self != NULL)
+            PackedSinglePointWithSCD_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* SCD */
+        self->scd.encodedValue[0] = msg[startIndex++];
+        self->scd.encodedValue[1] = msg[startIndex++];
+        self->scd.encodedValue[2] = msg[startIndex++];
+        self->scd.encodedValue[3] = msg[startIndex++];
+
+        /* QDS */
+        self->qds = msg[startIndex];
+    }
+
+    return self;
+}
+
+
 /*******************************************
  * SingleCommand
  *******************************************/
@@ -3101,10 +3743,7 @@ SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bo
 
     self->sco = sco;
 
-    int i;
-    for (i = 0; i < 7; i++) {
-        self->timestamp.encodedValue[i] = timestamp->encodedValue[i];
-    }
+    self->timestamp = *timestamp;
 
     return self;
 }

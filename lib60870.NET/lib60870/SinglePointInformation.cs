@@ -109,8 +109,21 @@ namespace lib60870
 
 			qds = new QualityDescriptor (msg [startIndex++]);
 		}
+			
+		public PackedSinglePointWithSCD(int objectAddress, StatusAndStatusChangeDetection scd, QualityDescriptor quality)
+			:base(objectAddress)
+		{
+			this.scd = scd;
+			this.qds = quality;
+		}
 
-		//TODO add server side functionality
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (scd.GetEncodedValue ());
+
+			frame.SetNextByte (qds.EncodedValue);
+		}
 	}
 
 }

@@ -24,7 +24,7 @@ using System;
 namespace lib60870
 {
 
-	public class PacketOutputCircuitInfo : InformationObject
+	public class PackedOutputCircuitInfo : InformationObject
 	{
 		OutputCircuitInfo oci;
 
@@ -58,7 +58,7 @@ namespace lib60870
 			}
 		}
 
-		public PacketOutputCircuitInfo (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		public PackedOutputCircuitInfo (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */

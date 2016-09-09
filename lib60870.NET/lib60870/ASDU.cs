@@ -383,7 +383,7 @@ namespace lib60870
 
 				elementSize = parameters.SizeOfIOA + 7;
 
-				retVal = new PacketOutputCircuitInfo (parameters, payload, index * elementSize);
+				retVal = new PackedOutputCircuitInfo (parameters, payload, index * elementSize);
 
 				break;
 

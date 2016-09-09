@@ -110,6 +110,26 @@ IntegratedTotalsWithCP56Time2a
 IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+EventOfProtectionEquipment
+EventOfProtectionEquipment_getFromBuffer(EventOfProtectionEquipment self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+PackedStartEventsOfProtectionEquipment
+PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtectionEquipment self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+PackedOutputCircuitInfo
+PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+PackedSinglePointWithSCD
+PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+MeasuredValueNormalizedWithoutQuality
+MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWithoutQuality self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
 SingleCommand
 SingleCommand_getFromBuffer(SingleCommand self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
