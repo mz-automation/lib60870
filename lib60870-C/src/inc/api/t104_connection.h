@@ -105,6 +105,12 @@ T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTrans
 void
 T104Connection_sendReadCommend(T104Connection self, int ca, int ioa);
 
+/**
+ * \brief Sends a clock synchronization command (C_CS_NA_1 typeID: 103)
+ *
+ * \param ca Common address of the slave/server
+ * \param time new system time for the slave/server
+ */
 void
 T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time);
 

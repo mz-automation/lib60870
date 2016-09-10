@@ -1700,6 +1700,58 @@ MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, ConnectionPa
     return self;
 }
 
+/**********************************************
+ * ParameterNormalizedValue
+ **********************************************/
+
+void
+ParameterNormalizedValue_destroy(ParameterNormalizedValue self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+ParameterNormalizedValue
+ParameterNormalizedValue_create(ParameterNormalizedValue self, int ioa, float value, QualifierOfParameterMV quality)
+{
+    ParameterNormalizedValue pvn =
+            MeasuredValueNormalized_create(self, ioa, value, (QualityDescriptor) quality);
+
+    pvn->type = P_ME_NA_1;
+
+    return pvn;
+}
+
+float
+ParameterNormalizedValue_getValue(ParameterNormalizedValue self)
+{
+    return MeasuredValueNormalized_getValue(self);
+}
+
+void
+ParameterNormalizedValue_setValue(ParameterNormalizedValue self, float value)
+{
+    MeasuredValueNormalized_setValue(self, value);
+}
+
+QualifierOfParameterMV
+ParameterNormalizedValue_getQPM(ParameterNormalizedValue self)
+{
+    return self->quality;
+}
+
+ParameterNormalizedValue
+ParameterNormalizedValue_getFromBuffer(ParameterNormalizedValue self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    MeasuredValueNormalized pvn =
+            MeasuredValueNormalized_getFromBuffer(self, parameters, msg, msgSize, startIndex);
+
+    pvn->type = P_ME_NA_1;
+
+    return (ParameterNormalizedValue) pvn;
+}
+
+
 /*************************************************************
  * MeasuredValueNormalizedWithoutQuality : InformationObject
  *************************************************************/
@@ -2107,7 +2159,6 @@ MeasuredValueScaled_getValue(MeasuredValueScaled self)
 void
 MeasuredValueScaled_setValue(MeasuredValueScaled self, int value)
 {
-    //TODO check boundaries
     setScaledValue(self->encodedValue, value);
 }
 
@@ -2151,6 +2202,58 @@ MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, ConnectionParameters
 
     return self;
 }
+
+/******************************************************
+ * ParameterScaledValue : MeasuredValueScaled
+ *****************************************************/
+
+void
+ParameterScaledValue_destroy(ParameterScaledValue self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+ParameterScaledValue
+ParameterScaledValue_create(ParameterScaledValue self, int ioa, int value, QualifierOfParameterMV qpm)
+{
+    ParameterScaledValue pvn =
+            MeasuredValueScaled_create(self, ioa, value, qpm);
+
+    pvn->type = P_ME_NB_1;
+
+    return pvn;
+}
+
+int
+ParameterScaledValue_getValue(ParameterScaledValue self)
+{
+    return getScaledValue(self->encodedValue);
+}
+
+void
+ParameterScaledValue_setValue(ParameterScaledValue self, int value)
+{
+    setScaledValue(self->encodedValue, value);
+}
+
+QualifierOfParameterMV
+ParameterScaledValue_getQPM(ParameterScaledValue self)
+{
+    return self->quality;
+}
+
+ParameterScaledValue
+ParameterScaledValue_getFromBuffer(ParameterScaledValue self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    MeasuredValueScaled psv =
+            MeasuredValueScaled_getFromBuffer(self, parameters, msg, msgSize, startIndex);
+
+    psv->type = P_ME_NB_1;
+
+    return (ParameterScaledValue) psv;
+}
+
 
 /*******************************************
  * MeasuredValueScaledWithCP24Time2a
@@ -2503,6 +2606,57 @@ MeasuredValueShort_getFromBuffer(MeasuredValueShort self, ConnectionParameters p
     }
 
     return self;
+}
+
+/******************************************************
+ * ParameterFloatValue : MeasuredValueShort
+ *****************************************************/
+
+void
+ParameterFloatValue_destroy(ParameterFloatValue self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+ParameterFloatValue
+ParameterFloatValue_create(ParameterFloatValue self, int ioa, float value, QualifierOfParameterMV qpm)
+{
+    ParameterFloatValue pvf =
+            MeasuredValueShort_create(self, ioa, value, (QualityDescriptor) qpm);
+
+    pvf->type = P_ME_NC_1;
+
+    return pvf;
+}
+
+float
+ParameterFloatValue_getValue(ParameterFloatValue self)
+{
+    return self->value;
+}
+
+void
+ParameterFloatValue_setValue(ParameterFloatValue self, float value)
+{
+    self->value = value;
+}
+
+QualifierOfParameterMV
+ParameterFloatValue_getQPM(ParameterFloatValue self)
+{
+    return self->quality;
+}
+
+ParameterFloatValue
+ParameterFloatValue_getFromBuffer(ParameterFloatValue self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    ParameterFloatValue psv =
+            MeasuredValueShort_getFromBuffer(self, parameters, msg, msgSize, startIndex);
+
+    psv->type = P_ME_NC_1;
+
+    return (ParameterFloatValue) psv;
 }
 
 /*******************************************
@@ -4612,7 +4766,7 @@ ClockSynchronizationCommand_initialize(ClockSynchronizationCommand self)
 }
 
 ClockSynchronizationCommand
-ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa)
+ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa, CP56Time2a timestamp)
 {
     if (self == NULL) {
 		self = (ClockSynchronizationCommand) GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
@@ -4624,6 +4778,7 @@ ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa)
     }
 
     self->objectAddress = ioa;
+    self->timestamp = *timestamp;
 
     return self;
 }
@@ -4758,6 +4913,97 @@ InterrogationCommand_getFromBuffer(InterrogationCommand self, ConnectionParamete
     return self;
 }
 
+/*******************************************
+ * ParameterActivation : InformationObject
+ *******************************************/
+
+struct sParameterActivation {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    QualifierOfParameterActivation qpa;
+};
+
+static void
+ParameterActivation_encode(ParameterActivation self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, self->qpa);
+}
+
+struct sInformationObjectVFT parameterActivationVFT = {
+        (EncodeFunction) ParameterActivation_encode,
+        (DestroyFunction) ParameterActivation_destroy
+};
+
+static void
+ParameterActivation_initialize(ParameterActivation self)
+{
+    self->virtualFunctionTable = &(parameterActivationVFT);
+    self->type = P_AC_NA_1;
+}
+
+void
+ParameterActivation_destroy(ParameterActivation self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+
+ParameterActivation
+ParameterActivation_create(ParameterActivation self, int ioa, QualifierOfParameterActivation qpa)
+{
+    if (self == NULL)
+        self = (ParameterActivation) GLOBAL_CALLOC(1, sizeof(struct sParameterActivation));
+
+    if (self != NULL)
+        ParameterActivation_initialize(self);
+
+    self->objectAddress = ioa;
+    self->qpa = qpa;
+
+    return self;
+}
+
+
+QualifierOfParameterActivation
+ParameterActivation_getQuality(ParameterActivation self)
+{
+    return self->qpa;
+}
+
+ParameterActivation
+ParameterActivation_getFromBuffer(ParameterActivation self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    //TODO check message size
+
+    if (self == NULL) {
+        self = (ParameterActivation) GLOBAL_MALLOC(sizeof(struct sParameterActivation));
+
+        if (self != NULL)
+            ParameterActivation_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* QPA */
+        self->qpa = (QualifierOfParameterActivation) msg [startIndex++];
+    }
+
+    return self;
+}
+
+
 
 union uInformationObject {
     struct sSinglePointInformation m1;
@@ -4795,6 +5041,7 @@ union uInformationObject {
     struct sReadCommand m33;
     struct sClockSynchronizationCommand m34;
     struct sInterrogationCommand m35;
+    struct sParameterActivation m36;
 };
 
 int

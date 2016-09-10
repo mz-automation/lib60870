@@ -635,6 +635,38 @@ ASDU_getElement(ASDU self, int index)
         retVal = (InformationObject) ClockSynchronizationCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
 
         break;
+
+    case P_ME_NA_1: /* 110 - Parameter of measured values, normalized value */
+
+        elementSize = self->parameters->sizeOfIOA + 3;
+
+        retVal = (InformationObject) ParameterNormalizedValue_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case P_ME_NB_1: /* 111 - Parameter of measured values, scaled value */
+
+        elementSize = self->parameters->sizeOfIOA + 3;
+
+        retVal = (InformationObject) ParameterScaledValue_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case P_ME_NC_1: /* 112 - Parameter of measured values, short floating point number */
+
+        elementSize = self->parameters->sizeOfIOA + 5;
+
+        retVal = (InformationObject) ParameterFloatValue_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case P_AC_NA_1: /* 113 - Parameter for activation */
+
+        elementSize = self->parameters->sizeOfIOA + 1;
+
+        retVal = (InformationObject) ParameterActivation_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
     }
 
 

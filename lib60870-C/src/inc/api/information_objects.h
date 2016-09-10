@@ -68,6 +68,28 @@ typedef uint8_t OutputCircuitInfo;
 #define IEC60870_OUTPUT_CI_CL2  0x04 /* Command to output circuit phase L2 */
 #define IEC60870_OUTPUT_CI_CL3  0x08 /* Command to output circuit phase L3 */
 
+/**
+ *  \brief Qualifier of parameter of measured values (QPM) according to IEC 60870-5-101:2003 7.2.6.24
+ */
+typedef uint8_t QualifierOfParameterMV;
+
+#define IEC60870_QPM_NOT_USED 0
+#define IEC60870_QPM_THRESHOLD_VALUE 1
+#define IEC60870_QPM_SMOOTHING_FACTOR 2
+#define IEC60870_QPM_LOW_LIMIT_FOR_TRANSMISSION 3
+#define IEC60870_QPM_HIGH_LIMIT_FOR_TRANSMISSION 4
+
+/**
+ * \brief Qualifier of parameter activation (QPA) according to IEC 60870-5-101:2003 7.2.6.25
+ */
+typedef uint8_t QualifierOfParameterActivation;
+
+#define IEC60870_QPA_NOT_USED 0
+#define IEC60870_QPA_DE_ACT_PREV_LOADED_PARAMETER 1
+#define IEC60870_QPA_DE_ACT_OBJECT_PARAMETER 2
+#define IEC60870_QPA_DE_ACT_OBJECT_TRANSMISSION 4
+
+
 typedef uint8_t SetpointCommandQualifier;
 
 typedef enum  {
@@ -966,13 +988,92 @@ ReadCommand_destroy(ReadCommand self);
 typedef struct sClockSynchronizationCommand* ClockSynchronizationCommand;
 
 ClockSynchronizationCommand
-ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa);
+ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa, CP56Time2a timestamp);
 
 void
 ClockSynchronizationCommand_destroy(ClockSynchronizationCommand self);
 
 CP56Time2a
 ClockSynchronizationCommand_getTime(ClockSynchronizationCommand self);
+
+/******************************************************
+ * ParameterNormalizedValue : MeasuredValueNormalized
+ *****************************************************/
+
+typedef struct sMeasuredValueNormalized* ParameterNormalizedValue;
+
+void
+ParameterNormalizedValue_destroy(ParameterNormalizedValue self);
+
+ParameterNormalizedValue
+ParameterNormalizedValue_create(ParameterNormalizedValue self, int ioa, float value, QualifierOfParameterMV qpm);
+
+float
+ParameterNormalizedValue_getValue(ParameterNormalizedValue self);
+
+void
+ParameterNormalizedValue_setValue(ParameterNormalizedValue self, float value);
+
+QualifierOfParameterMV
+ParameterNormalizedValue_getQPM(ParameterNormalizedValue self);
+
+/******************************************************
+ * ParameterScaledValue : MeasuredValueScaled
+ *****************************************************/
+
+typedef struct sMeasuredValueScaled* ParameterScaledValue;
+
+void
+ParameterScaledValue_destroy(ParameterScaledValue self);
+
+ParameterScaledValue
+ParameterScaledValue_create(ParameterScaledValue self, int ioa, int value, QualifierOfParameterMV qpm);
+
+int
+ParameterScaledValue_getValue(ParameterScaledValue self);
+
+void
+ParameterScaledValue_setValue(ParameterScaledValue self, int value);
+
+QualifierOfParameterMV
+ParameterScaledValue_getQPM(ParameterScaledValue self);
+
+/******************************************************
+ * ParameterFloatValue : MeasuredValueShort
+ *****************************************************/
+
+typedef struct sMeasuredValueShort* ParameterFloatValue;
+
+void
+ParameterFloatValue_destroy(ParameterFloatValue self);
+
+ParameterFloatValue
+ParameterFloatValue_create(ParameterFloatValue self, int ioa, float value, QualifierOfParameterMV qpm);
+
+float
+ParameterFloatValue_getValue(ParameterFloatValue self);
+
+void
+ParameterFloatValue_setValue(ParameterFloatValue self, float value);
+
+QualifierOfParameterMV
+ParameterFloatValue_getQPM(ParameterFloatValue self);
+
+/*******************************************
+ * ParameterActivation : InformationObject
+ *******************************************/
+
+typedef struct sParameterActivation* ParameterActivation;
+
+void
+ParameterActivation_destroy(ParameterActivation self);
+
+ParameterActivation
+ParameterActivation_create(ParameterActivation self, int ioa, QualifierOfParameterActivation qpa);
+
+QualifierOfParameterActivation
+ParameterActivation_getQuality(ParameterActivation self);
+
 
 #ifdef __cplusplus
 }

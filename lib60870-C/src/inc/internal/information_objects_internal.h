@@ -174,4 +174,20 @@ InterrogationCommand
 InterrogationCommand_getFromBuffer(InterrogationCommand self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+ParameterNormalizedValue
+ParameterNormalizedValue_getFromBuffer(ParameterNormalizedValue self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+ParameterScaledValue
+ParameterScaledValue_getFromBuffer(ParameterScaledValue self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+ParameterFloatValue
+ParameterFloatValue_getFromBuffer(ParameterFloatValue self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+ParameterActivation
+ParameterActivation_getFromBuffer(ParameterActivation self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
 #endif /* SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_ */

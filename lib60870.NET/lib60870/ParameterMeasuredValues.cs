@@ -43,7 +43,7 @@ namespace lib60870
 
 		private byte qpm;
 
-		public float QPM {
+		public byte QPM {
 			get {
 				return qpm;
 			}
@@ -198,8 +198,8 @@ namespace lib60870
 		/// <summary>
 		/// Gets the Qualifier of Parameter Activation (QPA)
 		/// </summary>
-		/// <value>The QP.</value>
-		public float QPA {
+		/// <value>The QPA value</value>
+		public byte QPA {
 			get {
 				return qpa;
 			}
@@ -216,7 +216,7 @@ namespace lib60870
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
-			/* parse QDS (quality) */
+			/* parse QPA */
 			qpa = msg [startIndex++];
 		}
 
