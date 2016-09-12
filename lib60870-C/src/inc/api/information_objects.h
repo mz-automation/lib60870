@@ -1074,6 +1074,98 @@ ParameterActivation_create(ParameterActivation self, int ioa, QualifierOfParamet
 QualifierOfParameterActivation
 ParameterActivation_getQuality(ParameterActivation self);
 
+/***********************************************************************
+ * EventOfProtectionEquipmentWithCP56Time2a : InformationObject
+ ***********************************************************************/
+
+typedef struct sEventOfProtectionEquipmentWithCP56Time2a* EventOfProtectionEquipmentWithCP56Time2a;
+
+void
+EventOfProtectionEquipmentWithCP56Time2a_destroy(EventOfProtectionEquipmentWithCP56Time2a self);
+
+EventOfProtectionEquipmentWithCP56Time2a
+EventOfProtectionEquipmentWithCP56Time2a_create(EventOfProtectionEquipmentWithCP56Time2a self, int ioa,
+        SingleEvent event, CP16Time2a elapsedTime, CP56Time2a timestamp);
+
+SingleEvent
+EventOfProtectionEquipmentWithCP56Time2a_getEvent(EventOfProtectionEquipmentWithCP56Time2a self);
+
+CP16Time2a
+EventOfProtectionEquipmentWithCP56Time2a_getElapsedTime(EventOfProtectionEquipmentWithCP56Time2a self);
+
+CP56Time2a
+EventOfProtectionEquipmentWithCP56Time2a_getTimestamp(EventOfProtectionEquipmentWithCP56Time2a self);
+
+/***************************************************************************
+ * PackedStartEventsOfProtectionEquipmentWithCP56Time2a : InformationObject
+ ***************************************************************************/
+
+typedef struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a* PackedStartEventsOfProtectionEquipmentWithCP56Time2a;
+
+void
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_destroy(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self);
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a
+
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_create(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, int ioa,
+        StartEvent event, QualityDescriptorP qdp, CP16Time2a elapsedTime, CP56Time2a timestamp);
+
+StartEvent
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getEvent(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self);
+
+QualityDescriptorP
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getQuality(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self);
+
+CP16Time2a
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getElapsedTime(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self);
+
+CP56Time2a
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getTimestamp(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self);
+
+/***********************************************************************
+ * PackedOutputCircuitInfoWithCP56Time2a : InformationObject
+ ***********************************************************************/
+
+typedef struct sPackedOutputCircuitInfoWithCP56Time2a* PackedOutputCircuitInfoWithCP56Time2a;
+
+void
+PackedOutputCircuitInfoWithCP56Time2a_destroy(PackedOutputCircuitInfoWithCP56Time2a self);
+
+PackedOutputCircuitInfoWithCP56Time2a
+PackedOutputCircuitInfoWithCP56Time2a_create(PackedOutputCircuitInfoWithCP56Time2a self, int ioa,
+        OutputCircuitInfo oci, QualityDescriptorP qdp, CP16Time2a operatingTime, CP56Time2a timestamp);
+
+OutputCircuitInfo
+PackedOutputCircuitInfoWithCP56Time2a_getOCI(PackedOutputCircuitInfoWithCP56Time2a self);
+
+QualityDescriptorP
+PackedOutputCircuitInfoWithCP56Time2a_getQuality(PackedOutputCircuitInfoWithCP56Time2a self);
+
+CP16Time2a
+PackedOutputCircuitInfoWithCP56Time2a_getOperatingTime(PackedOutputCircuitInfoWithCP56Time2a self);
+
+CP56Time2a
+PackedOutputCircuitInfoWithCP56Time2a_getTimestamp(PackedOutputCircuitInfoWithCP56Time2a self);
+
+/**********************************************
+ * DoubleCommandWithCP56Time2a : DoubleCommand
+ **********************************************/
+
+typedef struct sDoubleCommandWithCP56Time2a* DoubleCommandWithCP56Time2a;
+
+void
+DoubleCommandWithCP56Time2a_destroy(DoubleCommandWithCP56Time2a self);
+
+DoubleCommandWithCP56Time2a
+DoubleCommandWithCP56Time2a_create(DoubleCommandWithCP56Time2a self, int ioa, int command, bool selectCommand, int qu, CP56Time2a timestamp);
+
+int
+DoubleCommandWithCP56Time2a_getQU(DoubleCommandWithCP56Time2a self);
+
+int
+DoubleCommandWithCP56Time2a_getState(DoubleCommandWithCP56Time2a self);
+
+bool
+DoubleCommandWithCP56Time2a_isSelect(DoubleCommandWithCP56Time2a self);
 
 #ifdef __cplusplus
 }

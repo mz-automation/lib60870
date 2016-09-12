@@ -75,7 +75,7 @@ namespace lib60870
 		}
 	}
 
-	public class PacketOutputCircuitInfoWithCP56Time2a : InformationObject
+	public class PackedOutputCircuitInfoWithCP56Time2a : InformationObject
 	{
 		OutputCircuitInfo oci;
 
@@ -109,7 +109,7 @@ namespace lib60870
 			}
 		}
 
-		public PacketOutputCircuitInfoWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		public PackedOutputCircuitInfoWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */

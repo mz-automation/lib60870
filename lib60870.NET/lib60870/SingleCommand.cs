@@ -167,6 +167,38 @@ namespace lib60870
 		}
 	}
 
+	public class DoubleCommandWithCP56Time2a : DoubleCommand
+	{
+		private CP56Time2a timestamp;
+
+		public DoubleCommandWithCP56Time2a (int ioa, int command, bool select, int quality, CP56Time2a timestamp) : 
+			base(ioa, command, select, quality)
+		{
+			this.timestamp = timestamp;
+		}
+
+		public DoubleCommandWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		base(parameters, msg, startIndex)
+		{
+			startIndex += parameters.SizeOfIOA + 1; /* skip IOA + DCQ*/
+
+			timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
+
+		public CP56Time2a Timestamp {
+			get {
+				return timestamp;
+			}
+		}
+	}
+
+
 	public class StepCommand : DoubleCommand 
 	{
 		public static int LOWER = 1;

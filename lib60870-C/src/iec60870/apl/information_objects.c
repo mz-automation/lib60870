@@ -3344,6 +3344,124 @@ EventOfProtectionEquipment_getTimestamp(EventOfProtectionEquipment self)
     return &(self->timestamp);
 }
 
+/***********************************************************************
+ * EventOfProtectionEquipmentWithCP56Time2a : InformationObject
+ ***********************************************************************/
+
+struct sEventOfProtectionEquipmentWithCP56Time2a {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    tSingleEvent event;
+
+    struct sCP16Time2a elapsedTime;
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+EventOfProtectionEquipmentWithCP56Time2a_encode(EventOfProtectionEquipmentWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, (uint8_t) self->event);
+
+    Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT eventOfProtectionEquipmentWithCP56Time2aVFT = {
+        (EncodeFunction) EventOfProtectionEquipmentWithCP56Time2a_encode,
+        (DestroyFunction) EventOfProtectionEquipmentWithCP56Time2a_destroy
+};
+
+static void
+EventOfProtectionEquipmentWithCP56Time2a_initialize(EventOfProtectionEquipmentWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(eventOfProtectionEquipmentWithCP56Time2aVFT);
+    self->type = M_EP_TD_1;
+}
+
+void
+EventOfProtectionEquipmentWithCP56Time2a_destroy(EventOfProtectionEquipmentWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+EventOfProtectionEquipmentWithCP56Time2a
+EventOfProtectionEquipmentWithCP56Time2a_create(EventOfProtectionEquipmentWithCP56Time2a self, int ioa,
+        SingleEvent event, CP16Time2a elapsedTime, CP56Time2a timestamp)
+{
+    if (self == NULL)
+        self = (EventOfProtectionEquipmentWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sEventOfProtectionEquipmentWithCP56Time2a));
+
+    if (self != NULL)
+        EventOfProtectionEquipmentWithCP56Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->event = *event;
+    self->elapsedTime = *elapsedTime;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+SingleEvent
+EventOfProtectionEquipmentWithCP56Time2a_getEvent(EventOfProtectionEquipmentWithCP56Time2a self)
+{
+    return &(self->event);
+}
+
+CP16Time2a
+EventOfProtectionEquipmentWithCP56Time2a_getElapsedTime(EventOfProtectionEquipmentWithCP56Time2a self)
+{
+    return &(self->elapsedTime);
+}
+
+CP56Time2a
+EventOfProtectionEquipmentWithCP56Time2a_getTimestamp(EventOfProtectionEquipmentWithCP56Time2a self)
+{
+    return &(self->timestamp);
+}
+
+EventOfProtectionEquipmentWithCP56Time2a
+EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmentWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 6))
+        return NULL;
+
+    if (self == NULL) {
+        self = (EventOfProtectionEquipmentWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sEventOfProtectionEquipmentWithCP56Time2a));
+
+        if (self != NULL)
+            EventOfProtectionEquipmentWithCP56Time2a_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* event */
+        self->event = msg[startIndex++];
+
+        /* elapsed time */
+        CP16Time2a_getFromBuffer(&(self->elapsedTime), msg, msgSize, startIndex);
+        startIndex += 2;
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
 
 /***********************************************************************
  * PackedStartEventsOfProtectionEquipment : InformationObject
@@ -3478,6 +3596,140 @@ PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtecti
     return self;
 }
 
+/***************************************************************************
+ * PackedStartEventsOfProtectionEquipmentWithCP56Time2a : InformationObject
+ ***************************************************************************/
+
+struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    StartEvent event;
+
+    QualityDescriptorP qdp;
+
+    struct sCP16Time2a elapsedTime;
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_encode(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, (uint8_t) self->event);
+
+    Frame_setNextByte(frame, (uint8_t) self->qdp);
+
+    Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT packedStartEventsOfProtectionEquipmentWithCP56Time2aVFT = {
+        (EncodeFunction) PackedStartEventsOfProtectionEquipmentWithCP56Time2a_encode,
+        (DestroyFunction) PackedStartEventsOfProtectionEquipmentWithCP56Time2a_destroy
+};
+
+static void
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_initialize(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(packedStartEventsOfProtectionEquipmentWithCP56Time2aVFT);
+    self->type = M_EP_TE_1;
+}
+
+void
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_destroy(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_create(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, int ioa,
+        StartEvent event, QualityDescriptorP qdp, CP16Time2a elapsedTime, CP56Time2a timestamp)
+{
+    if (self == NULL)
+        self = (PackedStartEventsOfProtectionEquipmentWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a));
+
+    if (self != NULL)
+        PackedStartEventsOfProtectionEquipmentWithCP56Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->event = event;
+    self->qdp = qdp;
+    self->elapsedTime = *elapsedTime;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+StartEvent
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getEvent(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
+{
+    return self->event;
+}
+
+QualityDescriptorP
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getQuality(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
+{
+    return self->qdp;
+}
+
+CP16Time2a
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getElapsedTime(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
+{
+    return &(self->elapsedTime);
+}
+
+CP56Time2a
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getTimestamp(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
+{
+    return &(self->timestamp);
+}
+
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 7))
+        return NULL;
+
+    if (self == NULL) {
+        self = (PackedStartEventsOfProtectionEquipmentWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a));
+
+        if (self != NULL)
+            PackedStartEventsOfProtectionEquipmentWithCP56Time2a_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* event */
+        self->event = msg[startIndex++];
+
+        /* qdp */
+        self->qdp = msg[startIndex++];
+
+        /* elapsed time */
+        CP16Time2a_getFromBuffer(&(self->elapsedTime), msg, msgSize, startIndex);
+        startIndex += 2;
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+
 /***********************************************************************
  * PacketOutputCircuitInfo : InformationObject
  ***********************************************************************/
@@ -3606,6 +3858,139 @@ PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, ConnectionPa
 
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+/***********************************************************************
+ * PackedOutputCircuitInfoWithCP56Time2a : InformationObject
+ ***********************************************************************/
+
+struct sPackedOutputCircuitInfoWithCP56Time2a {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    OutputCircuitInfo oci;
+
+    QualityDescriptorP qdp;
+
+    struct sCP16Time2a operatingTime;
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+PackedOutputCircuitInfoWithCP56Time2a_encode(PackedOutputCircuitInfoWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, (uint8_t) self->oci);
+
+    Frame_setNextByte(frame, (uint8_t) self->qdp);
+
+    Frame_appendBytes(frame, self->operatingTime.encodedValue, 2);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT packedOutputCircuitInfoWithCP56Time2aVFT = {
+        (EncodeFunction) PackedOutputCircuitInfoWithCP56Time2a_encode,
+        (DestroyFunction) PackedOutputCircuitInfoWithCP56Time2a_destroy
+};
+
+static void
+PackedOutputCircuitInfoWithCP56Time2a_initialize(PackedOutputCircuitInfoWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(packedOutputCircuitInfoWithCP56Time2aVFT);
+    self->type = M_EP_TF_1;
+}
+
+void
+PackedOutputCircuitInfoWithCP56Time2a_destroy(PackedOutputCircuitInfoWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+PackedOutputCircuitInfoWithCP56Time2a
+PackedOutputCircuitInfoWithCP56Time2a_create(PackedOutputCircuitInfoWithCP56Time2a self, int ioa,
+        OutputCircuitInfo oci, QualityDescriptorP qdp, CP16Time2a operatingTime, CP56Time2a timestamp)
+{
+    if (self == NULL)
+        self = (PackedOutputCircuitInfoWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sPackedOutputCircuitInfoWithCP56Time2a));
+
+    if (self != NULL)
+        PackedOutputCircuitInfoWithCP56Time2a_initialize(self);
+
+    self->objectAddress = ioa;
+    self->oci = oci;
+    self->qdp = qdp;
+    self->operatingTime = *operatingTime;
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+OutputCircuitInfo
+PackedOutputCircuitInfoWithCP56Time2a_getOCI(PackedOutputCircuitInfoWithCP56Time2a self)
+{
+    return self->oci;
+}
+
+QualityDescriptorP
+PackedOutputCircuitInfoWithCP56Time2a_getQuality(PackedOutputCircuitInfoWithCP56Time2a self)
+{
+    return self->qdp;
+}
+
+CP16Time2a
+PackedOutputCircuitInfoWithCP56Time2a_getOperatingTime(PackedOutputCircuitInfoWithCP56Time2a self)
+{
+    return &(self->operatingTime);
+}
+
+CP56Time2a
+PackedOutputCircuitInfoWithCP56Time2a_getTimestamp(PackedOutputCircuitInfoWithCP56Time2a self)
+{
+    return &(self->timestamp);
+}
+
+PackedOutputCircuitInfoWithCP56Time2a
+PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 7))
+        return NULL;
+
+    if (self == NULL) {
+        self = (PackedOutputCircuitInfoWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sPackedOutputCircuitInfoWithCP56Time2a));
+
+        if (self != NULL)
+            PackedOutputCircuitInfoWithCP56Time2a_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* OCI - output circuit information */
+        self->oci = msg[startIndex++];
+
+        /* qdp */
+        self->qdp = msg[startIndex++];
+
+        /* operating time */
+        CP16Time2a_getFromBuffer(&(self->operatingTime), msg, msgSize, startIndex);
+        startIndex += 2;
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
     }
 
     return self;
@@ -4045,6 +4430,124 @@ DoubleCommand_getFromBuffer(DoubleCommand self, ConnectionParameters parameters,
 
         /* SCO */
         self->dcq = msg[startIndex];
+    }
+
+    return self;
+}
+
+/**********************************************
+ * DoubleCommandWithCP56Time2a : DoubleCommand
+ **********************************************/
+
+struct sDoubleCommandWithCP56Time2a {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t dcq;
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+DoubleCommandWithCP56Time2a_encode(DoubleCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    DoubleCommand_encode((DoubleCommand) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT doubleCommandWithCP56Time2aVFT = {
+        (EncodeFunction) DoubleCommandWithCP56Time2a_encode,
+        (DestroyFunction) DoubleCommandWithCP56Time2a_destroy
+};
+
+static void
+DoubleCommandWithCP56Time2a_initialize(DoubleCommandWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(doubleCommandWithCP56Time2aVFT);
+    self->type = C_DC_TA_1;
+}
+
+void
+DoubleCommandWithCP56Time2a_destroy(DoubleCommandWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+DoubleCommandWithCP56Time2a
+DoubleCommandWithCP56Time2a_create(DoubleCommandWithCP56Time2a self, int ioa, int command, bool selectCommand, int qu, CP56Time2a timestamp)
+{
+    if (self == NULL) {
+        self = (DoubleCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sDoubleCommandWithCP56Time2a));
+
+        if (self == NULL)
+            return NULL;
+        else
+            DoubleCommandWithCP56Time2a_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    uint8_t dcq = ((qu & 0x1f) * 4);
+
+    dcq += (uint8_t) (command & 0x03);
+
+    if (selectCommand) dcq |= 0x80;
+
+    self->dcq = dcq;
+
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+int
+DoubleCommandWithCP56Time2a_getQU(DoubleCommandWithCP56Time2a self)
+{
+    return DoubleCommand_getQU((DoubleCommand) self);
+}
+
+int
+DoubleCommandWithCP56Time2a_getState(DoubleCommandWithCP56Time2a self)
+{
+    return DoubleCommand_getState((DoubleCommand) self);
+}
+
+bool
+DoubleCommandWithCP56Time2a_isSelect(DoubleCommandWithCP56Time2a self)
+{
+    return DoubleCommand_isSelect((DoubleCommand) self);
+}
+
+DoubleCommandWithCP56Time2a
+DoubleCommandWithCP56Time2a_getFromBuffer(DoubleCommandWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 1))
+        return NULL;
+
+    if (self == NULL) {
+        self = (DoubleCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sDoubleCommandWithCP56Time2a));
+
+        if (self != NULL)
+            DoubleCommandWithCP56Time2a_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* DCQ */
+        self->dcq = msg[startIndex++];
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
     }
 
     return self;
@@ -5042,6 +5545,7 @@ union uInformationObject {
     struct sClockSynchronizationCommand m34;
     struct sInterrogationCommand m35;
     struct sParameterActivation m36;
+    struct sEventOfProtectionEquipmentWithCP56Time2a m37;
 };
 
 int

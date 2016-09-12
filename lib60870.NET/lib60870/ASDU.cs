@@ -493,7 +493,7 @@ namespace lib60870
 
 				elementSize = parameters.SizeOfIOA + 11;
 
-				retVal = new PacketOutputCircuitInfoWithCP56Time2a (parameters, payload, index * elementSize);
+				retVal = new PackedOutputCircuitInfoWithCP56Time2a (parameters, payload, index * elementSize);
 
 				break;
 
@@ -557,8 +557,6 @@ namespace lib60870
 
 			/* 52 - 57 reserved */
 
-				/* TODO */
-
 			case TypeID.C_SC_TA_1: /* 58 - Single command with CP56Time2a */
 
 				elementSize = parameters.SizeOfIOA + 8;
@@ -566,6 +564,16 @@ namespace lib60870
 				retVal = new SingleCommandWithCP56Time2a (parameters, payload, index * elementSize);
 
 				break;
+
+			case TypeID.C_DC_TA_1: /* 59 - Double command with CP56Time2a */
+
+				elementSize = parameters.SizeOfIOA + 8;
+
+				retVal = new DoubleCommandWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+				/* TODO */
 
 			/* 65 - 69 reserved */
 

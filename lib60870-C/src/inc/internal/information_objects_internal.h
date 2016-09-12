@@ -190,4 +190,20 @@ ParameterActivation
 ParameterActivation_getFromBuffer(ParameterActivation self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+EventOfProtectionEquipmentWithCP56Time2a
+EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmentWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+PackedOutputCircuitInfoWithCP56Time2a
+PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+DoubleCommandWithCP56Time2a
+DoubleCommandWithCP56Time2a_getFromBuffer(DoubleCommandWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
 #endif /* SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_ */

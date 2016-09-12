@@ -542,6 +542,30 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
+    case M_EP_TD_1: /* 38 */
+
+        elementSize = self->parameters->sizeOfIOA + 10;
+
+        retVal = (InformationObject) EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_EP_TE_1: /* 39 */
+
+        elementSize = self->parameters->sizeOfIOA + 11;
+
+        retVal = (InformationObject) PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case M_EP_TF_1: /* 40 */
+
+        elementSize = self->parameters->sizeOfIOA + 11;
+
+        retVal = (InformationObject) PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
     /* 41 - 44 reserved */
 
     case C_SC_NA_1: /* 45 */
@@ -609,6 +633,14 @@ ASDU_getElement(ASDU self, int index)
         elementSize = self->parameters->sizeOfIOA + 8;
 
         retVal = (InformationObject) SingleCommandWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case C_DC_TA_1: /* 59 - Double command with CP56Time2a */
+
+        elementSize = self->parameters->sizeOfIOA + 8;
+
+        retVal = (InformationObject) DoubleCommandWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
 
         break;
 
