@@ -1214,6 +1214,67 @@ SetpointCommandNormalizedWithCP56Time2a_getQL(SetpointCommandNormalizedWithCP56T
 bool
 SetpointCommandNormalizedWithCP56Time2a_isSelect(SetpointCommandNormalizedWithCP56Time2a self);
 
+/**********************************************************************
+ * SetpointCommandScaledWithCP56Time2a : SetpointCommandScaled
+ **********************************************************************/
+
+typedef struct sSetpointCommandScaledWithCP56Time2a* SetpointCommandScaledWithCP56Time2a;
+
+void
+SetpointCommandScaledWithCP56Time2a_destroy(SetpointCommandScaledWithCP56Time2a self);
+
+SetpointCommandScaledWithCP56Time2a
+SetpointCommandScaledWithCP56Time2a_create(SetpointCommandScaledWithCP56Time2a self, int ioa, int value, bool selectCommand, int ql, CP56Time2a timestamp);
+
+int
+SetpointCommandScaledWithCP56Time2a_getValue(SetpointCommandScaledWithCP56Time2a self);
+
+int
+SetpointCommandScaledWithCP56Time2a_getQL(SetpointCommandScaledWithCP56Time2a self);
+
+bool
+SetpointCommandScaledWithCP56Time2a_isSelect(SetpointCommandScaledWithCP56Time2a self);
+
+/**********************************************************************
+ * SetpointCommandShortWithCP56Time2a : SetpointCommandShort
+ **********************************************************************/
+
+typedef struct sSetpointCommandShortWithCP56Time2a* SetpointCommandShortWithCP56Time2a;
+
+void
+SetpointCommandShortWithCP56Time2a_destroy(SetpointCommandShortWithCP56Time2a self);
+
+SetpointCommandShortWithCP56Time2a
+SetpointCommandShortWithCP56Time2a_create(SetpointCommandShortWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, CP56Time2a timestamp);
+
+float
+SetpointCommandShortWithCP56Time2a_getValue(SetpointCommandShortWithCP56Time2a self);
+
+int
+SetpointCommandShortWithCP56Time2a_getQL(SetpointCommandShortWithCP56Time2a self);
+
+bool
+SetpointCommandShortWithCP56Time2a_isSelect(SetpointCommandShortWithCP56Time2a self);
+
+/*******************************************************
+ * Bitstring32CommandWithCP56Time2a: Bitstring32Command
+ *******************************************************/
+
+typedef struct sBitstring32CommandWithCP56Time2a* Bitstring32CommandWithCP56Time2a;
+
+Bitstring32CommandWithCP56Time2a
+Bitstring32CommandWithCP56Time2a_create(Bitstring32CommandWithCP56Time2a self, int ioa, uint32_t value, CP56Time2a timestamp);
+
+void
+Bitstring32CommandWithCP56Time2a_destroy(Bitstring32CommandWithCP56Time2a self);
+
+uint32_t
+Bitstring32CommandWithCP56Time2a_getValue(Bitstring32CommandWithCP56Time2a self);
+
+CP56Time2a
+Bitstring32CommandWithCP56Time2a_getTimestamp(Bitstring32CommandWithCP56Time2a self);
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -589,6 +589,30 @@ namespace lib60870
 
 				break;
 
+			case TypeID.C_SE_TB_1: /* 62 - Setpoint command, scaled value with CP56Time2a */
+
+				elementSize = parameters.SizeOfIOA + 10;
+
+				retVal = new SetpointCommandScaledWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.C_SE_TC_1: /* 63 - Setpoint command, short value with CP56Time2a */
+
+				elementSize = parameters.SizeOfIOA + 12;
+
+				retVal = new SetpointCommandShortWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.C_BO_TA_1: /* 64 - Bitstring command with CP56Time2a */
+
+				elementSize = parameters.SizeOfIOA + 11;
+
+				retVal = new Bitstring32CommandWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
 				/* TODO */
 
 			/* 65 - 69 reserved */
@@ -640,6 +664,8 @@ namespace lib60870
 				retVal = new DelayAcquisitionCommand (parameters, payload, index * elementSize);
 
 				break;
+
+				/* C_TS_TA_1 (107) is handled by the stack automatically */
 
 			case TypeID.P_ME_NA_1: /* 110 - Parameter of measured values, normalized value */
 

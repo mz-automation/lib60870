@@ -160,6 +160,37 @@ namespace lib60870
 		}
 	}
 
+	public class SetpointCommandScaledWithCP56Time2a : SetpointCommandScaled
+	{
+		private CP56Time2a timestamp;
+
+		public CP56Time2a Timestamp {
+			get {
+				return timestamp;
+			}
+		}
+
+		public SetpointCommandScaledWithCP56Time2a (int objectAddress, ScaledValue value, SetpointCommandQualifier qos, CP56Time2a timestamp)
+			: base(objectAddress, value, qos)
+		{
+			this.timestamp = timestamp;
+		}
+
+		public SetpointCommandScaledWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		base(parameters, msg, startIndex)
+		{
+			startIndex += parameters.SizeOfIOA + 3; /* skip IOA */
+
+			this.timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (this.timestamp.GetEncodedValue ());
+		}
+	}
+
 	public class SetpointCommandShort : InformationObject 
 	{
 		private float value;
@@ -206,6 +237,38 @@ namespace lib60870
 		}
 	}
 
+	public class SetpointCommandShortWithCP56Time2a : SetpointCommandShort
+	{
+		private CP56Time2a timestamp;
+
+		public CP56Time2a Timestamp {
+			get {
+				return timestamp;
+			}
+		}
+
+		public SetpointCommandShortWithCP56Time2a (int objectAddress, float value, SetpointCommandQualifier qos, CP56Time2a timestamp)
+			: base(objectAddress, value, qos)
+		{
+			this.timestamp = timestamp;
+		}
+
+		public SetpointCommandShortWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		base(parameters, msg, startIndex)
+		{
+			startIndex += parameters.SizeOfIOA + 5; /* skip IOA + float + QOS*/
+
+			this.timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (this.timestamp.GetEncodedValue ());
+		}
+	}
+
+
 	public class Bitstring32Command : InformationObject
 	{
 
@@ -241,6 +304,37 @@ namespace lib60870
 			frame.SetNextByte ((byte) ((value / 0x100) % 256));
 			frame.SetNextByte ((byte) ((value / 0x10000) % 256));
 			frame.SetNextByte ((byte) ((value / 0x1000000) % 256));
+		}
+	}
+
+	public class Bitstring32CommandWithCP56Time2a : Bitstring32Command
+	{
+		private CP56Time2a timestamp;
+
+		public CP56Time2a Timestamp {
+			get {
+				return timestamp;
+			}
+		}
+
+		public Bitstring32CommandWithCP56Time2a (int objectAddress, UInt32 bitstring, CP56Time2a timestamp)
+			: base(objectAddress, bitstring)
+		{
+			this.timestamp = timestamp;
+		}
+
+		public Bitstring32CommandWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		base(parameters, msg, startIndex)
+		{
+			startIndex += parameters.SizeOfIOA + 4; /* skip IOA + bitstring */
+
+			this.timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (this.timestamp.GetEncodedValue ());
 		}
 	}
 }

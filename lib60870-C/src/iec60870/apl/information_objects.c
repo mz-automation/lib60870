@@ -5150,6 +5150,130 @@ SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, ConnectionParame
     return self;
 }
 
+/**********************************************************************
+ * SetpointCommandScaledWithCP56Time2a : SetpointCommandScaled
+ **********************************************************************/
+
+struct sSetpointCommandScaledWithCP56Time2a {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    uint8_t qos; /* Qualifier of setpoint command */
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+SetpointCommandScaledWithCP56Time2a_encode(SetpointCommandScaledWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    SetpointCommandScaled_encode((SetpointCommandScaled) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT setpointCommandScaledWithCP56Time2aVFT = {
+        (EncodeFunction) SetpointCommandScaledWithCP56Time2a_encode,
+        (DestroyFunction) SetpointCommandScaledWithCP56Time2a_destroy
+};
+
+static void
+SetpointCommandScaledWithCP56Time2a_initialize(SetpointCommandScaledWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(setpointCommandScaledWithCP56Time2aVFT);
+    self->type = C_SE_TB_1;
+}
+
+void
+SetpointCommandScaledWithCP56Time2a_destroy(SetpointCommandScaledWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+SetpointCommandScaledWithCP56Time2a
+SetpointCommandScaledWithCP56Time2a_create(SetpointCommandScaledWithCP56Time2a self, int ioa, int value, bool selectCommand, int ql, CP56Time2a timestamp)
+{
+    if (self == NULL) {
+        self = (SetpointCommandScaledWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaledWithCP56Time2a));
+
+        if (self == NULL)
+            return NULL;
+        else
+            SetpointCommandScaledWithCP56Time2a_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    setScaledValue(self->encodedValue, value);
+
+    uint8_t qos = ql;
+
+    if (selectCommand) qos |= 0x80;
+
+    self->qos = qos;
+
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+int
+SetpointCommandScaledWithCP56Time2a_getValue(SetpointCommandScaledWithCP56Time2a self)
+{
+    return SetpointCommandScaled_getValue((SetpointCommandScaled) self);
+}
+
+int
+SetpointCommandScaledWithCP56Time2a_getQL(SetpointCommandScaledWithCP56Time2a self)
+{
+    return SetpointCommandScaled_getQL((SetpointCommandScaled) self);
+}
+
+bool
+SetpointCommandScaledWithCP56Time2a_isSelect(SetpointCommandScaledWithCP56Time2a self)
+{
+    return SetpointCommandScaled_isSelect((SetpointCommandScaled) self);
+}
+
+SetpointCommandScaledWithCP56Time2a
+SetpointCommandScaledWithCP56Time2a_getFromBuffer(SetpointCommandScaledWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 10))
+        return NULL;
+
+    if (self == NULL) {
+        self = (SetpointCommandScaledWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaledWithCP56Time2a));
+
+        if (self != NULL)
+            SetpointCommandScaledWithCP56Time2a_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->encodedValue[0] = msg[startIndex++];
+        self->encodedValue[1] = msg[startIndex++];
+
+        /* QOS - qualifier of setpoint command */
+        self->qos = msg[startIndex++];
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+
 /*************************************************
  * SetpointCommandShort: InformationObject
  ************************************************/
@@ -5289,6 +5413,142 @@ SetpointCommandShort_getFromBuffer(SetpointCommandShort self, ConnectionParamete
     return self;
 }
 
+
+/**********************************************************************
+ * SetpointCommandShortWithCP56Time2a : SetpointCommandShort
+ **********************************************************************/
+
+struct sSetpointCommandShortWithCP56Time2a {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    float value;
+
+    uint8_t qos; /* Qualifier of setpoint command */
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+SetpointCommandShortWithCP56Time2a_encode(SetpointCommandShortWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    SetpointCommandShort_encode((SetpointCommandShort) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT setpointCommandShortWithCP56Time2aVFT = {
+        (EncodeFunction) SetpointCommandShortWithCP56Time2a_encode,
+        (DestroyFunction) SetpointCommandShortWithCP56Time2a_destroy
+};
+
+static void
+SetpointCommandShortWithCP56Time2a_initialize(SetpointCommandShortWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(setpointCommandShortWithCP56Time2aVFT);
+    self->type = C_SE_TC_1;
+}
+
+void
+SetpointCommandShortWithCP56Time2a_destroy(SetpointCommandShortWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+SetpointCommandShortWithCP56Time2a
+SetpointCommandShortWithCP56Time2a_create(SetpointCommandShortWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, CP56Time2a timestamp)
+{
+    if (self == NULL) {
+        self = (SetpointCommandShortWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandShortWithCP56Time2a));
+
+        if (self == NULL)
+            return NULL;
+        else
+            SetpointCommandShortWithCP56Time2a_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    self->value = value;
+
+    uint8_t qos = ql;
+
+    if (selectCommand) qos |= 0x80;
+
+    self->qos = qos;
+
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+float
+SetpointCommandShortWithCP56Time2a_getValue(SetpointCommandShortWithCP56Time2a self)
+{
+    return SetpointCommandShort_getValue((SetpointCommandShort) self);
+}
+
+int
+SetpointCommandShortWithCP56Time2a_getQL(SetpointCommandShortWithCP56Time2a self)
+{
+    return SetpointCommandShort_getQL((SetpointCommandShort) self);
+}
+
+bool
+SetpointCommandShortWithCP56Time2a_isSelect(SetpointCommandShortWithCP56Time2a self)
+{
+    return SetpointCommandShort_isSelect((SetpointCommandShort) self);
+}
+
+SetpointCommandShortWithCP56Time2a
+SetpointCommandShortWithCP56Time2a_getFromBuffer(SetpointCommandShortWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 10))
+        return NULL;
+
+    if (self == NULL) {
+        self = (SetpointCommandShortWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandShortWithCP56Time2a));
+
+        if (self != NULL)
+            SetpointCommandShortWithCP56Time2a_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        uint8_t* valueBytes = (uint8_t*) &(self->value);
+
+#if (ORDER_LITTLE_ENDIAN == 1)
+        valueBytes[0] = msg [startIndex++];
+        valueBytes[1] = msg [startIndex++];
+        valueBytes[2] = msg [startIndex++];
+        valueBytes[3] = msg [startIndex++];
+#else
+        valueBytes[3] = msg [startIndex++];
+        valueBytes[2] = msg [startIndex++];
+        valueBytes[1] = msg [startIndex++];
+        valueBytes[0] = msg [startIndex++];
+#endif
+
+        /* QOS - qualifier of setpoint command */
+        self->qos = msg[startIndex++];
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+
 /*************************************************
  * Bitstring32Command : InformationObject
  ************************************************/
@@ -5397,6 +5657,124 @@ Bitstring32Command_getFromBuffer(Bitstring32Command self, ConnectionParameters p
         valueBytes[1] = msg [startIndex++];
         valueBytes[0] = msg [startIndex++];
 #endif
+    }
+
+    return self;
+}
+
+
+/*******************************************************
+ * Bitstring32CommandWithCP56Time2a: Bitstring32Command
+ *******************************************************/
+
+struct sBitstring32CommandWithCP56Time2a {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint32_t value;
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+Bitstring32CommandWithCP56Time2a_encode(Bitstring32CommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    Bitstring32Command_encode((Bitstring32Command) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT bitstring32CommandWithCP56Time2aVFT = {
+        (EncodeFunction) Bitstring32CommandWithCP56Time2a_encode,
+        (DestroyFunction) Bitstring32CommandWithCP56Time2a_destroy
+};
+
+static void
+Bitstring32CommandWithCP56Time2a_initialize(Bitstring32CommandWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(bitstring32CommandWithCP56Time2aVFT);
+    self->type = C_BO_TA_1;
+}
+
+Bitstring32CommandWithCP56Time2a
+Bitstring32CommandWithCP56Time2a_create(Bitstring32CommandWithCP56Time2a self, int ioa, uint32_t value, CP56Time2a timestamp)
+{
+    if (self == NULL) {
+        self = (Bitstring32CommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32CommandWithCP56Time2a));
+
+        if (self == NULL)
+            return NULL;
+        else
+            Bitstring32CommandWithCP56Time2a_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    self->value = value;
+
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+void
+Bitstring32CommandWithCP56Time2a_destroy(Bitstring32CommandWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+uint32_t
+Bitstring32CommandWithCP56Time2a_getValue(Bitstring32CommandWithCP56Time2a self)
+{
+    return self->value;
+}
+
+CP56Time2a
+Bitstring32CommandWithCP56Time2a_getTimestamp(Bitstring32CommandWithCP56Time2a self)
+{
+    return &(self->timestamp);
+}
+
+Bitstring32CommandWithCP56Time2a
+Bitstring32CommandWithCP56Time2a_getFromBuffer(Bitstring32CommandWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 11))
+        return NULL;
+
+    if (self == NULL) {
+        self = (Bitstring32CommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32CommandWithCP56Time2a));
+
+        if (self != NULL)
+            Bitstring32CommandWithCP56Time2a_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        uint8_t* valueBytes = (uint8_t*) &(self->value);
+
+#if (ORDER_LITTLE_ENDIAN == 1)
+        valueBytes[0] = msg [startIndex++];
+        valueBytes[1] = msg [startIndex++];
+        valueBytes[2] = msg [startIndex++];
+        valueBytes[3] = msg [startIndex++];
+#else
+        valueBytes[3] = msg [startIndex++];
+        valueBytes[2] = msg [startIndex++];
+        valueBytes[1] = msg [startIndex++];
+        valueBytes[0] = msg [startIndex++];
+#endif
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
     }
 
     return self;

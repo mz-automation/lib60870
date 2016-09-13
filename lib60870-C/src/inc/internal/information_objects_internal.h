@@ -184,7 +184,7 @@ ParameterScaledValue_getFromBuffer(ParameterScaledValue self, ConnectionParamete
 
 ParameterFloatValue
 ParameterFloatValue_getFromBuffer(ParameterFloatValue self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msqg, int msgSize, int startIndex);
 
 ParameterActivation
 ParameterActivation_getFromBuffer(ParameterActivation self, ConnectionParameters parameters,
@@ -212,6 +212,18 @@ StepCommandWithCP56Time2a_getFromBuffer(StepCommandWithCP56Time2a self, Connecti
 
 SetpointCommandNormalizedWithCP56Time2a
 SetpointCommandNormalizedWithCP56Time2a_getFromBuffer(SetpointCommandNormalizedWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+SetpointCommandScaledWithCP56Time2a
+SetpointCommandScaledWithCP56Time2a_getFromBuffer(SetpointCommandScaledWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+SetpointCommandShortWithCP56Time2a
+SetpointCommandShortWithCP56Time2a_getFromBuffer(SetpointCommandShortWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+Bitstring32CommandWithCP56Time2a
+Bitstring32CommandWithCP56Time2a_getFromBuffer(Bitstring32CommandWithCP56Time2a self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
 #endif /* SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_ */

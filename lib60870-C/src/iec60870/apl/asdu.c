@@ -660,6 +660,30 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
+    case C_SE_TB_1: /* 62 - Setpoint command, scaled value with CP56Time2a */
+
+        elementSize = self->parameters->sizeOfIOA + 10;
+
+        retVal = (InformationObject) SetpointCommandScaledWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case C_SE_TC_1: /* 63 - Setpoint command, short value with CP56Time2a */
+
+        elementSize = self->parameters->sizeOfIOA + 12;
+
+        retVal = (InformationObject) SetpointCommandShortWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case C_BO_TA_1: /* 64 - Bitstring command with CP56Time2a */
+
+        elementSize = self->parameters->sizeOfIOA + 11;
+
+        retVal = (InformationObject) Bitstring32CommandWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
     case C_IC_NA_1: /* 100 - Interrogation command */
 
         elementSize = self->parameters->sizeOfIOA + 1;
