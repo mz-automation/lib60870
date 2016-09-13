@@ -23,6 +23,17 @@ using System;
 
 namespace lib60870
 {
+
+	/// <summary>
+	/// Regulating step command state (RCS) according to IEC 60870-5-101:2003 7.2.6.17
+	/// </summary>
+	public enum StepCommandValue {
+		INVALID_0 = 0,
+		LOWER = 1,
+		HIGHER = 2,
+		INVALID_3 = 3
+	}
+
 	public class SingleCommand : InformationObject
 	{
 
@@ -201,16 +212,50 @@ namespace lib60870
 
 	public class StepCommand : DoubleCommand 
 	{
-		public static int LOWER = 1;
-		public static int HIGHER = 2;
-
-		public StepCommand (int ioa, int command, bool select, int quality) : base(ioa, command, select, quality)
+		public StepCommand (int ioa, StepCommandValue command, bool select, int quality) : base(ioa, (int) command, select, quality)
 		{
 		}
 
 		public StepCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
+		}
+
+		public new StepCommandValue State {
+			get {
+				return (StepCommandValue) (base.State);
+			}
+		}
+	}
+
+	public class StepCommandWithCP56Time2a : StepCommand
+	{
+		private CP56Time2a timestamp;
+
+		public StepCommandWithCP56Time2a (int ioa, StepCommandValue command, bool select, int quality, CP56Time2a timestamp) : 
+		base(ioa, command, select, quality)
+		{
+			this.timestamp = timestamp;
+		}
+
+		public StepCommandWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		base(parameters, msg, startIndex)
+		{
+			startIndex += parameters.SizeOfIOA + 1; /* skip IOA + DCQ*/
+
+			timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
+
+		public CP56Time2a Timestamp {
+			get {
+				return timestamp;
+			}
 		}
 	}
 

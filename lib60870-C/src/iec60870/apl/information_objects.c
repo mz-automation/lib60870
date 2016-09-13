@@ -4595,7 +4595,7 @@ StepCommand_destroy(StepCommand self)
 }
 
 StepCommand
-StepCommand_create(StepCommand self, int ioa, int command, bool selectCommand, int qu)
+StepCommand_create(StepCommand self, int ioa, StepCommandValue command, bool selectCommand, int qu)
 {
     if (self == NULL) {
 		self = (StepCommand) GLOBAL_MALLOC(sizeof(struct sStepCommand));
@@ -4625,10 +4625,10 @@ StepCommand_getQU(StepCommand self)
     return ((self->dcq & 0x7c) / 4);
 }
 
-int
+StepCommandValue
 StepCommand_getState(StepCommand self)
 {
-    return (self->dcq & 0x03);
+    return (StepCommandValue) (self->dcq & 0x03);
 }
 
 bool
@@ -4663,6 +4663,126 @@ StepCommand_getFromBuffer(StepCommand self, ConnectionParameters parameters,
 
     return self;
 }
+
+
+/*************************************************
+ * StepCommandWithCP56Time2a : InformationObject
+ *************************************************/
+
+struct sStepCommandWithCP56Time2a {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t dcq;
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+StepCommandWithCP56Time2a_encode(StepCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    StepCommand_encode((StepCommand) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT stepCommandWithCP56Time2aVFT = {
+        (EncodeFunction) StepCommandWithCP56Time2a_encode,
+        (DestroyFunction) StepCommandWithCP56Time2a_destroy
+};
+
+static void
+StepCommandWithCP56Time2a_initialize(StepCommandWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(stepCommandWithCP56Time2aVFT);
+    self->type = C_RC_TA_1;
+}
+
+void
+StepCommandWithCP56Time2a_destroy(StepCommand self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+StepCommandWithCP56Time2a
+StepCommandWithCP56Time2a_create(StepCommandWithCP56Time2a self, int ioa, StepCommandValue command, bool selectCommand, int qu, CP56Time2a timestamp)
+{
+    if (self == NULL) {
+        self = (StepCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sStepCommandWithCP56Time2a));
+
+        if (self == NULL)
+            return NULL;
+        else
+            StepCommandWithCP56Time2a_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    uint8_t dcq = ((qu & 0x1f) * 4);
+
+    dcq += (uint8_t) (command & 0x03);
+
+    if (selectCommand) dcq |= 0x80;
+
+    self->dcq = dcq;
+
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+int
+StepCommandWithCP56Time2a_getQU(StepCommandWithCP56Time2a self)
+{
+    return StepCommand_getQU((StepCommand) self);
+}
+
+StepCommandValue
+StepCommandWithCP56Time2a_getState(StepCommandWithCP56Time2a self)
+{
+    return StepCommand_getState((StepCommand) self);
+}
+
+bool
+StepCommandWithCP56Time2a_isSelect(StepCommandWithCP56Time2a self)
+{
+    return StepCommand_isSelect((StepCommand) self);
+}
+
+StepCommandWithCP56Time2a
+StepCommandWithCP56Time2a_getFromBuffer(StepCommandWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 8))
+        return NULL;
+
+    if (self == NULL) {
+        self = (StepCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sStepCommandWithCP56Time2a));
+
+        if (self != NULL)
+            StepCommandWithCP56Time2a_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* SCO */
+        self->dcq = msg[startIndex++];
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
 
 /*************************************************
  * SetpointCommandNormalized : InformationObject
@@ -4784,6 +4904,132 @@ SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, Connecti
 
     return self;
 }
+
+/**********************************************************************
+ * SetpointCommandNormalizedWithCP56Time2a : SetpointCommandNormalized
+ **********************************************************************/
+
+struct sSetpointCommandNormalizedWithCP56Time2a {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    uint8_t qos; /* Qualifier of setpoint command */
+
+    struct sCP56Time2a timestamp;
+};
+
+static void
+SetpointCommandNormalizedWithCP56Time2a_encode(SetpointCommandNormalizedWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+{
+    SetpointCommandNormalized_encode((SetpointCommandNormalized) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+}
+
+struct sInformationObjectVFT setpointCommandNormalizedWithCP56Time2aVFT = {
+        (EncodeFunction) SetpointCommandNormalizedWithCP56Time2a_encode,
+        (DestroyFunction) SetpointCommandNormalizedWithCP56Time2a_destroy
+};
+
+static void
+SetpointCommandNormalizedWithCP56Time2a_initialize(SetpointCommandNormalizedWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(setpointCommandNormalizedWithCP56Time2aVFT);
+    self->type = C_SE_TA_1;
+}
+
+void
+SetpointCommandNormalizedWithCP56Time2a_destroy(SetpointCommandNormalizedWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+SetpointCommandNormalizedWithCP56Time2a
+SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, CP56Time2a timestamp)
+{
+    if (self == NULL) {
+        self = (SetpointCommandNormalizedWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalizedWithCP56Time2a));
+
+        if (self == NULL)
+            return NULL;
+        else
+            SetpointCommandNormalizedWithCP56Time2a_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    int scaledValue = (int)(value * 32767.f);
+
+    setScaledValue(self->encodedValue, scaledValue);
+
+    uint8_t qos = ql;
+
+    if (selectCommand) qos |= 0x80;
+
+    self->qos = qos;
+
+    self->timestamp = *timestamp;
+
+    return self;
+}
+
+float
+SetpointCommandNormalizedWithCP56Time2a_getValue(SetpointCommandNormalizedWithCP56Time2a self)
+{
+    return SetpointCommandNormalized_getValue((SetpointCommandNormalized) self);
+}
+
+int
+SetpointCommandNormalizedWithCP56Time2a_getQL(SetpointCommandNormalizedWithCP56Time2a self)
+{
+    return SetPointCommandNormalized_getQL((SetpointCommandNormalized) self);
+}
+
+bool
+SetpointCommandNormalizedWithCP56Time2a_isSelect(SetpointCommandNormalizedWithCP56Time2a self)
+{
+    return SetpointCommandNormalized_isSelect((SetpointCommandNormalized) self);
+}
+
+SetpointCommandNormalizedWithCP56Time2a
+SetpointCommandNormalizedWithCP56Time2a_getFromBuffer(SetpointCommandNormalizedWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 10))
+        return NULL;
+
+    if (self == NULL) {
+        self = (SetpointCommandNormalizedWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalizedWithCP56Time2a));
+
+        if (self != NULL)
+            SetpointCommandNormalizedWithCP56Time2a_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->encodedValue[0] = msg[startIndex++];
+        self->encodedValue[1] = msg[startIndex++];
+
+        /* QOS - qualifier of setpoint command */
+        self->qos = msg[startIndex++];
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
 
 /*************************************************
  * SetpointCommandScaled: InformationObject
@@ -5546,6 +5792,7 @@ union uInformationObject {
     struct sInterrogationCommand m35;
     struct sParameterActivation m36;
     struct sEventOfProtectionEquipmentWithCP56Time2a m37;
+    struct sStepCommandWithCP56Time2a m38;
 };
 
 int

@@ -644,6 +644,22 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
+    case C_RC_TA_1: /* 60 - Step command with CP56Time2a */
+
+        elementSize = self->parameters->sizeOfIOA + 8;
+
+        retVal = (InformationObject) StepCommandWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case C_SE_TA_1: /* 61 - Setpoint command, normalized value with CP56Time2a */
+
+        elementSize = self->parameters->sizeOfIOA + 10;
+
+        retVal = (InformationObject) SetpointCommandNormalizedWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
     case C_IC_NA_1: /* 100 - Interrogation command */
 
         elementSize = self->parameters->sizeOfIOA + 1;

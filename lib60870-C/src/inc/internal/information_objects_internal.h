@@ -206,4 +206,12 @@ DoubleCommandWithCP56Time2a
 DoubleCommandWithCP56Time2a_getFromBuffer(DoubleCommandWithCP56Time2a self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+StepCommandWithCP56Time2a
+StepCommandWithCP56Time2a_getFromBuffer(StepCommandWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+SetpointCommandNormalizedWithCP56Time2a
+SetpointCommandNormalizedWithCP56Time2a_getFromBuffer(SetpointCommandNormalizedWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
 #endif /* SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_ */

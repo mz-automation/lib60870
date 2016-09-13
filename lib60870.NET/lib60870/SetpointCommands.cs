@@ -84,6 +84,37 @@ namespace lib60870
 		}
 	}
 
+	public class SetpointCommandNormalizedWithCP56Time2a : SetpointCommandNormalized
+	{
+		private CP56Time2a timestamp;
+
+		public CP56Time2a Timestamp {
+			get {
+				return timestamp;
+			}
+		}
+
+		public SetpointCommandNormalizedWithCP56Time2a (int objectAddress, float value, SetpointCommandQualifier qos, CP56Time2a timestamp)
+			: base(objectAddress, value, qos)
+		{
+			this.timestamp = timestamp;
+		}
+
+		public SetpointCommandNormalizedWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		base(parameters, msg, startIndex)
+		{
+			startIndex += parameters.SizeOfIOA + 3; /* skip IOA */
+
+			this.timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters) {
+			base.Encode(frame, parameters);
+
+			frame.AppendBytes (this.timestamp.GetEncodedValue ());
+		}
+	}
+
 	public class SetpointCommandScaled : InformationObject 
 	{
 		private ScaledValue scaledValue;

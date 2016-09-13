@@ -573,6 +573,22 @@ namespace lib60870
 
 				break;
 
+			case TypeID.C_RC_TA_1: /* 60 - Step command with CP56Time2a */
+
+				elementSize = parameters.SizeOfIOA + 8;
+
+				retVal = new StepCommandWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
+			case TypeID.C_SE_TA_1: /* 61 - Setpoint command, normalized value with CP56Time2a */
+
+				elementSize = parameters.SizeOfIOA + 10;
+
+				retVal = new SetpointCommandNormalizedWithCP56Time2a (parameters, payload, index * elementSize);
+
+				break;
+
 				/* TODO */
 
 			/* 65 - 69 reserved */

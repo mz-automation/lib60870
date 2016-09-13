@@ -106,9 +106,14 @@ typedef enum {
     IEC60870_EVENTSTATE_INDETERMINATE_3 = 3
 } EventState;
 
+/**
+ * \brief Regulating step command state (RCS) according to IEC 60870-5-101:2003 7.2.6.17
+ */
 typedef enum {
+    IEC60870_STEP_INVALID_0 = 0,
     IEC60870_STEP_LOWER = 1,
-    IEC60870_STEP_HIGHER = 2
+    IEC60870_STEP_HIGHER = 2,
+    IEC60870_STEP_INVALID_3 = 3
 } StepCommandValue;
 
 typedef uint8_t tSingleEvent;
@@ -865,12 +870,12 @@ void
 StepCommand_destroy(StepCommand self);
 
 StepCommand
-StepCommand_create(StepCommand self, int ioa, int command, bool selectCommand, int qu);
+StepCommand_create(StepCommand self, int ioa, StepCommandValue command, bool selectCommand, int qu);
 
 int
 StepCommand_getQU(StepCommand self);
 
-int
+StepCommandValue
 StepCommand_getState(StepCommand self);
 
 bool
@@ -1166,6 +1171,48 @@ DoubleCommandWithCP56Time2a_getState(DoubleCommandWithCP56Time2a self);
 
 bool
 DoubleCommandWithCP56Time2a_isSelect(DoubleCommandWithCP56Time2a self);
+
+/*************************************************
+ * StepCommandWithCP56Time2a : InformationObject
+ *************************************************/
+
+typedef struct sStepCommandWithCP56Time2a* StepCommandWithCP56Time2a;
+
+void
+StepCommandWithCP56Time2a_destroy(StepCommand self);
+
+StepCommandWithCP56Time2a
+StepCommandWithCP56Time2a_create(StepCommandWithCP56Time2a self, int ioa, StepCommandValue command, bool selectCommand, int qu, CP56Time2a timestamp);
+
+int
+StepCommandWithCP56Time2a_getQU(StepCommandWithCP56Time2a self);
+
+StepCommandValue
+StepCommandWithCP56Time2a_getState(StepCommandWithCP56Time2a self);
+
+bool
+StepCommandWithCP56Time2a_isSelect(StepCommandWithCP56Time2a self);
+
+/**********************************************************************
+ * SetpointCommandNormalizedWithCP56Time2a : SetpointCommandNormalized
+ **********************************************************************/
+
+typedef struct sSetpointCommandNormalizedWithCP56Time2a* SetpointCommandNormalizedWithCP56Time2a;
+
+void
+SetpointCommandNormalizedWithCP56Time2a_destroy(SetpointCommandNormalizedWithCP56Time2a self);
+
+SetpointCommandNormalizedWithCP56Time2a
+SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, CP56Time2a timestamp);
+
+float
+SetpointCommandNormalizedWithCP56Time2a_getValue(SetpointCommandNormalizedWithCP56Time2a self);
+
+int
+SetpointCommandNormalizedWithCP56Time2a_getQL(SetpointCommandNormalizedWithCP56Time2a self);
+
+bool
+SetpointCommandNormalizedWithCP56Time2a_isSelect(SetpointCommandNormalizedWithCP56Time2a self);
 
 #ifdef __cplusplus
 }
