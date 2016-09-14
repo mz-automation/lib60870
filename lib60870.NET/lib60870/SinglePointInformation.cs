@@ -41,7 +41,7 @@ namespace lib60870
 			}
 		}
 
-		public SinglePointInformation (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal SinglePointInformation (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -110,7 +110,7 @@ namespace lib60870
 			qds = new QualityDescriptor (msg [startIndex++]);
 		}
 			
-		public PackedSinglePointWithSCD(int objectAddress, StatusAndStatusChangeDetection scd, QualityDescriptor quality)
+		internal PackedSinglePointWithSCD(int objectAddress, StatusAndStatusChangeDetection scd, QualityDescriptor quality)
 			:base(objectAddress)
 		{
 			this.scd = scd;

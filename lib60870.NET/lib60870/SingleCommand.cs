@@ -49,7 +49,7 @@ namespace lib60870
 				sco |= 0x80;
 		}
 
-		public SingleCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal SingleCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -106,7 +106,7 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public SingleCommandWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal SingleCommandWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 1; /* skip IOA + SCQ*/
@@ -145,7 +145,7 @@ namespace lib60870
 				dcq |= 0x80;
 		}
 
-		public DoubleCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal DoubleCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -188,8 +188,8 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public DoubleCommandWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-		base(parameters, msg, startIndex)
+		internal DoubleCommandWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 1; /* skip IOA + DCQ*/
 
@@ -216,7 +216,7 @@ namespace lib60870
 		{
 		}
 
-		public StepCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal StepCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 		}
@@ -233,13 +233,13 @@ namespace lib60870
 		private CP56Time2a timestamp;
 
 		public StepCommandWithCP56Time2a (int ioa, StepCommandValue command, bool select, int quality, CP56Time2a timestamp) : 
-		base(ioa, command, select, quality)
+			base(ioa, command, select, quality)
 		{
 			this.timestamp = timestamp;
 		}
 
-		public StepCommandWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-		base(parameters, msg, startIndex)
+		internal StepCommandWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 1; /* skip IOA + DCQ*/
 

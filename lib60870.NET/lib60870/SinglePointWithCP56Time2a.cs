@@ -37,7 +37,7 @@ namespace lib60870
 			}
 		}
 
-		public SinglePointWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal SinglePointWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 1; /* skip IOA + SIQ */

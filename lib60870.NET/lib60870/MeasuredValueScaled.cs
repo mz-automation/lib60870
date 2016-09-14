@@ -56,7 +56,7 @@ namespace lib60870
 			this.quality = quality;
 		}
 
-		public MeasuredValueScaled (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal MeasuredValueScaled (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -94,7 +94,7 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public MeasuredValueScaledWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal MeasuredValueScaledWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 3; /* skip IOA + scaledValue + QDS */
@@ -127,7 +127,7 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public MeasuredValueScaledWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal MeasuredValueScaledWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 3; /* skip IOA + scaledValue + QDS */

@@ -32,7 +32,7 @@ namespace lib60870
 	/// </summary>
 	public class OutputCircuitInfo {
 
-		public byte encodedValue;
+		internal byte encodedValue;
 
 		public byte EncodedValue {
 			get {
@@ -51,6 +51,14 @@ namespace lib60870
 		public OutputCircuitInfo (byte encodedValue)
 		{
 			this.encodedValue = encodedValue;
+		}
+
+		public OutputCircuitInfo(bool gc, bool cl1, bool cl2, bool cl3)
+		{
+			GC = gc;
+			CL1 = cl1;
+			CL2 = cl2;
+			CL3 = cl3;
 		}
 
 		/// <summary>

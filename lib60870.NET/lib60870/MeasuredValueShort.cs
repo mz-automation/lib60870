@@ -51,7 +51,7 @@ namespace lib60870
 		}
 
 
-		public MeasuredValueShort (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal MeasuredValueShort (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -96,7 +96,7 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public MeasuredValueShortWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal MeasuredValueShortWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA */
@@ -130,7 +130,7 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public MeasuredValueShortWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal MeasuredValueShortWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA */

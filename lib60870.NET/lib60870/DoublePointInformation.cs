@@ -51,7 +51,14 @@ namespace lib60870
 			}
 		}
 
-		public DoublePointInformation (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		public DoublePointInformation(int ioa, DoublePointValue value, QualityDescriptor quality)
+			: base(ioa)
+		{
+			this.value = value;
+			this.quality = quality;
+		}
+
+		internal DoublePointInformation (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -86,7 +93,13 @@ namespace lib60870
 			}
 		}
 
-		public DoublePointWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		public DoublePointWithCP24Time2a(int ioa, DoublePointValue value, QualityDescriptor quality, CP24Time2a timestamp)
+			: base(ioa, value, quality)
+		{
+			this.timestamp = timestamp;
+		}
+
+		internal DoublePointWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 1; /* skip IOA  +  DIQ */
@@ -112,7 +125,13 @@ namespace lib60870
 			}
 		}
 
-		public DoublePointWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		public DoublePointWithCP56Time2a(int ioa, DoublePointValue value, QualityDescriptor quality, CP56Time2a timestamp)
+			: base(ioa, value, quality)
+		{
+			this.timestamp = timestamp;
+		}
+
+		internal DoublePointWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 1; /* skip IOA  +  DIQ */

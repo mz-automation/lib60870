@@ -37,6 +37,10 @@ namespace lib60870
 		}
 	}
 
+	/// <summary>
+	/// This class represents an application layer message. It contains some generic message information and
+	/// one or more InformationObject instances of the same type. It is used to send and receive messages.
+	/// </summary>
 	public class ASDU
 	{
 		private ConnectionParameters parameters;

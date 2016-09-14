@@ -36,7 +36,13 @@ namespace lib60870
 			}
 		}
 
-		public IntegratedTotals (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		public IntegratedTotals(int ioa, BinaryCounterReading bcr)
+			:base(ioa)
+		{
+			this.bcr = bcr;
+		}
+
+		internal IntegratedTotals (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -55,8 +61,13 @@ namespace lib60870
 			}
 		}
 
+		public IntegratedTotalsWithCP24Time2a(int ioa, BinaryCounterReading bcr, CP24Time2a timestamp)
+			:base(ioa, bcr)
+		{
+			this.timestamp = timestamp;
+		}
 
-		public IntegratedTotalsWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal IntegratedTotalsWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA + BCR */
@@ -75,6 +86,11 @@ namespace lib60870
 			}
 		}
 
+		public IntegratedTotalsWithCP56Time2a(int ioa, BinaryCounterReading bcr, CP56Time2a timestamp)
+			:base(ioa, bcr)
+		{
+			this.timestamp = timestamp;
+		}
 
 		public IntegratedTotalsWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)

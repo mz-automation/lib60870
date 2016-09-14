@@ -45,12 +45,12 @@ namespace lib60870
 			}
 		}
 
-		public Bitstring32 (int ioa, UInt32 value) : base(ioa)
+		public Bitstring32 (int ioa, UInt32 value, QualityDescriptor quality) : base(ioa)
 		{
 			this.value = value;
 		}
 
-		public Bitstring32 (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal Bitstring32 (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -87,13 +87,13 @@ namespace lib60870
 			}
 		}
 
-		public Bitstring32WithCP24Time2a(int ioa, UInt32 value, CP24Time2a timestamp) :
-			base(ioa, value)
+		public Bitstring32WithCP24Time2a(int ioa, UInt32 value, QualityDescriptor quality, CP24Time2a timestamp) :
+			base(ioa, value, quality)
 		{
 			this.timestamp = timestamp;
 		}
 
-		public Bitstring32WithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal Bitstring32WithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA + value + quality */
@@ -120,13 +120,13 @@ namespace lib60870
 			}
 		}
 
-		public Bitstring32WithCP56Time2a(int ioa, UInt32 value, CP56Time2a timestamp) :
-			base(ioa, value)
+		public Bitstring32WithCP56Time2a(int ioa, UInt32 value, QualityDescriptor quality, CP56Time2a timestamp) :
+			base(ioa, value, quality)
 		{
 			this.timestamp = timestamp;
 		}
 
-		public Bitstring32WithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal Bitstring32WithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA + value + quality */

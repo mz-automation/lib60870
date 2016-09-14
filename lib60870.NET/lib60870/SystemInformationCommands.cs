@@ -63,7 +63,7 @@ namespace lib60870
 			this.qoi = qoi;
 		}
 
-		public InterrogationCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal InterrogationCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -101,8 +101,8 @@ namespace lib60870
 			this.qcc = qoi;
 		}
 
-		public CounterInterrogationCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-		base(parameters, msg, startIndex)
+		internal CounterInterrogationCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -125,8 +125,8 @@ namespace lib60870
 		{
 		}
 
-		public ReadCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-		base(parameters, msg, startIndex)
+		internal ReadCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
 		{
 		}
 
@@ -151,7 +151,7 @@ namespace lib60870
 			this.newTime = newTime;
 		}
 
-		public ClockSynchronizationCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal ClockSynchronizationCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -189,8 +189,8 @@ namespace lib60870
 			this.qrp = qrp;
 		}
 
-		public ResetProcessCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-		base(parameters, msg, startIndex)
+		internal ResetProcessCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -224,8 +224,8 @@ namespace lib60870
 			this.delay = delay;
 		}
 
-		public DelayAcquisitionCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-		base(parameters, msg, startIndex)
+		internal DelayAcquisitionCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 

@@ -59,7 +59,7 @@ namespace lib60870
 			this.qpm = qpm;
 		}
 
-		public ParameterNormalizedValue (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal ParameterNormalizedValue (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -109,7 +109,7 @@ namespace lib60870
 			this.qpm = qpm;
 		}
 
-		public ParameterScaledValue (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal ParameterScaledValue (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -157,7 +157,7 @@ namespace lib60870
 			this.qpm = qpm;
 		}
 
-		public ParameterFloatValue (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal ParameterFloatValue (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -211,7 +211,7 @@ namespace lib60870
 			this.qpa = qpa;
 		}
 
-		public ParameterActivation (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal ParameterActivation (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */

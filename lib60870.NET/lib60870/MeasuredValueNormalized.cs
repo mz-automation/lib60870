@@ -50,7 +50,7 @@ namespace lib60870
 			this.NormalizedValue = value;
 		}
 
-		public MeasuredValueNormalizedWithoutQuality (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal MeasuredValueNormalizedWithoutQuality (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -82,7 +82,7 @@ namespace lib60870
 			this.quality = quality;
 		}
 
-		public MeasuredValueNormalized (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal MeasuredValueNormalized (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 2; /* skip IOA + scaled value */
@@ -116,7 +116,7 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public MeasuredValueNormalizedWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal MeasuredValueNormalizedWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 3; /* skip IOA + scaledValue + quality */
@@ -149,7 +149,7 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public MeasuredValueNormalizedWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal MeasuredValueNormalizedWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 3; /* skip IOA + scaledValue + quality */

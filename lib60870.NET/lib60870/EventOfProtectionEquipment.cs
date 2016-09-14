@@ -52,7 +52,15 @@ namespace lib60870
 			}
 		}
 
-		public EventOfProtectionEquipment (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		public EventOfProtectionEquipment(int ioa, SingleEvent singleEvent, CP16Time2a elapsedTime, CP24Time2a timestamp)
+			: base (ioa)
+		{
+			this.singleEvent = singleEvent;
+			this.elapsedTime = elapsedTime;
+			this.timestamp = timestamp;
+		}
+
+		internal EventOfProtectionEquipment (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -94,7 +102,15 @@ namespace lib60870
 			}
 		}
 
-		public EventOfProtectionEquipmentWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		public EventOfProtectionEquipmentWithCP56Time2a (int ioa, SingleEvent singleEvent, CP16Time2a elapsedTime, CP56Time2a timestamp)
+			: base (ioa)
+		{
+			this.singleEvent = singleEvent;
+			this.elapsedTime = elapsedTime;
+			this.timestamp = timestamp;
+		}
+
+		internal EventOfProtectionEquipmentWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */

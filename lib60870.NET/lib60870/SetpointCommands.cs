@@ -53,7 +53,7 @@ namespace lib60870
 			this.qos = qos;
 		}
 
-		public SetpointCommandNormalized (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal SetpointCommandNormalized (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -100,8 +100,8 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public SetpointCommandNormalizedWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-		base(parameters, msg, startIndex)
+		internal SetpointCommandNormalizedWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 3; /* skip IOA */
 
@@ -140,7 +140,7 @@ namespace lib60870
 			this.qos = qos;
 		}
 
-		public SetpointCommandScaled (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal SetpointCommandScaled (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -176,8 +176,8 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public SetpointCommandScaledWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-		base(parameters, msg, startIndex)
+		internal SetpointCommandScaledWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 3; /* skip IOA */
 
@@ -216,7 +216,7 @@ namespace lib60870
 			this.qos = qos;
 		}
 
-		public SetpointCommandShort (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal SetpointCommandShort (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -253,8 +253,8 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public SetpointCommandShortWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-		base(parameters, msg, startIndex)
+		internal SetpointCommandShortWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA + float + QOS*/
 
@@ -286,7 +286,7 @@ namespace lib60870
 			this.value = bitstring;
 		}
 
-		public Bitstring32Command (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal Bitstring32Command (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -323,8 +323,8 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public Bitstring32CommandWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-		base(parameters, msg, startIndex)
+		internal Bitstring32CommandWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 4; /* skip IOA + bitstring */
 

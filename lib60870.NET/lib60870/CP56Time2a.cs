@@ -28,7 +28,7 @@ namespace lib60870
 	{
 		private byte[] encodedValue = new byte[7];
 
-		public CP56Time2a (byte[] msg, int startIndex)
+		internal CP56Time2a (byte[] msg, int startIndex)
 		{
 			if (msg.Length < startIndex + 7)
 				throw new ASDUParsingException ("Message too small for parsing CP56Time2a");

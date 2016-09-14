@@ -75,20 +75,10 @@ namespace tests
 			Assert.AreEqual (102, sc.ObjectAddress);
 
 			Assert.AreEqual (-0.5f, sc.NormalizedValue, 0.001f);
-
-			Frame frame = new T104Frame ();
-
-			sc.Encode (frame, new ConnectionParameters ());
-
-			Assert.AreEqual (12, frame.GetMsgSize());
-
-			SetpointCommandNormalized sc2 = new SetpointCommandNormalized (new ConnectionParameters (),
-				                                frame.GetBuffer (), 6);
-
-			Assert.AreEqual (-0.5f, sc2.NormalizedValue, 0.001f);
-			Assert.AreEqual (102, sc2.ObjectAddress);
-			Assert.AreEqual (true, sc2.QOS.Select);
+		
+			Assert.AreEqual (true, sc.QOS.Select);
 		}
+			
 	}
 }
 

@@ -34,7 +34,7 @@ namespace lib60870
 			}
 		}
 		
-		public SinglePointWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal SinglePointWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 1; /* skip IOA  + SIQ */
@@ -44,7 +44,7 @@ namespace lib60870
 		}
 
 		public SinglePointWithCP24Time2a(int objectAddress, bool value, QualityDescriptor quality, CP24Time2a timestamp):
-		base(objectAddress, value, quality)
+			base(objectAddress, value, quality)
 		{
 			this.timestamp = timestamp;
 		}

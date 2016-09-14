@@ -35,6 +35,14 @@ namespace lib60870
 			get {
 				return this.value;
 			}
+			set {
+				if (value > 63)
+					this.value = 63;
+				else if (value < -64)
+					this.value = -64;
+				else
+					this.value = value;
+			}
 		}
 
 		private bool isTransient;
@@ -47,6 +55,9 @@ namespace lib60870
 			get {
 				return this.isTransient;
 			}
+			set {
+				this.isTransient = value;
+			}
 		}
 
 		private QualityDescriptor quality;
@@ -57,7 +68,14 @@ namespace lib60870
 			}
 		}
 
-		public StepPositionInformation (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		public StepPositionInformation(int ioa, int value, bool isTransient) :
+			base(ioa)
+		{
+			Value = value;
+			Transient = isTransient;
+		}
+
+		internal StepPositionInformation (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
@@ -104,9 +122,19 @@ namespace lib60870
 			get {
 				return this.timestamp;
 			}
+			set {
+				this.timestamp = value;
+			}
 		}
 			
-		public StepPositionWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+
+		public StepPositionWithCP24Time2a(int ioa, int value, bool isTransient, CP24Time2a timestamp) :
+			base(ioa, value, isTransient)
+		{
+			Timestamp = timestamp;
+		}
+
+		internal StepPositionWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 2; /* skip IOA + VTI + quality*/
@@ -132,10 +160,19 @@ namespace lib60870
 			get {
 				return this.timestamp;
 			}
+			set {
+				this.timestamp = value;
+			}
+		}
+
+		public StepPositionWithCP56Time2a(int ioa, int value, bool isTransient, CP56Time2a timestamp) :
+			base(ioa, value, isTransient)
+		{
+			Timestamp = timestamp;
 		}
 
 
-		public StepPositionWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		internal StepPositionWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex)
 		{
 			startIndex += parameters.SizeOfIOA + 2; /* skip IOA + VTI + quality*/
