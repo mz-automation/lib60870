@@ -19,47 +19,19 @@
  *  See COPYING file for the complete license text.
  */
 
-#include "frame.h"
-#include "iec60870_common.h"
+#ifndef SRC_INC_INTERNAL_LIB60870_INTERNAL_H_
+#define SRC_INC_INTERNAL_LIB60870_INTERNAL_H_
 
-struct sFrame {
-    FrameVFT virtualFunctionTable;
-};
+#include "lib60870_config.h"
 
 
+#if (CONFIG_DEBUG_OUTPUT == 1)
 void
-Frame_destroy(Frame self)
-{
-    self->virtualFunctionTable->destroy(self);
-}
+lib60870_debug_print(const char *format, ...);
 
-void
-Frame_resetFrame(Frame self)
-{
-    self->virtualFunctionTable->resetFrame(self);
-}
+#define DEBUG_PRINT(...)  do{ lib60870_debug_print(__VA_ARGS__ ); } while( false )
+#else
+#define DEBUG_PRINT(...) do{ } while ( false )
+#endif
 
-void
-Frame_setNextByte(Frame self, uint8_t byte)
-{
-    self->virtualFunctionTable->setNextByte(self, byte);
-}
-
-void
-Frame_appendBytes(Frame self, uint8_t* bytes, int numberOfBytes)
-{
-    self->virtualFunctionTable->appendBytes(self, bytes, numberOfBytes);
-}
-
-int
-Frame_getMsgSize(Frame self)
-{
-    return self->virtualFunctionTable->getMsgSize(self);
-}
-
-uint8_t*
-Frame_getBuffer(Frame self)
-{
-    return self->virtualFunctionTable->getBuffer(self);
-}
-
+#endif /* SRC_INC_INTERNAL_LIB60870_INTERNAL_H_ */

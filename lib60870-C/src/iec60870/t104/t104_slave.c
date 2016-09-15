@@ -32,6 +32,7 @@
 #include "lib_memory.h"
 
 #include "lib60870_config.h"
+#include "lib60870_internal.h"
 
 #include "apl_types_internal.h"
 
@@ -232,14 +233,14 @@ Slave_enqueueASDU(Slave self, ASDU asdu)
         removeEntry = true;
 
     if (removeEntry == false) {
-        printf("add entry (nextIndex:%i)\n", nextIndex);
+        DEBUG_PRINT("add entry (nextIndex:%i)\n", nextIndex);
         self->messageQueue.asdus[nextIndex] = asdu;
         self->messageQueue.lastMsgIndex = nextIndex;
         self->messageQueue.entryCounter++;
     }
     else
     {
-        printf("add entry (nextIndex:%i) -> remove oldest\n", nextIndex);
+        DEBUG_PRINT("add entry (nextIndex:%i) -> remove oldest\n", nextIndex);
 
         /* remove oldest entry */
         ASDU_destroy(self->messageQueue.asdus[nextIndex]);
@@ -254,7 +255,7 @@ Slave_enqueueASDU(Slave self, ASDU asdu)
         self->messageQueue.firstMsgIndex = firstIndex;
     }
 
-    printf("ASDUs in FIFO: %i (first: %i, last: %i)\n", self->messageQueue.entryCounter,
+    DEBUG_PRINT("ASDUs in FIFO: %i (first: %i, last: %i)\n", self->messageQueue.entryCounter,
             self->messageQueue.firstMsgIndex, self->messageQueue.lastMsgIndex);
 
 #if (CONFIG_SLAVE_USING_THREADS == 1)
@@ -277,7 +278,7 @@ Slave_dequeueASDU(Slave self)
     if (self->messageQueue.entryCounter != 0) {
         int firstMsgIndex = self->messageQueue.firstMsgIndex;
 
-        printf("remove entry (%i)\n", firstMsgIndex);
+        DEBUG_PRINT("remove entry (%i)\n", firstMsgIndex);
 
         asdu = self->messageQueue.asdus[firstMsgIndex];
 
@@ -292,7 +293,7 @@ Slave_dequeueASDU(Slave self)
         if (self->messageQueue.entryCounter == 0)
             self->messageQueue.lastMsgIndex = firstMsgIndex;
 
-        printf("-->ASDUs in FIFO: %i (first: %i, last: %i)\n", self->messageQueue.entryCounter,
+        DEBUG_PRINT("-->ASDUs in FIFO: %i (first: %i, last: %i)\n", self->messageQueue.entryCounter,
                 self->messageQueue.firstMsgIndex, self->messageQueue.lastMsgIndex);
 
     }
@@ -386,7 +387,7 @@ handleASDU(MasterConnection self, ASDU asdu)
 
     case C_IC_NA_1: /* 100 - interrogation command */
 
-        printf("Rcvd interrogation command C_IC_NA_1\n");
+        DEBUG_PRINT("Rcvd interrogation command C_IC_NA_1\n");
 
         if ((cot == ACTIVATION) || (cot == DEACTIVATION)) {
             if (master->interrogationHandler != NULL) {
@@ -408,7 +409,7 @@ handleASDU(MasterConnection self, ASDU asdu)
 
     case C_CI_NA_1: /* 101 - counter interrogation command */
 
-        printf("Rcvd counter interrogation command C_CI_NA_1\n");
+        DEBUG_PRINT("Rcvd counter interrogation command C_CI_NA_1\n");
 
         if ((cot == ACTIVATION) || (cot == DEACTIVATION)) {
 
@@ -434,7 +435,7 @@ handleASDU(MasterConnection self, ASDU asdu)
 
     case C_RD_NA_1: /* 102 - read command */
 
-        printf("Rcvd read command C_RD_NA_1\n");
+        DEBUG_PRINT("Rcvd read command C_RD_NA_1\n");
 
         if (cot == REQUEST) {
             if (master->readHandler != NULL) {
@@ -455,7 +456,7 @@ handleASDU(MasterConnection self, ASDU asdu)
 
     case C_CS_NA_1: /* 103 - Clock synchronization command */
 
-        printf("Rcvd clock sync command C_CS_NA_1\n");
+        DEBUG_PRINT("Rcvd clock sync command C_CS_NA_1\n");
 
         if (cot == ACTIVATION) {
 
@@ -478,7 +479,7 @@ handleASDU(MasterConnection self, ASDU asdu)
 
     case C_TS_NA_1: /* 104 - test command */
 
-        printf("Rcvd test command C_TS_NA_1\n");
+        DEBUG_PRINT("Rcvd test command C_TS_NA_1\n");
 
         if (cot != ACTIVATION)
             ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
@@ -511,7 +512,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 {
     if ((buffer[2] & 1) == 0) {
 
-        printf("Received I frame\n");
+        DEBUG_PRINT("Received I frame\n");
 
         if (msgSize < 7) {
             printf("I msg too small!\n");
@@ -531,14 +532,14 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
     /* Check for TESTFR_ACT message */
     else if ((buffer[2] & 0x43) == 0x43) {
-        printf("Send TESTFR_CON\n");
+        DEBUG_PRINT("Send TESTFR_CON\n");
 
         Socket_write(self->socket, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
     }
 
     /* Check for STARTDT_ACT message */
     else if ((buffer [2] & 0x07) == 0x07) {
-        printf("Send STARTDT_CON\n");
+        DEBUG_PRINT("Send STARTDT_CON\n");
 
         self->isActive = true;
 
@@ -547,7 +548,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
     /* Check for STOPDT_ACT message */
     else if ((buffer [2] & 0x13) == 0x13) {
-        printf("Send STOPDT_CON\n");
+        DEBUG_PRINT("Send STOPDT_CON\n");
 
         self->isActive = false;
 
@@ -556,11 +557,11 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
     else if ((buffer [2] == 0x01)) /* S-message */ {
         int messageCount = (buffer[4] + buffer[5] * 0x100) / 2;
 
-        printf("Rcvd S(%i) (own sendcounter = %i)\n", messageCount, self->sendCount);
+        DEBUG_PRINT("Rcvd S(%i) (own sendcounter = %i)\n", messageCount, self->sendCount);
     }
 
     else {
-        printf("unknown message - IGNORE\n");
+        DEBUG_PRINT("unknown message - IGNORE\n");
         return true;
     }
 
@@ -578,21 +579,6 @@ checkServerQueue(MasterConnection self)
         ASDU_destroy(asdu);
     }
 }
-
-#if 0
-        private void sendSMessage() {
-            byte[] msg = new byte[6];
-
-            msg [0] = 0x68;
-            msg [1] = 0x04;
-            msg [2] = 0x01;
-            msg [3] = 0;
-            msg [4] = (byte) ((receiveCount % 128) * 2);
-            msg [5] = (byte) (receiveCount / 128);
-
-            socket.Send (msg);
-        }
-#endif
 
 static void sendSMessage(MasterConnection self)
 {
@@ -654,12 +640,12 @@ connectionHandlingThread(void* parameter)
         int bytesRec = receiveMessage(self->socket, buffer);
 
         if (bytesRec == -1) {
-            printf("Error reading from socket\n");
+            DEBUG_PRINT("Error reading from socket\n");
             break;
         }
 
         if (bytesRec > 0) {
-            printf("Connection: rcvd msg(%i bytes)\n", bytesRec);
+            DEBUG_PRINT("Connection: rcvd msg(%i bytes)\n", bytesRec);
 
             if (handleMessage(self, buffer, bytesRec) == false)
                 self->isRunning = false;
@@ -671,7 +657,7 @@ connectionHandlingThread(void* parameter)
         sendSMessageIfRequired(self);
     }
 
-    printf("Connection closed\n");
+    DEBUG_PRINT("Connection closed\n");
 
     self->isRunning = false;
     self->slave->openConnections--;

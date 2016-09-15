@@ -24,6 +24,7 @@
 
 #include "frame.h"
 #include "t104_frame.h"
+#include "lib60870_internal.h"
 
 #ifndef CONFIG_LIB60870_STATIC_FRAMES
 #define CONFIG_LIB60870_STATIC_FRAMES 1

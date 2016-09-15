@@ -34,6 +34,7 @@
 #include "t104_connection.h"
 #include "apl_types_internal.h"
 #include "information_objects_internal.h"
+#include "lib60870_internal.h"
 
 struct sT104ConnectionParameters defaultConnectionParameters = {
         /* .sizeOfTypeId =  */ 1,
@@ -220,10 +221,10 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
 {
     if ((buffer[2] & 1) == 0) {
 
-        printf("Received I frame\n");
+        DEBUG_PRINT("Received I frame\n");
 
         if (msgSize < 7) {
-            printf("I msg too small!\n");
+            DEBUG_PRINT("I msg too small!\n");
             return false;
         }
 
@@ -256,7 +257,7 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
     }
     else if (buffer[2] == 0x43) { /* Check for TESTFR_ACT message */
 
-        printf("Send TESTFR_CON\n");
+        DEBUG_PRINT("Send TESTFR_CON\n");
 
         Socket_write(self->socket, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
     }

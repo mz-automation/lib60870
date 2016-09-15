@@ -5,11 +5,9 @@
 #ifndef CONFIG_LIB60870_CONFIG_H_
 #define CONFIG_LIB60870_CONFIG_H_
 
-/* include asserts if set to 1 */
-#define DEBUG 0
 
 /* print debugging information with printf if set to 1 */
-#define DEBUG_SOCKET 0
+#define CONFIG_DEBUG_OUTPUT 0
 
 /* activate TCP keep alive mechanism. 1 -> activate */
 #define CONFIG_ACTIVATE_TCP_KEEPALIVE 1

@@ -75,6 +75,7 @@
     <Compile Include="SystemInformationCommands.cs" />
     <Compile Include="MeasuredValueShort.cs" />
     <Compile Include="PackedOutputCircuitInfo.cs" />
+    <Compile Include="LibraryCommon.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -104,13 +104,35 @@ Or when using dynamic memory allocation:
 
 == Command procedures
 
+Commands are used to set set points, parameters or trigger some actions at the outstation.
 
 The following command types (data types are available for commands):
 
 * C_SC (single command) - to control binary data (switch...)
 * C_DC (double command) - to control binary data with transition state (moving switch...)
-* S_RC
-* S_SE (setpoint command) - to control a setpoint (scaled value, normalized value, floating point values) - may also be used to set parameters, alarm limits etc.
+* S_RC (step position command) - to control a step position
+* S_SE (setpoint command) - to control a set point (scaled value, normalized value, floating point values) - may also be used to set parameters, alarm limits etc.
+
+These command types are also available in a version with a time tag (CP56TIme2a).
+
+There are two different command procedures available. The *direct operate* command procedure and the *select before operate* command procedure.
+
+To send a command for the direct operate command procedure you have to send an ACTIVATION APDU to the outstation.
+
+    Connection con = new Connection ("127.0.0.1");
+
+    con.SendControlCommand (TypeID.C_SC_NA_1, CauseOfTransmission.ACTIVATION, 1,
+                  new SingleCommand (5000, true, false, 0));
+
+To issue a single command you have to provide the proper _TypeID (C_SC_NA_1)_ and pass a _SingleCommand_ instance to the _SendControlCommand_ method.
+
+The constructor of SingleCommand has the following signature:
+
+  public SingleCommand (int ioa, bool command, bool selectCommand, int qu)
+
+In order to send a direct operate command the _selectCommand_ parameter should be false. The qualifier (_qu_) should in general be set to 0.
+
+If the command has been successful the outstation will answer with an ACT_CON response message with the _negative flag_ not set. In case the outstation cannot execute the command it will also answer with an ACT_CON response but with the _negative flag_ set. You can check if this flag is set with the IsNegative property of the received ASDU instance.
 
 == lib60870-C specific topics
 

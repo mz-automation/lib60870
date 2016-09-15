@@ -31,6 +31,16 @@ extern "C" {
 
 #define IEC_60870_5_104_DEFAULT_PORT 2404
 
+#define LIB60870_VERSION_MAJOR 0
+#define LIB60870_VERSION_MINOR 9
+#define LIB60870_VERSION_PATCH 0
+
+typedef struct {
+    int major;
+    int minor;
+    int patch;
+} Lib60870VersionInfo;
+
 typedef struct sASDU* ASDU;
 
 typedef struct sCP16Time2a* CP16Time2a;
@@ -225,6 +235,9 @@ typedef enum {
 #define INTERROGATION_GROUP_14 34
 #define INTERROGATION_GROUP_15 35
 #define INTERROGATION_GROUP_16 36
+
+Lib60870VersionInfo
+Lib60870_getLibraryVersionInfo(void);
 
 bool
 ASDU_isTest(ASDU self);

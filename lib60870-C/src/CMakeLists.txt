@@ -9,6 +9,7 @@ set (lib_common_SRCS
 ./iec60870/t104/t104_frame.c
 ./iec60870/t104/t104_slave.c
 ./iec60870/frame.c
+./iec60870/lib60870_common.c
 )
 
 set (lib_linux_SRCS

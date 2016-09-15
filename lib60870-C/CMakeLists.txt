@@ -49,7 +49,7 @@ set(API_HEADERS
 
 
 # write the detected stuff to this file
-# configure_file(config/stack_config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config/stack_config.h)
+# configure_file(config/lib60870_config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config/lib60870_config.h)
 
 if(BUILD_EXAMPLES)
 	add_subdirectory(examples)

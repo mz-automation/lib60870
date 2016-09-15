@@ -19,47 +19,31 @@
  *  See COPYING file for the complete license text.
  */
 
-#include "frame.h"
 #include "iec60870_common.h"
+#include "lib60870_internal.h"
 
-struct sFrame {
-    FrameVFT virtualFunctionTable;
-};
-
-
-void
-Frame_destroy(Frame self)
-{
-    self->virtualFunctionTable->destroy(self);
-}
+#include <stdio.h>
+#include <stdarg.h>
 
 void
-Frame_resetFrame(Frame self)
+lib60870_debug_print(const char *format, ...)
 {
-    self->virtualFunctionTable->resetFrame(self);
+    printf("DEBUG_LIB60870: ");
+    va_list ap;
+    va_start(ap, format);
+    vprintf(format, ap);
+    va_end(ap);
 }
 
-void
-Frame_setNextByte(Frame self, uint8_t byte)
-{
-    self->virtualFunctionTable->setNextByte(self, byte);
-}
 
-void
-Frame_appendBytes(Frame self, uint8_t* bytes, int numberOfBytes)
+Lib60870VersionInfo
+Lib60870_getLibraryVersionInfo()
 {
-    self->virtualFunctionTable->appendBytes(self, bytes, numberOfBytes);
-}
+    Lib60870VersionInfo versionInfo;
 
-int
-Frame_getMsgSize(Frame self)
-{
-    return self->virtualFunctionTable->getMsgSize(self);
-}
+    versionInfo.major = LIB60870_VERSION_MAJOR;
+    versionInfo.minor = LIB60870_VERSION_MINOR;
+    versionInfo.patch = LIB60870_VERSION_PATCH;
 
-uint8_t*
-Frame_getBuffer(Frame self)
-{
-    return self->virtualFunctionTable->getBuffer(self);
+    return versionInfo;
 }
-
