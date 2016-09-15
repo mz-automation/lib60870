@@ -41,7 +41,7 @@ main(int argc, char** argv)
 {
     T104Connection con = T104Connection_create("localhost", IEC_60870_5_104_DEFAULT_PORT);
 
-    if (T104Connection_connectBlocking(con)) {
+    if (T104Connection_connect(con)) {
         printf("Connected!\n");
 
         T104Connection_setASDUReceivedHandler(con, asduReceivedHandler, NULL);

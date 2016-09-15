@@ -65,7 +65,7 @@ T104Connection_setConnectTimeout(T104Connection self, int millies);
  * \param self
  */
 void
-T104Connection_connect(T104Connection self);
+T104Connection_connectAsync(T104Connection self);
 
 /**
  * \brief blocking connect
@@ -76,7 +76,7 @@ T104Connection_connect(T104Connection self);
  * \return true when connected, false otherwise
  */
 bool
-T104Connection_connectBlocking(T104Connection self);
+T104Connection_connect(T104Connection self);
 
 /**
  * \brief start data transmission on this connection

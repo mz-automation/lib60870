@@ -56,6 +56,8 @@ namespace lib60870
 		private int tcpPort;
 
 		private bool running = false;
+		private bool socketError = false;
+		private SocketException lastException = null;
 
 		private bool debugOutput = false;
 
@@ -67,6 +69,8 @@ namespace lib60870
 				debugOutput = value;
 			}
 		}
+
+		private int connectTimeoutInMs = 1000;
 
 		private ConnectionParameters parameters;
 
@@ -99,6 +103,7 @@ namespace lib60870
 			this.hostname = hostname;
 			this.parameters = parameters;
 			this.tcpPort = parameters.TcpPort;
+			this.connectTimeoutInMs = parameters.T0 * 1000;
 		}
 
 		public Connection (string hostname)
@@ -111,6 +116,10 @@ namespace lib60870
 			setup (hostname, parameters.clone());
 		}
 
+		public void SetConnectTimeout(int millies)
+		{
+			this.connectTimeoutInMs = millies;
+		}
 
 		private void EncodeIdentificationField(Frame frame, TypeID typeId, 
 		                                       int vsq, CauseOfTransmission cot, int ca) 
@@ -328,7 +337,30 @@ namespace lib60870
 			sendIMessage (frame);
 		}
 
+		/// <summary>
+		/// Connect this instance.
+		/// </summary>
+		/// 
+		/// The function will throw a SocketException if the connection attempt is rejected or timed out.
 		public void Connect() {
+			ConnectAsync ();
+
+			while ((running == false) && (socketError == false)) {
+				Thread.Sleep (1);
+			}
+
+			if (socketError)
+				throw lastException;
+		}
+
+		/// <summary>
+		/// Connects to the server (outstation). This is a non-blocking call. Before using the connection
+		/// you have to check if the connection is already connected and running.
+		/// </summary>
+		public void ConnectAsync() {
+			running = false;
+			socketError = false;
+
 			Thread workerThread = new Thread(HandleConnection);
 
 			workerThread.Start ();
@@ -423,35 +455,65 @@ namespace lib60870
 			return true;
 		}
 
+		private void ConnectSocketWithTimeout()
+		{
+			IPAddress ipAddress = IPAddress.Parse(hostname);
+			IPEndPoint remoteEP = new IPEndPoint(ipAddress, tcpPort);
+
+			// Create a TCP/IP  socket.
+			socket = new Socket(AddressFamily.InterNetwork, 
+				SocketType.Stream, ProtocolType.Tcp );
+
+			var result = socket.BeginConnect(remoteEP, null, null);
+
+			bool success = result.AsyncWaitHandle.WaitOne(connectTimeoutInMs, true);
+			if (success)
+			{
+				socket.EndConnect(result);
+			}
+			else
+			{
+				socket.Close();
+				throw new SocketException(10060); // Connection timed out.
+			}
+		}
+
 		private void HandleConnection() {
 
 			byte[] bytes = new byte[300];
 
-			// Connect to a remote device.
+
 			try {
 
-				IPAddress ipAddress = IPAddress.Parse(hostname);
-				IPEndPoint remoteEP = new IPEndPoint(ipAddress, tcpPort);
-
-				// Create a TCP/IP  socket.
-				socket = new Socket(AddressFamily.InterNetwork, 
-				                           SocketType.Stream, ProtocolType.Tcp );
-
 				try {
-					socket.Connect(remoteEP);
 
-					if (debugOutput)
-						Console.WriteLine("Socket connected to {0}",
-					                  socket.RemoteEndPoint.ToString());
+					try {
+						// Connect to a remote device.
+						ConnectSocketWithTimeout();
 
-					if (autostart)
-						socket.Send(STARTDT_ACT_MSG);
+						if (debugOutput)
+							Console.WriteLine("Socket connected to {0}",
+								socket.RemoteEndPoint.ToString());
 
-					running = true;
+						if (autostart)
+							socket.Send(STARTDT_ACT_MSG);
+
+						running = true;
+						socketError = false;
+					} catch (SocketException se) {
+						if (debugOutput)
+							Console.WriteLine("SocketException : {0}",se.ToString());
+
+						running = false;
+						socketError = true;
+						lastException = se;
+					}
+
+
 
 					while (running) {
 
-						// Receive the response from the remote device.
+						// Receive a message from from the remote device.
 						int bytesRec = receiveMessage(socket, bytes);
 
 						if (bytesRec > 0) {
@@ -483,11 +545,14 @@ namespace lib60870
 					socket.Close();
 
 				} catch (ArgumentNullException ane) {
-					Console.WriteLine("ArgumentNullException : {0}",ane.ToString());
+					if (debugOutput)
+						Console.WriteLine("ArgumentNullException : {0}",ane.ToString());
 				} catch (SocketException se) {
-					Console.WriteLine("SocketException : {0}",se.ToString());
+					if (debugOutput)
+						Console.WriteLine("SocketException : {0}",se.ToString());
 				} catch (Exception e) {
-					Console.WriteLine("Unexpected exception : {0}", e.ToString());
+					if (debugOutput)
+						Console.WriteLine("Unexpected exception : {0}", e.ToString());
 				}
 
 			} catch (Exception e) {
@@ -498,6 +563,17 @@ namespace lib60870
 		public bool IsRunning {
 			get {
 				return this.running;
+			}
+		}
+
+		public void Close()
+		{
+			if (running) {
+			
+
+
+				socket.Shutdown(SocketShutdown.Both);
+				//socket.Close();
 			}
 		}
 

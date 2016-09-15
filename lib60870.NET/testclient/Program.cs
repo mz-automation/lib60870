@@ -111,10 +111,9 @@ namespace testclient
 
 			con.SendClockSyncCommand (1 /* CA */, currentTime); 
 
-
-
-
 			con.SendTestCommand (1);
+
+			con.Close ();
 		}
 	}
 }
