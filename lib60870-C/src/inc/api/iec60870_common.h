@@ -236,6 +236,9 @@ typedef enum {
 #define INTERROGATION_GROUP_15 35
 #define INTERROGATION_GROUP_16 36
 
+void
+Lib60870_enableDebugOutput(bool value);
+
 Lib60870VersionInfo
 Lib60870_getLibraryVersionInfo(void);
 

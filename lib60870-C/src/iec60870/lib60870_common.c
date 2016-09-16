@@ -25,14 +25,30 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#if (CONFIG_DEBUG_OUTPUT == 1)
+static bool debugOutputEnabled = 1;
+#endif
+
 void
 lib60870_debug_print(const char *format, ...)
 {
-    printf("DEBUG_LIB60870: ");
-    va_list ap;
-    va_start(ap, format);
-    vprintf(format, ap);
-    va_end(ap);
+#if (CONFIG_DEBUG_OUTPUT == 1)
+    if (debugOutputEnabled) {
+        printf("DEBUG_LIB60870: ");
+        va_list ap;
+        va_start(ap, format);
+        vprintf(format, ap);
+        va_end(ap);
+    }
+#endif
+}
+
+void
+Lib60870_enableDebugOutput(bool value)
+{
+#if (CONFIG_DEBUG_OUTPUT == 1)
+    debugOutputEnabled = value;
+#endif
 }
 
 

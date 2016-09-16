@@ -82,6 +82,28 @@ According to the specification the server has to respond the ACTIVATION request 
   }
 ----
 
+== Spontaneous transmission of messages
+
+For spontaneous message transmission on the server side the API user has to allocate an ASDU object, add Information Objects to the ASDU and put the ASDU into the transmission queue. The transmission queue is a FIFO (first in first out) list. If the queue is full the oldest message will be deleted and replaced by the newly added message. Messages will only be sent if the there is an active client connection. Otherwise the messages will remain in the queue until a connection is activated.
+
+*LIB60870.NET:* The size of the queue is controlled by the property *MaxQueueSize* of the *Server* object in the C# implementation.
+
+*LIB60870-C:* In the C version the queue size is determined by the *maxQueueSize* parameter of the *T104Slave_create* function. If the library is compiled with the _CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE_ option enabled the _maxQueueSize_ parameter will be ignored and the queue will always have the size defined with by _CONFIG_SLAVE_MESSAGE_QUEUE_SIZE_.
+
+*LIB60870.NET:* These are the required steps for the C# implementation:
+
+. Step: Create a new ASDU instance
+
+    ASDU newAsdu = new ASDU (TypeID.M_ME_NB_1, CauseOfTransmission.PERIODIC, false, false, 2, 1, false);
+
+. Step: Add an information object to the ASDU
+
+    newAsdu.AddInformationObject (new MeasuredValueScaled (110, -1, new QualityDescriptor ()));
+
+. Step: Add the ASDU to the transmission queue
+
+    server.EnqueueASDU (newAsdu);
+
 == Clock synchronization procedure
 
 For the clock synchronization procedure the controlling station (master) sends a C_CS_NA_1 ACT message to the controlled station (slave) containing the current valid time information as a CP56Time2a typed time value. The controlled station has to update its internal time and respond with a C_CS_NA_1 ACT_CON message after all queued time-tagged PDUs have been sent.
@@ -155,6 +177,10 @@ Static memory allocation:
   SingleCommand_initialize(&sc);
 
   SingleCommand_create(&sc, 1001, true, false, 0);
+
+=== Debug output
+
+The debug output to the console can be enabled by setting _CONFIG_DEBUG_OUTPUT_ to 1. This will enable the debug output by default. The debug output can be disabled my using the function *Lib60870_enableDebugOutput*. The default implementation of the debug output function will print to the console (using printf). If you need to redirect the output the most easy way would be to change the implementation of the debug output *lib60870_debug_print* function in _lib60870_common.c_.
 
 == Reference information
 
