@@ -56,6 +56,7 @@ namespace lib60870
 		private int tcpPort;
 
 		private bool running = false;
+        private bool connecting = false;
 		private bool socketError = false;
 		private SocketException lastException = null;
 
@@ -357,18 +358,25 @@ namespace lib60870
 		/// Connects to the server (outstation). This is a non-blocking call. Before using the connection
 		/// you have to check if the connection is already connected and running.
 		/// </summary>
-		public void ConnectAsync() {
-			running = false;
-			socketError = false;
+        public void ConnectAsync()
+        {
+            if ((running == false) && (connecting == false))
+            {
+                socketError = false;
 
-			Thread workerThread = new Thread(HandleConnection);
+                Thread workerThread = new Thread(HandleConnection);
 
-			workerThread.Start ();
-		}
+                workerThread.Start();
+            }
+            else
+            {
+                if (running)
+                    throw new SocketException(10056); /* WSAEISCONN - Socket is already connected */
+                else
+                    throw new SocketException(10037); /* WSAEALREADY - Operation already in progress */
 
-		public void Disconnect() {
-			this.running = false;
-		}
+            }
+        }
 
 		private int receiveMessage(Socket socket, byte[] buffer) 
 		{
@@ -487,6 +495,8 @@ namespace lib60870
 
 				try {
 
+					connecting = true;
+
 					try {
 						// Connect to a remote device.
 						ConnectSocketWithTimeout();
@@ -500,6 +510,7 @@ namespace lib60870
 
 						running = true;
 						socketError = false;
+                        connecting = false;
 					} catch (SocketException se) {
 						if (debugOutput)
 							Console.WriteLine("SocketException : {0}",se.ToString());
@@ -545,6 +556,7 @@ namespace lib60870
 					socket.Close();
 
 				} catch (ArgumentNullException ane) {
+                    connecting = false;
 					if (debugOutput)
 						Console.WriteLine("ArgumentNullException : {0}",ane.ToString());
 				} catch (SocketException se) {
@@ -554,6 +566,8 @@ namespace lib60870
 					if (debugOutput)
 						Console.WriteLine("Unexpected exception : {0}", e.ToString());
 				}
+
+                connecting = false;
 
 			} catch (Exception e) {
 				Console.WriteLine( e.ToString());
@@ -568,13 +582,8 @@ namespace lib60870
 
 		public void Close()
 		{
-			if (running) {
-			
-
-
+			if (running)
 				socket.Shutdown(SocketShutdown.Both);
-				//socket.Close();
-			}
 		}
 
 		public void SetASDUReceivedHandler(ASDUReceivedHandler handler, object parameter)

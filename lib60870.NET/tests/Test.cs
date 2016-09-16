@@ -1,6 +1,8 @@
 ﻿using NUnit.Framework;
 using System;
 using lib60870;
+using System.Threading;
+using System.Net.Sockets;
 
 namespace tests
 {
@@ -77,6 +79,48 @@ namespace tests
 			Assert.AreEqual (-0.5f, sc.NormalizedValue, 0.001f);
 		
 			Assert.AreEqual (true, sc.QOS.Select);
+
+		}
+
+		[Test()]
+		public void TestConnectMultipleTimes()
+		{
+			ConnectionParameters parameters = new ConnectionParameters ();
+
+			parameters.TcpPort = 20213;
+
+			Server server = new Server (parameters);
+
+			server.Start ();
+
+			Connection connection = new Connection ("127.0.0.1", parameters);
+
+			SocketException se = null;
+
+			try {
+				connection.Connect ();
+			}
+			catch (SocketException ex) {
+				se = ex;
+			}
+
+			Assert.IsNull (se);
+
+			Thread.Sleep (100);
+
+			try {
+				connection.Connect ();
+			}
+			catch (SocketException ex) {
+				se = ex;
+			}
+
+			Assert.IsNotNull (se);
+			Assert.AreEqual (10056, se.ErrorCode);
+
+			connection.Close ();
+
+			server.Stop ();
 		}
 			
 	}
