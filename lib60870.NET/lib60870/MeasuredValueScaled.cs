@@ -27,6 +27,18 @@ namespace lib60870
 {
 	public class MeasuredValueScaled : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_ME_NB_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
+
 		private ScaledValue scaledValue;
 
 		public ScaledValue ScaledValue {
@@ -56,10 +68,11 @@ namespace lib60870
 			this.quality = quality;
 		}
 
-		internal MeasuredValueScaled (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+		internal MeasuredValueScaled (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSquence) :
+			base(parameters, msg, startIndex, isSquence)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			if (!isSquence) 
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			scaledValue = new ScaledValue (msg, startIndex);
 			startIndex += 2;
@@ -68,8 +81,8 @@ namespace lib60870
 			quality = new QualityDescriptor (msg [startIndex++]);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (scaledValue.GetEncodedValue ());
 
@@ -78,41 +91,20 @@ namespace lib60870
 
 	}
 
-	public class MeasuredValueScaledWithCP56Time2a : MeasuredValueScaled
+	public class MeasuredValueScaledWithCP24Time2a : MeasuredValueScaled
 	{
-		private CP56Time2a timestamp;
-
-		public CP56Time2a Timestamp {
+		override public TypeID Type {
 			get {
-				return this.timestamp;
+				return TypeID.M_ME_TB_1;
 			}
 		}
 
-		public MeasuredValueScaledWithCP56Time2a (int objectAddress, int value, QualityDescriptor quality, CP56Time2a timestamp)
-			: base(objectAddress, value, quality)
-		{
-			this.timestamp = timestamp;
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
 		}
 
-		internal MeasuredValueScaledWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
-		{
-			startIndex += parameters.SizeOfIOA + 3; /* skip IOA + scaledValue + QDS */
-
-			/* parse CP56Time2a (time stamp) */
-			timestamp = new CP56Time2a (msg, startIndex);
-		}
-
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
-
-			frame.AppendBytes (timestamp.GetEncodedValue ());
-		}
-
-	}
-
-	public class MeasuredValueScaledWithCP24Time2a : MeasuredValueScaled
-	{
 		private CP24Time2a timestamp;
 
 		public CP24Time2a Timestamp {
@@ -127,21 +119,69 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		internal MeasuredValueScaledWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+		internal MeasuredValueScaledWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
+			base(parameters, msg, startIndex, isSequence)
 		{
-			startIndex += parameters.SizeOfIOA + 3; /* skip IOA + scaledValue + QDS */
+			if (!isSequence)
+				startIndex += parameters.SizeOfIOA + 3; /* skip IOA + scaledValue + QDS */
 
 			/* parse CP56Time2a (time stamp) */
 			timestamp = new CP24Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
 
 	}
+
+	public class MeasuredValueScaledWithCP56Time2a : MeasuredValueScaled
+	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_ME_TE_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
+		private CP56Time2a timestamp;
+
+		public CP56Time2a Timestamp {
+			get {
+				return this.timestamp;
+			}
+		}
+
+		public MeasuredValueScaledWithCP56Time2a (int objectAddress, int value, QualityDescriptor quality, CP56Time2a timestamp)
+			: base(objectAddress, value, quality)
+		{
+			this.timestamp = timestamp;
+		}
+			
+		internal MeasuredValueScaledWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex, false)
+		{
+			startIndex += parameters.SizeOfIOA + 3; /* skip IOA + scaledValue + QDS */
+
+			/* parse CP56Time2a (time stamp) */
+			timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
+
+	}
+
+
 }
 

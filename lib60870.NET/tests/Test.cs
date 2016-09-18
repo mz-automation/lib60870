@@ -122,6 +122,26 @@ namespace tests
 
 			server.Stop ();
 		}
+
+		[Test()]
+		public void TestASDUAddInformationObjects() {
+			ASDU asdu = new ASDU (CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+
+			asdu.AddInformationObject (new SinglePointInformation (100, false, new QualityDescriptor()));
+			asdu.AddInformationObject (new SinglePointInformation (101, false, new QualityDescriptor()));
+
+			// wrong InformationObject type expect exception
+			ArgumentException ae = null;
+
+			try {
+				asdu.AddInformationObject (new DoublePointInformation (102, DoublePointValue.ON, new QualityDescriptor()));
+			}
+			catch(ArgumentException e) {
+				ae = e;
+			}
+
+			Assert.NotNull (ae);
+		}
 			
 	}
 }

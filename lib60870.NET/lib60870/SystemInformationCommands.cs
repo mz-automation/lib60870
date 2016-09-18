@@ -47,6 +47,18 @@ namespace lib60870
 
 	public class InterrogationCommand : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_IC_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		byte qoi;
 
 		public byte QOI {
@@ -64,15 +76,15 @@ namespace lib60870
 		}
 
 		internal InterrogationCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			qoi = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.SetNextByte (qoi);
 		}
@@ -81,6 +93,18 @@ namespace lib60870
 		
 	public class CounterInterrogationCommand : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_CI_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		byte qcc;
 
 		/// <summary>
@@ -102,15 +126,15 @@ namespace lib60870
 		}
 
 		internal CounterInterrogationCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			qcc = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.SetNextByte (qcc);
 		}
@@ -120,13 +144,24 @@ namespace lib60870
 
 	public class ReadCommand : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_RD_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		public ReadCommand (int ioa) : base(ioa)
 		{
 		}
 
 		internal ReadCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 		}
 
@@ -134,6 +169,17 @@ namespace lib60870
 
 	public class ClockSynchronizationCommand : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_CS_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private CP56Time2a newTime;
 
@@ -152,7 +198,7 @@ namespace lib60870
 		}
 
 		internal ClockSynchronizationCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -160,8 +206,8 @@ namespace lib60870
 			newTime = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (newTime.GetEncodedValue ());
 		}
@@ -169,6 +215,18 @@ namespace lib60870
 
 	public class ResetProcessCommand : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_RP_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		byte qrp;
 
 		/// <summary>
@@ -190,15 +248,15 @@ namespace lib60870
 		}
 
 		internal ResetProcessCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			qrp = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.SetNextByte (qrp);
 		}
@@ -207,6 +265,17 @@ namespace lib60870
 
 	public class DelayAcquisitionCommand : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_CD_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private CP16Time2a delay;
 
@@ -225,7 +294,7 @@ namespace lib60870
 		}
 
 		internal DelayAcquisitionCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -233,8 +302,8 @@ namespace lib60870
 			delay = new CP16Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (delay.GetEncodedValue ());
 		}

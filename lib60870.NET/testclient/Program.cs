@@ -107,12 +107,8 @@ namespace testclient
 			                        new SingleCommandWithCP56Time2a (5000, false, false, 0, new CP56Time2a (DateTime.Now)));
 
 			/* Synchronize clock of the controlled station */
+			con.SendClockSyncCommand (1 /* CA */, new CP56Time2a (DateTime.Now)); 
 
-			CP56Time2a currentTime = new CP56Time2a (DateTime.Now);
-
-			con.SendClockSyncCommand (1 /* CA */, currentTime); 
-
-			con.SendTestCommand (1);
 
 			con.Close ();
 		}

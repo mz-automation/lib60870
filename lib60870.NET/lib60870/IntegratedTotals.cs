@@ -27,6 +27,17 @@ namespace lib60870
 {
 	public class IntegratedTotals : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_IT_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
 
 		private BinaryCounterReading bcr;
 
@@ -42,17 +53,36 @@ namespace lib60870
 			this.bcr = bcr;
 		}
 
-		internal IntegratedTotals (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+		internal IntegratedTotals (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSquence) :
+			base(parameters, msg, startIndex, isSquence)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			if (!isSquence)
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			bcr = new BinaryCounterReading(msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
+
+			frame.AppendBytes (bcr.GetEncodedValue ());
 		}
 	}
 
 	public class IntegratedTotalsWithCP24Time2a : IntegratedTotals
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_IT_TA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
+
 		private CP24Time2a timestamp;
 
 		public CP24Time2a Timestamp {
@@ -68,16 +98,34 @@ namespace lib60870
 		}
 
 		internal IntegratedTotalsWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA + BCR */
 
 			timestamp = new CP24Time2a (msg, startIndex);
 		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
 	}
 
 	public class IntegratedTotalsWithCP56Time2a : IntegratedTotals
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_IT_TB_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
+
 		private CP56Time2a timestamp;
 
 		public CP56Time2a Timestamp {
@@ -93,11 +141,17 @@ namespace lib60870
 		}
 
 		public IntegratedTotalsWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA + BCR */
 
 			timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
 	}
 }

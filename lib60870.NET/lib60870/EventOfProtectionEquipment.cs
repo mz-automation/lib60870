@@ -27,6 +27,17 @@ namespace lib60870
 {
 	public class EventOfProtectionEquipment : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_EP_TA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private SingleEvent singleEvent;
 
@@ -61,7 +72,7 @@ namespace lib60870
 		}
 
 		internal EventOfProtectionEquipment (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -77,6 +88,17 @@ namespace lib60870
 
 	public class EventOfProtectionEquipmentWithCP56Time2a : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_EP_TD_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private SingleEvent singleEvent;
 
@@ -111,7 +133,7 @@ namespace lib60870
 		}
 
 		internal EventOfProtectionEquipmentWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 

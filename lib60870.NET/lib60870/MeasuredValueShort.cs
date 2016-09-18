@@ -27,6 +27,18 @@ namespace lib60870
 {
 	public class MeasuredValueShort : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_ME_NC_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
+
 		private float value;
 
 		public float Value {
@@ -51,10 +63,11 @@ namespace lib60870
 		}
 
 
-		internal MeasuredValueShort (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+		internal MeasuredValueShort (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
+			base(parameters, msg, startIndex, isSequence)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			if (!isSequence)
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			/* parse float value */
 			value = System.BitConverter.ToSingle (msg, startIndex);
@@ -64,8 +77,8 @@ namespace lib60870
 			quality = new QualityDescriptor (msg [startIndex++]);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			byte[] floatEncoded = BitConverter.GetBytes (value);
 
@@ -80,7 +93,17 @@ namespace lib60870
 
 	public class MeasuredValueShortWithCP24Time2a : MeasuredValueShort
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_ME_TC_1;
+			}
+		}
 
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private CP24Time2a timestamp;
 
@@ -97,7 +120,7 @@ namespace lib60870
 		}
 
 		internal MeasuredValueShortWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA */
 
@@ -105,8 +128,8 @@ namespace lib60870
 			timestamp = new CP24Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
@@ -115,6 +138,17 @@ namespace lib60870
 
 	public class MeasuredValueShortWithCP56Time2a : MeasuredValueShort
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_ME_TF_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private CP56Time2a timestamp;
 
@@ -131,7 +165,7 @@ namespace lib60870
 		}
 
 		internal MeasuredValueShortWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA */
 
@@ -139,8 +173,8 @@ namespace lib60870
 			timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}

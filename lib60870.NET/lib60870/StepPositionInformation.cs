@@ -25,6 +25,18 @@ namespace lib60870
 {
 	public class StepPositionInformation : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_ST_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
+
 		private int value;
 
 		/// <summary>
@@ -75,10 +87,11 @@ namespace lib60870
 			Transient = isTransient;
 		}
 
-		internal StepPositionInformation (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+		internal StepPositionInformation (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
+			base(parameters, msg, startIndex, isSequence)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			if (!isSequence)
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			/* parse VTI (value with transient state indication) */
 			byte vti = msg [startIndex++];
@@ -93,8 +106,8 @@ namespace lib60870
 			quality = new QualityDescriptor (msg[startIndex++]);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			byte vti;
 
@@ -115,6 +128,17 @@ namespace lib60870
 
 	public class StepPositionWithCP24Time2a : StepPositionInformation
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_ST_TA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private CP24Time2a timestamp;
 
@@ -135,7 +159,7 @@ namespace lib60870
 		}
 
 		internal StepPositionWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA + 2; /* skip IOA + VTI + quality*/
 
@@ -143,8 +167,8 @@ namespace lib60870
 			timestamp = new CP24Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
@@ -153,6 +177,17 @@ namespace lib60870
 
 	public class StepPositionWithCP56Time2a : StepPositionInformation
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_ST_TB_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private CP56Time2a timestamp;
 
@@ -173,7 +208,7 @@ namespace lib60870
 
 
 		internal StepPositionWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA + 2; /* skip IOA + VTI + quality*/
 
@@ -181,8 +216,8 @@ namespace lib60870
 			timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}

@@ -29,6 +29,18 @@ namespace lib60870
 
 	public class PackedStartEventsOfProtectionEquipment : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_EP_TB_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
+
 		private StartEvent spe;
 
 		public StartEvent SPE {
@@ -62,7 +74,7 @@ namespace lib60870
 		}
 
 		public PackedStartEventsOfProtectionEquipment (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -80,6 +92,18 @@ namespace lib60870
 
 	public class PackedStartEventsOfProtectionEquipmentWithCP56Time2a : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_EP_TE_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
+
 		private StartEvent spe;
 
 		public StartEvent SPE {
@@ -113,7 +137,7 @@ namespace lib60870
 		}
 
 		public PackedStartEventsOfProtectionEquipmentWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 

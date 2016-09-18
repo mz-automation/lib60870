@@ -26,6 +26,18 @@ namespace lib60870
 
 	public class SetpointCommandNormalized : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_SE_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private int scaledValue;
 
 		public float NormalizedValue {
@@ -54,7 +66,7 @@ namespace lib60870
 		}
 
 		internal SetpointCommandNormalized (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -67,8 +79,8 @@ namespace lib60870
 			this.qos = new SetpointCommandQualifier (msg [startIndex++]);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			int valueToEncode;
 
@@ -86,6 +98,18 @@ namespace lib60870
 
 	public class SetpointCommandNormalizedWithCP56Time2a : SetpointCommandNormalized
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_SE_TA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private CP56Time2a timestamp;
 
 		public CP56Time2a Timestamp {
@@ -108,8 +132,8 @@ namespace lib60870
 			this.timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (this.timestamp.GetEncodedValue ());
 		}
@@ -117,6 +141,18 @@ namespace lib60870
 
 	public class SetpointCommandScaled : InformationObject 
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_SE_NB_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+			
 		private ScaledValue scaledValue;
 
 		public ScaledValue ScaledValue {
@@ -141,7 +177,7 @@ namespace lib60870
 		}
 
 		internal SetpointCommandScaled (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -151,8 +187,8 @@ namespace lib60870
 			this.qos = new SetpointCommandQualifier (msg [startIndex++]);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (this.scaledValue.GetEncodedValue ());
 
@@ -162,6 +198,18 @@ namespace lib60870
 
 	public class SetpointCommandScaledWithCP56Time2a : SetpointCommandScaled
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_SE_TB_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private CP56Time2a timestamp;
 
 		public CP56Time2a Timestamp {
@@ -184,8 +232,8 @@ namespace lib60870
 			this.timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (this.timestamp.GetEncodedValue ());
 		}
@@ -193,6 +241,18 @@ namespace lib60870
 
 	public class SetpointCommandShort : InformationObject 
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_SE_NC_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private float value;
 
 		public float Value {
@@ -217,7 +277,7 @@ namespace lib60870
 		}
 
 		internal SetpointCommandShort (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -228,8 +288,8 @@ namespace lib60870
 			this.qos = new SetpointCommandQualifier (msg [startIndex++]);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (System.BitConverter.GetBytes (value));
 
@@ -239,6 +299,18 @@ namespace lib60870
 
 	public class SetpointCommandShortWithCP56Time2a : SetpointCommandShort
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_SE_TC_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private CP56Time2a timestamp;
 
 		public CP56Time2a Timestamp {
@@ -261,8 +333,8 @@ namespace lib60870
 			this.timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (this.timestamp.GetEncodedValue ());
 		}
@@ -271,6 +343,17 @@ namespace lib60870
 
 	public class Bitstring32Command : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_BO_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private UInt32 value;
 
@@ -287,7 +370,7 @@ namespace lib60870
 		}
 
 		internal Bitstring32Command (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -297,8 +380,8 @@ namespace lib60870
 			value += ((uint)msg [startIndex++] * 0x1000000);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.SetNextByte ((byte) (value % 256));
 			frame.SetNextByte ((byte) ((value / 0x100) % 256));
@@ -309,6 +392,18 @@ namespace lib60870
 
 	public class Bitstring32CommandWithCP56Time2a : Bitstring32Command
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_BO_TA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private CP56Time2a timestamp;
 
 		public CP56Time2a Timestamp {
@@ -331,8 +426,8 @@ namespace lib60870
 			this.timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (this.timestamp.GetEncodedValue ());
 		}

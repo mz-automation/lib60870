@@ -28,6 +28,17 @@ namespace lib60870
 	
 	public class Bitstring32 : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_BO_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
 
 		private UInt32 value;
 
@@ -50,10 +61,11 @@ namespace lib60870
 			this.value = value;
 		}
 
-		internal Bitstring32 (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+		internal Bitstring32 (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
+			base(parameters, msg, startIndex, isSequence)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			if (!isSequence)
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			value = msg [startIndex++];
 			value += ((uint)msg [startIndex++] * 0x100);
@@ -64,8 +76,8 @@ namespace lib60870
 
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.SetNextByte((byte) (value % 0x100));
 			frame.SetNextByte((byte) ((value / 0x100) % 0x100));
@@ -78,6 +90,17 @@ namespace lib60870
 
 	public class Bitstring32WithCP24Time2a : Bitstring32
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_BO_TA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private CP24Time2a timestamp;
 
@@ -94,7 +117,7 @@ namespace lib60870
 		}
 
 		internal Bitstring32WithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA + value + quality */
 
@@ -102,8 +125,8 @@ namespace lib60870
 			timestamp = new CP24Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
@@ -112,6 +135,18 @@ namespace lib60870
 
 	public class Bitstring32WithCP56Time2a : Bitstring32
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_BO_TB_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private CP56Time2a timestamp;
 
 		public CP56Time2a Timestamp {
@@ -127,7 +162,7 @@ namespace lib60870
 		}
 
 		internal Bitstring32WithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA + 5; /* skip IOA + value + quality */
 
@@ -135,8 +170,8 @@ namespace lib60870
 			timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}

@@ -412,6 +412,8 @@ ASDU_getElement(ASDU self, int index)
 
         retVal = (InformationObject) MeasuredValueShort_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
 
+        //TODO add support for Sequence of elements in a single information object (sq = 1)
+
         break;
 
     case M_ME_TC_1: /* 14 */

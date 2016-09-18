@@ -25,6 +25,18 @@ namespace lib60870
 {
 	public class SinglePointInformation : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_SP_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
+
 		private bool value;
 
 		public bool Value {
@@ -41,10 +53,11 @@ namespace lib60870
 			}
 		}
 
-		internal SinglePointInformation (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+		internal SinglePointInformation (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
+			base(parameters, msg, startIndex, isSequence)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			if (!isSequence)
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			/* parse SIQ (single point information with qualitiy) */
 			byte siq = msg [startIndex++];
@@ -62,8 +75,8 @@ namespace lib60870
 			this.quality = quality;
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			byte val = quality.EncodedValue;
 
@@ -75,8 +88,65 @@ namespace lib60870
 
 	}
 
+	public class SinglePointWithCP24Time2a : SinglePointInformation
+	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_SP_TA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
+		private CP24Time2a timestamp;
+
+		public CP24Time2a Timestamp {
+			get {
+				return this.timestamp;
+			}
+		}
+
+		internal SinglePointWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
+			base(parameters, msg, startIndex, false)
+		{
+			startIndex += parameters.SizeOfIOA + 1; /* skip IOA  + SIQ */
+
+			/* parse CP24Time2a (time stamp) */
+			timestamp = new CP24Time2a (msg, startIndex);
+		}
+
+		public SinglePointWithCP24Time2a(int objectAddress, bool value, QualityDescriptor quality, CP24Time2a timestamp):
+			base(objectAddress, value, quality)
+		{
+			this.timestamp = timestamp;
+		}
+
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
+	}
+
 	public class PackedSinglePointWithSCD : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_PS_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
+
+
 		private StatusAndStatusChangeDetection scd;
 
 		private QualityDescriptor qds;
@@ -99,10 +169,11 @@ namespace lib60870
 			}
 		}
 
-		public PackedSinglePointWithSCD (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+		public PackedSinglePointWithSCD (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSquence) :
+			base(parameters, msg, startIndex, isSquence)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			if (!isSquence)
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			scd = new StatusAndStatusChangeDetection (msg, startIndex);
 			startIndex += 4;
@@ -117,8 +188,8 @@ namespace lib60870
 			this.qds = quality;
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (scd.GetEncodedValue ());
 

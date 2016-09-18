@@ -242,6 +242,9 @@ namespace lib60870
 		/// <summary>
 		/// Sends a test command (C_TS_NA_1 typeID: 104).
 		/// </summary>
+		/// 
+		/// Not required and supported by IEC 60870-5-104. 
+		/// 
 		/// <param name="ca">Common address</param>
 		public void SendTestCommand(int ca)
 		{
@@ -330,7 +333,7 @@ namespace lib60870
 
 			EncodeIdentificationField (frame, typeId, 1 /* SQ:false; NumIX:1 */, cot, ca);
 
-			sc.Encode (frame, parameters);
+			sc.Encode (frame, parameters, false);
 
 			if (debugOutput)
 				Console.WriteLine("Encoded " +  typeId.ToString() + " with " + frame.GetMsgSize() + " bytes.");

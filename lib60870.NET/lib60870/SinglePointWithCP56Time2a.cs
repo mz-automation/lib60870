@@ -29,6 +29,18 @@ namespace lib60870
 	/// </summary>
 	public class SinglePointWithCP56Time2a : SinglePointInformation
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_SP_TB_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private CP56Time2a timestamp;
 
 		public CP56Time2a Timestamp {
@@ -38,7 +50,7 @@ namespace lib60870
 		}
 
 		internal SinglePointWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA + 1; /* skip IOA + SIQ */
 
@@ -52,8 +64,8 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}

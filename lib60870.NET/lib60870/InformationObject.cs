@@ -29,16 +29,23 @@ namespace lib60870
 	{
 		private int objectAddress;
 
-		public InformationObject (ConnectionParameters parameters, byte[] msg, int startIndex)
+		internal static int ParseInformationObjectAddress(ConnectionParameters parameters, byte[] msg, int startIndex)
 		{
-			/* parse information object address */
-			objectAddress = msg [startIndex];
+			int ioa = msg [startIndex];
 
 			if (parameters.SizeOfIOA > 1)
-				objectAddress += (msg [startIndex + 1] * 0x100);
+				ioa += (msg [startIndex + 1] * 0x100);
 
 			if (parameters.SizeOfIOA > 2)
-				objectAddress += (msg [startIndex + 2] * 0x10000);
+				ioa += (msg [startIndex + 2] * 0x10000);
+
+			return ioa;
+		}
+
+		public InformationObject (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence)
+		{
+			if (!isSequence)
+				objectAddress = ParseInformationObjectAddress (parameters, msg, startIndex);
 		}
 
 		public InformationObject(int objectAddress) {
@@ -49,16 +56,29 @@ namespace lib60870
 			get {
 				return this.objectAddress;
 			}
+			internal set {
+				objectAddress = value;
+			}
+		}
+			
+		public abstract bool SupportsSequence {
+			get;
 		}
 
-		public virtual void Encode(Frame frame, ConnectionParameters parameters) {
-			frame.SetNextByte((byte)(objectAddress & 0xff));
+		public abstract TypeID Type {
+			get;
+		}
 
-			if (parameters.SizeOfIOA > 1)
-            	frame.SetNextByte((byte)((objectAddress / 0x100) & 0xff));
+		public virtual void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			if (!isSequence) {
+				frame.SetNextByte ((byte)(objectAddress & 0xff));
 
-			if (parameters.SizeOfIOA > 2)
-              	frame.SetNextByte((byte)((objectAddress / 0x10000) & 0xff));
+				if (parameters.SizeOfIOA > 1)
+					frame.SetNextByte ((byte)((objectAddress / 0x100) & 0xff));
+
+				if (parameters.SizeOfIOA > 2)
+					frame.SetNextByte ((byte)((objectAddress / 0x10000) & 0xff));
+			}
 		}
 
 

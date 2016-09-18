@@ -46,6 +46,7 @@ namespace lib60870
 		private ConnectionParameters parameters;
 
 		private TypeID typeId;
+		private bool hasTypeId;
 
 		private byte vsq; /* variable structure qualifier */
 
@@ -59,6 +60,11 @@ namespace lib60870
 		private byte[] payload = null;
 		private List<InformationObject> informationObjects = null;
 
+		public ASDU(CauseOfTransmission cot, bool isTest, bool isNegative, byte oa, int ca, bool isSequence) 
+			: this(TypeID.M_SP_NA_1, cot, isTest, isNegative, oa, ca, isSequence) {
+			this.hasTypeId = false;
+		}
+
 		public ASDU(TypeID typeId, CauseOfTransmission cot, bool isTest, bool isNegative, byte oa, int ca, bool isSequence) {
 			this.typeId = typeId;
 			this.cot = cot;
@@ -71,12 +77,22 @@ namespace lib60870
 				this.vsq = 0x80;
 			else
 				this.vsq = 0;
+
+			this.hasTypeId = true;
 		}
 
 		public void AddInformationObject(InformationObject io) 
 		{
 			if (informationObjects == null)
 				informationObjects = new List<InformationObject> ();
+
+			if (hasTypeId) {
+				if (io.Type != typeId)
+					throw new ArgumentException ("Invalid information object type: expected " + typeId.ToString () + " was " + io.Type.ToString ());
+			} else {
+				typeId = io.Type;
+				hasTypeId = true;
+			}
 
 			informationObjects.Add (io);
 
@@ -91,6 +107,8 @@ namespace lib60870
 
 			typeId = (TypeID) msg [bufPos++];
 			vsq = msg [bufPos++];
+
+			this.hasTypeId = true;
 
 			byte cotByte = msg [bufPos++];
 
@@ -148,8 +166,20 @@ namespace lib60870
 				frame.AppendBytes (payload);
 			else {
 
+				bool isFirst = true;
+
 				foreach (InformationObject io in informationObjects) {
-					io.Encode (frame, parameters);
+
+					if (isFirst) {
+						io.Encode (frame, parameters, false);
+						isFirst = false;
+					} else {
+						if (IsSquence)
+							io.Encode (frame, parameters, true);
+						else
+							io.Encode (frame, parameters, false);
+					}
+
 				}
 			}
 
@@ -224,12 +254,18 @@ namespace lib60870
 
 			case TypeID.M_SP_NA_1: /* 1 */
 
-				elementSize = parameters.SizeOfIOA + 1;
+				elementSize = 1;
 
-				retVal = new SinglePointInformation(parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
-				//TODO add support for Sequence of elements in a single information object (sq = 1)
+					retVal = new SinglePointInformation (parameters, payload,  parameters.SizeOfIOA + (index * elementSize), true);
 
+					retVal.ObjectAddress = ioa + index;
+
+				} else 
+					retVal = new SinglePointInformation (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
+					
 				break;
 
 			case TypeID.M_SP_TA_1: /* 2 */
@@ -242,11 +278,17 @@ namespace lib60870
 
 			case TypeID.M_DP_NA_1: /* 3 */
 
-				elementSize = parameters.SizeOfIOA + 1;
+				elementSize = 1;
 
-				retVal = new DoublePointInformation (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
-				//TODO add support for Sequence of elements in a single information object (sq = 1)
+					retVal = new DoublePointInformation (parameters, payload,  parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new DoublePointInformation (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -260,11 +302,17 @@ namespace lib60870
 
 			case TypeID.M_ST_NA_1: /* 5 */
 
-				elementSize = parameters.SizeOfIOA + 2;
+				elementSize = 2;
 
-				retVal = new StepPositionInformation (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
-				//TODO add support for Sequence of elements in a single information object (sq = 1)
+					retVal = new StepPositionInformation (parameters, payload,  parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new StepPositionInformation (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -278,11 +326,17 @@ namespace lib60870
 
 			case TypeID.M_BO_NA_1: /* 7 */
 
-				elementSize = parameters.SizeOfIOA + 5;
+				elementSize = 5;
 
-				retVal = new Bitstring32 (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
-				//TODO add support for Sequence of elements in a single information object (sq = 1)
+					retVal = new Bitstring32 (parameters, payload,  parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new Bitstring32 (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -296,12 +350,18 @@ namespace lib60870
 
 			case TypeID.M_ME_NA_1: /* 9 */
 
-				elementSize = parameters.SizeOfIOA + 3;
+				elementSize = 3;
 
-				retVal = new MeasuredValueNormalized (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
-				//TODO add support for Sequence of elements in a single information object (sq = 1)
+					retVal = new MeasuredValueNormalized (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
 
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new MeasuredValueNormalized (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
+					
 				break;
 
 			case TypeID.M_ME_TA_1: /* 10 */
@@ -314,11 +374,17 @@ namespace lib60870
 
 			case TypeID.M_ME_NB_1: /* 11 */
 
-				elementSize = parameters.SizeOfIOA + 3;
+				elementSize = 3;
 
-				retVal = new MeasuredValueScaled (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
-				//TODO add support for Sequence of elements in a single information object (sq = 1)
+					retVal = new MeasuredValueScaled (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new MeasuredValueScaled (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -326,18 +392,25 @@ namespace lib60870
 
 				elementSize = parameters.SizeOfIOA + 6;
 
-				retVal = new MeasuredValueScaledWithCP24Time2a (parameters, payload, index * elementSize);
+				retVal = new MeasuredValueScaledWithCP24Time2a (parameters, payload, index * elementSize, false);
 
 				break;
 
 
 			case TypeID.M_ME_NC_1: /* 13 */
 
-				elementSize = parameters.SizeOfIOA + 5;
+				elementSize = 5;
 
-				retVal = new MeasuredValueShort (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
-				//TODO add support for Sequence of elements in a single information object (sq = 1)
+					retVal = new MeasuredValueShort (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new MeasuredValueShort (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
+				
 
 				break;
 
@@ -351,11 +424,18 @@ namespace lib60870
 
 			case TypeID.M_IT_NA_1: /* 15 */
 
-				elementSize = parameters.SizeOfIOA + 5;
+				elementSize = 5;
 
-				retVal = new IntegratedTotals (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
-				//TODO add support for Sequence of elements in a single information object (sq = 1)
+					retVal = new IntegratedTotals (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new IntegratedTotals (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
+				
 
 				break;
 
@@ -393,21 +473,34 @@ namespace lib60870
 
 			case TypeID.M_PS_NA_1: /* 20 */
 
-				elementSize = parameters.SizeOfIOA + 5;
+				elementSize = 5;
 
-				retVal = new PackedSinglePointWithSCD (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
-				//TODO add support for Sequence of elements in a single information object (sq = 1)
+					retVal = new PackedSinglePointWithSCD (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new PackedSinglePointWithSCD (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
+				
 
 				break;
 
 			case TypeID.M_ME_ND_1: /* 21 */
 
-				elementSize = parameters.SizeOfIOA + 2;
+				elementSize = 2;
 
-				retVal = new MeasuredValueNormalizedWithoutQuality (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
-				//TODO add support for Sequence of elements in a single information object (sq = 1)
+					retVal = new MeasuredValueNormalizedWithoutQuality (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new MeasuredValueNormalizedWithoutQuality (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 

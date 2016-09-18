@@ -36,6 +36,17 @@ namespace lib60870
 
 	public class SingleCommand : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_SC_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private byte sco;
 
@@ -50,15 +61,15 @@ namespace lib60870
 		}
 
 		internal SingleCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			sco = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.SetNextByte (sco);
 		}
@@ -98,7 +109,25 @@ namespace lib60870
 
 	public class SingleCommandWithCP56Time2a : SingleCommand
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_SC_TA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private CP56Time2a timestamp;
+
+		public CP56Time2a Timestamp {
+			get {
+				return timestamp;
+			}
+		}
 
 		public SingleCommandWithCP56Time2a (int ioa, bool command, bool selectCommand, int qu, CP56Time2a timestamp) : 
 			base(ioa, command, selectCommand, qu)
@@ -114,23 +143,27 @@ namespace lib60870
 			timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
-
-		public CP56Time2a Timestamp {
-			get {
-				return timestamp;
-			}
-		}
-
-
 	}
 
 	public class DoubleCommand : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_DC_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		public static int OFF = 1;
 		public static int ON = 2;
 
@@ -146,15 +179,15 @@ namespace lib60870
 		}
 
 		internal DoubleCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			dcq = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.SetNextByte (dcq);
 		}
@@ -180,6 +213,24 @@ namespace lib60870
 
 	public class DoubleCommandWithCP56Time2a : DoubleCommand
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_DC_TA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
+		public CP56Time2a Timestamp {
+			get {
+				return timestamp;
+			}
+		}
+
 		private CP56Time2a timestamp;
 
 		public DoubleCommandWithCP56Time2a (int ioa, int command, bool select, int quality, CP56Time2a timestamp) : 
@@ -196,22 +247,29 @@ namespace lib60870
 			timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
-
-		public CP56Time2a Timestamp {
-			get {
-				return timestamp;
-			}
-		}
+	
 	}
 
 
 	public class StepCommand : DoubleCommand 
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_RC_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		public StepCommand (int ioa, StepCommandValue command, bool select, int quality) : base(ioa, (int) command, select, quality)
 		{
 		}
@@ -230,7 +288,25 @@ namespace lib60870
 
 	public class StepCommandWithCP56Time2a : StepCommand
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.C_RC_TA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private CP56Time2a timestamp;
+
+		public CP56Time2a Timestamp {
+			get {
+				return timestamp;
+			}
+		}
 
 		public StepCommandWithCP56Time2a (int ioa, StepCommandValue command, bool select, int quality, CP56Time2a timestamp) : 
 			base(ioa, command, select, quality)
@@ -246,17 +322,12 @@ namespace lib60870
 			timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
-
-		public CP56Time2a Timestamp {
-			get {
-				return timestamp;
-			}
-		}
+			
 	}
 
 

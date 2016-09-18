@@ -34,6 +34,17 @@ namespace lib60870
 
 	public class DoublePointInformation : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_DP_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
 
 		private DoublePointValue value;
 
@@ -58,10 +69,11 @@ namespace lib60870
 			this.quality = quality;
 		}
 
-		internal DoublePointInformation (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+		internal DoublePointInformation (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
+			base(parameters, msg, startIndex, isSequence)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			if (!isSequence)
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			/* parse DIQ (double point information with qualitiy) */
 			byte diq = msg [startIndex++];
@@ -71,8 +83,8 @@ namespace lib60870
 			quality = new QualityDescriptor ((byte) (diq & 0xf0));
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			byte val = quality.EncodedValue;
 
@@ -84,6 +96,17 @@ namespace lib60870
 
 	public class DoublePointWithCP24Time2a : DoublePointInformation
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_DP_TA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private CP24Time2a timestamp;
 
@@ -100,7 +123,7 @@ namespace lib60870
 		}
 
 		internal DoublePointWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA + 1; /* skip IOA  +  DIQ */
 
@@ -108,8 +131,8 @@ namespace lib60870
 			timestamp = new CP24Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
@@ -117,6 +140,18 @@ namespace lib60870
 
 	public class DoublePointWithCP56Time2a : DoublePointInformation
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_DP_TB_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private CP56Time2a timestamp;
 
 		public CP56Time2a Timestamp {
@@ -132,7 +167,7 @@ namespace lib60870
 		}
 
 		internal DoublePointWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA + 1; /* skip IOA  +  DIQ */
 
@@ -140,8 +175,8 @@ namespace lib60870
 			timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}

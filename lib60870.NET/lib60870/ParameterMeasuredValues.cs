@@ -26,6 +26,18 @@ namespace lib60870
 
 	public class ParameterNormalizedValue : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.P_ME_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private ScaledValue scaledValue;
 
 		public float NormalizedValue {
@@ -36,7 +48,11 @@ namespace lib60870
 			}
 
 			set {
-				//TODO check value range
+				if (value > 1.0f)
+					value = 1.0f;
+				else if (value < -1.0f)
+					value = -1.0f;
+				
 				scaledValue.Value = (int)(value * 32767f); 
 			}
 		}
@@ -60,7 +76,7 @@ namespace lib60870
 		}
 
 		internal ParameterNormalizedValue (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -71,8 +87,8 @@ namespace lib60870
 			qpm = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (scaledValue.GetEncodedValue ());
 
@@ -82,6 +98,18 @@ namespace lib60870
 
 	public class ParameterScaledValue : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.P_ME_NB_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
 		private ScaledValue scaledValue;
 
 		public ScaledValue ScaledValue {
@@ -110,7 +138,7 @@ namespace lib60870
 		}
 
 		internal ParameterScaledValue (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -121,8 +149,8 @@ namespace lib60870
 			qpm = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (scaledValue.GetEncodedValue ());
 
@@ -132,6 +160,17 @@ namespace lib60870
 
 	public class ParameterFloatValue : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.P_ME_NC_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private float value;
 
@@ -158,7 +197,7 @@ namespace lib60870
 		}
 
 		internal ParameterFloatValue (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -170,8 +209,8 @@ namespace lib60870
 			qpm = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			byte[] floatEncoded = BitConverter.GetBytes (value);
 
@@ -187,6 +226,17 @@ namespace lib60870
 
 	public class ParameterActivation : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.P_AC_NA_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
 
 		private byte qpa;
 
@@ -212,7 +262,7 @@ namespace lib60870
 		}
 
 		internal ParameterActivation (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -220,8 +270,8 @@ namespace lib60870
 			qpa = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters) {
-			base.Encode(frame, parameters);
+		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
 			frame.SetNextByte (qpa);
 		}

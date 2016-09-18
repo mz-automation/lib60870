@@ -26,6 +26,18 @@ namespace lib60870
 
 	public class PackedOutputCircuitInfo : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_EP_TC_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
+
 		OutputCircuitInfo oci;
 
 		public OutputCircuitInfo OCI {
@@ -59,7 +71,7 @@ namespace lib60870
 		}
 
 		public PackedOutputCircuitInfo (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
@@ -77,6 +89,18 @@ namespace lib60870
 
 	public class PackedOutputCircuitInfoWithCP56Time2a : InformationObject
 	{
+		override public TypeID Type {
+			get {
+				return TypeID.M_EP_TF_1;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return true;
+			}
+		}
+
 		OutputCircuitInfo oci;
 
 		public OutputCircuitInfo OCI {
@@ -110,7 +134,7 @@ namespace lib60870
 		}
 
 		public PackedOutputCircuitInfoWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex)
+			base(parameters, msg, startIndex, false)
 		{
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 

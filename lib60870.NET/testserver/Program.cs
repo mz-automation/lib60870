@@ -18,7 +18,7 @@ namespace testserver
 			connection.SendACT_CON (asdu, false);
 
 			// send information objects
-			ASDU newAsdu = new ASDU(TypeID.M_ME_NB_1, CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 2, 1, false);
+			ASDU newAsdu = new ASDU(CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 2, 1, false);
 
 			newAsdu.AddInformationObject (new MeasuredValueScaled (100, -1, new QualityDescriptor ()));
 
@@ -28,15 +28,29 @@ namespace testserver
 
 			connection.SendASDU (newAsdu);
 
-			newAsdu = new ASDU (TypeID.M_ME_TE_1, CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 3, 1, false);
+			newAsdu = new ASDU (CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 3, 1, false);
 
 			newAsdu.AddInformationObject(new MeasuredValueScaledWithCP56Time2a(103, 3456, new QualityDescriptor (), new CP56Time2a(DateTime.Now)));
 
 			connection.SendASDU (newAsdu);
 
-			newAsdu = new ASDU (TypeID.M_SP_TB_1, CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 2, 1, false);
+			newAsdu = new ASDU (CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 2, 1, false);
 
 			newAsdu.AddInformationObject (new SinglePointWithCP56Time2a (104, true, new QualityDescriptor (), new CP56Time2a (DateTime.Now)));
+
+			connection.SendASDU (newAsdu);
+
+			// send sequence of information objects
+			newAsdu = new ASDU (CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 2, 1, true);
+
+			newAsdu.AddInformationObject (new SinglePointInformation (200, true, new QualityDescriptor ()));
+			newAsdu.AddInformationObject (new SinglePointInformation (201, false, new QualityDescriptor ()));
+			newAsdu.AddInformationObject (new SinglePointInformation (202, true, new QualityDescriptor ()));
+			newAsdu.AddInformationObject (new SinglePointInformation (203, false, new QualityDescriptor ()));
+			newAsdu.AddInformationObject (new SinglePointInformation (204, true, new QualityDescriptor ()));
+			newAsdu.AddInformationObject (new SinglePointInformation (205, false, new QualityDescriptor ()));
+			newAsdu.AddInformationObject (new SinglePointInformation (206, true, new QualityDescriptor ()));
+			newAsdu.AddInformationObject (new SinglePointInformation (207, false, new QualityDescriptor ()));
 
 			connection.SendASDU (newAsdu);
 
@@ -97,7 +111,7 @@ namespace testserver
 					waitTime -= 100;
 				else {
 
-					ASDU newAsdu = new ASDU (TypeID.M_ME_NB_1, CauseOfTransmission.PERIODIC, false, false, 2, 1, false);
+					ASDU newAsdu = new ASDU (CauseOfTransmission.PERIODIC, false, false, 2, 1, false);
 
 					newAsdu.AddInformationObject (new MeasuredValueScaled (110, -1, new QualityDescriptor ()));
 				
