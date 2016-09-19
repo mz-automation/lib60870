@@ -688,25 +688,37 @@ ASDU_getElement(ASDU self, int index)
 
     case C_IC_NA_1: /* 100 - Interrogation command */
 
-        elementSize = self->parameters->sizeOfIOA + 1;
+        retVal = (InformationObject) InterrogationCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  0);
 
-        retVal = (InformationObject) InterrogationCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        break;
+
+    case C_CI_NA_1: /* 101 - Counter interrogation command */
+
+        retVal = (InformationObject) CounterInterrogationCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  0);
 
         break;
 
     case C_RD_NA_1: /* 102 - Read command */
 
-        elementSize = self->parameters->sizeOfIOA;
-
-        retVal = (InformationObject) ReadCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        retVal = (InformationObject) ReadCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  0);
 
         break;
 
     case C_CS_NA_1: /* 103 - Clock synchronization command */
 
-        elementSize = self->parameters->sizeOfIOA;
+        retVal = (InformationObject) ClockSynchronizationCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  0);
 
-        retVal = (InformationObject) ClockSynchronizationCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        break;
+
+    case C_RP_NA_1: /* 105 - Reset process command */
+
+        retVal = (InformationObject) ResetProcessCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  0);
+
+        break;
+
+    case C_CD_NA_1: /* 106 - Delay acquisition command */
+
+        retVal = (InformationObject) DelayAcquisitionCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  0);
 
         break;
 

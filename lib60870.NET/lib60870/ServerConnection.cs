@@ -338,7 +338,50 @@ namespace lib60870
 
 						break;
 
+					case TypeID.C_RP_NA_1: /* 105 - Reset process command */
 
+						if (debugOutput)
+							Console.WriteLine ("Rcvd reset process command C_RP_NA_1");
+
+						if (asdu.Cot == CauseOfTransmission.ACTIVATION) {
+
+							if (server.resetProcessHandler != null) {
+
+								ResetProcessCommand rpc = (ResetProcessCommand)asdu.GetElement (0);
+
+								if (server.resetProcessHandler (server.resetProcessHandlerParameter,
+									this, asdu, rpc.QRP))
+									messageHandled = true;
+							}
+
+						} else {
+							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+							this.SendASDU (asdu);
+						}
+
+
+						break;
+
+					case TypeID.C_CD_NA_1: /* 106 - Delay acquisition command */
+
+						if (debugOutput)
+							Console.WriteLine ("Rcvd delay acquisition command C_CD_NA_1");
+
+						if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.SPONTANEOUS)) {
+							if (server.delayAcquisitionHandler != null) {
+
+								DelayAcquisitionCommand dac = (DelayAcquisitionCommand)asdu.GetElement (0);
+
+								if (server.delayAcquisitionHandler (server.delayAcquisitionHandlerParameter,
+									    this, asdu, dac.Delay))
+									messageHandled = true;
+							}
+						} else {
+							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+							this.SendASDU (asdu);
+						}
+
+						break;
 
 					}
 

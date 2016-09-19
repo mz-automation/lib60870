@@ -80,6 +80,47 @@ typedef uint8_t QualifierOfParameterMV;
 #define IEC60870_QPM_HIGH_LIMIT_FOR_TRANSMISSION 4
 
 /**
+ * \brief QCC (Qualifier of counter interrogation command) according to IEC 60870-5-101:2003 7.2.6.23
+ *
+ * The QCC is composed by the RQT(request) and the FRZ(Freeze) part
+ *
+ * QCC = RQT + FRZ
+ *
+ * E.g.
+ *
+ * to read the the values from counter group one use:
+ *
+ *   QCC = IEC60870_QCC_RQT_GROUP_1 + IEC60870_QCC_FRZ_READ
+ *
+ * to reset all counters use:
+ *
+ *   QCC = IEC60870_QCC_RQT_GENERAL + IEC60870_QCC_FRZ_COUNTER_RESET
+ *
+ */
+typedef uint8_t QualifierOfCIC;
+
+#define IEC60870_QCC_RQT_GROUP_1 1
+#define IEC60870_QCC_RQT_GROUP_2 2
+#define IEC60870_QCC_RQT_GROUP_3 3
+#define IEC60870_QCC_RQT_GROUP_4 4
+#define IEC60870_QCC_RQT_GENERAL 5
+
+#define IEC60870_QCC_FRZ_READ                 0x00
+#define IEC60870_QCC_FRZ_FREEZE_WITHOUT_RESET 0x40
+#define IEC60870_QCC_FRZ_FREEZE_WITH_RESET    0x80
+#define IEC60870_QCC_FRZ_COUNTER_RESET
+
+/**
+ * \brief QRP (Qualifier of reset process command) according to IEC 60870-5-101:2003 7.2.6.27
+ */
+typedef uint8_t QualifierOfRPC;
+
+#define IEC60870_QRP_NOT_USED 0
+#define IEC60870_QRP_GENERAL_RESET 1
+#define IEC60870_QRP_RESET_PENDING_INFO_WITH_TIME_TAG 2
+
+
+/**
  * \brief Qualifier of parameter activation (QPA) according to IEC 60870-5-101:2003 7.2.6.25
  */
 typedef uint8_t QualifierOfParameterActivation;
@@ -1274,6 +1315,51 @@ Bitstring32CommandWithCP56Time2a_getValue(Bitstring32CommandWithCP56Time2a self)
 CP56Time2a
 Bitstring32CommandWithCP56Time2a_getTimestamp(Bitstring32CommandWithCP56Time2a self);
 
+
+/**************************************************
+ * CounterInterrogationCommand : InformationObject
+ **************************************************/
+
+typedef struct sCounterInterrogationCommand* CounterInterrogationCommand;
+
+CounterInterrogationCommand
+CounterInterrogationCommand_create(CounterInterrogationCommand self, int ioa, QualifierOfCIC qcc);
+
+void
+CounterInterrogationCommand_destroy(CounterInterrogationCommand self);
+
+QualifierOfCIC
+CounterInterrogationCommand_getQCC(CounterInterrogationCommand self);
+
+/*************************************************
+ * ResetProcessCommand : InformationObject
+ ************************************************/
+
+typedef struct sResetProcessCommand* ResetProcessCommand;
+
+ResetProcessCommand
+ResetProcessCommand_create(ResetProcessCommand self, int ioa, QualifierOfRPC qrp);
+
+void
+ResetProcessCommand_destroy(ResetProcessCommand self);
+
+QualifierOfRPC
+ResetProcessCommand_getQRP(ResetProcessCommand self);
+
+/*************************************************
+ * DelayAcquisitionCommand : InformationObject
+ ************************************************/
+
+typedef struct sDelayAcquisitionCommand* DelayAcquisitionCommand;
+
+DelayAcquisitionCommand
+DelayAcquisitionCommand_create(DelayAcquisitionCommand self, int ioa,  CP16Time2a delay);
+
+void
+DelayAcquisitionCommand_destroy(DelayAcquisitionCommand self);
+
+CP16Time2a
+DelayAcquisitionCommand_getDelay(DelayAcquisitionCommand self);
 
 #ifdef __cplusplus
 }

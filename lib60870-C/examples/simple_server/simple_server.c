@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <signal.h>
 
 #include "iec60870_slave.h"
 
@@ -10,6 +11,12 @@
 static bool running = true;
 
 static ConnectionParameters connectionParameters;
+
+void
+sigint_handler(int signalId)
+{
+    running = false;
+}
 
 void
 printCP56Time2a(CP56Time2a time)
@@ -113,6 +120,7 @@ asduHandler (void* parameter, MasterConnection connection, ASDU asdu)
             else
                 ASDU_setCOT(asdu, UNKNOWN_INFORMATION_OBJECT_ADDRESS);
 
+            InformationObject_destroy(io);
         }
         else
             ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
@@ -128,7 +136,8 @@ asduHandler (void* parameter, MasterConnection connection, ASDU asdu)
 int
 main(int argc, char** argv)
 {
-    printf("InfoObjSize: %i\n", InformationObject_getMaxSizeInMemory());
+    /* Add Ctrl-C handler */
+    signal(SIGINT, sigint_handler);
 
     /* create a new slave/server instance with default connection parameters and
      * default message queue size */
@@ -138,6 +147,11 @@ main(int argc, char** argv)
     connectionParameters = Slave_getConnectionParameters(slave);
 
     Slave_start(slave);
+
+    if (Slave_isRunning(slave) == false) {
+        printf("Starting server failed!\n");
+        goto exit_program;
+    }
 
     /* set the callback handler for the clock synchronization command */
     Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);
@@ -163,9 +177,15 @@ main(int argc, char** argv)
 
         InformationObject_destroy(io);
 
+        /* Add ASDU to slave event queue - don't release the ASDU afterwards!
+         * The ASDU will be released by the Slave instance when the ASDU
+         * has been sent.
+         */
         Slave_enqueueASDU(slave, newAsdu);
     }
 
     Slave_stop(slave);
 
+exit_program:
+    Slave_destroy(slave);
 }

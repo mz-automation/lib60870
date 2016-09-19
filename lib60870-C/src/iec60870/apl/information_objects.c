@@ -6040,6 +6040,283 @@ InterrogationCommand_getFromBuffer(InterrogationCommand self, ConnectionParamete
     return self;
 }
 
+/**************************************************
+ * CounterInterrogationCommand : InformationObject
+ **************************************************/
+
+struct sCounterInterrogationCommand {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t qcc;
+};
+
+static void
+CounterInterrogationCommand_encode(CounterInterrogationCommand self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, self->qcc);
+}
+
+struct sInformationObjectVFT counterInterrogationCommandVFT = {
+        (EncodeFunction) CounterInterrogationCommand_encode,
+        (DestroyFunction) CounterInterrogationCommand_destroy
+};
+
+static void
+CounterInterrogationCommand_initialize(CounterInterrogationCommand self)
+{
+    self->virtualFunctionTable = &(counterInterrogationCommandVFT);
+    self->type = C_CI_NA_1;
+}
+
+CounterInterrogationCommand
+CounterInterrogationCommand_create(CounterInterrogationCommand self, int ioa, QualifierOfCIC qcc)
+{
+    if (self == NULL) {
+        self = (CounterInterrogationCommand) GLOBAL_MALLOC(sizeof(struct sCounterInterrogationCommand));
+
+        if (self == NULL)
+            return NULL;
+        else
+            CounterInterrogationCommand_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    self->qcc = qcc;
+
+    return self;
+}
+
+void
+CounterInterrogationCommand_destroy(CounterInterrogationCommand self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+QualifierOfCIC
+CounterInterrogationCommand_getQCC(CounterInterrogationCommand self)
+{
+    return self->qcc;
+}
+
+CounterInterrogationCommand
+CounterInterrogationCommand_getFromBuffer(CounterInterrogationCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 1)
+        return NULL;
+
+    if (self == NULL) {
+        self = (CounterInterrogationCommand) GLOBAL_MALLOC(sizeof(struct sCounterInterrogationCommand));
+
+        if (self != NULL)
+            CounterInterrogationCommand_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* QCC */
+        self->qcc = msg[startIndex];
+    }
+
+    return self;
+}
+
+/*************************************************
+ * ResetProcessCommand : InformationObject
+ ************************************************/
+
+struct sResetProcessCommand {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    QualifierOfRPC qrp;
+};
+
+static void
+ResetProcessCommand_encode(ResetProcessCommand self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_setNextByte(frame, self->qrp);
+}
+
+struct sInformationObjectVFT resetProcessCommandVFT = {
+        (EncodeFunction) ResetProcessCommand_encode,
+        (DestroyFunction) ResetProcessCommand_destroy
+};
+
+static void
+ResetProcessCommand_initialize(ResetProcessCommand self)
+{
+    self->virtualFunctionTable = &(resetProcessCommandVFT);
+    self->type = C_RP_NA_1;
+}
+
+ResetProcessCommand
+ResetProcessCommand_create(ResetProcessCommand self, int ioa,  QualifierOfRPC qrp)
+{
+    if (self == NULL) {
+        self = (ResetProcessCommand) GLOBAL_MALLOC(sizeof(struct sResetProcessCommand));
+
+        if (self == NULL)
+            return NULL;
+        else
+            ResetProcessCommand_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    self->qrp = qrp;
+
+    return self;
+}
+
+void
+ResetProcessCommand_destroy(ResetProcessCommand self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+QualifierOfRPC
+ResetProcessCommand_getQRP(ResetProcessCommand self)
+{
+    return self->qrp;
+}
+
+ResetProcessCommand
+ResetProcessCommand_getFromBuffer(ResetProcessCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 1)
+        return NULL;
+
+    if (self == NULL) {
+        self = (ResetProcessCommand) GLOBAL_MALLOC(sizeof(struct sResetProcessCommand));
+
+        if (self != NULL)
+            ResetProcessCommand_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* QUI */
+        self->qrp = msg[startIndex];
+    }
+
+    return self;
+}
+
+/*************************************************
+ * DelayAcquisitionCommand : InformationObject
+ ************************************************/
+
+struct sDelayAcquisitionCommand {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    struct sCP16Time2a delay;
+};
+
+static void
+DelayAcquisitionCommand_encode(DelayAcquisitionCommand self, Frame frame, ConnectionParameters parameters)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+
+    Frame_appendBytes(frame, self->delay.encodedValue, 2);
+}
+
+struct sInformationObjectVFT DelayAcquisitionCommandVFT = {
+        (EncodeFunction) DelayAcquisitionCommand_encode,
+        (DestroyFunction) DelayAcquisitionCommand_destroy
+};
+
+static void
+DelayAcquisitionCommand_initialize(DelayAcquisitionCommand self)
+{
+    self->virtualFunctionTable = &(DelayAcquisitionCommandVFT);
+    self->type = C_CD_NA_1;
+}
+
+DelayAcquisitionCommand
+DelayAcquisitionCommand_create(DelayAcquisitionCommand self, int ioa,  CP16Time2a delay)
+{
+    if (self == NULL) {
+        self = (DelayAcquisitionCommand) GLOBAL_MALLOC(sizeof(struct sDelayAcquisitionCommand));
+
+        if (self == NULL)
+            return NULL;
+        else
+            DelayAcquisitionCommand_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    self->delay = *delay;
+
+    return self;
+}
+
+void
+DelayAcquisitionCommand_destroy(DelayAcquisitionCommand self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+CP16Time2a
+DelayAcquisitionCommand_getDelay(DelayAcquisitionCommand self)
+{
+    return &(self->delay);
+}
+
+DelayAcquisitionCommand
+DelayAcquisitionCommand_getFromBuffer(DelayAcquisitionCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 1)
+        return NULL;
+
+    if (self == NULL) {
+        self = (DelayAcquisitionCommand) GLOBAL_MALLOC(sizeof(struct sDelayAcquisitionCommand));
+
+        if (self != NULL)
+            DelayAcquisitionCommand_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* delay */
+        CP16Time2a_getFromBuffer(&(self->delay), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+
 /*******************************************
  * ParameterActivation : InformationObject
  *******************************************/

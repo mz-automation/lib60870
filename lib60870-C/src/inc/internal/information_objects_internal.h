@@ -226,4 +226,16 @@ Bitstring32CommandWithCP56Time2a
 Bitstring32CommandWithCP56Time2a_getFromBuffer(Bitstring32CommandWithCP56Time2a self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+CounterInterrogationCommand
+CounterInterrogationCommand_getFromBuffer(CounterInterrogationCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+ResetProcessCommand
+ResetProcessCommand_getFromBuffer(ResetProcessCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+DelayAcquisitionCommand
+DelayAcquisitionCommand_getFromBuffer(DelayAcquisitionCommand self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
 #endif /* SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_ */

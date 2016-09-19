@@ -77,11 +77,20 @@ struct sSlave {
     InterrogationHandler interrogationHandler;
     void* interrogationHandlerParameter;
 
+    CounterInterrogationHandler counterInterrogationHandler;
+    void* counterInterrogationHandlerParameter;
+
     ReadHandler readHandler;
     void* readHandlerParameter;
 
     ClockSynchronizationHandler clockSyncHandler;
     void* clockSyncHandlerParameter;
+
+    ResetProcessHandler resetProcessHandler;
+    void* resetProcessHandlerParameter;
+
+    DelayAcquisitionHandler delayAcquisitionHandler;
+    void* delayAcquisitionHandlerParameter;
 
     ASDUHandler asduHandler;
     void* asduHandlerParameter;
@@ -90,6 +99,7 @@ struct sSlave {
 
     ConnectionParameters parameters;
 
+    bool isStarting;
     bool isRunning;
     bool stopRunning;
 
@@ -158,8 +168,11 @@ T104Slave_create(ConnectionParameters parameters, int maxQueueSize)
 
         self->asduHandler = NULL;
         self->interrogationHandler = NULL;
+        self->counterInterrogationHandler = NULL;
         self->readHandler = NULL;
         self->clockSyncHandler = NULL;
+        self->resetProcessHandler = NULL;
+        self->delayAcquisitionHandler = NULL;
 
         self->isRunning = false;
         self->stopRunning = false;
@@ -182,6 +195,13 @@ Slave_setInterrogationHandler(Slave self, InterrogationHandler handler, void*  p
 {
     self->interrogationHandler = handler;
     self->interrogationHandlerParameter = parameter;
+}
+
+void
+Slave_setCounterInterrogationHandler(Slave self, CounterInterrogationHandler handler, void*  parameter)
+{
+    self->counterInterrogationHandler = handler;
+    self->counterInterrogationHandlerParameter = parameter;
 }
 
 void
@@ -265,6 +285,32 @@ Slave_enqueueASDU(Slave self, ASDU asdu)
     //TODO trigger active connection to send message
 }
 
+static void
+releaseAllQueuedASDUs(Slave self)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->messageQueue.queueLock);
+#endif
+
+    while (self->messageQueue.entryCounter > 0) {
+        ASDU_destroy(self->messageQueue.asdus[self->messageQueue.firstMsgIndex]);
+
+        self->messageQueue.entryCounter--;
+
+        self->messageQueue.firstMsgIndex++;
+
+        if (self->messageQueue.firstMsgIndex == self->messageQueue.size)
+            self->messageQueue.firstMsgIndex = 0;
+    }
+
+
+    self->messageQueue.firstMsgIndex = 0;
+    self->messageQueue.lastMsgIndex = 0;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->messageQueue.queueLock);
+#endif
+}
 
 ASDU
 Slave_dequeueASDU(Slave self)
@@ -374,12 +420,19 @@ sendASDU(MasterConnection self, ASDU asdu)
     T104Frame_destroy(frame);
 }
 
+static void responseCOTUnknown(ASDU asdu, MasterConnection self)
+{
+    DEBUG_PRINT("  with unknown COT\n");
+    ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
+    sendASDU(self, asdu);
+}
+
 static void
 handleASDU(MasterConnection self, ASDU asdu)
 {
     bool messageHandled = false;
 
-    Slave master = self->slave;
+    Slave slave = self->slave;
 
     uint8_t cot = ASDU_getCOT(asdu);
 
@@ -390,20 +443,19 @@ handleASDU(MasterConnection self, ASDU asdu)
         DEBUG_PRINT("Rcvd interrogation command C_IC_NA_1\n");
 
         if ((cot == ACTIVATION) || (cot == DEACTIVATION)) {
-            if (master->interrogationHandler != NULL) {
+            if (slave->interrogationHandler != NULL) {
 
                 InterrogationCommand irc = (InterrogationCommand) ASDU_getElement(asdu, 0);
 
-                if (master->interrogationHandler(master->interrogationHandlerParameter,
+                if (slave->interrogationHandler(slave->interrogationHandlerParameter,
                         self, asdu, InterrogationCommand_getQOI(irc)))
                     messageHandled = true;
+
+                InterrogationCommand_destroy(irc);
             }
         }
-        else {
-            ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
-            sendASDU(self, asdu);
-        }
-
+        else
+            responseCOTUnknown(asdu, self);
 
         break;
 
@@ -413,23 +465,20 @@ handleASDU(MasterConnection self, ASDU asdu)
 
         if ((cot == ACTIVATION) || (cot == DEACTIVATION)) {
 
-#if 0
-            if (slave->counterIn != NULL) {
+            if (slave->counterInterrogationHandler != NULL) {
 
-                CounterInterrogationCommand irc = (CounterInterrogationCommand) ASDU_getElement(asdu, 0);
+                CounterInterrogationCommand cic = (CounterInterrogationCommand) ASDU_getElement(asdu, 0);
 
 
-                if (slave->interrogationHandler(slave->interrogationHandlerParameter,
-                        self, asdu, InterrogationCommand_getQOI(irc)))
+                if (slave->counterInterrogationHandler(slave->counterInterrogationHandlerParameter,
+                        self, asdu, CounterInterrogationCommand_getQCC(cic)))
                     messageHandled = true;
-            }
-#endif
-        }
-        else {
-            ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
-            sendASDU(self, asdu);
-        }
 
+                CounterInterrogationCommand_destroy(cic);
+            }
+        }
+        else
+            responseCOTUnknown(asdu, self);
 
         break;
 
@@ -438,19 +487,18 @@ handleASDU(MasterConnection self, ASDU asdu)
         DEBUG_PRINT("Rcvd read command C_RD_NA_1\n");
 
         if (cot == REQUEST) {
-            if (master->readHandler != NULL) {
+            if (slave->readHandler != NULL) {
                 ReadCommand rc = (ReadCommand) ASDU_getElement(asdu, 0);
 
-                if (master->readHandler(master->readHandlerParameter,
+                if (slave->readHandler(slave->readHandlerParameter,
                         self, asdu, InformationObject_getObjectAddress((InformationObject) rc)))
                     messageHandled = true;
+
+                ReadCommand_destroy(rc);
             }
         }
-        else {
-            ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
-            sendASDU(self, asdu);
-        }
-
+        else
+            responseCOTUnknown(asdu, self);
 
         break;
 
@@ -460,20 +508,19 @@ handleASDU(MasterConnection self, ASDU asdu)
 
         if (cot == ACTIVATION) {
 
-            if (master->clockSyncHandler != NULL) {
+            if (slave->clockSyncHandler != NULL) {
 
                 ClockSynchronizationCommand csc = (ClockSynchronizationCommand) ASDU_getElement(asdu, 0);
 
-                if (master->clockSyncHandler(master->clockSyncHandlerParameter,
+                if (slave->clockSyncHandler(slave->clockSyncHandlerParameter,
                         self, asdu, ClockSynchronizationCommand_getTime(csc)))
                     messageHandled = true;
+
+                ClockSynchronizationCommand_destroy(csc);
             }
         }
-        else {
-            ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
-            sendASDU(self, asdu);
-        }
-
+        else
+            responseCOTUnknown(asdu, self);
 
         break;
 
@@ -492,12 +539,56 @@ handleASDU(MasterConnection self, ASDU asdu)
 
         break;
 
+    case C_RP_NA_1: /* 105 - Reset process command */
+
+        DEBUG_PRINT("Rcvd reset process command C_RP_NA_1\n");
+
+        if (cot == ACTIVATION) {
+
+            if (slave->resetProcessHandler != NULL) {
+                ResetProcessCommand rpc = (ResetProcessCommand) ASDU_getElement(asdu, 0);
+
+                if (slave->resetProcessHandler(slave->resetProcessHandlerParameter,
+                        self, asdu, ResetProcessCommand_getQRP(rpc)))
+                    messageHandled = true;
+
+                ResetProcessCommand_destroy(rpc);
+            }
+
+        }
+        else
+            responseCOTUnknown(asdu, self);
+
+        break;
+
+    case C_CD_NA_1: /* 106 - Delay acquisition command */
+
+        DEBUG_PRINT("Rcvd delay acquisition command C_CD_NA_1\n");
+
+        if ((cot == ACTIVATION) || (cot == SPONTANEOUS)) {
+
+            if (slave->delayAcquisitionHandler != NULL) {
+                DelayAcquisitionCommand dac = (DelayAcquisitionCommand) ASDU_getElement(asdu, 0);
+
+                if (slave->delayAcquisitionHandler(slave->delayAcquisitionHandlerParameter,
+                        self, asdu, DelayAcquisitionCommand_getDelay(dac)))
+                    messageHandled = true;
+
+                DelayAcquisitionCommand_destroy(dac);
+            }
+        }
+        else
+            responseCOTUnknown(asdu, self);
+
+        break;
+
+
     default: /* no special handler available -> use default handler */
         break;
     }
 
-    if ((messageHandled == false) && (master->asduHandler != NULL))
-        if (master->asduHandler(master->asduHandlerParameter, self, asdu))
+    if ((messageHandled == false) && (slave->asduHandler != NULL))
+        if (slave->asduHandler(slave->asduHandlerParameter, self, asdu))
             messageHandled = true;
 
     if (messageHandled == false) {
@@ -526,7 +617,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             ASDU asdu = ASDU_createFromBuffer(self->slave->parameters, buffer + 6, msgSize - 6);
 
             handleASDU(self, asdu);
-            //ASDU_destroy(asdu);
+
+            ASDU_destroy(asdu);
         }
     }
 
@@ -731,9 +823,16 @@ serverThread (void* parameter)
 
     ServerSocket serverSocket = TcpServerSocket_create("127.0.0.1", self->tcpPort);
 
+    if (serverSocket == NULL) {
+        DEBUG_PRINT("Cannot create server socket\n");
+        self->isStarting = false;
+        goto exit_function;
+    }
+
     ServerSocket_listen(serverSocket);
 
     self->isRunning = true;
+    self->isStarting = false;
 
     while (self->stopRunning == false) {
         Socket newSocket = ServerSocket_accept(serverSocket);
@@ -749,9 +848,13 @@ serverThread (void* parameter)
             Thread_sleep(10);
     }
 
+    if (serverSocket)
+        Socket_destroy((Socket) serverSocket);
+
     self->isRunning = false;
     self->stopRunning = false;
 
+exit_function:
     return NULL;
 }
 
@@ -759,11 +862,17 @@ void
 Slave_start(Slave self)
 {
     if (self->isRunning == false) {
+
+        self->isStarting = true;
+        self->isRunning = false;
         self->stopRunning = false;
 
         Thread server = Thread_create(serverThread, (void*) self, true);
 
         Thread_start(server);
+
+        while (self->isStarting)
+            Thread_sleep(1);
     }
 }
 
@@ -776,19 +885,29 @@ Slave_isRunning(Slave self)
 void
 Slave_stop(Slave self)
 {
-    self->stopRunning = true;
+    if (self->isRunning) {
+        self->stopRunning = true;
+
+        while (self->isRunning)
+            Thread_sleep(1);
+    }
 }
 
 
 void
 Slave_destroy(Slave self)
 {
+    if (self->isRunning)
+        Slave_stop(self);
+
+    releaseAllQueuedASDUs(self);
+
 #if (CONFIG_SLAVE_USING_THREADS == 1)
     Semaphore_destroy(self->messageQueue.queueLock);
 #endif
 
-#if  (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 0)
-    GLOBAL_FREEMEM(self->messageQueue.frames);
+#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 0)
+    GLOBAL_FREEMEM(self->messageQueue.asdus);
     GLOBAL_FREEMEM(self);
 #endif
 }

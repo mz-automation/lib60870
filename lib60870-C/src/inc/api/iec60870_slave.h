@@ -51,7 +51,7 @@ typedef bool (*InterrogationHandler) (void* parameter, MasterConnection connecti
 /**
  * \brief Handler for counter interrogation command (C_CI_NA_1 - 101).
  */
-typedef bool (*CounterInterrogationHandler) (void* parameter, MasterConnection connection, ASDU asdu, uint8_t qoi);
+typedef bool (*CounterInterrogationHandler) (void* parameter, MasterConnection connection, ASDU asdu, QualifierOfCIC qcc);
 
 /**
  * \brief Handler for read command (C_RD_NA_1 - 102)
@@ -86,6 +86,9 @@ T104Slave_getOpenConnections(Slave self);
 
 void
 Slave_setInterrogationHandler(Slave self, InterrogationHandler handler, void*  parameter);
+
+void
+Slave_setCounterInterrogationHandler(Slave self, CounterInterrogationHandler handler, void*  parameter);
 
 /**
  * \brief set handler for read request (C_RD_NA_1 - 102)

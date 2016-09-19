@@ -114,6 +114,13 @@ T104Connection_sendReadCommend(T104Connection self, int ca, int ioa);
 void
 T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time);
 
+/**
+ * \brief Send a test command (C_TS_NA_1 typeID: 104)
+ *
+ * Note: This command is not supported by IEC 60870-5-104
+ *
+ * \param ca Common address of the slave/server
+ */
 void
 T104Connection_sendTestCommand(T104Connection self, int ca);
 
