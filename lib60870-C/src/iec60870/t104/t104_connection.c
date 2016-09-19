@@ -472,7 +472,7 @@ T104Connection_sendControlCommand(T104Connection self, TypeID typeId, CauseOfTra
 
     encodeIdentificationField (self, frame, typeId, 1 /* SQ:false; NumIX:1 */, cot, ca);
 
-    InformationObject_encode(sc, frame, (ConnectionParameters) &(self->parameters));
+    InformationObject_encode(sc, frame, (ConnectionParameters) &(self->parameters), false);
 
     sendIMessage(self, frame);
 

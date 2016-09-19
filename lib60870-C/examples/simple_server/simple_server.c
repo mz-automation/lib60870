@@ -48,7 +48,7 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
 
     MasterConnection_sendACT_CON(connection, asdu, false);
 
-    ASDU newAsdu = ASDU_create(connectionParameters, M_ME_NB_1, INTERROGATED_BY_STATION,
+    ASDU newAsdu = ASDU_create(connectionParameters, M_ME_NB_1, false, INTERROGATED_BY_STATION,
             0, 1, false, false);
 
     InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 100, -1, IEC60870_QUALITY_GOOD);
@@ -65,7 +65,7 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
 
     MasterConnection_sendASDU(connection, newAsdu);
 
-    newAsdu = ASDU_create(connectionParameters, M_SP_TB_1, INTERROGATED_BY_STATION,
+    newAsdu = ASDU_create(connectionParameters, M_SP_TB_1, false, INTERROGATED_BY_STATION,
                 0, 1, false, false);
 
     io = (InformationObject) SinglePointWithCP56Time2a_create(NULL, 104, true, IEC60870_QUALITY_GOOD, &timestamp);
@@ -80,7 +80,7 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
     MasterConnection_sendASDU(connection, newAsdu);
 
 
-    newAsdu = ASDU_create(connectionParameters, M_IT_TB_1, INTERROGATED_BY_STATION,
+    newAsdu = ASDU_create(connectionParameters, M_IT_TB_1, false, INTERROGATED_BY_STATION,
                 0, 1, false, false);
 
     BinaryCounterReading bcr = BinaryCounterReading_create(NULL, 12345678, 0, false, false, true);
@@ -90,6 +90,22 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
     ASDU_addInformationObject(newAsdu, io);
 
     BinaryCounterReading_destroy(bcr);
+
+    InformationObject_destroy(io);
+
+    MasterConnection_sendASDU(connection, newAsdu);
+
+    newAsdu = ASDU_create(connectionParameters, M_SP_NA_1, true, INTERROGATED_BY_STATION,
+            0, 1, false, false);
+
+    ASDU_addInformationObject(newAsdu, io = (InformationObject) SinglePointInformation_create(NULL, 300, true, IEC60870_QUALITY_GOOD));
+    ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 301, false, IEC60870_QUALITY_GOOD));
+    ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 302, true, IEC60870_QUALITY_GOOD));
+    ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 303, false, IEC60870_QUALITY_GOOD));
+    ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 304, true, IEC60870_QUALITY_GOOD));
+    ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 305, false, IEC60870_QUALITY_GOOD));
+    ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 306, true, IEC60870_QUALITY_GOOD));
+    ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 307, false, IEC60870_QUALITY_GOOD));
 
     InformationObject_destroy(io);
 
@@ -167,7 +183,7 @@ main(int argc, char** argv)
     while (running) {
         Thread_sleep(1000);
 
-        ASDU newAsdu = ASDU_create(connectionParameters, M_ME_NB_1, PERIODIC, 0, 1, false, false);
+        ASDU newAsdu = ASDU_create(connectionParameters, M_ME_NB_1, false, PERIODIC, 0, 1, false, false);
 
         InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
 

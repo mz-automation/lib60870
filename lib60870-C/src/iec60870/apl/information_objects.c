@@ -34,7 +34,7 @@
 typedef struct sInformationObjectVFT* InformationObjectVFT;
 
 
-typedef void (*EncodeFunction)(InformationObject self, Frame frame, ConnectionParameters parameters);
+typedef void (*EncodeFunction)(InformationObject self, Frame frame, ConnectionParameters parameters, bool isSequence);
 typedef void (*DestroyFunction)(InformationObject self);
 
 struct sInformationObjectVFT {
@@ -142,9 +142,9 @@ struct sInformationObject {
 };
 
 void
-InformationObject_encode(InformationObject self, Frame frame, ConnectionParameters parameters)
+InformationObject_encode(InformationObject self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    self->virtualFunctionTable->encode(self, frame, parameters);
+    self->virtualFunctionTable->encode(self, frame, parameters, isSequence);
 }
 
 void
@@ -159,17 +159,40 @@ InformationObject_getObjectAddress(InformationObject self)
     return self->objectAddress;
 }
 
+void
+InformationObject_setObjectAddress(InformationObject self, int ioa)
+{
+    self->objectAddress = ioa;
+}
+
 
 static void
-InformationObject_encodeBase(InformationObject self, Frame frame, ConnectionParameters parameters)
+InformationObject_encodeBase(InformationObject self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    Frame_setNextByte(frame, (uint8_t)(self->objectAddress & 0xff));
+    if (!isSequence) {
+        Frame_setNextByte(frame, (uint8_t)(self->objectAddress & 0xff));
+
+        if (parameters->sizeOfIOA > 1)
+            Frame_setNextByte(frame, (uint8_t)((self->objectAddress / 0x100) & 0xff));
+
+        if (parameters->sizeOfIOA > 2)
+            Frame_setNextByte(frame, (uint8_t)((self->objectAddress / 0x10000) & 0xff));
+    }
+}
+
+int
+InformationObject_ParseObjectAddress(ConnectionParameters parameters, uint8_t* msg, int startIndex)
+{
+    /* parse information object address */
+    int ioa = msg [startIndex];
 
     if (parameters->sizeOfIOA > 1)
-        Frame_setNextByte(frame, (uint8_t)((self->objectAddress / 0x100) & 0xff));
+        ioa += (msg [startIndex + 1] * 0x100);
 
     if (parameters->sizeOfIOA > 2)
-        Frame_setNextByte(frame, (uint8_t)((self->objectAddress / 0x10000) & 0xff));
+        ioa += (msg [startIndex + 2] * 0x10000);
+
+    return ioa;
 }
 
 static void
@@ -177,13 +200,7 @@ InformationObject_getFromBuffer(InformationObject self, ConnectionParameters par
         uint8_t* msg, int startIndex)
 {
     /* parse information object address */
-    self->objectAddress = msg [startIndex];
-
-    if (parameters->sizeOfIOA > 1)
-        self->objectAddress += (msg [startIndex + 1] * 0x100);
-
-    if (parameters->sizeOfIOA > 2)
-        self->objectAddress += (msg [startIndex + 2] * 0x10000);
+    self->objectAddress = InformationObject_ParseObjectAddress(parameters, msg, startIndex);
 }
 
 
@@ -204,9 +221,9 @@ struct sSinglePointInformation {
 };
 
 static void
-SinglePointInformation_encode(SinglePointInformation self, Frame frame, ConnectionParameters parameters)
+SinglePointInformation_encode(SinglePointInformation self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
 
@@ -253,7 +270,7 @@ SinglePointInformation_destroy(SinglePointInformation self)
 
 SinglePointInformation
 SinglePointInformation_getFromBuffer(SinglePointInformation self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -266,9 +283,11 @@ SinglePointInformation_getFromBuffer(SinglePointInformation self, ConnectionPara
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* parse SIQ (single point information with qualitiy) */
         uint8_t siq = msg [startIndex];
@@ -311,9 +330,9 @@ struct sStepPositionInformation {
 };
 
 static void
-StepPositionInformation_encode(StepPositionInformation self, Frame frame, ConnectionParameters parameters)
+StepPositionInformation_encode(StepPositionInformation self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->vti);
 
@@ -400,7 +419,7 @@ StepPositionInformation_getQuality(StepPositionInformation self)
 
 StepPositionInformation
 StepPositionInformation_getFromBuffer(StepPositionInformation self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -413,9 +432,11 @@ StepPositionInformation_getFromBuffer(StepPositionInformation self, ConnectionPa
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* parse VTI (value with transient state indication) */
         self->vti = msg [startIndex++];
@@ -446,9 +467,9 @@ struct sStepPositionWithCP56Time2a {
 };
 
 static void
-StepPositionWithCP56Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+StepPositionWithCP56Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->vti);
 
@@ -565,9 +586,9 @@ struct sStepPositionWithCP24Time2a {
 
 
 static void
-StepPositionWithCP24Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+StepPositionWithCP24Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->vti);
 
@@ -682,9 +703,9 @@ struct sDoublePointInformation {
 };
 
 static void
-DoublePointInformation_encode(DoublePointInformation self, Frame frame, ConnectionParameters parameters)
+DoublePointInformation_encode(DoublePointInformation self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
 
@@ -742,7 +763,7 @@ DoublePointInformation_getQuality(DoublePointInformation self)
 
 DoublePointInformation
 DoublePointInformation_getFromBuffer(DoublePointInformation self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -755,9 +776,11 @@ DoublePointInformation_getFromBuffer(DoublePointInformation self, ConnectionPara
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* parse SIQ (single point information with qualitiy) */
         uint8_t siq = msg [startIndex];
@@ -790,9 +813,9 @@ struct sDoublePointWithCP24Time2a {
 };
 
 static void
-DoublePointWithCP24Time2a_encode(DoublePointWithCP24Time2a self, Frame frame, ConnectionParameters parameters)
+DoublePointWithCP24Time2a_encode(DoublePointWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
 
@@ -900,9 +923,9 @@ struct sDoublePointWithCP56Time2a {
 };
 
 static void
-DoublePointWithCP56Time2a_encode(DoublePointWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+DoublePointWithCP56Time2a_encode(DoublePointWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
 
@@ -1012,9 +1035,9 @@ struct sSinglePointWithCP24Time2a {
 
 
 static void
-SinglePointWithCP24Time2a_encode(SinglePointWithCP24Time2a self, Frame frame, ConnectionParameters parameters)
+SinglePointWithCP24Time2a_encode(SinglePointWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
 
@@ -1123,9 +1146,9 @@ struct sSinglePointWithCP56Time2a {
 
 
 static void
-SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
 
@@ -1234,9 +1257,9 @@ struct sBitString32 {
 };
 
 static void
-BitString32_encode(BitString32 self, Frame frame, ConnectionParameters parameters)
+BitString32_encode(BitString32 self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     int value = self->value;
 
@@ -1295,7 +1318,7 @@ BitString32_getQuality(BitString32 self)
 
 BitString32
 BitString32_getFromBuffer(BitString32 self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -1308,9 +1331,11 @@ BitString32_getFromBuffer(BitString32 self, ConnectionParameters parameters,
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         uint32_t value;
 
@@ -1345,9 +1370,9 @@ struct sBitstring32WithCP24Time2a {
 };
 
 static void
-Bitstring32WithCP24Time2a_encode(Bitstring32WithCP24Time2a self, Frame frame, ConnectionParameters parameters)
+Bitstring32WithCP24Time2a_encode(Bitstring32WithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     int value = self->value;
 
@@ -1457,9 +1482,9 @@ struct sBitstring32WithCP56Time2a {
 };
 
 static void
-Bitstring32WithCP56Time2a_encode(Bitstring32WithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+Bitstring32WithCP56Time2a_encode(Bitstring32WithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     int value = self->value;
 
@@ -1598,9 +1623,9 @@ setScaledValue(uint8_t* encodedValue, int value)
 }
 
 static void
-MeasuredValueNormalized_encode(MeasuredValueNormalized self, Frame frame, ConnectionParameters parameters)
+MeasuredValueNormalized_encode(MeasuredValueNormalized self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->encodedValue[0]);
     Frame_setNextByte(frame, self->encodedValue[1]);
@@ -1673,7 +1698,7 @@ MeasuredValueNormalized_getQuality(MeasuredValueNormalized self)
 
 MeasuredValueNormalized
 MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -1686,9 +1711,11 @@ MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, ConnectionPa
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         self->encodedValue[0] = msg [startIndex++];
         self->encodedValue[1] = msg [startIndex++];
@@ -1744,7 +1771,7 @@ ParameterNormalizedValue_getFromBuffer(ParameterNormalizedValue self, Connection
         uint8_t* msg, int msgSize, int startIndex)
 {
     MeasuredValueNormalized pvn =
-            MeasuredValueNormalized_getFromBuffer(self, parameters, msg, msgSize, startIndex);
+            MeasuredValueNormalized_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
 
     pvn->type = P_ME_NA_1;
 
@@ -1770,9 +1797,9 @@ struct sMeasuredValueNormalizedWithoutQuality {
 };
 
 static void
-MeasuredValueNormalizedWithoutQuality_encode(MeasuredValueNormalizedWithoutQuality self, Frame frame, ConnectionParameters parameters)
+MeasuredValueNormalizedWithoutQuality_encode(MeasuredValueNormalizedWithoutQuality self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->encodedValue[0]);
     Frame_setNextByte(frame, self->encodedValue[1]);
@@ -1879,9 +1906,9 @@ struct sMeasuredValueNormalizedWithCP24Time2a {
 };
 
 static void
-MeasuredValueNormalizedWithCP24Time2a_encode(MeasuredValueNormalizedWithCP24Time2a self, Frame frame, ConnectionParameters parameters)
+MeasuredValueNormalizedWithCP24Time2a_encode(MeasuredValueNormalizedWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters);
+    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
@@ -1994,9 +2021,9 @@ struct sMeasuredValueNormalizedWithCP56Time2a {
 };
 
 static void
-MeasuredValueNormalizedWithCP56Time2a_encode(MeasuredValueNormalizedWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+MeasuredValueNormalizedWithCP56Time2a_encode(MeasuredValueNormalizedWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters);
+    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
@@ -2109,9 +2136,9 @@ struct sMeasuredValueScaled {
 };
 
 static void
-MeasuredValueScaled_encode(MeasuredValueScaled self, Frame frame, ConnectionParameters parameters)
+MeasuredValueScaled_encode(MeasuredValueScaled self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters);
+    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
 }
 
 struct sInformationObjectVFT measuredValueScaledVFT = {
@@ -2176,7 +2203,7 @@ MeasuredValueScaled_setQuality(MeasuredValueScaled self, QualityDescriptor quali
 
 MeasuredValueScaled
 MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -2189,9 +2216,11 @@ MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, ConnectionParameters
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         self->encodedValue[0] = msg [startIndex++];
         self->encodedValue[1] = msg [startIndex++];
@@ -2247,7 +2276,7 @@ ParameterScaledValue_getFromBuffer(ParameterScaledValue self, ConnectionParamete
         uint8_t* msg, int msgSize, int startIndex)
 {
     MeasuredValueScaled psv =
-            MeasuredValueScaled_getFromBuffer(self, parameters, msg, msgSize, startIndex);
+            MeasuredValueScaled_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
 
     psv->type = P_ME_NB_1;
 
@@ -2275,9 +2304,9 @@ struct sMeasuredValueScaledWithCP24Time2a {
 };
 
 static void
-MeasuredValueScaledWithCP24Time2a_encode(MeasuredValueScaledWithCP24Time2a self, Frame frame, ConnectionParameters parameters)
+MeasuredValueScaledWithCP24Time2a_encode(MeasuredValueScaledWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters);
+    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
 }
@@ -2386,9 +2415,9 @@ struct sMeasuredValueScaledWithCP56Time2a {
 };
 
 static void
-MeasuredValueScaledWithCP56Time2a_encode(MeasuredValueScaledWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+MeasuredValueScaledWithCP56Time2a_encode(MeasuredValueScaledWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters);
+    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
@@ -2498,9 +2527,9 @@ struct sMeasuredValueShort {
 };
 
 static void
-MeasuredValueShort_encode(MeasuredValueShort self, Frame frame, ConnectionParameters parameters)
+MeasuredValueShort_encode(MeasuredValueShort self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t* valueBytes = (uint8_t*) &(self->value);
 
@@ -2570,7 +2599,7 @@ MeasuredValueShort_getQuality(MeasuredValueShort self)
 
 MeasuredValueShort
 MeasuredValueShort_getFromBuffer(MeasuredValueShort self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -2582,10 +2611,11 @@ MeasuredValueShort_getFromBuffer(MeasuredValueShort self, ConnectionParameters p
     }
 
     if (self != NULL) {
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
-
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         uint8_t* valueBytes = (uint8_t*) &(self->value);
 
@@ -2652,7 +2682,7 @@ ParameterFloatValue_getFromBuffer(ParameterFloatValue self, ConnectionParameters
         uint8_t* msg, int msgSize, int startIndex)
 {
     ParameterFloatValue psv =
-            MeasuredValueShort_getFromBuffer(self, parameters, msg, msgSize, startIndex);
+            MeasuredValueShort_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
 
     psv->type = P_ME_NC_1;
 
@@ -2679,9 +2709,9 @@ struct sMeasuredValueShortWithCP24Time2a {
 };
 
 static void
-MeasuredValueShortWithCP24Time2a_encode(MeasuredValueShortWithCP24Time2a self, Frame frame, ConnectionParameters parameters)
+MeasuredValueShortWithCP24Time2a_encode(MeasuredValueShortWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    MeasuredValueShort_encode((MeasuredValueShort) self, frame, parameters);
+    MeasuredValueShort_encode((MeasuredValueShort) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
 }
@@ -2801,9 +2831,9 @@ struct sMeasuredValueShortWithCP56Time2a {
 };
 
 static void
-MeasuredValueShortWithCP56Time2a_encode(MeasuredValueShortWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+MeasuredValueShortWithCP56Time2a_encode(MeasuredValueShortWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    MeasuredValueShort_encode((MeasuredValueShort) self, frame, parameters);
+    MeasuredValueShort_encode((MeasuredValueShort) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 }
@@ -2920,9 +2950,9 @@ struct sIntegratedTotals {
 };
 
 static void
-IntegratedTotals_encode(IntegratedTotals self, Frame frame, ConnectionParameters parameters)
+IntegratedTotals_encode(IntegratedTotals self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->totals.encodedValue, 5);
 }
@@ -3022,9 +3052,9 @@ struct sIntegratedTotalsWithCP24Time2a {
 };
 
 static void
-IntegratedTotalsWithCP24Time2a_encode(IntegratedTotalsWithCP24Time2a self, Frame frame, ConnectionParameters parameters)
+IntegratedTotalsWithCP24Time2a_encode(IntegratedTotalsWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    IntegratedTotals_encode((IntegratedTotals) self, frame, parameters);
+    IntegratedTotals_encode((IntegratedTotals) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
 }
@@ -3132,9 +3162,9 @@ struct sIntegratedTotalsWithCP56Time2a {
 };
 
 static void
-IntegratedTotalsWithCP56Time2a_encode(IntegratedTotalsWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+IntegratedTotalsWithCP56Time2a_encode(IntegratedTotalsWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    IntegratedTotals_encode((IntegratedTotals) self, frame, parameters);
+    IntegratedTotals_encode((IntegratedTotals) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 }
@@ -3244,9 +3274,9 @@ struct sEventOfProtectionEquipment {
 };
 
 static void
-EventOfProtectionEquipment_encode(EventOfProtectionEquipment self, Frame frame, ConnectionParameters parameters)
+EventOfProtectionEquipment_encode(EventOfProtectionEquipment self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->event);
 
@@ -3364,9 +3394,9 @@ struct sEventOfProtectionEquipmentWithCP56Time2a {
 };
 
 static void
-EventOfProtectionEquipmentWithCP56Time2a_encode(EventOfProtectionEquipmentWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+EventOfProtectionEquipmentWithCP56Time2a_encode(EventOfProtectionEquipmentWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->event);
 
@@ -3485,9 +3515,9 @@ struct sPackedStartEventsOfProtectionEquipment {
 };
 
 static void
-PackedStartEventsOfProtectionEquipment_encode(PackedStartEventsOfProtectionEquipment self, Frame frame, ConnectionParameters parameters)
+PackedStartEventsOfProtectionEquipment_encode(PackedStartEventsOfProtectionEquipment self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->event);
 
@@ -3618,9 +3648,9 @@ struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a {
 };
 
 static void
-PackedStartEventsOfProtectionEquipmentWithCP56Time2a_encode(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_encode(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->event);
 
@@ -3752,9 +3782,9 @@ struct sPackedOutputCircuitInfo {
 };
 
 static void
-PacketOutputCircuitInfo_encode(PackedOutputCircuitInfo self, Frame frame, ConnectionParameters parameters)
+PacketOutputCircuitInfo_encode(PackedOutputCircuitInfo self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->oci);
 
@@ -3885,9 +3915,9 @@ struct sPackedOutputCircuitInfoWithCP56Time2a {
 };
 
 static void
-PackedOutputCircuitInfoWithCP56Time2a_encode(PackedOutputCircuitInfoWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+PackedOutputCircuitInfoWithCP56Time2a_encode(PackedOutputCircuitInfoWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->oci);
 
@@ -4015,9 +4045,9 @@ struct sPackedSinglePointWithSCD {
 };
 
 static void
-PackedSinglePointWithSCD_encode(PackedSinglePointWithSCD self, Frame frame, ConnectionParameters parameters)
+PackedSinglePointWithSCD_encode(PackedSinglePointWithSCD self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->scd.encodedValue, 4);
 
@@ -4121,9 +4151,9 @@ struct sSingleCommand {
 };
 
 static void
-SingleCommand_encode(SingleCommand self, Frame frame, ConnectionParameters parameters)
+SingleCommand_encode(SingleCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->sco);
 }
@@ -4235,9 +4265,9 @@ struct sSingleCommandWithCP56Time2a {
 };
 
 static void
-SingleCommandWithCP56Time2a_encode(SingleCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+SingleCommandWithCP56Time2a_encode(SingleCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    SingleCommand_encode((SingleCommand) self, frame, parameters);
+    SingleCommand_encode((SingleCommand) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 }
@@ -4340,9 +4370,9 @@ struct sDoubleCommand {
 };
 
 static void
-DoubleCommand_encode(DoubleCommand self, Frame frame, ConnectionParameters parameters)
+DoubleCommand_encode(DoubleCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->dcq);
 }
@@ -4453,9 +4483,9 @@ struct sDoubleCommandWithCP56Time2a {
 };
 
 static void
-DoubleCommandWithCP56Time2a_encode(DoubleCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+DoubleCommandWithCP56Time2a_encode(DoubleCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    DoubleCommand_encode((DoubleCommand) self, frame, parameters);
+    DoubleCommand_encode((DoubleCommand) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 }
@@ -4569,9 +4599,9 @@ struct sStepCommand {
 };
 
 static void
-StepCommand_encode(StepCommand self, Frame frame, ConnectionParameters parameters)
+StepCommand_encode(StepCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->dcq);
 }
@@ -4683,9 +4713,9 @@ struct sStepCommandWithCP56Time2a {
 };
 
 static void
-StepCommandWithCP56Time2a_encode(StepCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+StepCommandWithCP56Time2a_encode(StepCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    StepCommand_encode((StepCommand) self, frame, parameters);
+    StepCommand_encode((StepCommand) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 }
@@ -4802,9 +4832,9 @@ struct sSetpointCommandNormalized {
 };
 
 static void
-SetpointCommandNormalized_encode(SetpointCommandNormalized self, Frame frame, ConnectionParameters parameters)
+SetpointCommandNormalized_encode(SetpointCommandNormalized self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->encodedValue, 2);
     Frame_setNextByte(frame, self->qos);
@@ -4925,9 +4955,9 @@ struct sSetpointCommandNormalizedWithCP56Time2a {
 };
 
 static void
-SetpointCommandNormalizedWithCP56Time2a_encode(SetpointCommandNormalizedWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+SetpointCommandNormalizedWithCP56Time2a_encode(SetpointCommandNormalizedWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    SetpointCommandNormalized_encode((SetpointCommandNormalized) self, frame, parameters);
+    SetpointCommandNormalized_encode((SetpointCommandNormalized) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 }
@@ -5049,9 +5079,9 @@ struct sSetpointCommandScaled {
 };
 
 static void
-SetpointCommandScaled_encode(SetpointCommandScaled self, Frame frame, ConnectionParameters parameters)
+SetpointCommandScaled_encode(SetpointCommandScaled self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->encodedValue, 2);
     Frame_setNextByte(frame, self->qos);
@@ -5170,9 +5200,9 @@ struct sSetpointCommandScaledWithCP56Time2a {
 };
 
 static void
-SetpointCommandScaledWithCP56Time2a_encode(SetpointCommandScaledWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+SetpointCommandScaledWithCP56Time2a_encode(SetpointCommandScaledWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    SetpointCommandScaled_encode((SetpointCommandScaled) self, frame, parameters);
+    SetpointCommandScaled_encode((SetpointCommandScaled) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 }
@@ -5292,9 +5322,9 @@ struct sSetpointCommandShort {
 };
 
 static void
-SetpointCommandShort_encode(SetpointCommandShort self, Frame frame, ConnectionParameters parameters)
+SetpointCommandShort_encode(SetpointCommandShort self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t* valueBytes = (uint8_t*) &(self->value);
 
@@ -5434,9 +5464,9 @@ struct sSetpointCommandShortWithCP56Time2a {
 };
 
 static void
-SetpointCommandShortWithCP56Time2a_encode(SetpointCommandShortWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+SetpointCommandShortWithCP56Time2a_encode(SetpointCommandShortWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    SetpointCommandShort_encode((SetpointCommandShort) self, frame, parameters);
+    SetpointCommandShort_encode((SetpointCommandShort) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 }
@@ -5565,9 +5595,9 @@ struct sBitstring32Command {
 };
 
 static void
-Bitstring32Command_encode(Bitstring32Command self, Frame frame, ConnectionParameters parameters)
+Bitstring32Command_encode(Bitstring32Command self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t* valueBytes = (uint8_t*) &(self->value);
 
@@ -5681,9 +5711,9 @@ struct sBitstring32CommandWithCP56Time2a {
 };
 
 static void
-Bitstring32CommandWithCP56Time2a_encode(Bitstring32CommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters)
+Bitstring32CommandWithCP56Time2a_encode(Bitstring32CommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    Bitstring32Command_encode((Bitstring32Command) self, frame, parameters);
+    Bitstring32Command_encode((Bitstring32Command) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 }
@@ -5795,9 +5825,9 @@ struct sReadCommand {
 };
 
 static void
-ReadCommand_encode(ReadCommand self, Frame frame, ConnectionParameters parameters)
+ReadCommand_encode(ReadCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 }
 
 struct sInformationObjectVFT readCommandVFT = {
@@ -5873,9 +5903,9 @@ struct sClockSynchronizationCommand {
 };
 
 static void
-ClockSynchronizationCommand_encode(ClockSynchronizationCommand self, Frame frame, ConnectionParameters parameters)
+ClockSynchronizationCommand_encode(ClockSynchronizationCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 }
@@ -5964,9 +5994,9 @@ struct sInterrogationCommand {
 };
 
 static void
-InterrogationCommand_encode(InterrogationCommand self, Frame frame, ConnectionParameters parameters)
+InterrogationCommand_encode(InterrogationCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qoi);
 }
@@ -6056,9 +6086,9 @@ struct sCounterInterrogationCommand {
 };
 
 static void
-CounterInterrogationCommand_encode(CounterInterrogationCommand self, Frame frame, ConnectionParameters parameters)
+CounterInterrogationCommand_encode(CounterInterrogationCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qcc);
 }
@@ -6148,9 +6178,9 @@ struct sResetProcessCommand {
 };
 
 static void
-ResetProcessCommand_encode(ResetProcessCommand self, Frame frame, ConnectionParameters parameters)
+ResetProcessCommand_encode(ResetProcessCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qrp);
 }
@@ -6240,9 +6270,9 @@ struct sDelayAcquisitionCommand {
 };
 
 static void
-DelayAcquisitionCommand_encode(DelayAcquisitionCommand self, Frame frame, ConnectionParameters parameters)
+DelayAcquisitionCommand_encode(DelayAcquisitionCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->delay.encodedValue, 2);
 }
@@ -6333,9 +6363,9 @@ struct sParameterActivation {
 };
 
 static void
-ParameterActivation_encode(ParameterActivation self, Frame frame, ConnectionParameters parameters)
+ParameterActivation_encode(ParameterActivation self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters);
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qpa);
 }

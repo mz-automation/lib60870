@@ -92,7 +92,7 @@ struct sFrameVFT asduFrameVFT = {
 };
 
 ASDU
-ASDU_create(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission cot, int oa, int ca,
+ASDU_create(ConnectionParameters parameters, TypeID typeId, bool isSequence, CauseOfTransmission cot, int oa, int ca,
         bool isTest, bool isNegative)
 {
     StaticASDU self = (StaticASDU) GLOBAL_MALLOC(sizeof(struct sStaticASDU));
@@ -104,7 +104,12 @@ ASDU_create(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission 
         int asduHeaderLength = 2 + parameters->sizeOfCOT + parameters->sizeOfCA;
 
         self->encodedData[0] = (uint8_t) typeId;
-        self->encodedData[1] = 0;
+
+        if (isSequence)
+            self->encodedData[1] = 0x80;
+        else
+            self->encodedData[1] = 0;
+
         self->encodedData[2] = (uint8_t) (cot & 0x3f);
 
         if (isTest)
@@ -184,14 +189,17 @@ ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLeng
 void
 ASDU_addInformationObject(ASDU self, InformationObject io)
 {
-    self->asdu[1]++; // increase number of elements in VSQ
-
     struct sASDUFrame asduFrame = {
             &asduFrameVFT,
             self
     };
 
-    InformationObject_encode(io, (Frame) &asduFrame, self->parameters);
+    if (ASDU_getNumberOfElements(self) == 0)
+        InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);
+    else
+        InformationObject_encode(io, (Frame) &asduFrame, self->parameters, ASDU_isSequence(self));
+
+    self->asdu[1]++; // increase number of elements in VSQ
 }
 
 bool
@@ -299,11 +307,17 @@ ASDU_getElement(ASDU self, int index)
 
     case M_SP_NA_1: /* 1 */
 
-        elementSize = self->parameters->sizeOfIOA + 1;
+        elementSize = 1;
 
-        retVal = (InformationObject) SinglePointInformation_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) SinglePointInformation_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
-        //TODO add support for Sequence of elements in a single information object (sq = 1)
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) SinglePointInformation_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
 
         break;
 
@@ -317,11 +331,18 @@ ASDU_getElement(ASDU self, int index)
 
     case M_DP_NA_1: /* 3 */
 
-        elementSize = self->parameters->sizeOfIOA + 1;
+        elementSize = 1;
 
-        retVal = (InformationObject) DoublePointInformation_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) DoublePointInformation_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
-        //TODO add support for Sequence of elements in a single information object (sq = 1)
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) DoublePointInformation_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
+
 
         break;
 
@@ -335,11 +356,18 @@ ASDU_getElement(ASDU self, int index)
 
     case M_ST_NA_1: /* 5 */
 
-        elementSize = self->parameters->sizeOfIOA + 2;
+        elementSize = 2;
 
-        retVal = (InformationObject) StepPositionInformation_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) StepPositionInformation_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
-        //TODO add support for Sequence of elements in a single information object (sq = 1)
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) StepPositionInformation_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
+
 
         break;
 
@@ -353,11 +381,17 @@ ASDU_getElement(ASDU self, int index)
 
     case M_BO_NA_1: /* 7 */
 
-        elementSize = self->parameters->sizeOfIOA + 5;
+        elementSize = 5;
 
-        retVal = (InformationObject) BitString32_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) BitString32_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
-        //TODO add support for Sequence of elements in a single information object (sq = 1)
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) BitString32_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
 
         break;
 
@@ -371,11 +405,18 @@ ASDU_getElement(ASDU self, int index)
 
     case M_ME_NA_1: /* 9 */
 
-        elementSize = self->parameters->sizeOfIOA + 3;
+        elementSize = 3;
 
-        retVal = (InformationObject) MeasuredValueNormalized_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) MeasuredValueNormalized_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
-        //TODO add support for Sequence of elements in a single information object (sq = 1)
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) MeasuredValueNormalized_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
+
 
         break;
 
@@ -389,11 +430,17 @@ ASDU_getElement(ASDU self, int index)
 
     case M_ME_NB_1: /* 11 */
 
-        elementSize = self->parameters->sizeOfIOA + 3;
+        elementSize = 3;
 
-        retVal = (InformationObject) MeasuredValueScaled_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) MeasuredValueScaled_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
-        //TODO add support for Sequence of elements in a single information object (sq = 1)
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) MeasuredValueScaled_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
 
         break;
 
@@ -408,11 +455,18 @@ ASDU_getElement(ASDU self, int index)
 
     case M_ME_NC_1: /* 13 */
 
-        elementSize = self->parameters->sizeOfIOA + 5;
+        elementSize = 5;
 
-        retVal = (InformationObject) MeasuredValueShort_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) MeasuredValueShort_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
-        //TODO add support for Sequence of elements in a single information object (sq = 1)
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) MeasuredValueShort_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
+
 
         break;
 
@@ -754,9 +808,6 @@ ASDU_getElement(ASDU self, int index)
 
         break;
     }
-
-
-
 
     return retVal;
 }

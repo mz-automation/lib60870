@@ -278,9 +278,8 @@ ASDU_getNumberOfElements(ASDU self);
 InformationObject
 ASDU_getElement(ASDU self, int index);
 
-
 ASDU
-ASDU_create(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission cot, int oa, int ca,
+ASDU_create(ConnectionParameters parameters, TypeID typeId, bool isSequence, CauseOfTransmission cot, int oa, int ca,
         bool isTest, bool isNegative);
 
 void

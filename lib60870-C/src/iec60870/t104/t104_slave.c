@@ -719,6 +719,16 @@ sendSMessageIfRequired(MasterConnection self)
     }
 }
 
+static void
+MasterConnection_destroy(MasterConnection self)
+{
+    if (self) {
+        Socket_destroy(self->socket);
+
+        GLOBAL_FREEMEM(self);
+    }
+}
+
 static void*
 connectionHandlingThread(void* parameter)
 {
@@ -754,6 +764,8 @@ connectionHandlingThread(void* parameter)
     self->isRunning = false;
     self->slave->openConnections--;
 
+    MasterConnection_destroy(self);
+
     return NULL;
 }
 
@@ -784,6 +796,15 @@ MasterConnection_create(Slave slave, Socket socket)
     return self;
 }
 
+/**
+ * \brief send an ASDU using this client(master) connection
+ *
+ * The ASDU will be released by this function after the message is sent.
+ * You should not call the ASDU_destroy function for the given ASDU after
+ * calling this function!
+ *
+ * \param asdu ASDU to send
+ */
 void
 MasterConnection_sendASDU(MasterConnection self, ASDU asdu)
 {
