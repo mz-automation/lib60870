@@ -83,7 +83,7 @@ namespace tests
 		}
 
 		[Test()]
-		public void TestConnectMultipleTimes()
+		public void TestConnectWhileAlreadyConnected()
 		{
 			ConnectionParameters parameters = new ConnectionParameters ();
 
@@ -117,6 +117,49 @@ namespace tests
 
 			Assert.IsNotNull (se);
 			Assert.AreEqual (10056, se.ErrorCode);
+
+			connection.Close ();
+
+			server.Stop ();
+		}
+
+
+		[Test()]
+		public void TestConnectSameConnectionMultipleTimes()
+		{
+			ConnectionParameters parameters = new ConnectionParameters ();
+
+			parameters.TcpPort = 20213;
+
+			Server server = new Server (parameters);
+
+			server.Start ();
+
+			Connection connection = new Connection ("127.0.0.1", parameters);
+
+			SocketException se = null;
+
+			try {
+				connection.Connect ();
+
+				connection.Close ();
+			}
+			catch (SocketException ex) {
+				se = ex;
+			}
+
+			Assert.IsNull (se);
+
+			try {
+				connection.Connect ();
+
+				connection.Close ();
+			}
+			catch (SocketException ex) {
+				se = ex;
+			}
+
+			Assert.Null (se);
 
 			connection.Close ();
 

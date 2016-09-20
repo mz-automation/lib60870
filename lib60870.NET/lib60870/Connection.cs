@@ -42,11 +42,11 @@ namespace lib60870
 
 		static byte[] TESTFR_CON_MSG = new byte[] { 0x68, 0x04, 0x83, 0x00, 0x00, 0x00 };
 
-		private int sendCount = 0;
-		private int receiveCount = 0;
+		private int sendCount;
+		private int receiveCount;
 
-		private int unconfirmedMessages = 0; /* number of unconfirmed messages received */
-		private long lastConfirmationTime = System.Int64.MaxValue; /* timestamp when the last confirmation message was sent */
+		private int unconfirmedMessages; /* number of unconfirmed messages received */
+		private long lastConfirmationTime; /* timestamp when the last confirmation message was sent */
 
         private Socket socket;
 
@@ -57,10 +57,19 @@ namespace lib60870
 
 		private bool running = false;
         private bool connecting = false;
-		private bool socketError = false;
-		private SocketException lastException = null;
+		private bool socketError;
+		private SocketException lastException;
 
 		private bool debugOutput = false;
+
+		private void ResetConnection() {
+			sendCount = 0;
+			receiveCount = 0;
+			unconfirmedMessages = 0;
+			lastConfirmationTime = System.Int64.MaxValue;
+			socketError = false;
+			lastException = null;
+		}
 
 		public bool DebugOutput {
 			get {
@@ -365,7 +374,7 @@ namespace lib60870
         {
             if ((running == false) && (connecting == false))
             {
-                socketError = false;
+				ResetConnection ();
 
                 Thread workerThread = new Thread(HandleConnection);
 
@@ -383,8 +392,6 @@ namespace lib60870
 
 		private int receiveMessage(Socket socket, byte[] buffer) 
 		{
-			//TODO add timeout handling
-
 			// wait for first byte
 			if (socket.Receive (buffer, 0, 1, SocketFlags.None) != 1)
 				return 0;
@@ -523,32 +530,33 @@ namespace lib60870
 						lastException = se;
 					}
 
+					bool loopRunning = running;
 
+					while (loopRunning) {
 
-					while (running) {
+						try {
+							// Receive a message from from the remote device.
+							int bytesRec = receiveMessage(socket, bytes);
 
-						// Receive a message from from the remote device.
-						int bytesRec = receiveMessage(socket, bytes);
+							if (bytesRec > 0) {
 
-						if (bytesRec > 0) {
-
-							if (debugOutput)
-								Console.WriteLine(
-									BitConverter.ToString(bytes, 0, bytesRec));
-						
-							//TODO call raw message handler if available
-						
-							if (checkMessage(socket, bytes, bytesRec) == false) {
-								/* close connection on error */
-								running = false;
+								if (debugOutput)
+									Console.WriteLine(
+										BitConverter.ToString(bytes, 0, bytesRec));
+							
+								//TODO call raw message handler if available
+							
+								if (checkMessage(socket, bytes, bytesRec) == false) {
+									/* close connection on error */
+									loopRunning = false;
+								}
 							}
+							else 
+								loopRunning = false;
 						}
-						else
-							running = false;
-
-						// TODO else ?
-
-						Thread.Sleep(100);
+						catch (SocketException) {
+							loopRunning = false;
+						}
 					}
 
 					if (debugOutput)
@@ -570,6 +578,7 @@ namespace lib60870
 						Console.WriteLine("Unexpected exception : {0}", e.ToString());
 				}
 
+				running = false;
                 connecting = false;
 
 			} catch (Exception e) {
@@ -585,8 +594,12 @@ namespace lib60870
 
 		public void Close()
 		{
-			if (running)
-				socket.Shutdown(SocketShutdown.Both);
+			if (running) {
+				socket.Shutdown (SocketShutdown.Both);
+
+				while (running)
+					Thread.Sleep (1);
+			}
 		}
 
 		public void SetASDUReceivedHandler(ASDUReceivedHandler handler, object parameter)

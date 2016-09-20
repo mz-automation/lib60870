@@ -487,7 +487,7 @@ namespace lib60870
 									running = false;
 								}
 							}
-							// TODO else ?
+
 							if (isActive)
 								checkServerQueue();
 												

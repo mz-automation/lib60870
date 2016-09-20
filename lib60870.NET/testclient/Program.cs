@@ -111,6 +111,14 @@ namespace testclient
 
 
 			con.Close ();
+
+			Console.WriteLine ("RECONNECT");
+
+			con.Connect ();
+
+			Thread.Sleep (5000);
+
+			con.Close ();
 		}
 	}
 }
