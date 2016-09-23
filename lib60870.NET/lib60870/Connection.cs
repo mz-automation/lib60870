@@ -30,6 +30,18 @@ using System.Threading;
 
 namespace lib60870
 {
+	public class ConnectionException : Exception
+	{
+		public ConnectionException(string message)
+			:base(message)
+		{
+		}
+
+		public ConnectionException(string message, Exception e)
+			:base(message, e)
+		{
+		}
+	}
 
 	/// <summary>
 	/// ASDU received handler.
@@ -51,6 +63,15 @@ namespace lib60870
         private Socket socket;
 
 		private bool autostart = true;
+
+		public bool Autostart {
+			get {
+				return this.autostart;
+			}
+			set {
+				this.autostart = value;
+			}
+		}
 
 		private string hostname;
 		private int tcpPort;
@@ -104,8 +125,18 @@ namespace lib60870
 		private void sendIMessage(Frame frame) 
 		{
 			frame.PrepareToSend (sendCount, receiveCount);
-			socket.Send (frame.GetBuffer (), frame.GetMsgSize (), SocketFlags.None);
-			sendCount++;
+
+			if (running) {
+				socket.Send (frame.GetBuffer (), frame.GetMsgSize (), SocketFlags.None);
+				sendCount++;
+			}
+			else {
+				if (lastException != null)
+					throw new ConnectionException(lastException.Message, lastException);
+				else
+					throw new ConnectionException("not connected", new SocketException (10057));
+			}
+
 		}
 
 		private void setup(string hostname, ConnectionParameters parameters)
@@ -164,6 +195,7 @@ namespace lib60870
 		/// <param name="cot">Cause of transmission</param>
 		/// <param name="ca">Common address</param>
 		/// <param name="qoi">Qualifier of interrogation (20 = station interrogation)</param>
+		/// <exception cref="ConnectionException">description</exception>
 		public void SendInterrogationCommand(CauseOfTransmission cot, int ca, byte qoi) 
 		{
 			Frame frame = new T104Frame ();
@@ -187,6 +219,7 @@ namespace lib60870
 		/// <param name="cot">Cause of transmission</param>
 		/// <param name="ca">Common address</param>
 		/// <param name="qcc">Qualifier of counter interrogation command</param>
+		/// <exception cref="ConnectionException">description</exception>
 		public void SendCounterInterrogationCommand(CauseOfTransmission cot, int ca, byte qcc)
 		{
 			Frame frame = new T104Frame ();
@@ -213,6 +246,7 @@ namespace lib60870
 		/// 
 		/// <param name="ca">Common address</param>
 		/// <param name="ioa">Information object address</param>
+		/// <exception cref="ConnectionException">description</exception>
 		public void SendReadCommand(int ca, int ioa)
 		{
 			Frame frame = new T104Frame ();
@@ -232,6 +266,7 @@ namespace lib60870
 		/// </summary>
 		/// <param name="ca">Common address</param>
 		/// <param name="time">the new time to set</param>
+		/// <exception cref="ConnectionException">description</exception>
 		public void SendClockSyncCommand(int ca, CP56Time2a time)
 		{
 			Frame frame = new T104Frame ();
@@ -255,6 +290,7 @@ namespace lib60870
 		/// Not required and supported by IEC 60870-5-104. 
 		/// 
 		/// <param name="ca">Common address</param>
+		/// <exception cref="ConnectionException">description</exception>
 		public void SendTestCommand(int ca)
 		{
 			Frame frame = new T104Frame ();
@@ -278,6 +314,7 @@ namespace lib60870
 		/// <param name="cot">Cause of transmission</param>
 		/// <param name="ca">Common address</param>
 		/// <param name="qrp">Qualifier of reset process command</param>
+		/// <exception cref="ConnectionException">description</exception>
 		public void SendResetProcessCommand(CauseOfTransmission cot, int ca, byte qrp)
 		{
 			Frame frame = new T104Frame ();
@@ -301,6 +338,7 @@ namespace lib60870
 		/// <param name="cot">Cause of transmission</param>
 		/// <param name="ca">Common address</param>
 		/// <param name="delay">delay for acquisition</param>
+		/// <exception cref="ConnectionException">description</exception>
 		public void SendDelayAcquisitionCommand(CauseOfTransmission cot, int ca, CP16Time2a delay)
 		{
 			Frame frame = new T104Frame ();
@@ -337,6 +375,7 @@ namespace lib60870
 		/// <param name="cot">Cause of transmission (use ACTIVATION to start a control sequence)</param>
 		/// <param name="ca">Common address</param>
 		/// <param name="sc">Information object of the command</param>
+		/// <exception cref="ConnectionException">description</exception>
 		public void SendControlCommand(TypeID typeId, CauseOfTransmission cot, int ca, InformationObject sc) {
 			Frame frame = new T104Frame ();
 
@@ -355,6 +394,7 @@ namespace lib60870
 		/// </summary>
 		/// 
 		/// The function will throw a SocketException if the connection attempt is rejected or timed out.
+		/// <exception cref="ConnectionException">description</exception>
 		public void Connect() {
 			ConnectAsync ();
 
@@ -363,13 +403,14 @@ namespace lib60870
 			}
 
 			if (socketError)
-				throw lastException;
+				throw new ConnectionException(lastException.Message, lastException);
 		}
 
 		/// <summary>
 		/// Connects to the server (outstation). This is a non-blocking call. Before using the connection
 		/// you have to check if the connection is already connected and running.
 		/// </summary>
+		/// <exception cref="ConnectionException">description</exception>
         public void ConnectAsync()
         {
             if ((running == false) && (connecting == false))
@@ -383,9 +424,9 @@ namespace lib60870
             else
             {
                 if (running)
-                    throw new SocketException(10056); /* WSAEISCONN - Socket is already connected */
+					throw new ConnectionException("already connected", new SocketException(10056)); /* WSAEISCONN - Socket is already connected */
                 else
-                    throw new SocketException(10037); /* WSAEALREADY - Operation already in progress */
+					throw new ConnectionException("already connecting",new SocketException(10037)); /* WSAEALREADY - Operation already in progress */
 
             }
         }
@@ -577,13 +618,13 @@ namespace lib60870
 					if (debugOutput)
 						Console.WriteLine("Unexpected exception : {0}", e.ToString());
 				}
-
-				running = false;
-                connecting = false;
-
+					
 			} catch (Exception e) {
 				Console.WriteLine( e.ToString());
 			}
+
+			running = false;
+			connecting = false;
 		}
 
 		public bool IsRunning {
