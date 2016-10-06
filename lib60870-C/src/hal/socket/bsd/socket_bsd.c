@@ -28,14 +28,14 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
-#include <stdio.h>
 
 #include <fcntl.h>
 
 #include <netinet/tcp.h> // required for TCP keepalive
 
 #include "hal_thread.h"
-#include "lib_memory.h"
+
+#include "libiec61850_platform_includes.h"
 
 #ifndef DEBUG_SOCKET
 #define DEBUG_SOCKET 0
@@ -84,7 +84,7 @@ Handleset_waitReady(HandleSet self, unsigned int timeoutMs)
 {
    int result;
 
-   if ((self != NULL) && (self->maxHandle >= 0)) {
+   if (self != NULL && self->maxHandle >= 0) {
        struct timeval timeout;
 
        timeout.tv_sec = timeoutMs / 1000;
@@ -103,38 +103,50 @@ Handleset_destroy(HandleSet self)
    GLOBAL_FREEMEM(self);
 }
 
+static void
+activateKeepAlive(int sd)
+{
+#if defined SO_KEEPALIVE
+    int optval;
+    socklen_t optlen = sizeof(optval);
+
+    optval = CONFIG_TCP_KEEPALIVE_IDLE;
+    setsockopt(sd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen);
+    optval = 1;
+    setsockopt(sd, SOL_SOCKET, SO_NOSIGPIPE, &optval, optlen);
+
+#if defined TCP_KEEPCNT
+    optval = CONFIG_TCP_KEEPALIVE_INTERVAL;
+    setsockopt(sd, IPPROTO_TCP, TCP_KEEPINTVL, &optval, optlen);
+
+    optval = CONFIG_TCP_KEEPALIVE_CNT;
+    setsockopt(sd, IPPROTO_TCP, TCP_KEEPCNT, &optval, optlen);
+#endif /* TCP_KEEPCNT */
+
+#endif /* SO_KEEPALIVE */
+}
+
 static bool
 prepareServerAddress(const char* address, int port, struct sockaddr_in* sockaddr)
 {
-    bool retVal = true;
 
-    memset((char *) sockaddr, 0, sizeof(struct sockaddr_in));
+	memset((char *) sockaddr , 0, sizeof(struct sockaddr_in));
 
-    if (address != NULL) {
-        struct addrinfo addressHints;
-        struct addrinfo *lookupResult;
-        int result;
+	if (address != NULL) {
+		struct hostent *server;
+		server = gethostbyname(address);
 
-        memset(&addressHints, 0, sizeof(struct addrinfo));
-        addressHints.ai_family = AF_INET;
-        result = getaddrinfo(address, NULL, &addressHints, &lookupResult);
+		if (server == NULL) return false;
 
-        if (result != 0) {
-            retVal = false;
-            goto exit_function;
-        }
-
-        memcpy(sockaddr, lookupResult->ai_addr, sizeof(struct sockaddr_in));
-        freeaddrinfo(lookupResult);
-    }
-    else
-        sockaddr->sin_addr.s_addr = htonl(INADDR_ANY);
+		memcpy((char *) &sockaddr->sin_addr.s_addr, (char *) server->h_addr, server->h_length);
+	}
+	else
+		sockaddr->sin_addr.s_addr = htonl(INADDR_ANY);
 
     sockaddr->sin_family = AF_INET;
     sockaddr->sin_port = htons(port);
 
-exit_function:
-    return retVal;
+    return true;
 }
 
 static void
@@ -142,14 +154,6 @@ setSocketNonBlocking(Socket self)
 {
     int flags = fcntl(self->fd, F_GETFL, 0);
     fcntl(self->fd, F_SETFL, flags | O_NONBLOCK);
-}
-
-static void
-activateTcpNoDelay(Socket self)
-{
-    /* activate TCP_NODELAY option - packets will be sent immediately */
-    int flag = 1;
-    setsockopt(self->fd, IPPROTO_TCP, TCP_NODELAY, (char *) &flag, sizeof(int));
 }
 
 ServerSocket
@@ -174,14 +178,17 @@ TcpServerSocket_create(const char* address, int port)
             serverSocket = GLOBAL_MALLOC(sizeof(struct sServerSocket));
             serverSocket->fd = fd;
             serverSocket->backLog = 0;
-
-            setSocketNonBlocking((Socket) serverSocket);
         }
         else {
             close(fd);
             return NULL ;
         }
 
+#if CONFIG_ACTIVATE_TCP_KEEPALIVE == 1
+        activateKeepAlive(fd);
+#endif
+
+        setSocketNonBlocking((Socket) serverSocket);
     }
 
     return serverSocket;
@@ -193,8 +200,6 @@ ServerSocket_listen(ServerSocket self)
     listen(self->fd, self->backLog);
 }
 
-
-/* CHANGED TO MAKE NON-BLOCKING --> RETURNS NULL IF NO CONNECTION IS PENDING */
 Socket
 ServerSocket_accept(ServerSocket self)
 {
@@ -207,8 +212,6 @@ ServerSocket_accept(ServerSocket self)
     if (fd >= 0) {
         conSocket = TcpSocket_create();
         conSocket->fd = fd;
-
-        activateTcpNoDelay(conSocket);
     }
 
     return conSocket;
@@ -255,11 +258,9 @@ TcpSocket_create()
     Socket self = GLOBAL_MALLOC(sizeof(struct sSocket));
 
     self->fd = -1;
-    self->connectTimeout = 5000;
 
     return self;
 }
-
 
 void
 Socket_setConnectTimeout(Socket self, uint32_t timeoutInMs)
@@ -281,20 +282,17 @@ Socket_connect(Socket self, const char* address, int port)
 
     self->fd = socket(AF_INET, SOCK_STREAM, 0);
 
+#if CONFIG_ACTIVATE_TCP_KEEPALIVE == 1
+    activateKeepAlive(self->fd);
+#endif
+
     fd_set fdSet;
     FD_ZERO(&fdSet);
     FD_SET(self->fd, &fdSet);
 
-    activateTcpNoDelay(self);
-
-#if (CONFIG_ACTIVATE_TCP_KEEPALIVE == 1)
-    activateKeepAlive(self->fd);
-#endif
-
     fcntl(self->fd, F_SETFL, O_NONBLOCK);
 
     if (connect(self->fd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0) {
-
         if (errno != EINPROGRESS)
             return false;
     }
@@ -303,19 +301,10 @@ Socket_connect(Socket self, const char* address, int port)
     timeout.tv_sec = self->connectTimeout / 1000;
     timeout.tv_usec = (self->connectTimeout % 1000) * 1000;
 
-    if (select(self->fd + 1, NULL, &fdSet , NULL, &timeout) == 1) {
-        int so_error;
-        socklen_t len = sizeof so_error;
-
-        getsockopt(self->fd, SOL_SOCKET, SO_ERROR, &so_error, &len);
-
-        if (so_error == 0)
-            return true;
-    }
-
-    close (self->fd);
-
-    return false;
+    if (select(self->fd + 1, NULL, &fdSet, NULL, &timeout) <= 0)
+        return false;
+    else
+        return true;
 }
 
 char*
@@ -360,6 +349,8 @@ Socket_getPeerAddress(Socket self)
 int
 Socket_read(Socket self, uint8_t* buf, int size)
 {
+    assert(self != NULL);
+
     if (self->fd == -1)
         return -1;
 
@@ -393,7 +384,7 @@ Socket_write(Socket self, uint8_t* buf, int size)
         return -1;
 
     // MSG_NOSIGNAL - prevent send to signal SIGPIPE when peer unexpectedly closed the socket
-    return send(self->fd, buf, size, MSG_NOSIGNAL);
+    return send(self->fd, buf, size, 0);
 }
 
 void

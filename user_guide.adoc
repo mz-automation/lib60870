@@ -3,10 +3,10 @@ Michael Zillgith
 
 == Introduction
 
-lib60870 is a new implementation of the IEC 60870-5-104. protocol for client (master station) and server (controlled station). The library implements all data types from the IEC 60870-5-101/104 specifications. It comes with two flavors which are actually two different implementations that share a similar API:
+lib60870 is a new implementation of the IEC 60870-5-104 protocol for client (master station) and server (controlled station). The library implements all data types from the IEC 60870-5-101/104 specifications. It comes with two flavors which are actually two different implementations that share a similar API:
 
-* *lib60870-C* is an implementation written in the C99 standard. It is designed to be used on resource restricted embedded systems but it easy to use as well.
-* *lib60870.NET* is a pure C#/.NET implementation. It is designed to be as easy to use as possible.is an C#/.NET implementation.  Since it is using only standardized .NET features it is compatible with Windows systems and the Microsoft .NET implementation as well as on Linux with Mono.
+* *lib60870-C* is an implementation written in the C99 standard. It is designed to be used on resource restricted embedded systems but is easy to use as well.
+* *lib60870.NET* is a pure C#/.NET implementation. It is designed to be as easy to use as possible. Since it is using only standardized .NET features it is compatible with Windows systems and the Microsoft .NET implementation as well as on Linux and other operating systems running with Mono.
 
 The client/server API is strictly asynchronous. You send the requests with non-blocking functions and will have to handle the response and other events in callback functions.
 
@@ -22,7 +22,7 @@ This creates a new Connection object that is ready to connect to the server. If 
 
   con.Connect ();
 
-When the connection was established correctly you can use the connection object to send commands and receive data.
+When the connection has been established correctly you can use the connection object to send commands and receive data.
 
 == Sending a read request
 
@@ -32,11 +32,11 @@ The IEC 60870 documents don't recommend this service (cyclical data requests or 
 
 The call is non-blocking. You have to evaluate the response in the ASDUReceivedHandler callback function.
 
-Typically it is expected that the server response contains only the basic data type without timestamps!
+Typically it is expected that the server response contains only the basic data type without timestamps (that is using the message types for a specific data type that does not contain the timestamps)!
 
 == Interrogation
 
-You can also request a group of data items from a slave with a single request. On the master (client) side you have can simply use the SendInterrogationCommand method of the Connection object:
+You can also request a group of data items from a slave with a single request. On the master (client) side you can simply use the SendInterrogationCommand method of the Connection object:
 
   con.SendInterrogationCommand (CauseOfTransmission.ACTIVATION, 1, 20);
 
@@ -184,11 +184,81 @@ The debug output to the console can be enabled by setting _CONFIG_DEBUG_OUTPUT_ 
 
 == Reference information
 
+=== Supported message types
+
+The library supports the following ASDU (application service data unit) types.
+
+.IEC 60870-5-101/104 message types
+[width="90%",cols="n,10,1,1",frame="topbot",options="header"]
+|==========================
+| Message type | Description | C | C#
+| M_SP_NA_1(1) | Single point information (BOOLEAN)  | + | +
+| M_SP_TA_1(2) | Single point information (BOOLEAN) with CP24Time2a | + | +
+| M_DP_NA_1(3) | Double point information (ON/OFF/transient)  | + | +
+| M_DP_TA_1(4) | Double point information (ON/OFF/transient) with CP24Time2a  | + | +
+| M_ST_NA_1(5) | Step position information (-64 ... 63, is transient)  | + | +
+| M_ST_TA_1(6) | Step position information (-64 ... 63, is transient) with CP24Time2a | + | +
+| M_BO_NA_1(7) | Bitstring32 (32 bit bitstring)  | + | +
+| M_BO_TA_1(8) | Bitstring32 (32 bit bitstring) with CP24Time2a | + | +
+| M_ME_NA_1(9) | Normalized measured value (-1.0 ... +1.0)  | + | +
+| M_ME_TA_1(10) | Normalized measured value (-1.0 ... +1.0) with CP24Time2a | + | +
+| M_ME_NB_1(11) | Scaled measured value (-32768 ... +32767)  | + | +
+| M_ME_TB_1(12) | Scaled measured value (-32768 ... +32767) with CP24Time2a | + | +
+| M_ME_NC_1(13) | Short measured value (FLOAT32)  | + | +
+| M_ME_TC_1(14) | Short measured value (FLOAT32) with CP24Time2a | + | +
+| M_IT_NA_1(15) | Integrated totals (INT32 with quality indicators)  | + | +
+| M_IT_TA_1(16) | Integrated totals (INT32 with quality indicators) with CP24Time2a | + | +
+| M_EP_TA_1(17) | Event of protection equipment | + | +
+| M_EP_TB_1(18) | Packed start events of protection equipment | + | +
+| M_EP_TC_1(19) | Packed output circuit info | + | +
+| M_PS_NA_1(20) | Packed single point with SCD | + | +
+| M_ME_ND_1(21) | Normalized measured value (-1.0 ... +1.0) without quality | + | +
+| M_SP_TB_1(30) | Single point information (BOOLEAN) with CP56Time2a | + | +
+| M_DP_TB_1(31) | Double point information (ON/OFF/transient) with CP56Time2a  | + | +
+| M_ST_TB_1(32) | Step position information (-64 ... 63, is transient) with CP56Time2a  | + | +
+| M_BO_TB_1(33) | Bitstring32 (32 bit bitstring) with CP56Time2a | + | +
+| M_ME_TD_1(34) | Normalized measured value (-1.0 ... +1.0) with CP56Time2a | + | +
+| M_ME_TE_1(35) | Scaled measured value (-32768 ... +32767) with CP56Time2a | + | +
+| M_ME_TF_1(36) | Short measured value (FLOAT32) with CP56Time2a | + | +
+| M_IT_TB_1(37) | Integrated totals (INT32 with quality indicators) with CP56Time2a | + | +
+| M_EP_TD_1(38) | Event of protection equipment with CP56Time2a | + | +
+| M_EP_TE_1(39) | Packed start events of protection equipment with CP56Time2a | + | +
+| M_EP_TF_1(40) | Packed output circuit info with CP56Time2a | + | +
+| C_SC_NA_1(45) | Single command (BOOLEAN) | + | +
+| C_DC_NA_1(46) | Double command (ON/OFF/transient) | + | +
+| C_RC_NA_1(47) | Step command | + | +
+| C_SE_NA_1(48) | Setpoint command, normalized value (-1.0 ... +1.0)| + | +
+| C_SE_NB_1(49) | Setpoint command, scaled value (-32768 ... +32767) | + | +
+| C_SE_NC_1(50) | Setpoint command, short value (FLOAT32)| + | +
+| C_BO_NA_1(51) | Bitstring command (32 bit bitstring)  | + | +
+
+
+| C_SC_TA_1(58) | Single command (BOOLEAN) with CP56Time2a | + | +
+| C_DC_TA_1(59) | Double command (ON/OFF/transient) with CP56Time2a | + | +
+| C_RC_TA_1(60) | Step command with CP56Time2a | + | +
+| C_SE_TA_1(61) | Setpoint command, normalized value (-1.0 ... +1.0) with CP56Time2a| + | +
+| C_SE_TB_1(62) | Setpoint command, scaled value (-32768 ... +32767) with CP56Time2a | + | +
+| C_SE_TC_1(63) | Setpoint command, short value (FLOAT32) with CP56Time2a| + | +
+| C_BO_TA_1(64) | Bitstring command (32 bit bitstring) with CP56Time2a | + | +
+
+| C_IC_NA_1(100) | Interrogation command | + | +
+| C_CI_NA_1(101) | Counter interrogation command | + | +
+| C_RD_NA_1(102) | Read command | + | +
+| C_CS_NA_1(103) | Clock synchronization command | + | +
+| C_RP_NA_1(105) | Reset process command | + | +
+| C_CD_NA_1(106) | Delay acquisition command | + | +
+
+| P_ME_NA_1(110) | Parameter of measured values, normalized value | + | +
+| P_ME_NB_1(111) | Parameter of measured values, scaled value  | + | +
+| P_ME_NC_1(112) | Parameter of measured values, short floating point number | + | +
+| P_AC_NA_1(113) | Parameter for activation | + | +
+|==========================
+
 === IEC 60870-5-104 parameters
 
 The following parameters are stored in *T104ConnectionParameter* objects.
 
-.IEC 60870-5-105 parameters
+.IEC 60870-5-104 parameters
 [width="90%",cols="n,10",frame="topbot",options="header"]
 |==========================
 |Parameter        |Description
