@@ -134,6 +134,18 @@ void
 T104Connection_setASDUReceivedHandler(T104Connection self, ASDUReceivedHandler handler, void* parameter);
 
 /**
+ * \brief Handler that is called when the connection is established or closed
+ *
+ * \param parameter user provided parameter
+ * \param connection the connection object
+ * \param closed false when the connection is established, true when the connection is closed
+ */
+typedef void (*ConnectionHandler) (void* parameter, T104Connection connection, bool closed);
+
+void
+T104Connection_setConnectionHandler(T104Connection self, ConnectionHandler handler, void* parameter);
+
+/**
  * \brief Close the connection and free all related resources
  */
 void

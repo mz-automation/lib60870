@@ -5,6 +5,15 @@
 
 #include <stdio.h>
 
+static void
+connectionHandler (void* parameter, T104Connection connection, bool closed)
+{
+    if (closed)
+        printf("Connection closed\n");
+    else
+        printf("Connection established\n");
+}
+
 static bool
 asduReceivedHandler (void* parameter, ASDU asdu)
 {
@@ -59,6 +68,8 @@ main(int argc, char** argv)
 {
     T104Connection con = T104Connection_create("localhost", IEC_60870_5_104_DEFAULT_PORT);
 
+    T104Connection_setConnectionHandler(con, connectionHandler, NULL);
+
     if (T104Connection_connect(con)) {
         printf("Connected!\n");
 
@@ -88,12 +99,14 @@ main(int argc, char** argv)
         printf("Send time sync command\n");
         T104Connection_sendClockSyncCommand(con, 1, &newTime);
 
-        Thread_sleep(5000);
+        Thread_sleep(1000);
     }
     else
         printf("Connect failed!\n");
 
     T104Connection_destroy(con);
+
+    Thread_sleep(1000);
 
     printf("exit\n");
 }

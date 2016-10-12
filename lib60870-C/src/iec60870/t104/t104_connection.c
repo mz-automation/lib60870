@@ -76,6 +76,9 @@ struct sT104Connection {
 
     ASDUReceivedHandler receivedHandler;
     void* receivedHandlerParameter;
+
+    ConnectionHandler connectionHandler;
+    void* connectionHandlerParameter;
 };
 
 static uint8_t STARTDT_ACT_MSG[] = { 0x68, 0x04, 0x07, 0x00, 0x00, 0x00 };
@@ -136,6 +139,9 @@ T104Connection_create(const char* hostname, int tcpPort)
 
         self->receivedHandler = NULL;
         self->receivedHandlerParameter = NULL;
+
+        self->connectionHandler = NULL;
+        self->connectionHandlerParameter = NULL;
 
         prepareSMessage(self->sMessage);
     }
@@ -281,9 +287,13 @@ handleConnection(void* parameter)
         self->running = true;
         self->socket = socket;
 
-        uint8_t buffer[300];
+        /* Call connection handler */
+        if (self->connectionHandler != NULL)
+            self->connectionHandler(self->connectionHandlerParameter, self, false);
 
         while (self->running) {
+
+            uint8_t buffer[300];
 
             Thread_sleep(1); //TODO use select!
 
@@ -309,6 +319,10 @@ handleConnection(void* parameter)
         }
 
         Socket_destroy(socket);
+
+        /* Call connection handler */
+        if (self->connectionHandler != NULL)
+            self->connectionHandler(self->connectionHandlerParameter, self, true);
     }
     else {
         self->failure = true;
@@ -346,6 +360,13 @@ T104Connection_setASDUReceivedHandler(T104Connection self, ASDUReceivedHandler h
 {
     self->receivedHandler = handler;
     self->receivedHandlerParameter = parameter;
+}
+
+void
+T104Connection_setConnectionHandler(T104Connection self, ConnectionHandler handler, void* parameter)
+{
+    self->connectionHandler = handler;
+    self->connectionHandlerParameter = parameter;
 }
 
 static void
