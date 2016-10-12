@@ -48,6 +48,8 @@ namespace lib60870
 	/// </summary>
 	public delegate bool ASDUReceivedHandler (object parameter, ASDU asdu);
 
+	public delegate void ConnectionHandler (object parameter, bool closed);
+
 	public class Connection
 	{
 		static byte[] STARTDT_ACT_MSG = new byte[] { 0x68, 0x04, 0x07, 0x00, 0x00, 0x00 };
@@ -107,6 +109,9 @@ namespace lib60870
 
 		ASDUReceivedHandler asduReceivedHandler = null;
 		object asduReceivedHandlerParameter = null;
+
+		ConnectionHandler connectionHandler = null;
+		object connectionHandlerParameter = null;
 
 		private void sendSMessage() {
 			byte[] msg = new byte[6];
@@ -562,6 +567,10 @@ namespace lib60870
 						running = true;
 						socketError = false;
                         connecting = false;
+
+						if (connectionHandler != null)
+							connectionHandler(connectionHandlerParameter, false);
+						
 					} catch (SocketException se) {
 						if (debugOutput)
 							Console.WriteLine("SocketException : {0}",se.ToString());
@@ -607,6 +616,9 @@ namespace lib60870
 					socket.Shutdown(SocketShutdown.Both);
 					socket.Close();
 
+					if (connectionHandler != null)
+						connectionHandler(connectionHandlerParameter, true);
+
 				} catch (ArgumentNullException ane) {
                     connecting = false;
 					if (debugOutput)
@@ -647,6 +659,18 @@ namespace lib60870
 		{
 			asduReceivedHandler = handler;
 			asduReceivedHandlerParameter = parameter;
+		}
+
+		/// <summary>
+		/// Sets the connection handler. The connection handler is called when
+		/// the connection is established or closed
+		/// </summary>
+		/// <param name="handler">the handler to be called</param>
+		/// <param name="parameter">user provided parameter that is passed to the handler</param>
+		public void SetConnectionHandler(ConnectionHandler handler, object parameter)
+		{
+			connectionHandler = handler;
+			connectionHandlerParameter = parameter;
 		}
 
 	}
