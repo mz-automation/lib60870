@@ -87,9 +87,29 @@ T104Connection_connect(T104Connection self);
 void
 T104Connection_sendStartDT(T104Connection self);
 
+/**
+ * \brief stop data transmission on this connection
+ */
 void
-T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, uint8_t qoi);
+T104Connection_sendStopDT(T104Connection self);
 
+/**
+ * \brief send an interrogation command
+ *
+ * \param cot cause of transmission
+ * \param ca Common address of the slave/server
+ * \param qoi qualifier of interrogation (20 for station interrogation)
+ */
+void
+T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, QualifierOfInterrogation qoi);
+
+/**
+ * \brief send a counter interrogation command
+ *
+ * \param cot cause of transmission
+ * \param ca Common address of the slave/server
+ * \param qcc
+ */
 void
 T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, uint8_t qcc);
 

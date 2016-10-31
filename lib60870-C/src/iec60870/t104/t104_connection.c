@@ -87,6 +87,9 @@ static uint8_t STARTDT_ACT_MSG[] = { 0x68, 0x04, 0x07, 0x00, 0x00, 0x00 };
 static uint8_t TESTFR_CON_MSG[] = { 0x68, 0x04, 0x83, 0x00, 0x00, 0x00 };
 #define TESTFR_CON_MSG_SIZE 6
 
+static uint8_t STOPDT_ACT_MSG[] = { 0x68, 0x04, 0x23, 0x00, 0x00, 0x00 };
+#define STOPDT_ACT_MSG_SIZE 6
+
 static void
 prepareSMessage(uint8_t* msg)
 {
@@ -406,7 +409,13 @@ T104Connection_sendStartDT(T104Connection self)
 }
 
 void
-T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, uint8_t qoi)
+T104Connection_sendStopDT(T104Connection self)
+{
+    Socket_write(self->socket, STOPDT_ACT_MSG, STOPDT_ACT_MSG_SIZE);
+}
+
+void
+T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, QualifierOfInterrogation qoi)
 {
     Frame frame = (Frame) T104Frame_create();
 
@@ -414,7 +423,7 @@ T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission
 
     encodeIOA(self, frame, 0);
 
-    /* encode COI (7.2.6.21) */
+    /* encode QOI (7.2.6.22) */
     T104Frame_setNextByte(frame, qoi); /* 20 = station interrogation */
 
     sendIMessage(self, frame);

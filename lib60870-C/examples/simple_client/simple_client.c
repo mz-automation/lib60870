@@ -79,7 +79,7 @@ main(int argc, char** argv)
 
         Thread_sleep(5000);
 
-        T104Connection_sendInterrogationCommand(con, ACTIVATION, 1, INTERROGATION_STATION);
+        T104Connection_sendInterrogationCommand(con, ACTIVATION, 1, IEC60870_QOI_STATION);
 
         Thread_sleep(5000);
 

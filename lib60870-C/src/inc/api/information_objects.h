@@ -80,6 +80,66 @@ typedef uint8_t QualifierOfParameterMV;
 #define IEC60870_QPM_HIGH_LIMIT_FOR_TRANSMISSION 4
 
 /**
+ * \brief Cause of Initialization (COI) according to IEC 60870-5-101:2003 7.2.6.21
+ */
+
+typedef uint8_t CauseOfInitialization;
+
+#define IEC60870_COI_LOCAL_SWITCH_ON 0
+#define IEC60870_COI_LOCAL_MANUAL_RESET 1
+#define IEC60870_COI_REMOTE_RESET 2
+
+/**
+ * \brief Qualifier Of Command (QOC) according to IEC 60870-5-101:2003 7.2.6.26
+ */
+typedef uint8_t QualifierOfCommand;
+
+#define IEC60870_QOC_NO_ADDITIONAL_DEFINITION 0
+#define IEC60870_QOC_SHORT_PULSE_DURATION 1
+#define IEC60870_QOC_LONG_PULSE_DURATION 2
+#define IEC60870_QOC_PERSISTANT_OUTPUT 3
+
+/**
+ * \brief Select And Call Qualifier (SCQ) according to IEC 60870-5-101:2003 7.2.6.30
+ */
+
+typedef uint8_t SelectAndCallQualifier;
+
+#define IEC60870_SCQ_DEFAULT 0
+#define IEC60870_SCQ_SELECT_FILE 1
+#define IEC60870_SCQ_REQUEST_FILE 2
+#define IEC60870_SCQ_DEACTIVATE_FILE 3
+#define IEC60870_SCQ_DELETE_FILE 4
+#define IEC60870_SCQ_SELECT_SECTION 5
+#define IEC60870_SCQ_REQUEST_SECTION 6
+#define IEC60870_SCQ_DEACTIVATE_SECTION 7
+
+/**
+ * \brief Qualifier of interrogation (QUI) according to IEC 60870-5-101:2003 7.2.6.22
+ */
+
+typedef uint8_t QualifierOfInterrogation;
+
+#define IEC60870_QOI_STATION 20
+#define IEC60870_QOI_GROUP_1 21
+#define IEC60870_QOI_GROUP_2 22
+#define IEC60870_QOI_GROUP_3 23
+#define IEC60870_QOI_GROUP_4 24
+#define IEC60870_QOI_GROUP_5 25
+#define IEC60870_QOI_GROUP_6 26
+#define IEC60870_QOI_GROUP_7 27
+#define IEC60870_QOI_GROUP_8 28
+#define IEC60870_QOI_GROUP_9 29
+#define IEC60870_QOI_GROUP_10 30
+#define IEC60870_QOI_GROUP_11 31
+#define IEC60870_QOI_GROUP_12 32
+#define IEC60870_QOI_GROUP_13 33
+#define IEC60870_QOI_GROUP_14 34
+#define IEC60870_QOI_GROUP_15 35
+#define IEC60870_QOI_GROUP_16 36
+
+
+/**
  * \brief QCC (Qualifier of counter interrogation command) according to IEC 60870-5-101:2003 7.2.6.23
  *
  * The QCC is composed by the RQT(request) and the FRZ(Freeze) part
