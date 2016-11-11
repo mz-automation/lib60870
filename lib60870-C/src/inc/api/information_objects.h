@@ -1421,6 +1421,21 @@ DelayAcquisitionCommand_destroy(DelayAcquisitionCommand self);
 CP16Time2a
 DelayAcquisitionCommand_getDelay(DelayAcquisitionCommand self);
 
+/*******************************************
+ * EndOfInitialization : InformationObject
+ *******************************************/
+
+typedef struct sEndOfInitialization* EndOfInitialization;
+
+EndOfInitialization
+EndOfInitialization_create(EndOfInitialization self, uint8_t coi);
+
+void
+EndOfInitialization_destroy(EndOfInitialization self);
+
+uint8_t
+EndOfInitialization_getCOI(EndOfInitialization self);
+
 #ifdef __cplusplus
 }
 #endif

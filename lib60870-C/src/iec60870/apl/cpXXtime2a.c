@@ -44,7 +44,9 @@ CP16Time2a_getFromBuffer (CP16Time2a self, uint8_t* msg, int msgSize, int startI
     if (msgSize < startIndex + 2)
         return false;
 
-    for (int i = 0; i < 2; i++)
+    int i;
+
+    for (i = 0; i < 2; i++)
         self->encodedValue[i] = msg[startIndex + i];
 
     return true;
@@ -144,7 +146,9 @@ CP24Time2a_getFromBuffer (CP24Time2a self, uint8_t* msg, int msgSize, int startI
     if (msgSize < startIndex + 3)
         return false;
 
-    for (int i = 0; i < 3; i++)
+    int i;
+
+    for (i = 0; i < 3; i++)
         self->encodedValue[i] = msg[startIndex + i];
 
     return true;
@@ -348,7 +352,9 @@ CP56Time2a_getFromBuffer(CP56Time2a self, uint8_t* msg, int msgSize, int startIn
     if (msgSize < startIndex + 7)
         return false;
 
-    for (int i = 0; i < 7; i++)
+    int i;
+
+    for (i = 0; i < 7; i++)
         self->encodedValue[i] = msg[startIndex + i];
 
     return true;

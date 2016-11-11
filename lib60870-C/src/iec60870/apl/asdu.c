@@ -740,6 +740,14 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
+    case M_EI_NA_1: /* 70 - End of Initialization */
+
+        elementSize = self->parameters->sizeOfIOA + 1;
+
+        retVal = (InformationObject) EndOfInitialization_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  0);
+
+        break;
+
     case C_IC_NA_1: /* 100 - Interrogation command */
 
         retVal = (InformationObject) InterrogationCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  0);

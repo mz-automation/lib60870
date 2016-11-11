@@ -6437,7 +6437,97 @@ ParameterActivation_getFromBuffer(ParameterActivation self, ConnectionParameters
     return self;
 }
 
+/*******************************************
+ * EndOfInitialization : InformationObject
+ *******************************************/
 
+struct sEndOfInitialization {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t coi;
+};
+
+static void
+EndOfInitialization_encode(EndOfInitialization self, Frame frame, ConnectionParameters parameters, bool isSequence)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    Frame_setNextByte(frame, self->coi);
+}
+
+struct sInformationObjectVFT EndOfInitializationVFT = {
+        (EncodeFunction) EndOfInitialization_encode,
+        (DestroyFunction) EndOfInitialization_destroy
+};
+
+static void
+EndOfInitialization_initialize(EndOfInitialization self)
+{
+    self->virtualFunctionTable = &(EndOfInitializationVFT);
+    self->type = M_EI_NA_1;
+}
+
+EndOfInitialization
+EndOfInitialization_create(EndOfInitialization self, uint8_t coi)
+{
+    if (self == NULL) {
+       self = (EndOfInitialization) GLOBAL_MALLOC(sizeof(struct sEndOfInitialization));
+
+        if (self == NULL)
+            return NULL;
+        else
+            EndOfInitialization_initialize(self);
+    }
+
+    self->objectAddress = 0;
+
+    self->coi = coi;
+
+    return self;
+};
+
+void
+EndOfInitialization_destroy(EndOfInitialization self)
+{
+    GLOBAL_FREEMEM(self);
+};
+
+uint8_t
+EndOfInitialization_getCOI(EndOfInitialization self)
+{
+    return self->coi;
+}
+
+EndOfInitialization
+EndOfInitialization_getFromBuffer(EndOfInitialization self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 1)
+        return NULL;
+
+    if (self == NULL) {
+       self = (EndOfInitialization) GLOBAL_MALLOC(sizeof(struct sEndOfInitialization));
+
+        if (self != NULL)
+            EndOfInitialization_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* COI */
+        self->coi = msg[startIndex];
+    }
+
+    return self;
+};
 
 union uInformationObject {
     struct sSinglePointInformation m1;

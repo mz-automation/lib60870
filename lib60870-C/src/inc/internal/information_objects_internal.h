@@ -196,6 +196,10 @@ ParameterActivation
 ParameterActivation_getFromBuffer(ParameterActivation self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+EndOfInitialization
+EndOfInitialization_getFromBuffer(EndOfInitialization self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
 EventOfProtectionEquipmentWithCP56Time2a
 EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmentWithCP56Time2a self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
