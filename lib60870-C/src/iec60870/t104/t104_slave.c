@@ -22,6 +22,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "iec60870_slave.h"
 #include "frame.h"
@@ -105,6 +106,8 @@ struct sSlave {
 
     int openConnections;
     int tcpPort;
+
+    char* localAddress;
 };
 
 #if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
@@ -177,11 +180,30 @@ T104Slave_create(ConnectionParameters parameters, int maxQueueSize)
         self->isRunning = false;
         self->stopRunning = false;
 
+        self->localAddress = NULL;
         self->tcpPort = T104_DEFAULT_PORT;
         self->openConnections = 0;
     }
 
     return self;
+}
+
+void
+T104Slave_setLocalAddress(Slave self, const char* ipAddress)
+{
+    if (self->localAddress)
+        GLOBAL_FREEMEM(self->localAddress);
+
+    self->localAddress = (char*) GLOBAL_MALLOC(strlen(ipAddress) + 1);
+
+    if (self->localAddress)
+        strcpy(self->localAddress, ipAddress);
+}
+
+void
+T104Slave_setLocalPort(Slave self, int tcpPort)
+{
+    self->tcpPort = tcpPort;
 }
 
 int
@@ -692,7 +714,7 @@ checkConfirmTimeout(MasterConnection self, uint64_t currentTime)
 {
 	T104ConnectionParameters parameters = (T104ConnectionParameters) self->slave->parameters;
 
-    if ((currentTime - self->lastConfirmationTime) >= (parameters->t2 * 1000))
+    if ((currentTime - self->lastConfirmationTime) >= ((uint64_t) parameters->t2 * 1000))
         return true;
     else
         return false;
@@ -842,7 +864,12 @@ serverThread (void* parameter)
 {
     Slave self = (Slave) parameter;
 
-    ServerSocket serverSocket = TcpServerSocket_create("127.0.0.1", self->tcpPort);
+    ServerSocket serverSocket;
+
+    if (self->localAddress)
+        serverSocket = TcpServerSocket_create(self->localAddress, self->tcpPort);
+    else
+        serverSocket = TcpServerSocket_create("0.0.0.0", self->tcpPort);
 
     if (serverSocket == NULL) {
         DEBUG_PRINT("Cannot create server socket\n");

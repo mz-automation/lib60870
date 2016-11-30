@@ -159,6 +159,8 @@ main(int argc, char** argv)
      * default message queue size */
     Slave slave = T104Slave_create(NULL, 0);
 
+    T104Slave_setLocalAddress(slave, "0.0.0.0");
+
     /* get the connection parameters - we need them to create correct ASDUs */
     connectionParameters = Slave_getConnectionParameters(slave);
 

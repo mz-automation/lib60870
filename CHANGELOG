@@ -1,0 +1,8 @@
+Changes to version 0.9.2
+------------------------
+- lib60870-C: added functions to bind to local IP address and TCP port
+- lib60870-C: default bind to address "0.0.0.0"
+- lib60780-C: fixed StopDT bug
+- lib60870-C: fixed C99 incompatibilities in cpXXtime2a.c
+- lib60870-C: added support for M_EI_NA_1 message (end of initialization)
+

@@ -81,6 +81,25 @@ typedef bool (*ASDUHandler) (void* parameter, MasterConnection connection, ASDU 
 Slave
 T104Slave_create(ConnectionParameters parameters, int maxQueueSize);
 
+/**
+ * \brief Set the local IP address to bind the server
+ * use "0.0.0.0" to bind to all interfaces
+ *
+ * \param self the slave instance
+ * \param ipAddress the IP address string or hostname
+ */
+void
+T104Slave_setLocalAddress(Slave self, const char* ipAddress);
+
+/**
+ * \brief Set the local TCP port to bind the server
+ *
+ * \param self the slave instance
+ * \param tcpPort the TCP port to use (default is 2404)
+ */
+void
+T104Slave_setLocalPort(Slave self, int tcpPort);
+
 int
 T104Slave_getOpenConnections(Slave self);
 
