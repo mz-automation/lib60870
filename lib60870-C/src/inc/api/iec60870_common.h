@@ -33,7 +33,7 @@ extern "C" {
 
 #define LIB60870_VERSION_MAJOR 0
 #define LIB60870_VERSION_MINOR 9
-#define LIB60870_VERSION_PATCH 0
+#define LIB60870_VERSION_PATCH 2
 
 typedef struct {
     int major;
