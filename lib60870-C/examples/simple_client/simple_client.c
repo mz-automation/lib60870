@@ -6,12 +6,22 @@
 #include <stdio.h>
 
 static void
-connectionHandler (void* parameter, T104Connection connection, bool closed)
+connectionHandler (void* parameter, T104Connection connection, IEC60870ConnectionEvent event)
 {
-    if (closed)
-        printf("Connection closed\n");
-    else
+    switch (event) {
+    case IEC60870_CONNECTION_OPENED:
         printf("Connection established\n");
+        break;
+    case IEC60870_CONNECTION_CLOSED:
+        printf("Connection closed\n");
+        break;
+    case IEC60870_CONNECTION_STARTDT_CON_RECEIVED:
+        printf("Received STARTDT_CON\n");
+        break;
+    case IEC60870_CONNECTION_STOPDT_CON_RECEIVED:
+        printf("Received STOPDT_CON\n");
+        break;
+    }
 }
 
 static bool

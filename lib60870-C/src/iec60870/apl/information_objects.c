@@ -557,7 +557,7 @@ StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, Connec
         /* parse VTI (value with transient state indication) */
         self->vti = msg [startIndex++];
 
-        self->quality = (QualityDescriptor) msg [startIndex];
+        self->quality = (QualityDescriptor) msg [startIndex++];
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -782,12 +782,12 @@ DoublePointInformation_getFromBuffer(DoublePointInformation self, ConnectionPara
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
-        /* parse SIQ (single point information with qualitiy) */
-        uint8_t siq = msg [startIndex];
+        /* parse DIQ (double point information with quality) */
+        uint8_t diq = msg [startIndex++];
 
-        self->value = (DoublePointValue) ((siq & 0x01) == 0x03);
+        self->value = (DoublePointValue) (diq & 0x03);
 
-        self->quality = (QualityDescriptor) (siq & 0xf0);
+        self->quality = (QualityDescriptor) (diq & 0xf0);
     }
 
     return self;
@@ -889,12 +889,12 @@ DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, Connecti
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
-        /* parse SIQ (single point information with qualitiy) */
-        uint8_t siq = msg [startIndex];
+        /* parse DIQ (double point information with quality) */
+        uint8_t diq = msg [startIndex++];
 
-        self->value = (DoublePointValue) ((siq & 0x01) == 0x03);
+        self->value = (DoublePointValue) (diq & 0x03);
 
-        self->quality = (QualityDescriptor) (siq & 0xf0);
+        self->quality = (QualityDescriptor) (diq & 0xf0);
 
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -1001,12 +1001,12 @@ DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, Connecti
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
-        /* parse SIQ (single point information with qualitiy) */
-        uint8_t siq = msg [startIndex];
+        /* parse DIQ (double point information with quality) */
+        uint8_t diq = msg [startIndex++];
 
-        self->value = (DoublePointValue) ((siq & 0x01) == 0x03);
+        self->value = (DoublePointValue) (diq & 0x03);
 
-        self->quality = (QualityDescriptor) (siq & 0xf0);
+        self->quality = (QualityDescriptor) (diq & 0xf0);
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -1112,7 +1112,7 @@ SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, Connecti
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
         /* parse SIQ (single point information with qualitiy) */
-        uint8_t siq = msg [startIndex];
+        uint8_t siq = msg [startIndex++];
 
         self->value = ((siq & 0x01) == 0x01);
 
@@ -1225,7 +1225,7 @@ SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, Connecti
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
         /* parse SIQ (single point information with qualitiy) */
-        uint8_t siq = msg [startIndex];
+        uint8_t siq = msg [startIndex++];
 
         self->value = ((siq & 0x01) == 0x01);
 
@@ -4344,7 +4344,7 @@ SingleCommandWithCP56Time2a_getFromBuffer(SingleCommandWithCP56Time2a self, Conn
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
         /* SCO */
-        self->sco = msg[startIndex];
+        self->sco = msg[startIndex++];
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);

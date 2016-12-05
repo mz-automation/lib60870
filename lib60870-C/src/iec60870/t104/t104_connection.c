@@ -90,6 +90,9 @@ static uint8_t TESTFR_CON_MSG[] = { 0x68, 0x04, 0x83, 0x00, 0x00, 0x00 };
 static uint8_t STOPDT_ACT_MSG[] = { 0x68, 0x04, 0x13, 0x00, 0x00, 0x00 };
 #define STOPDT_ACT_MSG_SIZE 6
 
+static uint8_t STARTDT_CON_MSG[] = { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
+#define STARTDT_CON_MSG_SIZE 6
+
 static void
 prepareSMessage(uint8_t* msg)
 {
@@ -228,7 +231,7 @@ checkConfirmTimeout(T104Connection self, long currentTime)
 static bool
 checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
 {
-    if ((buffer[2] & 1) == 0) {
+    if ((buffer[2] & 1) == 0) { /* I format frame */
 
         DEBUG_PRINT("Received I frame\n");
 
@@ -264,11 +267,38 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
             return false;
 
     }
-    else if (buffer[2] == 0x43) { /* Check for TESTFR_ACT message */
+    else if ((buffer[2] & 0x03) == 0x03) { /* U format frame */
 
-        DEBUG_PRINT("Send TESTFR_CON\n");
+        DEBUG_PRINT("Received U frame\n");
 
-        Socket_write(self->socket, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
+        if (buffer[2] == 0x43) { /* Check for TESTFR_ACT message */
+
+            DEBUG_PRINT("Send TESTFR_CON\n");
+
+            Socket_write(self->socket, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
+        }
+        else if (buffer[2] == 0x07) { /* Start DT ACT */
+            self->receiveCount = 0;
+
+            DEBUG_PRINT("Send STARTDT_CON\n");
+
+            Socket_write(self->socket, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
+        }
+        else if (buffer[2] == 0x0b) { /* Start DT CON */
+
+            DEBUG_PRINT("Received STARTDT_CON\n");
+
+            if (self->connectionHandler != NULL)
+                self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_STARTDT_CON_RECEIVED);
+        }
+        else if (buffer[2] == 0x23) { /* Stop DT CON */
+
+            DEBUG_PRINT("Received STOPDT_CON\n");
+
+            if (self->connectionHandler != NULL)
+                self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_STOPDT_CON_RECEIVED);
+        }
+
     }
 
     return true;
@@ -292,7 +322,7 @@ handleConnection(void* parameter)
 
         /* Call connection handler */
         if (self->connectionHandler != NULL)
-            self->connectionHandler(self->connectionHandlerParameter, self, false);
+            self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_OPENED);
 
         while (self->running) {
 
@@ -325,7 +355,7 @@ handleConnection(void* parameter)
 
         /* Call connection handler */
         if (self->connectionHandler != NULL)
-            self->connectionHandler(self->connectionHandlerParameter, self, true);
+            self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_CLOSED);
     }
     else {
         self->failure = true;

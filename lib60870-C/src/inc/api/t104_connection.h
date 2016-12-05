@@ -153,14 +153,22 @@ typedef bool (*ASDUReceivedHandler) (void* parameter, ASDU asdu);
 void
 T104Connection_setASDUReceivedHandler(T104Connection self, ASDUReceivedHandler handler, void* parameter);
 
+
+typedef enum {
+    IEC60870_CONNECTION_OPENED = 0,
+    IEC60870_CONNECTION_CLOSED = 1,
+    IEC60870_CONNECTION_STARTDT_CON_RECEIVED = 2,
+    IEC60870_CONNECTION_STOPDT_CON_RECEIVED = 3
+} IEC60870ConnectionEvent;
+
 /**
  * \brief Handler that is called when the connection is established or closed
  *
  * \param parameter user provided parameter
  * \param connection the connection object
- * \param closed false when the connection is established, true when the connection is closed
+ * \param event event type
  */
-typedef void (*ConnectionHandler) (void* parameter, T104Connection connection, bool closed);
+typedef void (*ConnectionHandler) (void* parameter, T104Connection connection, IEC60870ConnectionEvent event);
 
 void
 T104Connection_setConnectionHandler(T104Connection self, ConnectionHandler handler, void* parameter);

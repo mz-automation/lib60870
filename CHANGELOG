@@ -5,4 +5,13 @@ Changes to version 0.9.2
 - lib60780-C: fixed StopDT bug
 - lib60870-C: fixed C99 incompatibilities in cpXXtime2a.c
 - lib60870-C: added support for M_EI_NA_1 message (end of initialization)
+- lib60870-C: DoublePointWithCP56Time2a_getFromBuffer corrected parsing of time stamp
+- lib60870-C: SingleCommandWithCP56Time2a_getFromBuffer corrected parsing of time stamp
+- lib60870-C: SinglePointWithCP56Time2a_getFromBuffer corrected parsing of time stamp
+- lib60870-C: StepPositionWithCP56Time2a_getFromBuffer corrected parsing of time stamp
+- lib60870-C: DoublePointWithCP24Time2a_getFromBuffer corrected parsing of time stamp
+- lib60870-C: SinglePointWithCP24Time2a_getFromBuffer corrected parsing of time stamp
+- lib60870-C: corrected parsing of double point information
+- lib60870-C: corrected parsing of some data types when sent as sequence of information objects
+- lib60870-C: client/master: extended STARTDT/STOPDT handling; changed connection handler signature to indicate STARTDT_CON/STOPDT_CON messages
 

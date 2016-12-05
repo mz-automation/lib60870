@@ -346,7 +346,7 @@ CP56Time2a_toMsTimestamp(CP56Time2a self)
     return msTimestamp;
 }
 
-bool
+/* private */ bool
 CP56Time2a_getFromBuffer(CP56Time2a self, uint8_t* msg, int msgSize, int startIndex)
 {
     if (msgSize < startIndex + 7)

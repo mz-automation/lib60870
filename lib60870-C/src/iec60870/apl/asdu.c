@@ -317,7 +317,7 @@ ASDU_getElement(ASDU self, int index)
         }
         else
             retVal  = (InformationObject) SinglePointInformation_getFromBuffer(NULL, self->parameters,
-                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
@@ -341,7 +341,7 @@ ASDU_getElement(ASDU self, int index)
         }
         else
             retVal  = (InformationObject) DoublePointInformation_getFromBuffer(NULL, self->parameters,
-                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
 
         break;
@@ -366,7 +366,7 @@ ASDU_getElement(ASDU self, int index)
         }
         else
             retVal  = (InformationObject) StepPositionInformation_getFromBuffer(NULL, self->parameters,
-                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
 
         break;
@@ -391,7 +391,7 @@ ASDU_getElement(ASDU self, int index)
         }
         else
             retVal  = (InformationObject) BitString32_getFromBuffer(NULL, self->parameters,
-                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
@@ -415,7 +415,7 @@ ASDU_getElement(ASDU self, int index)
         }
         else
             retVal  = (InformationObject) MeasuredValueNormalized_getFromBuffer(NULL, self->parameters,
-                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
 
         break;
@@ -440,7 +440,7 @@ ASDU_getElement(ASDU self, int index)
         }
         else
             retVal  = (InformationObject) MeasuredValueScaled_getFromBuffer(NULL, self->parameters,
-                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
@@ -465,7 +465,7 @@ ASDU_getElement(ASDU self, int index)
         }
         else
             retVal  = (InformationObject) MeasuredValueShort_getFromBuffer(NULL, self->parameters,
-                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), true);
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
 
         break;
