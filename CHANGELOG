@@ -1,5 +1,8 @@
 Changes to version 0.9.2
 ------------------------
+- lib60870-C: changed to select based read at client side
+- lib60870.NET: extended STARTDT/STOPDT handling
+- lib60870.NET: changed signature of ConnectionHandler
 - lib60870-C: added functions to bind to local IP address and TCP port
 - lib60870-C: default bind to address "0.0.0.0"
 - lib60780-C: fixed StopDT bug
