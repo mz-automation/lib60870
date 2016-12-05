@@ -61,6 +61,12 @@ HandleSet
 Handleset_new(void);
 
 /**
+ * \brief Reset the handle set for reuse
+ */
+void
+Handleset_reset(HandleSet self);
+
+/**
  * \brief add a soecket to an existing handle set
  *
  * \param self the HandleSet instance

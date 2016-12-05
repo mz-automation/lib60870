@@ -528,7 +528,6 @@ namespace lib60870
 
 		private bool checkMessage(Socket socket, byte[] buffer, int msgSize)
 		{
-
 			if ((buffer [2] & 1) == 0) { /* I format frame */
 			
 				if (debugOutput)
@@ -565,7 +564,6 @@ namespace lib60870
 
 					socket.Send (TESTFR_CON_MSG);
 				} else if (buffer [2] == 0x07) { /* STARTDT ACT */
-					receiveCount = 0;
 
 					socket.Send (STARTDT_CON_MSG);
 				} else if (buffer [2] == 0x0b) { /* STARTDT_CON */

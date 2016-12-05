@@ -272,27 +272,22 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
         DEBUG_PRINT("Received U frame\n");
 
         if (buffer[2] == 0x43) { /* Check for TESTFR_ACT message */
-
             DEBUG_PRINT("Send TESTFR_CON\n");
 
             Socket_write(self->socket, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
         }
         else if (buffer[2] == 0x07) { /* STARTDT_ACT */
-            self->receiveCount = 0;
-
             DEBUG_PRINT("Send STARTDT_CON\n");
 
             Socket_write(self->socket, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
         }
         else if (buffer[2] == 0x0b) { /* STARTDT_CON */
-
             DEBUG_PRINT("Received STARTDT_CON\n");
 
             if (self->connectionHandler != NULL)
                 self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_STARTDT_CON_RECEIVED);
         }
         else if (buffer[2] == 0x23) { /* STOPDT_CON */
-
             DEBUG_PRINT("Received STOPDT_CON\n");
 
             if (self->connectionHandler != NULL)
@@ -324,26 +319,31 @@ handleConnection(void* parameter)
         if (self->connectionHandler != NULL)
             self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_OPENED);
 
+        HandleSet handleSet = Handleset_new();
+
         while (self->running) {
 
             uint8_t buffer[300];
 
-            Thread_sleep(1); //TODO use select!
+            Handleset_reset(handleSet);
+            Handleset_addSocket(handleSet, socket);
 
-            int bytesRec = receiveMessage(socket, buffer);
+            if (Handleset_waitReady(handleSet, 100)) {
+                int bytesRec = receiveMessage(socket, buffer);
 
-            if (bytesRec == -1) {
-                self->running = false;
-                self->failure = true;
-            }
-
-            if (bytesRec > 0) {
-                //TODO call raw message handler if available
-
-                if (checkMessage(self, buffer, bytesRec) == false) {
-                    /* close connection on error */
+                if (bytesRec == -1) {
                     self->running = false;
                     self->failure = true;
+                }
+
+                if (bytesRec > 0) {
+                    //TODO call raw message handler if available
+
+                    if (checkMessage(self, buffer, bytesRec) == false) {
+                        /* close connection on error */
+                        self->running = false;
+                        self->failure = true;
+                    }
                 }
             }
 
@@ -351,6 +351,7 @@ handleConnection(void* parameter)
                 self->running = false;
         }
 
+        Handleset_destroy(handleSet);
         Socket_destroy(socket);
 
         /* Call connection handler */

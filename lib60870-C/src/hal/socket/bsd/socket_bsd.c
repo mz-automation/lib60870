@@ -34,8 +34,7 @@
 #include <netinet/tcp.h> // required for TCP keepalive
 
 #include "hal_thread.h"
-
-#include "libiec61850_platform_includes.h"
+#include "lib_memory.h"
 
 #ifndef DEBUG_SOCKET
 #define DEBUG_SOCKET 0
@@ -67,6 +66,14 @@ Handleset_new(void)
    }
    return result;
 }
+
+void
+Handleset_reset(HandleSet self)
+{
+    FD_ZERO(&self->handles);
+    self->maxHandle = -1;
+}
+
 
 void
 Handleset_addSocket(HandleSet self, const Socket sock)

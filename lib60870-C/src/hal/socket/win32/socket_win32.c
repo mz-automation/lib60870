@@ -70,6 +70,13 @@ Handleset_new(void)
 }
 
 void
+Handleset_reset(HandleSet self)
+{
+    FD_ZERO(&self->handles);
+    self->maxHandle = INVALID_SOCKET;
+}
+
+void
 Handleset_addSocket(HandleSet self, const Socket sock)
 {
    if (self != NULL && sock != NULL && sock->fd != INVALID_SOCKET) {
