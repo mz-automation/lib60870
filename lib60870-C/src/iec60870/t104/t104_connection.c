@@ -277,21 +277,21 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
 
             Socket_write(self->socket, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
         }
-        else if (buffer[2] == 0x07) { /* Start DT ACT */
+        else if (buffer[2] == 0x07) { /* STARTDT_ACT */
             self->receiveCount = 0;
 
             DEBUG_PRINT("Send STARTDT_CON\n");
 
             Socket_write(self->socket, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
         }
-        else if (buffer[2] == 0x0b) { /* Start DT CON */
+        else if (buffer[2] == 0x0b) { /* STARTDT_CON */
 
             DEBUG_PRINT("Received STARTDT_CON\n");
 
             if (self->connectionHandler != NULL)
                 self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_STARTDT_CON_RECEIVED);
         }
-        else if (buffer[2] == 0x23) { /* Stop DT CON */
+        else if (buffer[2] == 0x23) { /* STOPDT_CON */
 
             DEBUG_PRINT("Received STOPDT_CON\n");
 

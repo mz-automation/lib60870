@@ -43,16 +43,27 @@ namespace lib60870
 		}
 	}
 
+	public enum ConnectionEvent {
+		OPENED = 0,
+		CLOSED = 1,
+		STARTDT_CON_RECEIVED = 2,
+		STOPDT_CON_RECEIVED = 3
+	}
+
 	/// <summary>
 	/// ASDU received handler.
 	/// </summary>
 	public delegate bool ASDUReceivedHandler (object parameter, ASDU asdu);
 
-	public delegate void ConnectionHandler (object parameter, bool closed);
+	public delegate void ConnectionHandler (object parameter, ConnectionEvent connectionEvent);
 
 	public class Connection
 	{
 		static byte[] STARTDT_ACT_MSG = new byte[] { 0x68, 0x04, 0x07, 0x00, 0x00, 0x00 };
+
+		static byte[] STARTDT_CON_MSG = new byte[] { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
+
+		static byte[] STOPDT_ACT_MSG = new byte[] { 0x68, 0x04, 0x13, 0x00, 0x00, 0x00 };
 
 		static byte[] TESTFR_CON_MSG = new byte[] { 0x68, 0x04, 0x83, 0x00, 0x00, 0x00 };
 
@@ -144,22 +155,33 @@ namespace lib60870
 
 		}
 
-		private void setup(string hostname, ConnectionParameters parameters)
+		private void setup(string hostname, ConnectionParameters parameters, int tcpPort)
 		{
 			this.hostname = hostname;
 			this.parameters = parameters;
-			this.tcpPort = parameters.TcpPort;
+			this.tcpPort = tcpPort;
 			this.connectTimeoutInMs = parameters.T0 * 1000;
 		}
 
 		public Connection (string hostname)
 		{
-			setup (hostname, new ConnectionParameters());
+			setup (hostname, new ConnectionParameters(), 2404);
+		}
+
+
+		public Connection (string hostname, int tcpPort)
+		{
+			setup (hostname, new ConnectionParameters(), tcpPort);
 		}
 
 		public Connection (string hostname, ConnectionParameters parameters)
 		{
-			setup (hostname, parameters.clone());
+			setup (hostname, parameters.clone(), 2404);
+		}
+
+		public Connection (string hostname, int tcpPort, ConnectionParameters parameters)
+		{
+			setup (hostname, parameters.clone(), tcpPort);
 		}
 
 		public void SetConnectTimeout(int millies)
@@ -395,6 +417,36 @@ namespace lib60870
 		}
 
 		/// <summary>
+		/// Start data transmission on this connection
+		/// </summary>
+		public void SendStartDT() {
+			if (running) {
+				socket.Send(STARTDT_ACT_MSG);
+			}
+			else {
+				if (lastException != null)
+					throw new ConnectionException(lastException.Message, lastException);
+				else
+					throw new ConnectionException("not connected", new SocketException (10057));
+			}
+		}
+
+		/// <summary>
+		/// Stop data transmission on this connection
+		/// </summary>
+		public void SendStopDT() {
+			if (running) {
+				socket.Send(STOPDT_ACT_MSG);
+			}
+			else {
+				if (lastException != null)
+					throw new ConnectionException(lastException.Message, lastException);
+				else
+					throw new ConnectionException("not connected", new SocketException (10057));
+			}
+		}
+
+		/// <summary>
 		/// Connect this instance.
 		/// </summary>
 		/// 
@@ -477,7 +529,7 @@ namespace lib60870
 		private bool checkMessage(Socket socket, byte[] buffer, int msgSize)
 		{
 
-			if ((buffer [2] & 1) == 0) {
+			if ((buffer [2] & 1) == 0) { /* I format frame */
 			
 				if (debugOutput)
 					Console.WriteLine ("Received I frame");
@@ -493,11 +545,11 @@ namespace lib60870
 				receiveCount++;
 				unconfirmedMessages++;
 
-                long currentTime = SystemUtils.currentTimeMillis();
+				long currentTime = SystemUtils.currentTimeMillis ();
 
-				if ((unconfirmedMessages > parameters.W) || checkConfirmTimeout(currentTime)) {
+				if ((unconfirmedMessages > parameters.W) || checkConfirmTimeout (currentTime)) {
 
-                    lastConfirmationTime = currentTime;
+					lastConfirmationTime = currentTime;
 
 					unconfirmedMessages = 0;
 					sendSMessage ();
@@ -506,14 +558,27 @@ namespace lib60870
 				ASDU asdu = new ASDU (parameters, buffer, msgSize);
 
 				if (asduReceivedHandler != null)
-					asduReceivedHandler(asduReceivedHandlerParameter, asdu);
-			}
-			else if (buffer [2] == 0x43) { // Check for TESTFR_ACT message
+					asduReceivedHandler (asduReceivedHandlerParameter, asdu);
+			} else if ((buffer [2] & 0x03) == 0x03) { /* U format frame */
+				
+				if (buffer [2] == 0x43) { // Check for TESTFR_ACT message
 
-				if (debugOutput)
-					Console.WriteLine ("Send TESTFR_CON");
+					socket.Send (TESTFR_CON_MSG);
+				} else if (buffer [2] == 0x07) { /* STARTDT ACT */
+					receiveCount = 0;
 
-				socket.Send (TESTFR_CON_MSG);
+					socket.Send (STARTDT_CON_MSG);
+				} else if (buffer [2] == 0x0b) { /* STARTDT_CON */
+
+					if (connectionHandler != null)
+						connectionHandler(connectionHandlerParameter, ConnectionEvent.STARTDT_CON_RECEIVED);
+
+				} else if (buffer [2] == 0x23) { /* STOPDT_CON */
+
+					if (connectionHandler != null)
+						connectionHandler(connectionHandlerParameter, ConnectionEvent.STOPDT_CON_RECEIVED);
+				}
+
 			}
 
 			return true;
@@ -569,7 +634,7 @@ namespace lib60870
                         connecting = false;
 
 						if (connectionHandler != null)
-							connectionHandler(connectionHandlerParameter, false);
+							connectionHandler(connectionHandlerParameter, ConnectionEvent.OPENED);
 						
 					} catch (SocketException se) {
 						if (debugOutput)
@@ -617,7 +682,7 @@ namespace lib60870
 					socket.Close();
 
 					if (connectionHandler != null)
-						connectionHandler(connectionHandlerParameter, true);
+						connectionHandler(connectionHandlerParameter, ConnectionEvent.CLOSED);
 
 				} catch (ArgumentNullException ane) {
                     connecting = false;

@@ -87,9 +87,9 @@ namespace tests
 		{
 			ConnectionParameters parameters = new ConnectionParameters ();
 
-			parameters.TcpPort = 20213;
-
 			Server server = new Server (parameters);
+
+			server.SetLocalPort (20213);
 
 			server.Start ();
 
@@ -129,9 +129,9 @@ namespace tests
 		{
 			ConnectionParameters parameters = new ConnectionParameters ();
 
-			parameters.TcpPort = 20213;
-
 			Server server = new Server (parameters);
+
+			server.SetLocalPort (20213);
 
 			server.Start ();
 

@@ -74,7 +74,8 @@ namespace lib60870
 	/// </summary>
 	public class Server {
 
-		private string localHostname = "127.0.0.1";
+		private string localHostname = "0.0.0.0";
+		private int localPort = 2404;
 
 		private bool running = false;
 
@@ -247,12 +248,29 @@ namespace lib60870
 		}
 
 		/// <summary>
+		/// Sets the local IP address to bind the server. Default is "0.0.0.0" for
+		/// all interfaces
+		/// </summary>
+		/// <param name="localAddress">Local IP address or hostname to bind.</param>
+		public void SetLocalAddress(string localAddress) {
+			this.localHostname = localAddress;
+		}
+
+		/// <summary>
+		/// Sets the local TCP port to bind to. Default is 2404.
+		/// </summary>
+		/// <param name="tcpPort">Local TCP port to bind.</param>
+		public void SetLocalPort(int tcpPort) {
+			this.localPort = tcpPort;
+		}
+
+		/// <summary>
 		/// Start the server. Listen to client connections.
 		/// </summary>
 		public void Start() 
 		{
 			IPAddress ipAddress = IPAddress.Parse(localHostname);
-			IPEndPoint remoteEP = new IPEndPoint(ipAddress, parameters.TcpPort);
+			IPEndPoint remoteEP = new IPEndPoint(ipAddress, localPort);
 
 			// Create a TCP/IP  socket.
 			listeningSocket = new Socket(AddressFamily.InterNetwork, 

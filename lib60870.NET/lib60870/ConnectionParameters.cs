@@ -58,8 +58,6 @@ namespace lib60870
 	
 		private int sizeOfIOA = 3; /* (parameter c) IOA = information object address (1/2/3) */
 
-		private int tcpPort = 2404;
-
 		public ConnectionParameters ()
 		{
 		}
@@ -79,7 +77,6 @@ namespace lib60870
 			copy.originatorAddress = originatorAddress;
 			copy.sizeOfCA = sizeOfCA;
 			copy.sizeOfIOA = sizeOfIOA;
-			copy.tcpPort = tcpPort;
 
 			return copy;
 		}
@@ -184,15 +181,6 @@ namespace lib60870
 		public int SizeOfVSQ {
 			get {
 				return this.sizeOfVSQ;
-			}
-		}
-
-		public int TcpPort {
-			get {
-				return this.tcpPort;
-			}
-			set {
-				tcpPort = value;
 			}
 		}
 	}

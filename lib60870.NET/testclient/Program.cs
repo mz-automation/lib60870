@@ -8,6 +8,24 @@ namespace testclient
 	class MainClass
 	{
 
+		private static void ConnectionHandler (object parameter, ConnectionEvent connectionEvent)
+		{
+			switch (connectionEvent) {
+			case ConnectionEvent.OPENED:
+				Console.WriteLine ("Connected");
+				break;
+			case ConnectionEvent.CLOSED:
+				Console.WriteLine ("Connection closed");
+				break;
+			case ConnectionEvent.STARTDT_CON_RECEIVED:
+				Console.WriteLine ("STARTDT CON received");
+				break;
+			case ConnectionEvent.STOPDT_CON_RECEIVED:
+				Console.WriteLine ("STOPDT CON received");
+				break;
+			}
+		}
+
 		private static bool asduReceivedHandler(object parameter, ASDU asdu)
 		{
 			Console.WriteLine (asdu.ToString ());
@@ -82,10 +100,11 @@ namespace testclient
 		{
 			Console.WriteLine ("Using lib60870.NET version " + LibraryCommon.GetLibraryVersionString ());
 
-			Connection con = new Connection ("192.168.1.50");
-			//Connection con = new Connection ("127.0.0.1");
+			//Connection con = new Connection ("192.168.1.50");
+			Connection con = new Connection ("127.0.0.1");
 
 			con.SetASDUReceivedHandler (asduReceivedHandler, null);
+			con.SetConnectionHandler (ConnectionHandler, null);
 
 			con.Connect ();
 
