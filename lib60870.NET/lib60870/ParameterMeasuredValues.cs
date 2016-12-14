@@ -87,7 +87,7 @@ namespace lib60870
 			qpm = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (scaledValue.GetEncodedValue ());
@@ -149,7 +149,7 @@ namespace lib60870
 			qpm = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (scaledValue.GetEncodedValue ());
@@ -209,7 +209,7 @@ namespace lib60870
 			qpm = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			byte[] floatEncoded = BitConverter.GetBytes (value);
@@ -270,7 +270,7 @@ namespace lib60870
 			qpa = msg [startIndex++];
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			frame.SetNextByte (qpa);

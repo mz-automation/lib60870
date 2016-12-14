@@ -44,7 +44,6 @@
     <Compile Include="QualityDescriptor.cs" />
     <Compile Include="CP56Time2a.cs" />
     <Compile Include="SystemUtils.cs" />
-    <Compile Include="SinglePointWithCP56Time2a.cs" />
     <Compile Include="SinglePointInformation.cs" />
     <Compile Include="CP24Time2a.cs" />
     <Compile Include="CP16Time2a.cs" />

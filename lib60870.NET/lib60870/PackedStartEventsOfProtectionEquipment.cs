@@ -72,11 +72,21 @@ namespace lib60870
 				return this.timestamp;
 			}
 		}
-
-		public PackedStartEventsOfProtectionEquipment (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex, false)
+			
+		public PackedStartEventsOfProtectionEquipment (int objectAddress, StartEvent spe, QualityDescriptorP qdp, CP16Time2a elapsedTime, CP24Time2a timestamp)
+			: base(objectAddress)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			this.spe = spe;
+			this.qdp = qdp;
+			this.elapsedTime = elapsedTime;
+			this.timestamp = timestamp;
+		}
+
+		internal PackedStartEventsOfProtectionEquipment (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
+		base(parameters, msg, startIndex, isSequence)
+		{
+			if (!isSequence)
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			spe = new StartEvent (msg [startIndex++]);
 			qdp = new QualityDescriptorP (msg [startIndex++]);
@@ -87,7 +97,18 @@ namespace lib60870
 			/* parse CP56Time2a (time stamp) */
 			timestamp = new CP24Time2a (msg, startIndex);
 		}
+			
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
 
+			frame.SetNextByte (spe.EncodedValue);
+
+			frame.SetNextByte (qdp.EncodedValue);
+
+			frame.AppendBytes (elapsedTime.GetEncodedValue ());
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
 	}
 
 	public class PackedStartEventsOfProtectionEquipmentWithCP56Time2a : InformationObject
@@ -136,10 +157,20 @@ namespace lib60870
 			}
 		}
 
-		public PackedStartEventsOfProtectionEquipmentWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex, false)
+		public PackedStartEventsOfProtectionEquipmentWithCP56Time2a (int objectAddress, StartEvent spe, QualityDescriptorP qdp, CP16Time2a elapsedTime, CP56Time2a timestamp)
+			: base(objectAddress)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			this.spe = spe;
+			this.qdp = qdp;
+			this.elapsedTime = elapsedTime;
+			this.timestamp = timestamp;
+		}
+
+		internal PackedStartEventsOfProtectionEquipmentWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
+		base(parameters, msg, startIndex, isSequence)
+		{
+			if (!isSequence)
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			spe = new StartEvent (msg [startIndex++]);
 			qdp = new QualityDescriptorP (msg [startIndex++]);
@@ -151,6 +182,17 @@ namespace lib60870
 			timestamp = new CP56Time2a (msg, startIndex);
 		}
 
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
+
+			frame.SetNextByte (spe.EncodedValue);
+
+			frame.SetNextByte (qdp.EncodedValue);
+
+			frame.AppendBytes (elapsedTime.GetEncodedValue ());
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
+		}
 	}
 }
 

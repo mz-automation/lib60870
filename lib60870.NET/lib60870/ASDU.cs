@@ -269,10 +269,17 @@ namespace lib60870
 				break;
 
 			case TypeID.M_SP_TA_1: /* 2 */
+				
+				elementSize = 4;
 
-				elementSize = parameters.SizeOfIOA + 4;
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
-				retVal = new SinglePointWithCP24Time2a (parameters, payload, index * elementSize);
+					retVal = new SinglePointWithCP24Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+				} else
+					retVal = new SinglePointWithCP24Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -294,9 +301,17 @@ namespace lib60870
 
 			case TypeID.M_DP_TA_1: /* 4 */
 
-				elementSize = parameters.SizeOfIOA + 4;
+				elementSize = 4;
 
-				retVal = new DoublePointWithCP24Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new DoublePointWithCP24Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new DoublePointWithCP24Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -318,9 +333,17 @@ namespace lib60870
 
 			case TypeID.M_ST_TA_1: /* 6 */
 
-				elementSize = parameters.SizeOfIOA + 5;
+				elementSize = 5;
 
-				retVal = new StepPositionWithCP24Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new StepPositionWithCP24Time2a (parameters, payload,  parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new StepPositionWithCP24Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -342,9 +365,17 @@ namespace lib60870
 
 			case TypeID.M_BO_TA_1: /* 8 */
 
-				elementSize = parameters.SizeOfIOA + 8;
+				elementSize = 8;
 
-				retVal = new Bitstring32WithCP24Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new Bitstring32WithCP24Time2a (parameters, payload,  parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new Bitstring32WithCP24Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -366,9 +397,17 @@ namespace lib60870
 
 			case TypeID.M_ME_TA_1: /* 10 */
 
-				elementSize = parameters.SizeOfIOA + 6;
+				elementSize = 6;
 
-				retVal = new MeasuredValueNormalizedWithCP24Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new MeasuredValueNormalizedWithCP24Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new MeasuredValueNormalizedWithCP24Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -390,9 +429,17 @@ namespace lib60870
 
 			case TypeID.M_ME_TB_1: /* 12 */
 
-				elementSize = parameters.SizeOfIOA + 6;
+				elementSize = 6;
 
-				retVal = new MeasuredValueScaledWithCP24Time2a (parameters, payload, index * elementSize, false);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new MeasuredValueScaledWithCP24Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new MeasuredValueScaledWithCP24Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -411,14 +458,21 @@ namespace lib60870
 				} else
 					retVal = new MeasuredValueShort (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 				
-
 				break;
 
 			case TypeID.M_ME_TC_1: /* 14 */
 
-				elementSize = parameters.SizeOfIOA + 8;
+				elementSize = 8;
 
-				retVal = new MeasuredValueShortWithCP24Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new MeasuredValueShortWithCP24Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new MeasuredValueShortWithCP24Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -436,38 +490,69 @@ namespace lib60870
 				} else
 					retVal = new IntegratedTotals (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 				
-
 				break;
 
 			case TypeID.M_IT_TA_1: /* 16 */
 
-				elementSize = parameters.SizeOfIOA + 8;
+				elementSize = 8;
 
-				retVal = new IntegratedTotalsWithCP24Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new IntegratedTotalsWithCP24Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new IntegratedTotalsWithCP24Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
 			case TypeID.M_EP_TA_1: /* 17 */
 
-				elementSize = parameters.SizeOfIOA + 6;
+				elementSize = 6;
 
-				retVal = new EventOfProtectionEquipment (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new EventOfProtectionEquipment (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new EventOfProtectionEquipment (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
 			case TypeID.M_EP_TB_1: /* 18 */
 
-				elementSize = parameters.SizeOfIOA + 7;
+				elementSize = 7;
 
-				retVal = new PackedStartEventsOfProtectionEquipment (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new PackedStartEventsOfProtectionEquipment (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new PackedStartEventsOfProtectionEquipment (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
 			case TypeID.M_EP_TC_1: /* 19 */
 
-				elementSize = parameters.SizeOfIOA + 7;
+				elementSize = 7;
 
-				retVal = new PackedOutputCircuitInfo (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new PackedOutputCircuitInfo (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new PackedOutputCircuitInfo (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
@@ -508,89 +593,177 @@ namespace lib60870
 
 			case TypeID.M_SP_TB_1: /* 30 */
 
-				elementSize = parameters.SizeOfIOA + 8;
+				elementSize = 8;
 
-				retVal = new SinglePointWithCP56Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new SinglePointWithCP56Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new SinglePointWithCP56Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
 			case TypeID.M_DP_TB_1: /* 31 */
 
-				elementSize = parameters.SizeOfIOA + 8;
+				elementSize = 8;
 
-				retVal = new DoublePointWithCP56Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new DoublePointWithCP56Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new DoublePointWithCP56Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
 			case TypeID.M_ST_TB_1: /* 32 */
 
-				elementSize = parameters.SizeOfIOA + 9;
+				elementSize = 9;
 
-				retVal = new StepPositionWithCP56Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new StepPositionWithCP56Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new StepPositionWithCP56Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
 			case TypeID.M_BO_TB_1: /* 33 */
 
-				elementSize = parameters.SizeOfIOA + 12;
+				elementSize = 12;
 
-				retVal = new Bitstring32WithCP56Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new Bitstring32WithCP56Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new Bitstring32WithCP56Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
 			case TypeID.M_ME_TD_1: /* 34 */
 
-				elementSize = parameters.SizeOfIOA + 10;
+				elementSize = 10;
 
-				retVal = new MeasuredValueNormalizedWithCP56Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new MeasuredValueNormalizedWithCP56Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new MeasuredValueNormalizedWithCP56Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
 			case TypeID.M_ME_TE_1: /* 35 */
 
-				elementSize = parameters.SizeOfIOA + 10;
+				elementSize = 10;
 
-				retVal = new MeasuredValueScaledWithCP56Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
+					retVal = new MeasuredValueScaledWithCP56Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new MeasuredValueScaledWithCP56Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
+				
 				break;
 
 			case TypeID.M_ME_TF_1: /* 36 */
 
-				elementSize = parameters.SizeOfIOA + 12;
+				elementSize = 12;
 
-				retVal = new MeasuredValueShortWithCP56Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new MeasuredValueShortWithCP56Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new MeasuredValueShortWithCP56Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
 			case TypeID.M_IT_TB_1: /* 37 */
 
-				elementSize = parameters.SizeOfIOA + 12;
+				elementSize = 12;
 
-				retVal = new IntegratedTotalsWithCP56Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new IntegratedTotalsWithCP56Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new IntegratedTotalsWithCP56Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 
 			case TypeID.M_EP_TD_1: /* 38 */
 
-				elementSize = parameters.SizeOfIOA + 10;
+				elementSize = 10;
 
-				retVal = new EventOfProtectionEquipmentWithCP56Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
+					retVal = new EventOfProtectionEquipmentWithCP56Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new EventOfProtectionEquipmentWithCP56Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
+				
 				break;
 
 			case TypeID.M_EP_TE_1: /* 39 */
 
-				elementSize = parameters.SizeOfIOA + 11;
+				elementSize = 11;
 
-				retVal = new PackedStartEventsOfProtectionEquipmentWithCP56Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
 
+					retVal = new PackedStartEventsOfProtectionEquipmentWithCP56Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new PackedStartEventsOfProtectionEquipmentWithCP56Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
+				
 				break;
 
 			case TypeID.M_EP_TF_1: /* 40 */
 
-				elementSize = parameters.SizeOfIOA + 11;
+				elementSize = 11;
 
-				retVal = new PackedOutputCircuitInfoWithCP56Time2a (parameters, payload, index * elementSize);
+				if (IsSquence) {
+					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);
+
+					retVal = new PackedOutputCircuitInfoWithCP56Time2a (parameters, payload, parameters.SizeOfIOA + (index * elementSize), true);
+
+					retVal.ObjectAddress = ioa + index;
+
+				} else
+					retVal = new PackedOutputCircuitInfoWithCP56Time2a (parameters, payload, index * (parameters.SizeOfIOA + elementSize), false);
 
 				break;
 

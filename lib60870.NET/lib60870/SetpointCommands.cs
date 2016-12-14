@@ -79,7 +79,7 @@ namespace lib60870
 			this.qos = new SetpointCommandQualifier (msg [startIndex++]);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			int valueToEncode;
@@ -132,7 +132,7 @@ namespace lib60870
 			this.timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (this.timestamp.GetEncodedValue ());
@@ -187,7 +187,7 @@ namespace lib60870
 			this.qos = new SetpointCommandQualifier (msg [startIndex++]);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (this.scaledValue.GetEncodedValue ());
@@ -232,7 +232,7 @@ namespace lib60870
 			this.timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (this.timestamp.GetEncodedValue ());
@@ -288,7 +288,7 @@ namespace lib60870
 			this.qos = new SetpointCommandQualifier (msg [startIndex++]);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (System.BitConverter.GetBytes (value));
@@ -333,7 +333,7 @@ namespace lib60870
 			this.timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (this.timestamp.GetEncodedValue ());
@@ -380,7 +380,7 @@ namespace lib60870
 			value += ((uint)msg [startIndex++] * 0x1000000);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			frame.SetNextByte ((byte) (value % 256));
@@ -426,7 +426,7 @@ namespace lib60870
 			this.timestamp = new CP56Time2a (msg, startIndex);
 		}
 
-		public override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
 			frame.AppendBytes (this.timestamp.GetEncodedValue ());

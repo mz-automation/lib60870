@@ -71,10 +71,11 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		internal EventOfProtectionEquipment (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex, false)
+		internal EventOfProtectionEquipment (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
+		base(parameters, msg, startIndex, isSequence)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			if (!isSequence)
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			singleEvent = new SingleEvent (msg [startIndex++]);
 
@@ -83,6 +84,16 @@ namespace lib60870
 
 			/* parse CP56Time2a (time stamp) */
 			timestamp = new CP24Time2a (msg, startIndex);
+		}
+
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
+
+			frame.SetNextByte (singleEvent.EncodedValue);
+
+			frame.AppendBytes (elapsedTime.GetEncodedValue ());
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
 	}
 
@@ -132,10 +143,11 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
-		internal EventOfProtectionEquipmentWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex) :
-			base(parameters, msg, startIndex, false)
+		internal EventOfProtectionEquipmentWithCP56Time2a (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
+		base(parameters, msg, startIndex, isSequence)
 		{
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
+			if (!isSequence)
+				startIndex += parameters.SizeOfIOA; /* skip IOA */
 
 			singleEvent = new SingleEvent (msg [startIndex++]);
 
@@ -144,6 +156,16 @@ namespace lib60870
 
 			/* parse CP56Time2a (time stamp) */
 			timestamp = new CP56Time2a (msg, startIndex);
+		}
+
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
+
+			frame.SetNextByte (singleEvent.EncodedValue);
+
+			frame.AppendBytes (elapsedTime.GetEncodedValue ());
+
+			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
 	}
 }

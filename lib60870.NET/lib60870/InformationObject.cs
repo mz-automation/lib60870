@@ -42,7 +42,7 @@ namespace lib60870
 			return ioa;
 		}
 
-		public InformationObject (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence)
+		internal InformationObject (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence)
 		{
 			if (!isSequence)
 				objectAddress = ParseInformationObjectAddress (parameters, msg, startIndex);
@@ -69,7 +69,7 @@ namespace lib60870
 			get;
 		}
 
-		public virtual void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+		internal virtual void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			if (!isSequence) {
 				frame.SetNextByte ((byte)(objectAddress & 0xff));
 
