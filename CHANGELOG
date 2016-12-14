@@ -2,7 +2,7 @@ Changes to version 0.9.3
 ------------------------
 - lib60870.NET: changed visibility of InformationObject.Encode method to internal
 - lib60870.NET: added public Constructor Encoding functions for PackedOutputCircuitInfo, PackedStartEventsOfProtectionEquipment, EventOfProtectionEquipment
-- lib60870.NET: Added parsing support for sequence for information objects for all data messages in monitoring direction (despite the fact that this should not happen according to IEC 60870-5-101) 
+- lib60870.NET/lib60870-C: Added parsing support for sequence for information objects for all data messages in monitoring direction (despite the fact that this should not happen according to IEC 60870-5-101) 
 
 Changes to version 0.9.2
 ------------------------

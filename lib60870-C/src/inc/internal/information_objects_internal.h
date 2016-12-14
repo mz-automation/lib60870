@@ -26,7 +26,7 @@ SinglePointInformation_getFromBuffer(SinglePointInformation self, ConnectionPara
 
 MeasuredValueScaledWithCP56Time2a
 MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 StepPositionInformation
 StepPositionInformation_getFromBuffer(StepPositionInformation self, ConnectionParameters parameters,
@@ -34,11 +34,11 @@ StepPositionInformation_getFromBuffer(StepPositionInformation self, ConnectionPa
 
 StepPositionWithCP56Time2a
 StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 StepPositionWithCP24Time2a
 StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 DoublePointInformation
 DoublePointInformation_getFromBuffer(DoublePointInformation self, ConnectionParameters parameters,
@@ -46,19 +46,19 @@ DoublePointInformation_getFromBuffer(DoublePointInformation self, ConnectionPara
 
 DoublePointWithCP24Time2a
 DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 DoublePointWithCP56Time2a
 DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 SinglePointWithCP24Time2a
 SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 SinglePointWithCP56Time2a
 SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 BitString32
 BitString32_getFromBuffer(BitString32 self, ConnectionParameters parameters,
@@ -66,11 +66,11 @@ BitString32_getFromBuffer(BitString32 self, ConnectionParameters parameters,
 
 Bitstring32WithCP24Time2a
 Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 Bitstring32WithCP56Time2a
 Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueNormalized
 MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, ConnectionParameters parameters,
@@ -78,11 +78,11 @@ MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, ConnectionPa
 
 MeasuredValueNormalizedWithCP24Time2a
 MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueNormalizedWithCP56Time2a
 MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueScaled
 MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, ConnectionParameters parameters,
@@ -90,7 +90,7 @@ MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, ConnectionParameters
 
 MeasuredValueScaledWithCP24Time2a
 MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueShort
 MeasuredValueShort_getFromBuffer(MeasuredValueShort self, ConnectionParameters parameters,
@@ -98,43 +98,55 @@ MeasuredValueShort_getFromBuffer(MeasuredValueShort self, ConnectionParameters p
 
 MeasuredValueShortWithCP24Time2a
 MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueShortWithCP56Time2a
 MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 IntegratedTotals
 IntegratedTotals_getFromBuffer(IntegratedTotals self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 IntegratedTotalsWithCP24Time2a
 IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 IntegratedTotalsWithCP56Time2a
 IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 EventOfProtectionEquipment
 EventOfProtectionEquipment_getFromBuffer(EventOfProtectionEquipment self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 PackedStartEventsOfProtectionEquipment
 PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtectionEquipment self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 PackedOutputCircuitInfo
 PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 PackedSinglePointWithSCD
 PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueNormalizedWithoutQuality
 MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWithoutQuality self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+
+EventOfProtectionEquipmentWithCP56Time2a
+EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmentWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+
+PackedOutputCircuitInfoWithCP56Time2a
+PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithCP56Time2a self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 SingleCommand
 SingleCommand_getFromBuffer(SingleCommand self, ConnectionParameters parameters,
@@ -198,18 +210,6 @@ ParameterActivation_getFromBuffer(ParameterActivation self, ConnectionParameters
 
 EndOfInitialization
 EndOfInitialization_getFromBuffer(EndOfInitialization self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
-
-EventOfProtectionEquipmentWithCP56Time2a
-EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmentWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
-
-PackedStartEventsOfProtectionEquipmentWithCP56Time2a
-PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
-
-PackedOutputCircuitInfoWithCP56Time2a
-PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithCP56Time2a self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
 DoubleCommandWithCP56Time2a

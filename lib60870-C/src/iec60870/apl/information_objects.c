@@ -537,7 +537,7 @@ StepPositionWithCP56Time2a_getTimestamp(StepPositionWithCP56Time2a self)
 
 StepPositionWithCP56Time2a
 StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -550,9 +550,11 @@ StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, Connec
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* parse VTI (value with transient state indication) */
         self->vti = msg [startIndex++];
@@ -657,7 +659,7 @@ StepPositionWithCP24Time2a_getTimestamp(StepPositionWithCP24Time2a self)
 
 StepPositionWithCP24Time2a
 StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -670,9 +672,11 @@ StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, Connec
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* parse VTI (value with transient state indication) */
         self->vti = msg [startIndex++];
@@ -872,7 +876,7 @@ DoublePointWithCP24Time2a_getTimestamp(DoublePointWithCP24Time2a self)
 
 DoublePointWithCP24Time2a
 DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -885,9 +889,11 @@ DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, Connecti
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* parse DIQ (double point information with quality) */
         uint8_t diq = msg [startIndex++];
@@ -984,7 +990,7 @@ DoublePointWithCP56Time2a_getTimestamp(DoublePointWithCP56Time2a self)
 
 DoublePointWithCP56Time2a
 DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -997,9 +1003,11 @@ DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, Connecti
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* parse DIQ (double point information with quality) */
         uint8_t diq = msg [startIndex++];
@@ -1094,7 +1102,7 @@ SinglePointWithCP24Time2a_getTimestamp(SinglePointWithCP24Time2a self)
 
 SinglePointWithCP24Time2a
 SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -1107,9 +1115,11 @@ SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, Connecti
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* parse SIQ (single point information with qualitiy) */
         uint8_t siq = msg [startIndex++];
@@ -1207,7 +1217,7 @@ SinglePointWithCP56Time2a_getTimestamp(SinglePointWithCP56Time2a self)
 
 SinglePointWithCP56Time2a
 SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -1220,9 +1230,11 @@ SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, Connecti
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* parse SIQ (single point information with qualitiy) */
         uint8_t siq = msg [startIndex++];
@@ -1429,7 +1441,7 @@ Bitstring32WithCP24Time2a_getTimestamp(Bitstring32WithCP24Time2a self)
 
 Bitstring32WithCP24Time2a
 Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -1442,9 +1454,11 @@ Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, Connecti
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         uint32_t value;
 
@@ -1542,7 +1556,7 @@ Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self)
 
 Bitstring32WithCP56Time2a
 Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -1555,9 +1569,11 @@ Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, Connecti
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         uint32_t value;
 
@@ -1862,7 +1878,7 @@ MeasuredValueNormalizedWithoutQuality_setValue(MeasuredValueNormalizedWithoutQua
 
 MeasuredValueNormalizedWithoutQuality
 MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWithoutQuality self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -1875,9 +1891,11 @@ MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWitho
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         self->encodedValue[0] = msg [startIndex++];
         self->encodedValue[1] = msg [startIndex++];
@@ -1971,7 +1989,7 @@ MeasuredValueNormalizedWithCP24Time2a_setTimestamp(MeasuredValueNormalizedWithCP
 
 MeasuredValueNormalizedWithCP24Time2a
 MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -1984,9 +2002,11 @@ MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithC
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+             InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+             startIndex += parameters->sizeOfIOA; /* skip IOA */
+         }
 
         self->encodedValue[0] = msg [startIndex++];
         self->encodedValue[1] = msg [startIndex++];
@@ -2086,7 +2106,7 @@ MeasuredValueNormalizedWithCP56Time2a_setTimestamp(MeasuredValueNormalizedWithCP
 
 MeasuredValueNormalizedWithCP56Time2a
 MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -2099,9 +2119,11 @@ MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithC
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         self->encodedValue[0] = msg [startIndex++];
         self->encodedValue[1] = msg [startIndex++];
@@ -2365,7 +2387,7 @@ MeasuredValueScaledWithCP24Time2a_setTimestamp(MeasuredValueScaledWithCP24Time2a
 
 MeasuredValueScaledWithCP24Time2a
 MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -2378,9 +2400,11 @@ MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         self->encodedValue[0] = msg [startIndex++];
         self->encodedValue[1] = msg [startIndex++];
@@ -2478,7 +2502,7 @@ MeasuredValueScaledWithCP56Time2a_setTimestamp(MeasuredValueScaledWithCP56Time2a
 
 MeasuredValueScaledWithCP56Time2a
 MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -2491,9 +2515,11 @@ MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* scaled value */
         self->encodedValue[0] = msg [startIndex++];
@@ -2770,7 +2796,7 @@ MeasuredValueShortWithCP24Time2a_setTimestamp(MeasuredValueShortWithCP24Time2a s
 
 MeasuredValueShortWithCP24Time2a
 MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -2783,9 +2809,11 @@ MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a 
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         uint8_t* valueBytes = (uint8_t*) &(self->value);
 
@@ -2892,7 +2920,7 @@ MeasuredValueShortWithCP56Time2a_setTimestamp(MeasuredValueShortWithCP56Time2a s
 
 MeasuredValueShortWithCP56Time2a
 MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -2905,9 +2933,11 @@ MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a 
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         uint8_t* valueBytes = (uint8_t*) &(self->value);
 
@@ -3007,7 +3037,7 @@ IntegratedTotals_setBCR(IntegratedTotals self, BinaryCounterReading value)
 
 IntegratedTotals
 IntegratedTotals_getFromBuffer(IntegratedTotals self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -3020,9 +3050,11 @@ IntegratedTotals_getFromBuffer(IntegratedTotals self, ConnectionParameters param
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* BCR */
         int i = 0;
@@ -3114,7 +3146,7 @@ IntegratedTotalsWithCP24Time2a_setTimestamp(IntegratedTotalsWithCP24Time2a self,
 
 IntegratedTotalsWithCP24Time2a
 IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -3127,9 +3159,11 @@ IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* BCR */
         int i = 0;
@@ -3223,7 +3257,7 @@ IntegratedTotalsWithCP56Time2a_setTimestamp(IntegratedTotalsWithCP56Time2a self,
 
 IntegratedTotalsWithCP56Time2a
 IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     //TODO check message size
 
@@ -3236,9 +3270,11 @@ IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* BCR */
         int i = 0;
@@ -3323,7 +3359,7 @@ EventOfProtectionEquipment_create(EventOfProtectionEquipment self, int ioa,
 
 EventOfProtectionEquipment
 EventOfProtectionEquipment_getFromBuffer(EventOfProtectionEquipment self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     if ((msgSize - startIndex) < (parameters->sizeOfIOA + 6))
         return NULL;
@@ -3337,9 +3373,11 @@ EventOfProtectionEquipment_getFromBuffer(EventOfProtectionEquipment self, Connec
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* event */
         self->event = msg[startIndex++];
@@ -3461,7 +3499,7 @@ EventOfProtectionEquipmentWithCP56Time2a_getTimestamp(EventOfProtectionEquipment
 
 EventOfProtectionEquipmentWithCP56Time2a
 EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmentWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     if ((msgSize - startIndex) < (parameters->sizeOfIOA + 6))
         return NULL;
@@ -3475,9 +3513,11 @@ EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmen
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* event */
         self->event = msg[startIndex++];
@@ -3591,7 +3631,7 @@ PackedStartEventsOfProtectionEquipment_getTimestamp(PackedStartEventsOfProtectio
 
 PackedStartEventsOfProtectionEquipment
 PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtectionEquipment self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     if ((msgSize - startIndex) < (parameters->sizeOfIOA + 7))
         return NULL;
@@ -3605,9 +3645,11 @@ PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtecti
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* event */
         self->event = msg[startIndex++];
@@ -3724,7 +3766,7 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getTimestamp(PackedStartEve
 
 PackedStartEventsOfProtectionEquipmentWithCP56Time2a
 PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     if ((msgSize - startIndex) < (parameters->sizeOfIOA + 7))
         return NULL;
@@ -3738,9 +3780,11 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(PackedStartEv
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* event */
         self->event = msg[startIndex++];
@@ -3858,7 +3902,7 @@ PackedOutputCircuitInfo_getTimestamp(PackedOutputCircuitInfo self)
 
 PackedOutputCircuitInfo
 PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     if ((msgSize - startIndex) < (parameters->sizeOfIOA + 7))
         return NULL;
@@ -3872,9 +3916,11 @@ PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, ConnectionPa
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* OCI - output circuit information */
         self->oci = msg[startIndex++];
@@ -3991,7 +4037,7 @@ PackedOutputCircuitInfoWithCP56Time2a_getTimestamp(PackedOutputCircuitInfoWithCP
 
 PackedOutputCircuitInfoWithCP56Time2a
 PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithCP56Time2a self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     if ((msgSize - startIndex) < (parameters->sizeOfIOA + 7))
         return NULL;
@@ -4005,9 +4051,11 @@ PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithC
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* OCI - output circuit information */
         self->oci = msg[startIndex++];
@@ -4103,7 +4151,7 @@ PackedSinglePointWithSCD_getSCD(PackedSinglePointWithSCD self)
 
 PackedSinglePointWithSCD
 PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, ConnectionParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     if ((msgSize - startIndex) < (parameters->sizeOfIOA + 5))
         return NULL;
@@ -4117,9 +4165,11 @@ PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, Connection
 
     if (self != NULL) {
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
-        startIndex += parameters->sizeOfIOA; /* skip IOA */
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
         /* SCD */
         self->scd.encodedValue[0] = msg[startIndex++];

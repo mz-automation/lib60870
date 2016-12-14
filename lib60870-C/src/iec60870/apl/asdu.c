@@ -323,9 +323,17 @@ ASDU_getElement(ASDU self, int index)
 
     case M_SP_TA_1: /* 2 */
 
-        elementSize = self->parameters->sizeOfIOA + 4;
+        elementSize = 4;
 
-        retVal = (InformationObject) SinglePointWithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) SinglePointWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) SinglePointWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
@@ -348,9 +356,17 @@ ASDU_getElement(ASDU self, int index)
 
     case M_DP_TA_1: /* 4 */
 
-        elementSize = self->parameters->sizeOfIOA + 4;
+        elementSize = 4;
 
-        retVal = (InformationObject) DoublePointWithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) DoublePointWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) DoublePointWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
@@ -368,14 +384,21 @@ ASDU_getElement(ASDU self, int index)
             retVal  = (InformationObject) StepPositionInformation_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
-
         break;
 
     case M_ST_TA_1: /* 6 */
 
-        elementSize = self->parameters->sizeOfIOA + 5;
+        elementSize = 5;
 
-        retVal = (InformationObject) StepPositionWithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) StepPositionWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) StepPositionWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
@@ -397,9 +420,17 @@ ASDU_getElement(ASDU self, int index)
 
     case M_BO_TA_1: /* 8 */
 
-        elementSize = self->parameters->sizeOfIOA + 8;
+        elementSize = 8;
 
-        retVal = (InformationObject) Bitstring32WithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) Bitstring32WithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) Bitstring32WithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
@@ -417,14 +448,21 @@ ASDU_getElement(ASDU self, int index)
             retVal  = (InformationObject) MeasuredValueNormalized_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
-
         break;
 
     case M_ME_TA_1: /* 10 */
 
-        elementSize = self->parameters->sizeOfIOA + 6;
+        elementSize = 6;
 
-        retVal = (InformationObject) MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
@@ -446,9 +484,17 @@ ASDU_getElement(ASDU self, int index)
 
     case M_ME_TB_1: /* 12 */
 
-        elementSize = self->parameters->sizeOfIOA + 6;
+        elementSize = 6;
 
-        retVal = (InformationObject) MeasuredValueScaledWithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) MeasuredValueScaledWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) MeasuredValueScaledWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
@@ -472,153 +518,305 @@ ASDU_getElement(ASDU self, int index)
 
     case M_ME_TC_1: /* 14 */
 
-        elementSize = self->parameters->sizeOfIOA + 8;
+        elementSize = 8;
 
-        retVal = (InformationObject) MeasuredValueShortWithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) MeasuredValueShortWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) MeasuredValueShortWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_IT_NA_1: /* 15 */
 
-        elementSize = self->parameters->sizeOfIOA + 5;
+        elementSize = 5;
 
-        retVal = (InformationObject) IntegratedTotals_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) IntegratedTotals_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) IntegratedTotals_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_IT_TA_1: /* 16 */
 
-        elementSize = self->parameters->sizeOfIOA + 8;
+        elementSize = 8;
 
-        retVal = (InformationObject) IntegratedTotalsWithCP24Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) IntegratedTotalsWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) IntegratedTotalsWithCP24Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_EP_TA_1: /* 17 */
 
-        elementSize = self->parameters->sizeOfIOA + 6;
+        elementSize = 6;
 
-        retVal = (InformationObject) EventOfProtectionEquipment_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) EventOfProtectionEquipment_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) EventOfProtectionEquipment_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_EP_TB_1: /* 18 */
 
-        elementSize = self->parameters->sizeOfIOA + 7;
+        elementSize = 7;
 
-        retVal = (InformationObject) PackedStartEventsOfProtectionEquipment_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) PackedStartEventsOfProtectionEquipment_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) PackedStartEventsOfProtectionEquipment_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_EP_TC_1: /* 19 */
 
-        elementSize = self->parameters->sizeOfIOA + 7;
+        elementSize = 7;
 
-        retVal = (InformationObject) PackedOutputCircuitInfo_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) PackedOutputCircuitInfo_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) PackedOutputCircuitInfo_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_PS_NA_1: /* 20 */
 
-        elementSize = self->parameters->sizeOfIOA + 5;
+        elementSize = 5;
 
-        retVal = (InformationObject) PackedSinglePointWithSCD_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) PackedSinglePointWithSCD_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) PackedSinglePointWithSCD_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_ME_ND_1: /* 21 */
 
-        elementSize = self->parameters->sizeOfIOA + 2;
+        elementSize = 2;
 
-        retVal = (InformationObject) MeasuredValueNormalizedWithoutQuality_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) MeasuredValueNormalizedWithoutQuality_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) MeasuredValueNormalizedWithoutQuality_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_SP_TB_1: /* 30 */
 
-        elementSize = self->parameters->sizeOfIOA + 8;
+        elementSize = 8;
 
-        retVal = (InformationObject) SinglePointWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) SinglePointWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) SinglePointWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_DP_TB_1: /* 31 */
 
-        elementSize = self->parameters->sizeOfIOA + 8;
+        elementSize = 8;
 
-        retVal = (InformationObject) DoublePointWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) DoublePointWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) DoublePointWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_ST_TB_1: /* 32 */
 
-        elementSize = self->parameters->sizeOfIOA + 9;
+        elementSize = 9;
 
-        retVal = (InformationObject) StepPositionWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) StepPositionWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) StepPositionWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_BO_TB_1: /* 33 */
 
-        elementSize = self->parameters->sizeOfIOA + 12;
+        elementSize = 12;
 
-        retVal = (InformationObject) Bitstring32WithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) Bitstring32WithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) Bitstring32WithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_ME_TD_1: /* 34 */
 
-        elementSize = self->parameters->sizeOfIOA + 10;
+        elementSize = 10;
 
-        retVal = (InformationObject) MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_ME_TE_1: /* 35 */
 
-        elementSize = self->parameters->sizeOfIOA + 10;
+        elementSize = 10;
 
-        retVal = (InformationObject) MeasuredValueScaledWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) MeasuredValueScaledWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) MeasuredValueScaledWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_ME_TF_1: /* 36 */
 
-        elementSize = self->parameters->sizeOfIOA + 12;
+        elementSize = 12;
 
-        retVal = (InformationObject) MeasuredValueShortWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) MeasuredValueShortWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) MeasuredValueShortWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_IT_TB_1: /* 37 */
 
-        elementSize = self->parameters->sizeOfIOA + 12;
+        elementSize = 12;
 
-        retVal = (InformationObject) IntegratedTotalsWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) IntegratedTotalsWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) IntegratedTotalsWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_EP_TD_1: /* 38 */
 
-        elementSize = self->parameters->sizeOfIOA + 10;
+        elementSize = 10;
 
-        retVal = (InformationObject) EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_EP_TE_1: /* 39 */
 
-        elementSize = self->parameters->sizeOfIOA + 11;
+        elementSize = 11;
 
-        retVal = (InformationObject) PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
     case M_EP_TF_1: /* 40 */
 
-        elementSize = self->parameters->sizeOfIOA + 11;
+        elementSize = 11;
 
-        retVal = (InformationObject) PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
 
