@@ -164,13 +164,6 @@ main(int argc, char** argv)
     /* get the connection parameters - we need them to create correct ASDUs */
     connectionParameters = Slave_getConnectionParameters(slave);
 
-    Slave_start(slave);
-
-    if (Slave_isRunning(slave) == false) {
-        printf("Starting server failed!\n");
-        goto exit_program;
-    }
-
     /* set the callback handler for the clock synchronization command */
     Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);
 
@@ -179,6 +172,13 @@ main(int argc, char** argv)
 
     /* set handler for other message types */
     Slave_setASDUHandler(slave, asduHandler, NULL);
+
+    Slave_start(slave);
+
+    if (Slave_isRunning(slave) == false) {
+        printf("Starting server failed!\n");
+        goto exit_program;
+    }
 
     int16_t scaledValue = 0;
 

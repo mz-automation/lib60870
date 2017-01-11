@@ -25,7 +25,6 @@ using lib60870;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
-//using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 
@@ -270,13 +269,13 @@ namespace lib60870
 		public void Start() 
 		{
 			IPAddress ipAddress = IPAddress.Parse(localHostname);
-			IPEndPoint remoteEP = new IPEndPoint(ipAddress, localPort);
+			IPEndPoint localEP = new IPEndPoint(ipAddress, localPort);
 
 			// Create a TCP/IP  socket.
 			listeningSocket = new Socket(AddressFamily.InterNetwork, 
 			                           SocketType.Stream, ProtocolType.Tcp );
 
-			listeningSocket.Bind (remoteEP);
+			listeningSocket.Bind (localEP);
 
 			listeningSocket.Listen (100);
 

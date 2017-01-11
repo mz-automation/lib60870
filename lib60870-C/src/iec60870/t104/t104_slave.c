@@ -98,7 +98,7 @@ struct sSlave {
 
     struct sMessageQueue messageQueue;
 
-    ConnectionParameters parameters;
+    struct sT104ConnectionParameters parameters;
 
     bool isStarting;
     bool isRunning;
@@ -165,9 +165,9 @@ T104Slave_create(ConnectionParameters parameters, int maxQueueSize)
         initializeMessageQueue(self, maxQueueSize);
 
         if (parameters != NULL)
-            self->parameters = parameters;
+            self->parameters = *((T104ConnectionParameters) parameters);
         else
-            self->parameters = (ConnectionParameters) &defaultConnectionParameters;
+            self->parameters = defaultConnectionParameters;
 
         self->asduHandler = NULL;
         self->interrogationHandler = NULL;
@@ -250,7 +250,7 @@ Slave_setClockSyncHandler(Slave self, ClockSynchronizationHandler handler, void*
 ConnectionParameters
 Slave_getConnectionParameters(Slave self)
 {
-    return self->parameters;
+    return (ConnectionParameters) &(self->parameters);
 }
 
 void
@@ -636,7 +636,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
         if (self->isActive) {
 
-            ASDU asdu = ASDU_createFromBuffer(self->slave->parameters, buffer + 6, msgSize - 6);
+            ASDU asdu = ASDU_createFromBuffer((ConnectionParameters)&(self->slave->parameters), buffer + 6, msgSize - 6);
 
             handleASDU(self, asdu);
 
@@ -712,7 +712,7 @@ static void sendSMessage(MasterConnection self)
 static bool
 checkConfirmTimeout(MasterConnection self, uint64_t currentTime)
 {
-	T104ConnectionParameters parameters = (T104ConnectionParameters) self->slave->parameters;
+	T104ConnectionParameters parameters = (T104ConnectionParameters) &(self->slave->parameters);
 
     if ((currentTime - self->lastConfirmationTime) >= ((uint64_t) parameters->t2 * 1000))
         return true;
@@ -726,7 +726,7 @@ sendSMessageIfRequired(MasterConnection self)
     if (self->unconfirmedMessages > 0) {
         uint64_t currentTime = Hal_getTimeInMs();
 
-		T104ConnectionParameters parameters = (T104ConnectionParameters) self->slave->parameters;
+		T104ConnectionParameters parameters = (T104ConnectionParameters) &(self->slave->parameters);
 
         if ((self->unconfirmedMessages > parameters->w) || checkConfirmTimeout(self, currentTime)) {
 

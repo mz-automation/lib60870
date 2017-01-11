@@ -76,7 +76,7 @@ asduReceivedHandler (void* parameter, ASDU asdu)
 int
 main(int argc, char** argv)
 {
-    T104Connection con = T104Connection_create("localhost", IEC_60870_5_104_DEFAULT_PORT);
+    T104Connection con = T104Connection_create("192.168.1.50", IEC_60870_5_104_DEFAULT_PORT);
 
     T104Connection_setConnectionHandler(con, connectionHandler, NULL);
 
