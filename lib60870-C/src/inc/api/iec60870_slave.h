@@ -37,8 +37,6 @@ typedef struct sT104Slave* T104Slave;
 
 typedef struct sIEC60750_Server* IEC60750_Server;
 
-typedef struct sConnectionParameters* ConnectionParameters;
-
 /**
  * Callback handlers for master requests handling
  */

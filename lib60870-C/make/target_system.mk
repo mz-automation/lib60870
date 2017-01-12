@@ -1,11 +1,12 @@
 UNAME := $(shell uname)
 
 MIPSEL_TOOLCHAIN_PREFIX=mipsel-openwrt-linux-
-# ARM_TOOLCHAIN_PREFIX=arm-linux-gnueabihf-
+#ARM_TOOLCHAIN_PREFIX=arm-linux-gnueabihf-
 #ARM_TOOLCHAIN_PREFIX=arm-linux-gnueabi-
 #ARM_TOOLCHAIN_PREFIX=arm-poky-linux-gnueabi-
 ARM_TOOLCHAIN_PREFIX=arm-linux-gnueabi-
 UCLINUX_ARM_TOOLCHAIN_PREFIX=arm-uclinux-elf-
+UCLINUX_XPORT_TOOLCHAIN_PREFIX=m68k-uclinux-
 #MINGW_TOOLCHAIN_PREFIX=i586-mingw32msvc-
 MINGW_TOOLCHAIN_PREFIX=i686-w64-mingw32-
 MINGW64_TOOLCHAIN_PREFIX=x86_64-w64-mingw32-
@@ -70,6 +71,15 @@ CFLAGS += -D__uClinux__
 CFLAGS += -DTARGET=UCLINUX-WAGO
 LDFLAGS += -Wl,-move-rodata -Wl,-elf2flt
 endif
+
+ifeq ($(TARGET), UCLINUX-XPORT)
+TOOLCHAIN_PREFIX=$(UCLINUX_XPORT_TOOLCHAIN_PREFIX)
+CFLAGS += -DPLATFORM_BYTE_ORDER
+CFLAGS += -mcpu=5208  
+CFLAGS += -fno-builtin -fno-common 
+CFLAGS += -fno-dwarf2-cfi-asm -msep-data -DCONFIG_COLDFIRE -D__linux__ -Dunix -D__uClinux__
+endif
+
 
 ifdef WINDOWS
 HAL_IMPL = WIN32

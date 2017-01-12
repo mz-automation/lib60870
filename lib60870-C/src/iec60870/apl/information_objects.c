@@ -1799,8 +1799,6 @@ ParameterNormalizedValue_getFromBuffer(ParameterNormalizedValue self, Connection
  * MeasuredValueNormalizedWithoutQuality : InformationObject
  *************************************************************/
 
-typedef struct sMeasuredValueNormalizedWithoutQuality* MeasuredValueNormalizedWithoutQuality;
-
 struct sMeasuredValueNormalizedWithoutQuality {
 
     int objectAddress;
