@@ -27,7 +27,7 @@
  * Note: Use only when statically linking the library. You can only have
  * a single slave instance!
  * */
-#define CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE 1
+#define CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE 0
 
 /**
  * Compile the slave/server stack using threads. This will require semaphores also

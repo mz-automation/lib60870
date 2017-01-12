@@ -761,6 +761,7 @@ connectionHandlingThread(void* parameter)
     self->isRunning = true;
 
     while (self->isRunning) {
+        //TODO use select
         int bytesRec = receiveMessage(self->socket, buffer);
 
         if (bytesRec == -1) {
@@ -774,6 +775,8 @@ connectionHandlingThread(void* parameter)
             if (handleMessage(self, buffer, bytesRec) == false)
                 self->isRunning = false;
         }
+        else
+            Thread_sleep(10);
 
         if (self->isActive)
             checkServerQueue(self);
