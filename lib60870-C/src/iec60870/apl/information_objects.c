@@ -34,7 +34,7 @@
 typedef struct sInformationObjectVFT* InformationObjectVFT;
 
 
-typedef void (*EncodeFunction)(InformationObject self, Frame frame, ConnectionParameters parameters, bool isSequence);
+typedef bool (*EncodeFunction)(InformationObject self, Frame frame, ConnectionParameters parameters, bool isSequence);
 typedef void (*DestroyFunction)(InformationObject self);
 
 struct sInformationObjectVFT {
@@ -141,10 +141,10 @@ struct sInformationObject {
     InformationObjectVFT virtualFunctionTable;
 };
 
-void
+bool
 InformationObject_encode(InformationObject self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    self->virtualFunctionTable->encode(self, frame, parameters, isSequence);
+    return self->virtualFunctionTable->encode(self, frame, parameters, isSequence);
 }
 
 void
@@ -220,9 +220,14 @@ struct sSinglePointInformation {
     QualityDescriptor quality;
 };
 
-static void
+static bool
 SinglePointInformation_encode(SinglePointInformation self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
@@ -231,6 +236,8 @@ SinglePointInformation_encode(SinglePointInformation self, Frame frame, Connecti
         val++;
 
     Frame_setNextByte(frame, val);
+
+    return true;
 }
 
 struct sInformationObjectVFT singlePointInformationVFT = {
@@ -329,14 +336,21 @@ struct sStepPositionInformation {
     QualityDescriptor quality;
 };
 
-static void
+static bool
 StepPositionInformation_encode(StepPositionInformation self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 2 : (parameters->sizeOfIOA + 2);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->vti);
 
     Frame_setNextByte(frame, (uint8_t) self->quality);
+
+    return true;
 }
 
 struct sInformationObjectVFT stepPositionInformationVFT = {
@@ -466,9 +480,14 @@ struct sStepPositionWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 StepPositionWithCP56Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 9 : (parameters->sizeOfIOA + 9);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->vti);
@@ -477,6 +496,8 @@ StepPositionWithCP56Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, 
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return false;
 }
 
 struct sInformationObjectVFT stepPositionWithCP56Time2aVFT = {
@@ -587,9 +608,14 @@ struct sStepPositionWithCP24Time2a {
 };
 
 
-static void
+static bool
 StepPositionWithCP24Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 5 : (parameters->sizeOfIOA + 5);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->vti);
@@ -598,6 +624,8 @@ StepPositionWithCP24Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, 
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+
+    return true;
 }
 
 struct sInformationObjectVFT stepPositionWithCP24Time2aVFT = {
@@ -706,9 +734,14 @@ struct sDoublePointInformation {
     QualityDescriptor quality;
 };
 
-static void
+static bool
 DoublePointInformation_encode(DoublePointInformation self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
@@ -716,6 +749,8 @@ DoublePointInformation_encode(DoublePointInformation self, Frame frame, Connecti
     val += (int) self->value;
 
     Frame_setNextByte(frame, val);
+
+    return true;
 }
 
 struct sInformationObjectVFT doublePointInformationVFT = {
@@ -816,9 +851,14 @@ struct sDoublePointWithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-static void
+static bool
 DoublePointWithCP24Time2a_encode(DoublePointWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 4 : (parameters->sizeOfIOA + 4);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
@@ -829,6 +869,8 @@ DoublePointWithCP24Time2a_encode(DoublePointWithCP24Time2a self, Frame frame, Co
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+
+    return true;
 }
 
 
@@ -928,9 +970,14 @@ struct sDoublePointWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 DoublePointWithCP56Time2a_encode(DoublePointWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
@@ -941,6 +988,8 @@ DoublePointWithCP56Time2a_encode(DoublePointWithCP56Time2a self, Frame frame, Co
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 
@@ -1042,9 +1091,14 @@ struct sSinglePointWithCP24Time2a {
 };
 
 
-static void
+static bool
 SinglePointWithCP24Time2a_encode(SinglePointWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 4 : (parameters->sizeOfIOA + 4);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
@@ -1056,6 +1110,8 @@ SinglePointWithCP24Time2a_encode(SinglePointWithCP24Time2a self, Frame frame, Co
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+
+    return true;
 }
 
 struct sInformationObjectVFT singlePointWithCP24Time2aVFT = {
@@ -1155,9 +1211,14 @@ struct sSinglePointWithCP56Time2a {
 };
 
 
-static void
+static bool
 SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t val = (uint8_t) self->quality;
@@ -1169,6 +1230,8 @@ SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, Co
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 
@@ -1268,9 +1331,14 @@ struct sBitString32 {
     QualityDescriptor quality;
 };
 
-static void
+static bool
 BitString32_encode(BitString32 self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 5 : (parameters->sizeOfIOA + 5);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     int value = self->value;
@@ -1281,6 +1349,8 @@ BitString32_encode(BitString32 self, Frame frame, ConnectionParameters parameter
     Frame_setNextByte(frame, (uint8_t) (value / 0x1000000));
 
     Frame_setNextByte(frame, (uint8_t) self->quality);
+
+    return true;
 }
 
 struct sInformationObjectVFT bitString32VFT = {
@@ -1381,9 +1451,14 @@ struct sBitstring32WithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-static void
+static bool
 Bitstring32WithCP24Time2a_encode(Bitstring32WithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     int value = self->value;
@@ -1397,6 +1472,8 @@ Bitstring32WithCP24Time2a_encode(Bitstring32WithCP24Time2a self, Frame frame, Co
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+
+    return true;
 }
 
 struct sInformationObjectVFT bitstring32WithCP24Time2aVFT = {
@@ -1495,9 +1572,14 @@ struct sBitstring32WithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 Bitstring32WithCP56Time2a_encode(Bitstring32WithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 12 : (parameters->sizeOfIOA + 12);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     int value = self->value;
@@ -1511,6 +1593,8 @@ Bitstring32WithCP56Time2a_encode(Bitstring32WithCP56Time2a self, Frame frame, Co
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT bitstring32WithCP56Time2aVFT = {
@@ -1638,15 +1722,22 @@ setScaledValue(uint8_t* encodedValue, int value)
     encodedValue[1] = (uint8_t) (valueToEncode / 256);
 }
 
-static void
+static bool
 MeasuredValueNormalized_encode(MeasuredValueNormalized self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 3 : (parameters->sizeOfIOA + 3);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->encodedValue[0]);
     Frame_setNextByte(frame, self->encodedValue[1]);
 
     Frame_setNextByte(frame, (uint8_t) self->quality);
+
+    return true;
 }
 
 struct sInformationObjectVFT measuredValueNormalizedVFT = {
@@ -1810,13 +1901,20 @@ struct sMeasuredValueNormalizedWithoutQuality {
     uint8_t encodedValue[2];
 };
 
-static void
+static bool
 MeasuredValueNormalizedWithoutQuality_encode(MeasuredValueNormalizedWithoutQuality self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 2 : (parameters->sizeOfIOA + 2);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->encodedValue[0]);
     Frame_setNextByte(frame, self->encodedValue[1]);
+
+    return true;
 }
 
 struct sInformationObjectVFT measuredValueNormalizedWithoutQualityVFT = {
@@ -1921,13 +2019,20 @@ struct sMeasuredValueNormalizedWithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-static void
+static bool
 MeasuredValueNormalizedWithCP24Time2a_encode(MeasuredValueNormalizedWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 6 : (parameters->sizeOfIOA + 6);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+
+    return true;
 }
 
 struct sInformationObjectVFT measuredValueNormalizedWithCP24Time2aVFT = {
@@ -2038,13 +2143,20 @@ struct sMeasuredValueNormalizedWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 MeasuredValueNormalizedWithCP56Time2a_encode(MeasuredValueNormalizedWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 10 : (parameters->sizeOfIOA + 10);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT measuredValueNormalizedWithCP56Time2aVFT = {
@@ -2155,10 +2267,10 @@ struct sMeasuredValueScaled {
     QualityDescriptor quality;
 };
 
-static void
+static bool
 MeasuredValueScaled_encode(MeasuredValueScaled self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
-    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
+    return MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
 }
 
 struct sInformationObjectVFT measuredValueScaledVFT = {
@@ -2323,12 +2435,19 @@ struct sMeasuredValueScaledWithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-static void
+static bool
 MeasuredValueScaledWithCP24Time2a_encode(MeasuredValueScaledWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 6 : (parameters->sizeOfIOA + 6);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+
+    return true;
 }
 
 struct sInformationObjectVFT measuredValueScaledWithCP24Time2aVFT = {
@@ -2436,13 +2555,20 @@ struct sMeasuredValueScaledWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 MeasuredValueScaledWithCP56Time2a_encode(MeasuredValueScaledWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 10 : (parameters->sizeOfIOA + 10);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT measuredValueScaledWithCP56Time2aVFT = {
@@ -2550,9 +2676,14 @@ struct sMeasuredValueShort {
     QualityDescriptor quality;
 };
 
-static void
+static bool
 MeasuredValueShort_encode(MeasuredValueShort self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 5 : (parameters->sizeOfIOA + 5);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t* valueBytes = (uint8_t*) &(self->value);
@@ -2567,6 +2698,8 @@ MeasuredValueShort_encode(MeasuredValueShort self, Frame frame, ConnectionParame
 #endif
 
     Frame_setNextByte(frame, (uint8_t) self->quality);
+
+    return true;
 }
 
 struct sInformationObjectVFT measuredValueShortVFT = {
@@ -2732,12 +2865,19 @@ struct sMeasuredValueShortWithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-static void
+static bool
 MeasuredValueShortWithCP24Time2a_encode(MeasuredValueShortWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     MeasuredValueShort_encode((MeasuredValueShort) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+
+    return true;
 }
 
 struct sInformationObjectVFT measuredValueShortWithCP24Time2aVFT = {
@@ -2856,12 +2996,19 @@ struct sMeasuredValueShortWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 MeasuredValueShortWithCP56Time2a_encode(MeasuredValueShortWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 12 : (parameters->sizeOfIOA + 12);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     MeasuredValueShort_encode((MeasuredValueShort) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT measuredValueShortWithCP56Time2aVFT = {
@@ -2977,12 +3124,19 @@ struct sIntegratedTotals {
     struct sBinaryCounterReading totals;
 };
 
-static void
+static bool
 IntegratedTotals_encode(IntegratedTotals self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 5 : (parameters->sizeOfIOA + 5);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->totals.encodedValue, 5);
+
+    return true;
 }
 
 struct sInformationObjectVFT integratedTotalsVFT = {
@@ -3081,12 +3235,19 @@ struct sIntegratedTotalsWithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-static void
+static bool
 IntegratedTotalsWithCP24Time2a_encode(IntegratedTotalsWithCP24Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     IntegratedTotals_encode((IntegratedTotals) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+
+    return true;
 }
 
 struct sInformationObjectVFT integratedTotalsWithCP24Time2aVFT = {
@@ -3193,12 +3354,19 @@ struct sIntegratedTotalsWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 IntegratedTotalsWithCP56Time2a_encode(IntegratedTotalsWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 12 : (parameters->sizeOfIOA + 12);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     IntegratedTotals_encode((IntegratedTotals) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT integratedTotalsWithCP56Time2aVFT = {
@@ -3307,9 +3475,14 @@ struct sEventOfProtectionEquipment {
     struct sCP24Time2a timestamp;
 };
 
-static void
+static bool
 EventOfProtectionEquipment_encode(EventOfProtectionEquipment self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 6 : (parameters->sizeOfIOA + 6);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->event);
@@ -3317,6 +3490,8 @@ EventOfProtectionEquipment_encode(EventOfProtectionEquipment self, Frame frame, 
     Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+
+    return true;
 }
 
 struct sInformationObjectVFT eventOfProtectionEquipmentVFT = {
@@ -3429,9 +3604,14 @@ struct sEventOfProtectionEquipmentWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 EventOfProtectionEquipmentWithCP56Time2a_encode(EventOfProtectionEquipmentWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 10 : (parameters->sizeOfIOA + 10);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->event);
@@ -3439,6 +3619,8 @@ EventOfProtectionEquipmentWithCP56Time2a_encode(EventOfProtectionEquipmentWithCP
     Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT eventOfProtectionEquipmentWithCP56Time2aVFT = {
@@ -3552,9 +3734,14 @@ struct sPackedStartEventsOfProtectionEquipment {
     struct sCP24Time2a timestamp;
 };
 
-static void
+static bool
 PackedStartEventsOfProtectionEquipment_encode(PackedStartEventsOfProtectionEquipment self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 7 : (parameters->sizeOfIOA + 7);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->event);
@@ -3564,6 +3751,8 @@ PackedStartEventsOfProtectionEquipment_encode(PackedStartEventsOfProtectionEquip
     Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+
+    return true;
 }
 
 struct sInformationObjectVFT packedStartEventsOfProtectionEquipmentVFT = {
@@ -3687,9 +3876,14 @@ struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 PackedStartEventsOfProtectionEquipmentWithCP56Time2a_encode(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 11 : (parameters->sizeOfIOA + 11);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->event);
@@ -3699,6 +3893,8 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_encode(PackedStartEventsOfP
     Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT packedStartEventsOfProtectionEquipmentWithCP56Time2aVFT = {
@@ -3823,9 +4019,14 @@ struct sPackedOutputCircuitInfo {
     struct sCP24Time2a timestamp;
 };
 
-static void
+static bool
 PacketOutputCircuitInfo_encode(PackedOutputCircuitInfo self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 7 : (parameters->sizeOfIOA + 7);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->oci);
@@ -3835,6 +4036,8 @@ PacketOutputCircuitInfo_encode(PackedOutputCircuitInfo self, Frame frame, Connec
     Frame_appendBytes(frame, self->operatingTime.encodedValue, 2);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
+
+    return true;
 }
 
 struct sInformationObjectVFT packedOutputCircuitInfoVFT = {
@@ -3958,9 +4161,14 @@ struct sPackedOutputCircuitInfoWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 PackedOutputCircuitInfoWithCP56Time2a_encode(PackedOutputCircuitInfoWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 11 : (parameters->sizeOfIOA + 11);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, (uint8_t) self->oci);
@@ -3970,6 +4178,8 @@ PackedOutputCircuitInfoWithCP56Time2a_encode(PackedOutputCircuitInfoWithCP56Time
     Frame_appendBytes(frame, self->operatingTime.encodedValue, 2);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT packedOutputCircuitInfoWithCP56Time2aVFT = {
@@ -4090,14 +4300,21 @@ struct sPackedSinglePointWithSCD {
     QualityDescriptor qds;
 };
 
-static void
+static bool
 PackedSinglePointWithSCD_encode(PackedSinglePointWithSCD self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 5 : (parameters->sizeOfIOA + 5);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->scd.encodedValue, 4);
 
     Frame_setNextByte(frame, (uint8_t) self->qds);
+
+    return true;
 }
 
 struct sInformationObjectVFT packedSinglePointWithSCDVFT = {
@@ -4198,12 +4415,19 @@ struct sSingleCommand {
     uint8_t sco;
 };
 
-static void
+static bool
 SingleCommand_encode(SingleCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->sco);
+
+    return true;
 }
 
 struct sInformationObjectVFT singleCommandVFT = {
@@ -4312,12 +4536,19 @@ struct sSingleCommandWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 SingleCommandWithCP56Time2a_encode(SingleCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     SingleCommand_encode((SingleCommand) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT singleCommandWithCP56Time2aVFT = {
@@ -4417,12 +4648,19 @@ struct sDoubleCommand {
     uint8_t dcq;
 };
 
-static void
+static bool
 DoubleCommand_encode(DoubleCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->dcq);
+
+    return true;
 }
 
 struct sInformationObjectVFT doubleCommandVFT = {
@@ -4530,12 +4768,19 @@ struct sDoubleCommandWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 DoubleCommandWithCP56Time2a_encode(DoubleCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     DoubleCommand_encode((DoubleCommand) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT doubleCommandWithCP56Time2aVFT = {
@@ -4646,12 +4891,19 @@ struct sStepCommand {
     uint8_t dcq;
 };
 
-static void
+static bool
 StepCommand_encode(StepCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->dcq);
+
+    return true;
 }
 
 struct sInformationObjectVFT stepCommandVFT = {
@@ -4760,12 +5012,19 @@ struct sStepCommandWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 StepCommandWithCP56Time2a_encode(StepCommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     StepCommand_encode((StepCommand) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT stepCommandWithCP56Time2aVFT = {
@@ -4879,13 +5138,20 @@ struct sSetpointCommandNormalized {
     uint8_t qos; /* Qualifier of setpoint command */
 };
 
-static void
+static bool
 SetpointCommandNormalized_encode(SetpointCommandNormalized self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 3 : (parameters->sizeOfIOA + 3);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->encodedValue, 2);
     Frame_setNextByte(frame, self->qos);
+
+    return true;
 }
 
 struct sInformationObjectVFT setpointCommandNormalizedVFT = {
@@ -5002,12 +5268,19 @@ struct sSetpointCommandNormalizedWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 SetpointCommandNormalizedWithCP56Time2a_encode(SetpointCommandNormalizedWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 10 : (parameters->sizeOfIOA + 10);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     SetpointCommandNormalized_encode((SetpointCommandNormalized) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT setpointCommandNormalizedWithCP56Time2aVFT = {
@@ -5126,13 +5399,20 @@ struct sSetpointCommandScaled {
     uint8_t qos; /* Qualifier of setpoint command */
 };
 
-static void
+static bool
 SetpointCommandScaled_encode(SetpointCommandScaled self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 3 : (parameters->sizeOfIOA + 3);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->encodedValue, 2);
     Frame_setNextByte(frame, self->qos);
+
+    return true;
 }
 
 struct sInformationObjectVFT setpointCommandScaledVFT = {
@@ -5247,12 +5527,19 @@ struct sSetpointCommandScaledWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 SetpointCommandScaledWithCP56Time2a_encode(SetpointCommandScaledWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 10 : (parameters->sizeOfIOA + 10);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     SetpointCommandScaled_encode((SetpointCommandScaled) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT setpointCommandScaledWithCP56Time2aVFT = {
@@ -5369,9 +5656,14 @@ struct sSetpointCommandShort {
     uint8_t qos; /* Qualifier of setpoint command */
 };
 
-static void
+static bool
 SetpointCommandShort_encode(SetpointCommandShort self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 5 : (parameters->sizeOfIOA + 5);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t* valueBytes = (uint8_t*) &(self->value);
@@ -5386,6 +5678,8 @@ SetpointCommandShort_encode(SetpointCommandShort self, Frame frame, ConnectionPa
 #endif
 
     Frame_setNextByte(frame, self->qos);
+
+    return true;
 }
 
 struct sInformationObjectVFT setpointCommandShortVFT = {
@@ -5511,12 +5805,19 @@ struct sSetpointCommandShortWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 SetpointCommandShortWithCP56Time2a_encode(SetpointCommandShortWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 12 : (parameters->sizeOfIOA + 12);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     SetpointCommandShort_encode((SetpointCommandShort) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT setpointCommandShortWithCP56Time2aVFT = {
@@ -5642,9 +5943,14 @@ struct sBitstring32Command {
     uint32_t value;
 };
 
-static void
+static bool
 Bitstring32Command_encode(Bitstring32Command self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 5 : (parameters->sizeOfIOA + 5);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     uint8_t* valueBytes = (uint8_t*) &(self->value);
@@ -5657,6 +5963,8 @@ Bitstring32Command_encode(Bitstring32Command self, Frame frame, ConnectionParame
     Frame_setNextByte(frame, valueBytes[1]);
     Frame_setNextByte(frame, valueBytes[0]);
 #endif
+
+    return true;
 }
 
 struct sInformationObjectVFT bitstring32CommandVFT = {
@@ -5758,12 +6066,19 @@ struct sBitstring32CommandWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 Bitstring32CommandWithCP56Time2a_encode(Bitstring32CommandWithCP56Time2a self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 12 : (parameters->sizeOfIOA + 12);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     Bitstring32Command_encode((Bitstring32Command) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT bitstring32CommandWithCP56Time2aVFT = {
@@ -5872,10 +6187,17 @@ struct sReadCommand {
     InformationObjectVFT virtualFunctionTable;
 };
 
-static void
+static bool
 ReadCommand_encode(ReadCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 0 : (parameters->sizeOfIOA + 0);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    return true;
 }
 
 struct sInformationObjectVFT readCommandVFT = {
@@ -5950,12 +6272,19 @@ struct sClockSynchronizationCommand {
     struct sCP56Time2a timestamp;
 };
 
-static void
+static bool
 ClockSynchronizationCommand_encode(ClockSynchronizationCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 7 : (parameters->sizeOfIOA + 7);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
 }
 
 struct sInformationObjectVFT clockSynchronizationCommandVFT = {
@@ -6041,12 +6370,19 @@ struct sInterrogationCommand {
     uint8_t qoi;
 };
 
-static void
+static bool
 InterrogationCommand_encode(InterrogationCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qoi);
+
+    return true;
 }
 
 struct sInformationObjectVFT interrogationCommandVFT = {
@@ -6133,12 +6469,19 @@ struct sCounterInterrogationCommand {
     uint8_t qcc;
 };
 
-static void
+static bool
 CounterInterrogationCommand_encode(CounterInterrogationCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qcc);
+
+    return true;
 }
 
 struct sInformationObjectVFT counterInterrogationCommandVFT = {
@@ -6225,12 +6568,19 @@ struct sResetProcessCommand {
     QualifierOfRPC qrp;
 };
 
-static void
+static bool
 ResetProcessCommand_encode(ResetProcessCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qrp);
+
+    return true;
 }
 
 struct sInformationObjectVFT resetProcessCommandVFT = {
@@ -6317,12 +6667,19 @@ struct sDelayAcquisitionCommand {
     struct sCP16Time2a delay;
 };
 
-static void
+static bool
 DelayAcquisitionCommand_encode(DelayAcquisitionCommand self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 2 : (parameters->sizeOfIOA + 2);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->delay.encodedValue, 2);
+
+    return true;
 }
 
 struct sInformationObjectVFT DelayAcquisitionCommandVFT = {
@@ -6410,12 +6767,19 @@ struct sParameterActivation {
     QualifierOfParameterActivation qpa;
 };
 
-static void
+static bool
 ParameterActivation_encode(ParameterActivation self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qpa);
+
+    return true;
 }
 
 struct sInformationObjectVFT parameterActivationVFT = {
@@ -6500,12 +6864,19 @@ struct sEndOfInitialization {
     uint8_t coi;
 };
 
-static void
+static bool
 EndOfInitialization_encode(EndOfInitialization self, Frame frame, ConnectionParameters parameters, bool isSequence)
 {
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->coi);
+
+    return true;
 }
 
 struct sInformationObjectVFT EndOfInitializationVFT = {

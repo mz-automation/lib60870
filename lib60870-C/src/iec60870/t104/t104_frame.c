@@ -49,7 +49,8 @@ static struct sFrameVFT t104FrameVFT = {
         T104Frame_setNextByte,
         T104Frame_appendBytes,
         T104Frame_getMsgSize,
-        T104Frame_getBuffer
+        T104Frame_getBuffer,
+        T104Frame_getSpaceLeft
 };
 
 #if (CONFIG_LIB60870_STATIC_FRAMES == 1)
@@ -192,3 +193,12 @@ T104Frame_getBuffer(Frame super)
 
     return self->buffer;
 }
+
+int
+T104Frame_getSpaceLeft(Frame super)
+{
+    T104Frame self = (T104Frame) super;
+
+    return (256 - self->msgSize);
+}
+

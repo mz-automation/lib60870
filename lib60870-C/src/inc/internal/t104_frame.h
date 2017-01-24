@@ -52,5 +52,8 @@ T104Frame_getMsgSize(Frame self);
 uint8_t*
 T104Frame_getBuffer(Frame self);
 
+int
+T104Frame_getSpaceLeft(Frame self);
+
 
 #endif /* SRC_INC_T104_FRAME_H_ */

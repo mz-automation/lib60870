@@ -11,7 +11,7 @@
 #include "information_objects.h"
 #include "frame.h"
 
-void
+bool
 InformationObject_encode(InformationObject self, Frame frame, ConnectionParameters parameters, bool isSequence);
 
 void

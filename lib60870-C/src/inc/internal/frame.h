@@ -35,6 +35,7 @@ struct sFrameVFT { //TODO move to internal header
     void (*appendBytes)(Frame self, uint8_t* bytes, int numberOfBytes);
     int (*getMsgSize)(Frame self);
     uint8_t* (*getBuffer)(Frame self);
+    int (*getSpaceLeft)(Frame self);
 };
 
 void
@@ -54,5 +55,8 @@ Frame_getMsgSize(Frame self);
 
 uint8_t*
 Frame_getBuffer(Frame self);
+
+int
+Frame_getSpaceLeft(Frame self);
 
 #endif /* SRC_INC_FRAME_H_ */

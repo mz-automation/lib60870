@@ -63,3 +63,9 @@ Frame_getBuffer(Frame self)
     return self->virtualFunctionTable->getBuffer(self);
 }
 
+
+int
+Frame_getSpaceLeft(Frame self)
+{
+    return self->virtualFunctionTable->getSpaceLeft(self);
+}

@@ -270,7 +270,15 @@ ASDU_create(ConnectionParameters parameters, TypeID typeId, bool isSequence, Cau
 void
 ASDU_destroy(ASDU self);
 
-void
+/**
+ * \brief add an information object to the ASDU
+ *
+ * \param self ASDU object instance
+ * \param io information object to be added
+ *
+ * \return true when added, false when there not enought space left in the ASDU
+ */
+bool
 ASDU_addInformationObject(ASDU self, InformationObject io);
 
 /**

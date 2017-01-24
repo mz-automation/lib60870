@@ -82,13 +82,22 @@ asduFrame_appendBytes(Frame self, uint8_t* bytes, int numberOfBytes)
     frame->asdu->payloadSize += numberOfBytes;
 }
 
+static int
+asduFrame_getSpaceLeft(Frame self)
+{
+    ASDUFrame frame = (ASDUFrame) self;
+
+    return (256 - frame->asdu->payloadSize - frame->asdu->asduHeaderLength);
+}
+
 struct sFrameVFT asduFrameVFT = {
         asduFrame_destroy,
         NULL,
         asduFrame_setNextByte,
         asduFrame_appendBytes,
         NULL,
-        NULL
+        NULL,
+        asduFrame_getSpaceLeft
 };
 
 ASDU
@@ -186,7 +195,7 @@ ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLeng
     return self;
 }
 
-void
+bool
 ASDU_addInformationObject(ASDU self, InformationObject io)
 {
     struct sASDUFrame asduFrame = {
@@ -194,12 +203,17 @@ ASDU_addInformationObject(ASDU self, InformationObject io)
             self
     };
 
+    bool encoded;
+
     if (ASDU_getNumberOfElements(self) == 0)
         InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);
     else
         InformationObject_encode(io, (Frame) &asduFrame, self->parameters, ASDU_isSequence(self));
 
-    self->asdu[1]++; // increase number of elements in VSQ
+    if (encoded)
+        self->asdu[1]++; /* increase number of elements in VSQ */
+
+    return encoded;
 }
 
 bool
