@@ -101,7 +101,7 @@ struct sFrameVFT asduFrameVFT = {
 };
 
 ASDU
-ASDU_create(ConnectionParameters parameters, TypeID typeId, bool isSequence, CauseOfTransmission cot, int oa, int ca,
+ASDU_create(ConnectionParameters parameters, IEC60870_5_TypeID typeId, bool isSequence, CauseOfTransmission cot, int oa, int ca,
         bool isTest, bool isNegative)
 {
     StaticASDU self = (StaticASDU) GLOBAL_MALLOC(sizeof(struct sStaticASDU));
@@ -289,7 +289,7 @@ ASDU_getCA(ASDU self)
     return ca;
 }
 
-TypeID
+IEC60870_5_TypeID
 ASDU_getTypeID(ASDU self)
 {
     return (TypeID) (self->asdu[0]);
@@ -1242,3 +1242,100 @@ TypeID_toString(TypeID self)
         return "unknown";
     }
 }
+
+const char*
+CauseOfTransmission_toString(CauseOfTransmission self)
+{
+    switch (self) {
+
+    case PERIODIC:
+        return "PERIODIC";
+    case BACKGROUND_SCAN:
+        return "BACKGROUND_SCAN";
+    case SPONTANEOUS:
+        return "SPONTANEOUS";
+    case INITIALIZED:
+        return "INITIALIZED";
+    case REQUEST:
+        return "REQUEST";
+    case ACTIVATION:
+        return "ACTIVATION";
+    case ACTIVATION_CON:
+        return "ACTIVATION_CON";
+    case DEACTIVATION:
+        return "DEACTIVATION";
+    case DEACTIVATION_CON:
+        return "DEACTIVATION_CON";
+    case ACTIVATION_TERMINATION:
+        return "ACTIVATION_TERMINATION";
+    case RETURN_INFO_REMOTE:
+        return "RETURN_INFO_REMOTE";
+    case RETURN_INFO_LOCAL:
+        return "RETURN_INFO_LOCAL";
+    case FILE_TRANSFER:
+        return "FILE_TRANSFER";
+    case AUTHENTICATION:
+        return "AUTHENTICATION";
+    case MAINTENANCE_OF_AUTH_SESSION_KEY:
+        return "MAINTENANCE_OF_AUTH_SESSION_KEY";
+    case MAINTENANCE_OF_USER_ROLE_AND_UPDATE_KEY:
+        return "MAINTENANCE_OF_USER_ROLE_AND_UPDATE_KEY";
+    case INTERROGATED_BY_STATION:
+        return "INTERROGATED_BY_STATION";
+    case INTERROGATED_BY_GROUP_1:
+        return "INTERROGATED_BY_GROUP_1";
+    case INTERROGATED_BY_GROUP_2:
+        return "INTERROGATED_BY_GROUP_2";
+    case INTERROGATED_BY_GROUP_3:
+        return "INTERROGATED_BY_GROUP_3";
+    case INTERROGATED_BY_GROUP_4:
+        return "INTERROGATED_BY_GROUP_4";
+    case INTERROGATED_BY_GROUP_5:
+        return "INTERROGATED_BY_GROUP_5";
+    case INTERROGATED_BY_GROUP_6:
+        return "INTERROGATED_BY_GROUP_6";
+    case INTERROGATED_BY_GROUP_7:
+        return "INTERROGATED_BY_GROUP_7";
+    case INTERROGATED_BY_GROUP_8:
+        return "INTERROGATED_BY_GROUP_8";
+    case INTERROGATED_BY_GROUP_9:
+        return "INTERROGATED_BY_GROUP_9";
+    case INTERROGATED_BY_GROUP_10:
+        return "INTERROGATED_BY_GROUP_10";
+    case INTERROGATED_BY_GROUP_11:
+        return "INTERROGATED_BY_GROUP_11";
+    case INTERROGATED_BY_GROUP_12:
+        return "INTERROGATED_BY_GROUP_12";
+    case INTERROGATED_BY_GROUP_13:
+        return "INTERROGATED_BY_GROUP_13";
+    case INTERROGATED_BY_GROUP_14:
+        return "INTERROGATED_BY_GROUP_14";
+    case INTERROGATED_BY_GROUP_15:
+        return "INTERROGATED_BY_GROUP_15";
+    case INTERROGATED_BY_GROUP_16:
+        return "INTERROGATED_BY_GROUP_16";
+    case REQUESTED_BY_GENERAL_COUNTER:
+        return "REQUESTED_BY_GENERAL_COUNTER";
+    case REQUESTED_BY_GROUP_1_COUNTER:
+        return "REQUESTED_BY_GROUP_1_COUNTER";
+    case REQUESTED_BY_GROUP_2_COUNTER:
+        return "REQUESTED_BY_GROUP_2_COUNTER";
+    case REQUESTED_BY_GROUP_3_COUNTER:
+        return "REQUESTED_BY_GROUP_3_COUNTER";
+    case REQUESTED_BY_GROUP_4_COUNTER:
+        return "REQUESTED_BY_GROUP_4_COUNTER";
+    case UNKNOWN_TYPE_ID:
+        return "UNKNOWN_TYPE_ID";
+    case UNKNOWN_CAUSE_OF_TRANSMISSION:
+        return "UNKNOWN_CAUSE_OF_TRANSMISSION";
+    case UNKNOWN_COMMON_ADDRESS_OF_ASDU:
+        return "UNKNOWN_COMMON_ADDRESS_OF_ASDU";
+    case UNKNOWN_INFORMATION_OBJECT_ADDRESS:
+        return "UNKNOWN_INFORMATION_OBJECT_ADDRESS";
+    default:
+        return "UNKNOWN_COT";
+    }
+}
+
+
+

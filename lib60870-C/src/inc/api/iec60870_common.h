@@ -171,7 +171,9 @@ typedef enum {
     F_SG_NA_1 = 125,
     F_DR_TA_1 = 126,
     F_SC_NB_1 = 127
-} TypeID;
+} IEC60870_5_TypeID;
+
+typedef IEC60870_5_TypeID TypeID;
 
 const char*
 TypeID_toString(TypeID self);
@@ -221,6 +223,9 @@ typedef enum {
     UNKNOWN_INFORMATION_OBJECT_ADDRESS = 47
 } CauseOfTransmission;
 
+const char*
+CauseOfTransmission_toString(CauseOfTransmission self);
+
 void
 Lib60870_enableDebugOutput(bool value);
 
@@ -251,7 +256,7 @@ ASDU_setCOT(ASDU self, CauseOfTransmission value);
 int
 ASDU_getCA(ASDU self);
 
-TypeID
+IEC60870_5_TypeID
 ASDU_getTypeID(ASDU self);
 
 bool
