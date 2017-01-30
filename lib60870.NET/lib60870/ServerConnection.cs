@@ -37,6 +37,8 @@ namespace lib60870
 
 		static byte[] TESTFR_CON_MSG = new byte[] { 0x68, 0x04, 0x83, 0x00, 0x00, 0x00 };
 
+		static byte[] TESTFR_ACT_MSG = new byte[] { 0x68, 0x04, 0x43, 0x00, 0x00, 0x00 };
+
 		private int sendCount = 0;
 		private int receiveCount = 0;
 

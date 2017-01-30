@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016, 2017 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -26,6 +26,7 @@
 #include "information_objects_internal.h"
 #include "apl_types_internal.h"
 #include "lib_memory.h"
+#include "lib60870_internal.h"
 
 struct sASDU {
     bool stackCreated;
@@ -87,7 +88,7 @@ asduFrame_getSpaceLeft(Frame self)
 {
     ASDUFrame frame = (ASDUFrame) self;
 
-    return (256 - frame->asdu->payloadSize - frame->asdu->asduHeaderLength);
+    return (IEC60870_5_104_MAX_ASDU_LENGTH - frame->asdu->payloadSize - frame->asdu->asduHeaderLength);
 }
 
 struct sFrameVFT asduFrameVFT = {
@@ -206,9 +207,9 @@ ASDU_addInformationObject(ASDU self, InformationObject io)
     bool encoded;
 
     if (ASDU_getNumberOfElements(self) == 0)
-        InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);
+        encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);
     else
-        InformationObject_encode(io, (Frame) &asduFrame, self->parameters, ASDU_isSequence(self));
+        encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, ASDU_isSequence(self));
 
     if (encoded)
         self->asdu[1]++; /* increase number of elements in VSQ */

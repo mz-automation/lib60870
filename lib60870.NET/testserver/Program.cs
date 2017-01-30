@@ -54,6 +54,21 @@ namespace testserver
 
 			connection.SendASDU (newAsdu);
 
+			newAsdu = new ASDU (CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 2, 1, true);
+
+			newAsdu.AddInformationObject (new MeasuredValueNormalizedWithoutQuality (300, -1.0f));
+			newAsdu.AddInformationObject (new MeasuredValueNormalizedWithoutQuality (301, -0.5f));
+			newAsdu.AddInformationObject (new MeasuredValueNormalizedWithoutQuality (302, -0.1f));
+			newAsdu.AddInformationObject (new MeasuredValueNormalizedWithoutQuality (303, .0f));
+			newAsdu.AddInformationObject (new MeasuredValueNormalizedWithoutQuality (304, 0.1f));
+			newAsdu.AddInformationObject (new MeasuredValueNormalizedWithoutQuality (305, 0.2f));
+			newAsdu.AddInformationObject (new MeasuredValueNormalizedWithoutQuality (306, 0.5f));
+			newAsdu.AddInformationObject (new MeasuredValueNormalizedWithoutQuality (307, 0.7f));
+			newAsdu.AddInformationObject (new MeasuredValueNormalizedWithoutQuality (308, 0.99f));
+			newAsdu.AddInformationObject (new MeasuredValueNormalizedWithoutQuality (309, 1f));
+
+			connection.SendASDU (newAsdu);
+
 			connection.SendACT_TERM (asdu);
 
 			return true;

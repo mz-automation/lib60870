@@ -24,7 +24,6 @@
 
 #include "lib60870_config.h"
 
-
 #if (CONFIG_DEBUG_OUTPUT == 1)
 void
 lib60870_debug_print(const char *format, ...);
@@ -33,5 +32,7 @@ lib60870_debug_print(const char *format, ...);
 #else
 #define DEBUG_PRINT(...) do{ } while ( false )
 #endif
+
+#define IEC60870_5_104_MAX_ASDU_LENGTH 249
 
 #endif /* SRC_INC_INTERNAL_LIB60870_INTERNAL_H_ */

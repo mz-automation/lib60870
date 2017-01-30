@@ -199,6 +199,6 @@ T104Frame_getSpaceLeft(Frame super)
 {
     T104Frame self = (T104Frame) super;
 
-    return (256 - self->msgSize);
+    return (IEC60870_5_104_MAX_ASDU_LENGTH - self->msgSize);
 }
 

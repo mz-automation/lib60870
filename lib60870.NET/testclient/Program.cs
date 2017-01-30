@@ -39,8 +39,7 @@ namespace testclient
 					Console.WriteLine ("  IOA: " + val.ObjectAddress + " SP value: " + val.Value);
 					Console.WriteLine ("   " + val.Quality.ToString ());
 				}
-			} 
-			else if (asdu.TypeId == TypeID.M_ME_TE_1) {
+			} else if (asdu.TypeId == TypeID.M_ME_TE_1) {
 			
 				for (int i = 0; i < asdu.NumberOfElements; i++) {
 
@@ -89,6 +88,15 @@ namespace testclient
 					Console.WriteLine ("   " + msv.Quality.ToString ());
 				}
 
+			} else if (asdu.TypeId == TypeID.M_ME_ND_1) {
+
+				for (int i = 0; i < asdu.NumberOfElements; i++) {
+
+					var msv = (MeasuredValueNormalizedWithoutQuality)asdu.GetElement (i);
+
+					Console.WriteLine ("  IOA: " + msv.ObjectAddress + " scaled value: " + msv.NormalizedValue);
+				}
+
 			} else {
 				Console.WriteLine ("Unknown message type!");
 			}
@@ -128,6 +136,8 @@ namespace testclient
 			/* Synchronize clock of the controlled station */
 			con.SendClockSyncCommand (1 /* CA */, new CP56Time2a (DateTime.Now)); 
 
+
+			Console.WriteLine ("CLOSE");
 
 			con.Close ();
 
