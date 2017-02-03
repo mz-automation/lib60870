@@ -104,7 +104,7 @@ namespace lib60870
 
 		private int receiveMessage(Socket socket, byte[] buffer) 
 		{
-			if (socket.Poll (100, SelectMode.SelectRead)) {
+			if (socket.Poll (50, SelectMode.SelectRead)) {
 
 				if (socket.Available == 0)
 					throw new SocketException ();
@@ -450,11 +450,12 @@ namespace lib60870
 
 				int messageCount = (buffer[4] + buffer[5] * 0x100) / 2;
 
-				Console.WriteLine ("Recv S(" + messageCount + ") (own sendcounter = " + sendCount + ")");
+				if (debugOutput)
+					Console.WriteLine ("Recv S(" + messageCount + ") (own sendcounter = " + sendCount + ")");
 			}
 			else {
-
-				Console.WriteLine ("Unknown message");
+				if (debugOutput)
+					Console.WriteLine ("Unknown message");
 
 				return true;
 			}

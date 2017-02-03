@@ -83,7 +83,7 @@ namespace tests
 		}
 
 		[Test()]
-		[Ignore("Ignore to save execution time")]
+		//[Ignore("Ignore to save execution time")]
 		public void TestConnectWhileAlreadyConnected()
 		{
 			ConnectionParameters parameters = new ConnectionParameters ();
@@ -127,7 +127,7 @@ namespace tests
 
 
 		[Test()]
-		[Ignore("Ignore to save execution time")]
+		//[Ignore("Ignore to save execution time")]
 		public void TestConnectSameConnectionMultipleTimes()
 		{
 			ConnectionParameters parameters = new ConnectionParameters ();

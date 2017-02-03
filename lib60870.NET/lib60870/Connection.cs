@@ -201,7 +201,7 @@ namespace lib60870
 
 		private void sendIMessage(Frame frame) 
 		{
-			if (isConnected() == false)
+			if (running == false)
 				throw new ConnectionException("not connected", new SocketException (10057));
 
 			frame.PrepareToSend (sendSequenceNumber, receiveSequenceNumber);
@@ -582,39 +582,45 @@ namespace lib60870
 		private int receiveMessage(Socket socket, byte[] buffer) 
 		{
 			// wait for first byte
-			try {
-				if (socket.Receive (buffer, 0, 1, SocketFlags.None) != 1)
+			if (socket.Poll (50, SelectMode.SelectRead)) {
+
+				if (socket.Available == 0)
+					throw new SocketException ();
+
+				try {
+					if (socket.Receive (buffer, 0, 1, SocketFlags.None) != 1)
+						return -1;
+				} catch (SocketException se) {
+					if ((se.SocketErrorCode == SocketError.TimedOut) || (se.SocketErrorCode == SocketError.WouldBlock))
+						return 0;
+					else
+						throw se;
+				}
+
+				if (buffer [0] != 0x68) {
+					if (debugOutput)
+						Console.WriteLine ("MASTER: Missing SOF indicator!");
+
 					return -1;
-			}
-			catch (SocketException se) {
-				if ((se.SocketErrorCode == SocketError.TimedOut) || (se.SocketErrorCode == SocketError.WouldBlock))
-					return 0;
-				else
-					throw se;
-			}
+				}
 
-			if (buffer [0] != 0x68) {
-				if (debugOutput)
-					Console.WriteLine ("MASTER: Missing SOF indicator!");
+				// read length byte
+				if (socket.Receive (buffer, 1, 1, SocketFlags.None) != 1)
+					return -1;
 
-				return -1;
-			}
+				int length = buffer [1];
 
-			// read length byte
-			if (socket.Receive (buffer, 1, 1, SocketFlags.None) != 1)
-				return -1;
+				// read remaining frame
+				if (socket.Receive (buffer, 2, length, SocketFlags.None) != length) {
+					if (debugOutput)
+						Console.WriteLine ("MASTER: Failed to read complete frame!");
 
-			int length = buffer [1];
+					return -1;
+				}
 
-			// read remaining frame
-			if (socket.Receive (buffer, 2, length, SocketFlags.None) != length) {
-				if (debugOutput)
-					Console.WriteLine ("MASTER: Failed to read complete frame!");
-
-				return -1;
-			}
-
-			return length + 2;
+				return length + 2;
+			} else
+				return 0;
 		}
 
         private bool checkConfirmTimeout(long currentTime) 
@@ -754,7 +760,6 @@ namespace lib60870
 			if (success)
 			{
 				socket.EndConnect(result);
-				socket.ReceiveTimeout = 50; /* 50 ms timeout when receiving messages */
 			}
 			else
 			{
