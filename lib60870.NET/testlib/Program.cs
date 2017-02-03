@@ -6,10 +6,8 @@ namespace testlib
 {
 	class MainClass
 	{
-		public static void Main (string[] args)
+		static void testCP56Time2A() 
 		{
-			Console.WriteLine ("Hello World!");
-
 			CP56Time2a myTime = new CP56Time2a (DateTime.Now);
 
 			Console.WriteLine (myTime.ToString ());
@@ -27,6 +25,13 @@ namespace testlib
 			myTime.Substituted = false;
 
 			Console.WriteLine (myTime.ToString ());
+		}
+
+		public static void Main (string[] args)
+		{
+			//testCP56Time2A
+
+
 		}
 	}
 }

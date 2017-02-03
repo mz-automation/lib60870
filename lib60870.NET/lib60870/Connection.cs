@@ -57,6 +57,12 @@ namespace lib60870
 
 	public delegate void ConnectionHandler (object parameter, ConnectionEvent connectionEvent);
 
+	/// <summary>
+	/// Raw message handler. Can be used to access the raw message.
+	/// Returns true when message should be handled by the protocol stack, false, otherwise.
+	/// </summary>
+	public delegate bool RawMessageHandler (object parameter, byte[] message, int messageSize);
+
 	public class Connection
 	{
 		static byte[] STARTDT_ACT_MSG = new byte[] { 0x68, 0x04, 0x07, 0x00, 0x00, 0x00 };
@@ -77,6 +83,7 @@ namespace lib60870
 
 		private int lastUnconfirmedSendMessageNumber = 0;
 		private UInt64 nextT3Timeout;
+		private int outStandingTestFRConMessages = 0;
 
 		/// <summary>
 		/// Gets or sets the send sequence number N(S). WARNING: For test purposes only! Do net set
@@ -106,7 +113,7 @@ namespace lib60870
 			}
 		}
 
-		private int unconfirmedMessages; /* number of unconfirmed messages received */
+		private int unconfirmedSlaveMessages; /* number of unconfirmed messages received */
 		private long lastConfirmationTime; /* timestamp when the last confirmation message was sent */
 
         private Socket socket;
@@ -128,15 +135,20 @@ namespace lib60870
 		private bool running = false;
         private bool connecting = false;
 		private bool socketError;
+		private bool firstIMessageReceived = false;
 		private SocketException lastException;
 
 		private bool debugOutput = false;
 
+		private ConnectionStatistics statistics = new ConnectionStatistics();
+
 		private void ResetConnection() {
 			sendSequenceNumber = 0;
 			receiveSequenceNumber = 0;
-			unconfirmedMessages = 0;
+			unconfirmedSlaveMessages = 0;
 			lastConfirmationTime = System.Int64.MaxValue;
+			firstIMessageReceived = false;
+			outStandingTestFRConMessages = 0;
 
 			uMessageTimeout = 0;
 			iMessageTimeout = 0;
@@ -145,6 +157,8 @@ namespace lib60870
 
 			socketError = false;
 			lastException = null;
+
+			statistics.Reset ();
 		}
 
 		public bool DebugOutput {
@@ -166,6 +180,9 @@ namespace lib60870
 		ConnectionHandler connectionHandler = null;
 		object connectionHandlerParameter = null;
 
+		RawMessageHandler rawMessageHandler = null;
+		object rawMessageHandlerParameter = null;
+
 		private void sendSMessage() {
 			byte[] msg = new byte[6];
 
@@ -177,16 +194,22 @@ namespace lib60870
 			msg [5] = (byte) (receiveSequenceNumber / 128);
 
 			socket.Send (msg);
+
+			statistics.SentMsgCounter++;
 		}
 
 
 		private void sendIMessage(Frame frame) 
 		{
+			if (isConnected() == false)
+				throw new ConnectionException("not connected", new SocketException (10057));
+
 			frame.PrepareToSend (sendSequenceNumber, receiveSequenceNumber);
 
 			if (running) {
 				socket.Send (frame.GetBuffer (), frame.GetMsgSize (), SocketFlags.None);
 				sendSequenceNumber++;
+				statistics.SentMsgCounter++;
 			}
 			else {
 				if (lastException != null)
@@ -224,6 +247,10 @@ namespace lib60870
 		public Connection (string hostname, int tcpPort, ConnectionParameters parameters)
 		{
 			setup (hostname, parameters.clone(), tcpPort);
+		}
+
+		public ConnectionStatistics GetStatistics() {
+			return this.statistics;
 		}
 
 		public void SetConnectTimeout(int millies)
@@ -277,7 +304,7 @@ namespace lib60870
 			frame.SetNextByte (qoi); /* 20 = station interrogation */
 
 			if (debugOutput)
-				Console.WriteLine("Encoded C_IC_NA_1 with " + frame.GetMsgSize() + " bytes.");
+				Console.WriteLine("MASTER: Encoded C_IC_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -301,7 +328,7 @@ namespace lib60870
 			frame.SetNextByte (qcc);
 
 			if (debugOutput)
-				Console.WriteLine("Encoded C_CI_NA_1 with " + frame.GetMsgSize() + " bytes.");
+				Console.WriteLine("MASTER: Encoded C_CI_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -325,7 +352,7 @@ namespace lib60870
 			EncodeIOA (frame, ioa);
 
 			if (debugOutput)
-				Console.WriteLine("Encoded C_RD_NA_1 with " + frame.GetMsgSize() + " bytes.");
+				Console.WriteLine("MASTER: Encoded C_RD_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -347,7 +374,7 @@ namespace lib60870
 			frame.AppendBytes (time.GetEncodedValue ());
 
 			if (debugOutput)
-				Console.WriteLine("Encoded C_CS_NA_1 with " + frame.GetMsgSize() + " bytes.");
+				Console.WriteLine("MASTER: Encoded C_CS_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -372,7 +399,7 @@ namespace lib60870
 			frame.SetNextByte (0x55);
 
 			if (debugOutput)
-				Console.WriteLine("Encoded C_TS_NA_1 with " + frame.GetMsgSize() + " bytes.");
+				Console.WriteLine("MASTER: Encoded C_TS_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -395,7 +422,7 @@ namespace lib60870
 			frame.SetNextByte (qrp);
 
 			if (debugOutput)
-				Console.WriteLine("Encoded C_RP_NA_1 with " + frame.GetMsgSize() + " bytes.");
+				Console.WriteLine("MASTER: Encoded C_RP_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -419,7 +446,7 @@ namespace lib60870
 			frame.AppendBytes (delay.GetEncodedValue ());
 
 			if (debugOutput)
-				Console.WriteLine("Encoded C_CD_NA_1 with " + frame.GetMsgSize() + " bytes.");
+				Console.WriteLine("MASTER: Encoded C_CD_NA_1 with " + frame.GetMsgSize() + " bytes.");
 
 			sendIMessage (frame);
 		}
@@ -453,7 +480,19 @@ namespace lib60870
 			sc.Encode (frame, parameters, false);
 
 			if (debugOutput)
-				Console.WriteLine("Encoded " +  typeId.ToString() + " with " + frame.GetMsgSize() + " bytes.");
+				Console.WriteLine("MASTER: Encoded " +  typeId.ToString() + " with " + frame.GetMsgSize() + " bytes.");
+
+			sendIMessage (frame);
+		}
+
+		/// <summary>
+		/// Sends an arbitrary ASDU to the connected slave
+		/// </summary>
+		/// <param name="asdu">The ASDU to send</param>
+		public void SendASDU(ASDU asdu) 
+		{
+			Frame frame = new T104Frame ();
+			asdu.Encode (frame, parameters);
 
 			sendIMessage (frame);
 		}
@@ -464,6 +503,7 @@ namespace lib60870
 		public void SendStartDT() {
 			if (running) {
 				socket.Send(STARTDT_ACT_MSG);
+				statistics.SentMsgCounter++;
 			}
 			else {
 				if (lastException != null)
@@ -479,6 +519,7 @@ namespace lib60870
 		public void SendStopDT() {
 			if (running) {
 				socket.Send(STOPDT_ACT_MSG);
+				statistics.SentMsgCounter++;
 			}
 			else {
 				if (lastException != null)
@@ -495,7 +536,9 @@ namespace lib60870
 		/// The function will throw a SocketException if the connection attempt is rejected or timed out.
 		/// <exception cref="ConnectionException">description</exception>
 		public void Connect() {
+
 			ConnectAsync ();
+
 
 			while ((running == false) && (socketError == false)) {
 				Thread.Sleep (1);
@@ -552,7 +595,7 @@ namespace lib60870
 
 			if (buffer [0] != 0x68) {
 				if (debugOutput)
-					Console.WriteLine ("Missing SOF indicator!");
+					Console.WriteLine ("MASTER: Missing SOF indicator!");
 
 				return -1;
 			}
@@ -566,7 +609,7 @@ namespace lib60870
 			// read remaining frame
 			if (socket.Receive (buffer, 2, length, SocketFlags.None) != length) {
 				if (debugOutput)
-					Console.WriteLine ("Failed to read complete frame!");
+					Console.WriteLine ("MASTER: Failed to read complete frame!");
 
 				return -1;
 			}
@@ -588,10 +631,15 @@ namespace lib60870
 
 			if ((buffer [2] & 1) == 0) { /* I format frame */
 
+				if (firstIMessageReceived == false) {
+					firstIMessageReceived = true;
+					lastConfirmationTime = currentTime; /* start timeout T2 */
+				}
+
 				if (msgSize < 7) {
 
 					if (debugOutput)
-						Console.WriteLine ("I msg too small!");
+						Console.WriteLine ("MASTER: I msg too small!");
 
 					return false;
 				}
@@ -599,26 +647,27 @@ namespace lib60870
 				int frameSendSequenceNumber = ((buffer [3] * 0x100) + (buffer [2] & 0xfe)) / 2;
 				int frameRecvSequenceNumber = ((buffer [5] * 0x100) + (buffer [4] & 0xfe)) / 2;
 					
-				//if (debugOutput)
-				Console.WriteLine ("Received I frame: N(S) = " + frameSendSequenceNumber + " N(R) = " +
+				if (debugOutput)
+					Console.WriteLine ("MASTER: Received I frame: N(S) = " + frameSendSequenceNumber + " N(R) = " +
 				frameRecvSequenceNumber);
 
 				int expectedSequenceNumber = receiveSequenceNumber;
 
 				/* check the receive sequence number N(R) - connection will be closed on an unexpected value */
 				if (frameSendSequenceNumber != expectedSequenceNumber) {
-					Console.WriteLine ("Sequence error: Close connection!");
+					if (debugOutput)
+						Console.WriteLine ("MASTER: Sequence error: Close connection!");
 					return false;
 				}
 					
 				receiveSequenceNumber = (receiveSequenceNumber + 1) % 32768;
-				unconfirmedMessages++;
+				unconfirmedSlaveMessages++;
 
-				if ((unconfirmedMessages > parameters.W) || checkConfirmTimeout (currentTime)) {
+				if ((unconfirmedSlaveMessages > parameters.W) || checkConfirmTimeout (currentTime)) {
 
 					lastConfirmationTime = currentTime;
 
-					unconfirmedMessages = 0;
+					unconfirmedSlaveMessages = 0;
 					sendSMessage (); /* send confirmation message */
 				}
 
@@ -626,18 +675,22 @@ namespace lib60870
 
 				if (asduReceivedHandler != null)
 					asduReceivedHandler (asduReceivedHandlerParameter, asdu);
-			} else if ((buffer [2] & 0x03) == 0x03) { /* S format frame */
-				
+			} else if ((buffer [2] & 0x03) == 0x01) { /* S format frame */
+				//TODO check if message is confirmed
 			} else if ((buffer [2] & 0x03) == 0x03) { /* U format frame */
 
 				uMessageTimeout = 0;
 
 				if (buffer [2] == 0x43) { // Check for TESTFR_ACT message
-
+					statistics.RcvdTestFrActCounter++;
 					socket.Send (TESTFR_CON_MSG);
+					statistics.SentMsgCounter++;
+				} else if (buffer [2] == 0x83) { /* TESTFR_CON */
+					statistics.RcvdTestFrConCounter++;
 				} else if (buffer [2] == 0x07) { /* STARTDT ACT */
 
 					socket.Send (STARTDT_CON_MSG);
+					statistics.SentMsgCounter++;
 				} else if (buffer [2] == 0x0b) { /* STARTDT_CON */
 
 					if (connectionHandler != null)
@@ -651,13 +704,39 @@ namespace lib60870
 
 			} else {
 				if (debugOutput)
-					Console.WriteLine ("Unknown message type");
+					Console.WriteLine ("MASTER: Unknown message type");
 				return false;
 			}
 
 			ResetT3Timeout ();
 
 			return true;
+		}
+
+
+		private bool isConnected() 
+		{
+			try {
+				byte[] tmp = new byte[1];
+
+				socket.Blocking = false;
+				socket.Send (tmp, 0, 0);
+
+				return true;
+			}
+			catch (SocketException e) {
+				if (e.NativeErrorCode.Equals (10035)) {
+					if (debugOutput)
+						Console.WriteLine ("MASTER: Still Connected, but the Send would block");
+					return true;
+				}
+				else
+				{
+					if (debugOutput)
+						Console.WriteLine("MASTER: Disconnected: error code {0}!", e.NativeErrorCode);
+					return false;
+				}
+			}
 		}
 
 		private void ConnectSocketWithTimeout()
@@ -675,7 +754,7 @@ namespace lib60870
 			if (success)
 			{
 				socket.EndConnect(result);
-				socket.ReceiveTimeout = 500; /* 500 ms timeout when receiving messages */
+				socket.ReceiveTimeout = 50; /* 50 ms timeout when receiving messages */
 			}
 			else
 			{
@@ -684,23 +763,37 @@ namespace lib60870
 			}
 		}
 
-		private void handleTimeouts() {
+		private bool handleTimeouts() {
 			UInt64 currentTime = (UInt64) SystemUtils.currentTimeMillis();
 
 			if (currentTime > nextT3Timeout) {
-				socket.Send (TESTFR_ACT_MSG);
-				if (debugOutput) 
-					Console.WriteLine ("U message T1 timeout");
-				uMessageTimeout = (UInt64) currentTime + (UInt64) (parameters.T1 * 1000);
+
+				if (outStandingTestFRConMessages > 2) {
+					if (debugOutput)
+						Console.WriteLine ("MASTER: Timeout for TESTFR_CON message");
+
+					// close connection
+					return false;
+				} else {
+					socket.Send (TESTFR_ACT_MSG);
+					statistics.SentMsgCounter++;
+					if (debugOutput)
+						Console.WriteLine ("MASTER: U message T3 timeout");
+					uMessageTimeout = (UInt64)currentTime + (UInt64)(parameters.T1 * 1000);
+					outStandingTestFRConMessages++;
+					ResetT3Timeout ();
+				}
 			}
 
 			if (uMessageTimeout != 0) {
 				if (currentTime > uMessageTimeout) {
 					if (debugOutput) 
-						Console.WriteLine ("U message T1 timeout");
+						Console.WriteLine ("MASTER: U message T1 timeout");
 					throw new SocketException (10060);
 				}
 			}
+
+			return true;
 		}
 
 		private void HandleConnection() {
@@ -719,11 +812,13 @@ namespace lib60870
 						ConnectSocketWithTimeout();
 
 						if (debugOutput)
-							Console.WriteLine("Socket connected to {0}",
+							Console.WriteLine("MASTER: Socket connected to {0}",
 								socket.RemoteEndPoint.ToString());
 
-						if (autostart)
+						if (autostart) {
 							socket.Send(STARTDT_ACT_MSG);
+							statistics.SentMsgCounter++;
+						}
 
 						running = true;
 						socketError = false;
@@ -734,7 +829,7 @@ namespace lib60870
 						
 					} catch (SocketException se) {
 						if (debugOutput)
-							Console.WriteLine("SocketException : {0}",se.ToString());
+							Console.WriteLine("MASTER: SocketException : {0}",se.ToString());
 
 						running = false;
 						socketError = true;
@@ -754,18 +849,27 @@ namespace lib60870
 								if (debugOutput)
 									Console.WriteLine(
 										BitConverter.ToString(bytes, 0, bytesRec));
+
+								statistics.RcvdMsgCounter++;
 							
-								//TODO call raw message handler if available
-							
-								if (checkMessage(socket, bytes, bytesRec) == false) {
-									/* close connection on error */
-									loopRunning = false;
+								bool handleMessage = true;
+
+								if (rawMessageHandler != null) 
+									handleMessage = rawMessageHandler(rawMessageHandlerParameter, bytes, bytesRec);
+											
+								if (handleMessage) {
+									if (checkMessage(socket, bytes, bytesRec) == false) {
+										/* close connection on error */
+										loopRunning = false;
+									}
 								}
 							}
 							else if (bytesRec == -1)
 								loopRunning = false;
 
-							handleTimeouts();
+							loopRunning = handleTimeouts();
+
+							loopRunning = isConnected();
 						}
 						catch (SocketException) {	
 							loopRunning = false;
@@ -773,10 +877,15 @@ namespace lib60870
 					}
 
 					if (debugOutput)
-						Console.WriteLine("CLOSE CONNECTION!");
+						Console.WriteLine("MASTER: CLOSE CONNECTION!");
 
 					// Release the socket.
-					socket.Shutdown(SocketShutdown.Both);
+					try {
+						socket.Shutdown(SocketShutdown.Both);
+					}
+					catch (SocketException) {
+					}
+
 					socket.Close();
 
 					if (connectionHandler != null)
@@ -785,13 +894,13 @@ namespace lib60870
 				} catch (ArgumentNullException ane) {
                     connecting = false;
 					if (debugOutput)
-						Console.WriteLine("ArgumentNullException : {0}",ane.ToString());
+						Console.WriteLine("MASTER: ArgumentNullException : {0}",ane.ToString());
 				} catch (SocketException se) {
 					if (debugOutput)
-						Console.WriteLine("SocketException : {0}",se.ToString());
+						Console.WriteLine("MASTER: SocketException : {0}",se.ToString());
 				} catch (Exception e) {
 					if (debugOutput)
-						Console.WriteLine("Unexpected exception : {0}", e.ToString());
+						Console.WriteLine("MASTER: Unexpected exception : {0}", e.ToString());
 				}
 					
 			} catch (Exception e) {
@@ -836,6 +945,16 @@ namespace lib60870
 			connectionHandlerParameter = parameter;
 		}
 
+		/// <summary>
+		/// Sets the raw message handler. This is a callback to intercept raw messages received.
+		/// </summary>
+		/// <param name="handler">Handler.</param>
+		/// <param name="parameter">Parameter.</param>
+		public void SetRawMessageHandler(RawMessageHandler handler, object parameter)
+		{
+			rawMessageHandler = handler;
+			rawMessageHandlerParameter = parameter;
+		}
 	}
 }
 

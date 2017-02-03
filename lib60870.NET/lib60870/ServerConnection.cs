@@ -45,6 +45,10 @@ namespace lib60870
 		private int unconfirmedMessages = 0; /* number of unconfirmed messages received */
 		private long lastConfirmationTime = System.Int64.MaxValue; /* timestamp when the last confirmation message was sent */
 
+		/* T3 parameter handling */
+		private UInt64 nextT3Timeout;
+		private int outStandingTestFRConMessages = 0;
+
 		private ConnectionParameters parameters;
 		private Server server;
 
@@ -57,6 +61,10 @@ namespace lib60870
 			Thread workerThread = new Thread(HandleConnection);
 
 			workerThread.Start ();
+		}
+
+		private void ResetT3Timeout() {
+			nextT3Timeout = (UInt64) SystemUtils.currentTimeMillis () + (UInt64) (parameters.T3 * 1000);
 		}
 
 		/// <summary>
@@ -451,6 +459,8 @@ namespace lib60870
 				return true;
 			}
 
+			ResetT3Timeout ();
+
 			return true;
 		}
 
@@ -460,6 +470,30 @@ namespace lib60870
 
 			if (asdu != null)
 				SendASDU(asdu);
+		}
+
+		private bool handleTimeouts() {
+			UInt64 currentTime = (UInt64) SystemUtils.currentTimeMillis();
+
+			if (currentTime > nextT3Timeout) {
+
+				if (outStandingTestFRConMessages > 2) {
+					if (debugOutput)
+						Console.WriteLine ("SLAVE: Timeout for TESTFR_CON message");
+
+					// close connection
+					return false;
+				} else {
+					socket.Send (TESTFR_ACT_MSG);
+
+					if (debugOutput)
+						Console.WriteLine ("SLAVE: U message T3 timeout");
+					outStandingTestFRConMessages++;
+					ResetT3Timeout ();
+				}
+			}
+
+			return true;
 		}
 
 		private void HandleConnection() {
@@ -499,20 +533,29 @@ namespace lib60870
 						} catch (SocketException) {
 							running = false;
 						}
+
+						running = handleTimeouts();
 					}
 
-					Console.WriteLine("CLOSE CONNECTION!");
+					if (debugOutput)
+						Console.WriteLine("SLAVE: CLOSE CONNECTION!");
 
 					// Release the socket.
 					socket.Shutdown(SocketShutdown.Both);
 					socket.Close();
 
+					if (debugOutput)
+						Console.WriteLine("SLAVE: CONNECTION CLOSED!");
+
 				} catch (ArgumentNullException ane) {
-					Console.WriteLine("ArgumentNullException : {0}",ane.ToString());
+					if (debugOutput)
+						Console.WriteLine("ArgumentNullException : {0}",ane.ToString());
 				} catch (SocketException se) {
-					Console.WriteLine("SocketException : {0}",se.ToString());
+					if (debugOutput)
+						Console.WriteLine("SocketException : {0}",se.ToString());
 				} catch (Exception e) {
-					Console.WriteLine("Unexpected exception : {0}", e.ToString());
+					if (debugOutput)
+						Console.WriteLine("Unexpected exception : {0}", e.ToString());
 				}
 
 			} catch (Exception e) {

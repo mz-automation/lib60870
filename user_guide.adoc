@@ -265,7 +265,7 @@ The following parameters are stored in *T104ConnectionParameter* objects.
 |k       |Number of unconfirmed APDUs in I format. Sender will stop transmission after k unconfirmed I messages.
 |w       |Number of unconfirmed APDUs in I format. Receiver will confirm latest after w messages
 |t0      |Timeout for connection establishment (in s)
-|t1      |Timeout for transmitted APDUs in I/U format (in s) when timeout elapsed without confirmation the connection will be closed. This is used by the sender to determine that the receiver has failed to confirm a message.
+|t1      |Timeout for transmitted APDUs in I/U format (in s) when timeout elapsed without confirmation the connection will be closed. This is used by the sender to determine if the receiver has failed to confirm a message.
 |t2      |Timeout to confirm messages (in s). This timeout is used by the receiver to determine the time when the message confirmation has to be sent.
 |t3      |time until test telegrams will be sent in case of an idle connection
 |==========================
