@@ -41,8 +41,6 @@ namespace lib60870
 			Millisecond = time.Millisecond;
 			Second = time.Second;
 			Year = time.Year % 100;
-			Console.WriteLine ("Year: " + time.Year + " " + Year);
-
 			Month = time.Month;
 			DayOfMonth = time.Day;
 			Hour = time.Hour;

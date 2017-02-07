@@ -623,7 +623,7 @@ namespace lib60870
 				return 0;
 		}
 
-        private bool checkConfirmTimeout(long currentTime) 
+		private bool checkConfirmTimeout(long currentTime) 
         {
             if ((currentTime - lastConfirmationTime) >= (parameters.T2 * 1000))
                 return true;
@@ -693,6 +693,7 @@ namespace lib60870
 					statistics.SentMsgCounter++;
 				} else if (buffer [2] == 0x83) { /* TESTFR_CON */
 					statistics.RcvdTestFrConCounter++;
+					outStandingTestFRConMessages = 0;
 				} else if (buffer [2] == 0x07) { /* STARTDT ACT */
 
 					socket.Send (STARTDT_CON_MSG);
@@ -771,6 +772,14 @@ namespace lib60870
 		private bool handleTimeouts() {
 			UInt64 currentTime = (UInt64) SystemUtils.currentTimeMillis();
 
+			if (checkConfirmTimeout ((long) currentTime)) {
+
+				lastConfirmationTime = (long) currentTime;
+				unconfirmedSlaveMessages = 0;
+
+				sendSMessage (); /* send confirmation message */
+			}
+				
 			if (currentTime > nextT3Timeout) {
 
 				if (outStandingTestFRConMessages > 2) {
@@ -872,9 +881,11 @@ namespace lib60870
 							else if (bytesRec == -1)
 								loopRunning = false;
 
-							loopRunning = handleTimeouts();
+							if (handleTimeouts() == false)
+								loopRunning = false;
 
-							loopRunning = isConnected();
+							if (isConnected() == false)
+								loopRunning = false;
 						}
 						catch (SocketException) {	
 							loopRunning = false;

@@ -200,7 +200,7 @@ namespace tests
 		}
 			
 		[Test()]
-		[Ignore("Ignore to save execution time")]
+		//[Ignore("Ignore to save execution time")]
 		public void TestSendTestFR() {
 			ConnectionParameters clientParameters = new ConnectionParameters ();
 			ConnectionParameters serverParameters = new ConnectionParameters ();
@@ -223,11 +223,10 @@ namespace tests
 			connection.SendASDU(asdu);
 
 			Assert.AreEqual (2, connection.GetStatistics ().SentMsgCounter); /* STARTDT + ASDU */
-			Assert.AreEqual (1, connection.GetStatistics ().RcvdMsgCounter); /* STARTDT_CON */
 
 			while (connection.GetStatistics ().RcvdMsgCounter < 2)
 				Thread.Sleep (1);
-
+			
 			Assert.AreEqual (2, connection.GetStatistics ().RcvdMsgCounter); /* STARTDT_CON + ASDU */
 
 			Thread.Sleep (2500);
@@ -255,7 +254,7 @@ namespace tests
 		/// doesn't receive the TESTFR_CON messages
 		/// </summary>
 		[Test()]
-		[Ignore("Ignore to save execution time")]
+		//[Ignore("Ignore to save execution time")]
 		public void TestSendTestFRTimeoutMaster() {
 			ConnectionParameters clientParameters = new ConnectionParameters ();
 			ConnectionParameters serverParameters = new ConnectionParameters ();
