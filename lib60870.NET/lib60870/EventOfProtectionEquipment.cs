@@ -27,6 +27,10 @@ namespace lib60870
 {
 	public class EventOfProtectionEquipment : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 3;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_EP_TA_1;
@@ -99,6 +103,10 @@ namespace lib60870
 
 	public class EventOfProtectionEquipmentWithCP56Time2a : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 10;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_EP_TD_1;

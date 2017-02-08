@@ -26,6 +26,10 @@ namespace lib60870
 
 	public class SetpointCommandNormalized : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 3;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_SE_NA_1;
@@ -98,6 +102,10 @@ namespace lib60870
 
 	public class SetpointCommandNormalizedWithCP56Time2a : SetpointCommandNormalized
 	{
+		override public int GetEncodedSize() {
+			return 10;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_SE_TA_1;
@@ -141,6 +149,10 @@ namespace lib60870
 
 	public class SetpointCommandScaled : InformationObject 
 	{
+		override public int GetEncodedSize() {
+			return 3;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_SE_NB_1;
@@ -198,6 +210,10 @@ namespace lib60870
 
 	public class SetpointCommandScaledWithCP56Time2a : SetpointCommandScaled
 	{
+		override public int GetEncodedSize() {
+			return 10;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_SE_TB_1;
@@ -241,6 +257,10 @@ namespace lib60870
 
 	public class SetpointCommandShort : InformationObject 
 	{
+		override public int GetEncodedSize() {
+			return 5;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_SE_NC_1;
@@ -299,6 +319,10 @@ namespace lib60870
 
 	public class SetpointCommandShortWithCP56Time2a : SetpointCommandShort
 	{
+		override public int GetEncodedSize() {
+			return 12;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_SE_TC_1;
@@ -343,6 +367,10 @@ namespace lib60870
 
 	public class Bitstring32Command : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 4;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_BO_NA_1;
@@ -392,6 +420,10 @@ namespace lib60870
 
 	public class Bitstring32CommandWithCP56Time2a : Bitstring32Command
 	{
+		override public int GetEncodedSize() {
+			return 11;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_BO_TA_1;

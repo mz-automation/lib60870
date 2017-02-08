@@ -36,6 +36,10 @@ namespace lib60870
 
 	public class SingleCommand : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 1;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_SC_NA_1;
@@ -152,6 +156,10 @@ namespace lib60870
 
 	public class DoubleCommand : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 1;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_DC_NA_1;

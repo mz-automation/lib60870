@@ -43,6 +43,9 @@ namespace lib60870
 	/// </summary>
 	public class ASDU
 	{
+
+		public const int IEC60870_5_104_MAX_ASDU_LENGTH = 249;
+
 		private ConnectionParameters parameters;
 
 		private TypeID typeId;
@@ -56,16 +59,31 @@ namespace lib60870
 		private bool isNegative; /* is message a negative confirmation */
 
 		private int ca; /* Common address */
+		private int spaceLeft = IEC60870_5_104_MAX_ASDU_LENGTH;
 
 		private byte[] payload = null;
 		private List<InformationObject> informationObjects = null;
 
+
+		public ASDU(ConnectionParameters parameters, CauseOfTransmission cot, bool isTest, bool isNegative, byte oa, int ca, bool isSequence) 
+			: this(parameters, TypeID.M_SP_NA_1, cot, isTest, isNegative, oa, ca, isSequence) {
+			this.hasTypeId = false;
+		}
+			
+		[Obsolete("use constructor with ConnectionParameters and without TypeID instead")]
 		public ASDU(CauseOfTransmission cot, bool isTest, bool isNegative, byte oa, int ca, bool isSequence) 
-			: this(TypeID.M_SP_NA_1, cot, isTest, isNegative, oa, ca, isSequence) {
+			: this(new ConnectionParameters(), TypeID.M_SP_NA_1, cot, isTest, isNegative, oa, ca, isSequence) {
 			this.hasTypeId = false;
 		}
 
-		public ASDU(TypeID typeId, CauseOfTransmission cot, bool isTest, bool isNegative, byte oa, int ca, bool isSequence) {
+		[Obsolete("use constructor with ConnectionParameters and without TypeID instead")]
+		public ASDU(TypeID typeId, CauseOfTransmission cot, bool isTest, bool isNegative, byte oa, int ca, bool isSequence) 
+			: this(new ConnectionParameters(), typeId, cot, isTest, isNegative, oa, ca, isSequence) {
+		}
+			
+		[Obsolete("use constructor with ConnectionParameters and without TypeID instead")]
+		public ASDU(ConnectionParameters parameters, TypeID typeId, CauseOfTransmission cot, bool isTest, bool isNegative, byte oa, int ca, bool isSequence) {
+			this.parameters = parameters;
 			this.typeId = typeId;
 			this.cot = cot;
 			this.isTest = isTest;
@@ -81,7 +99,16 @@ namespace lib60870
 			this.hasTypeId = true;
 		}
 
-		public void AddInformationObject(InformationObject io) 
+		/// <summary>
+		/// Adds an information object to the ASDU.
+		/// </summary>
+		/// This function add an information object (InformationObject) to the ASDU. NOTE: that all information objects
+		/// have to be of the same type. Otherwise an ArgumentException will be thrown.
+		/// The function returns true when the information object has been added to the ASDU. The function returns false if
+		/// there is no space left in the ASDU to add the information object.
+		/// <returns><c>true</c>, if information object was added, <c>false</c> otherwise.</returns>
+		/// <param name="io">The information object to add</param>
+		public bool AddInformationObject(InformationObject io) 
 		{
 			if (informationObjects == null)
 				informationObjects = new List<InformationObject> ();
@@ -94,9 +121,25 @@ namespace lib60870
 				hasTypeId = true;
 			}
 
-			informationObjects.Add (io);
+			int objectSize = io.GetEncodedSize ();
 
-			vsq = (byte) ((vsq & 0x80) | informationObjects.Count);
+			if (IsSquence == false)
+				objectSize += parameters.SizeOfIOA;
+			else {
+				if (spaceLeft == IEC60870_5_104_MAX_ASDU_LENGTH) // is first object?
+					objectSize += parameters.SizeOfIOA;
+			}
+
+			if (objectSize <= spaceLeft) {
+
+				spaceLeft -= objectSize;
+				informationObjects.Add (io);
+
+				vsq = (byte)((vsq & 0x80) | informationObjects.Count);
+
+				return true;
+			} else
+				return false;
 		}
 
 		public ASDU (ConnectionParameters parameters, byte[] msg, int msgLength)
@@ -182,7 +225,6 @@ namespace lib60870
 
 				}
 			}
-
 		}
 
 		public TypeID TypeId {
@@ -510,7 +552,7 @@ namespace lib60870
 
 			case TypeID.M_EP_TA_1: /* 17 */
 
-				elementSize = 6;
+				elementSize = 3;
 
 				if (IsSquence) {
 					int ioa = InformationObject.ParseInformationObjectAddress (parameters, payload, 0);

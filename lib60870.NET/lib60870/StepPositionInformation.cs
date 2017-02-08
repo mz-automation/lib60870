@@ -25,6 +25,10 @@ namespace lib60870
 {
 	public class StepPositionInformation : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 2;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_ST_NA_1;
@@ -128,6 +132,10 @@ namespace lib60870
 
 	public class StepPositionWithCP24Time2a : StepPositionInformation
 	{
+		override public int GetEncodedSize() {
+			return 5;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_ST_TA_1;
@@ -179,6 +187,10 @@ namespace lib60870
 
 	public class StepPositionWithCP56Time2a : StepPositionInformation
 	{
+		override public int GetEncodedSize() {
+			return 9;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_ST_TB_1;

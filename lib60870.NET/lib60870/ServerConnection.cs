@@ -43,7 +43,7 @@ namespace lib60870
 		private int receiveCount = 0;
 
 		private int unconfirmedMessages = 0; /* number of unconfirmed messages received */
-		private long lastConfirmationTime = System.Int64.MaxValue; /* timestamp when the last confirmation message was sent */
+		private Int64 lastConfirmationTime = System.Int64.MaxValue; /* timestamp when the last confirmation message was sent */
 
 		/* T3 parameter handling */
 		private UInt64 nextT3Timeout;
@@ -61,6 +61,15 @@ namespace lib60870
 			Thread workerThread = new Thread(HandleConnection);
 
 			workerThread.Start ();
+		}
+
+		/// <summary>
+		/// Gets the connection parameters.
+		/// </summary>
+		/// <returns>The connection parameters used by the server.</returns>
+		public ConnectionParameters GetConnectionParameters()
+		{
+			return parameters;
 		}
 
 		private void ResetT3Timeout() {
@@ -89,9 +98,9 @@ namespace lib60870
 
 				if (debugOutput) {
 					if (isActive)
-						Console.WriteLine (this.ToString () + " is active");
+						Console.WriteLine ("SLAVE: " + this.ToString () + " is active");
 					else
-						Console.WriteLine (this.ToString () + " is not active");
+						Console.WriteLine ("SLAVE: " + this.ToString () + " is not active");
 				}
 			}
 		}
@@ -115,7 +124,7 @@ namespace lib60870
 
 				if (buffer [0] != 0x68) {
 					if (debugOutput)
-						Console.WriteLine ("Missing SOF indicator!");
+						Console.WriteLine ("SLAVE: Missing SOF indicator!");
 					return 0;
 				}
 
@@ -128,7 +137,7 @@ namespace lib60870
 				// read remaining frame
 				if (socket.Receive (buffer, 2, length, SocketFlags.None) != length) {
 					if (debugOutput)
-						Console.WriteLine ("Failed to read complete frame!");
+						Console.WriteLine ("SLAVE: Failed to read complete frame!");
 					return 0;
 				}
 
@@ -144,7 +153,11 @@ namespace lib60870
 			sendCount++;
 		}
 
-		private void sendSMessage() {
+		private void sendSMessage() 
+		{
+			if (debugOutput)
+				Console.WriteLine ("SLAVE: Send S message");
+
 			byte[] msg = new byte[6];
 
 			msg [0] = 0x68;
@@ -178,57 +191,30 @@ namespace lib60870
 			SendASDU (asdu);
 		}
 
-
-		private bool checkConfirmTimeout(long currentTime) 
-		{
-			if ((currentTime - lastConfirmationTime) >= (parameters.T2 * 1000))
-				return true;
-			else
-				return false;
-		}
-
-		private void SendSMessageIfRequired() {
-
-			if (unconfirmedMessages > 0) {
-
-				long currentTime = SystemUtils.currentTimeMillis();
-
-				if ((unconfirmedMessages > parameters.W) || checkConfirmTimeout (currentTime)) {
-
-					if (debugOutput)
-						Console.WriteLine ("Send S message");
-
-					//TODO check timeout condition /* t2 */
-					lastConfirmationTime = currentTime;
-
-					unconfirmedMessages = 0;
-					sendSMessage ();
-				}
-			}
-		}
-
 		private void IncreaseReceivedMessageCounters ()
 		{
 			receiveCount++;
 			unconfirmedMessages++;
 
 			if (unconfirmedMessages == 1) {
+				// start timeout if only one unconfirmed message
 				lastConfirmationTime = SystemUtils.currentTimeMillis();
 			}
 		}
 
 		private bool HandleMessage(Socket socket, byte[] buffer, int msgSize)
 		{
+			ResetT3Timeout ();
 
 			if ((buffer [2] & 1) == 0) {
 
 				if (debugOutput)
-					Console.WriteLine ("Received I frame");
+					Console.WriteLine ("SLAVE: Received I frame");
 
 				if (msgSize < 7) {
 
 					if (debugOutput)
-						Console.WriteLine ("I msg too small!");
+						Console.WriteLine ("SLAVE: I msg too small!");
 
 					return false;
 				}
@@ -247,7 +233,7 @@ namespace lib60870
 					case TypeID.C_IC_NA_1: /* 100 - interrogation command */
 
 						if (debugOutput)
-							Console.WriteLine ("Rcvd interrogation command C_IC_NA_1");
+							Console.WriteLine ("SLAVE: Rcvd interrogation command C_IC_NA_1");
 
 						if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.DEACTIVATION)) {
 							if (server.interrogationHandler != null) {
@@ -267,7 +253,7 @@ namespace lib60870
 					case TypeID.C_CI_NA_1: /* 101 - counter interrogation command */
 
 						if (debugOutput)
-							Console.WriteLine ("Rcvd counter interrogation command C_CI_NA_1");
+							Console.WriteLine ("SLAVE: Rcvd counter interrogation command C_CI_NA_1");
 
 						if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.DEACTIVATION)) {
 							if (server.counterInterrogationHandler != null) {
@@ -287,12 +273,12 @@ namespace lib60870
 					case TypeID.C_RD_NA_1: /* 102 - read command */
 
 						if (debugOutput)
-							Console.WriteLine ("Rcvd read command C_RD_NA_1");
+							Console.WriteLine ("SLAVE: Rcvd read command C_RD_NA_1");
 
 						if (asdu.Cot == CauseOfTransmission.REQUEST) {
 
 							if (debugOutput)
-								Console.WriteLine ("Read request for object: " + asdu.Ca);
+								Console.WriteLine ("SLAVE: Read request for object: " + asdu.Ca);
 
 							if (server.readHandler != null) {
 								ReadCommand rc = (ReadCommand)asdu.GetElement (0);
@@ -312,7 +298,7 @@ namespace lib60870
 					case TypeID.C_CS_NA_1: /* 103 - Clock synchronization command */
 
 						if (debugOutput)
-							Console.WriteLine ("Rcvd clock sync command C_CS_NA_1");
+							Console.WriteLine ("SLAVE: Rcvd clock sync command C_CS_NA_1");
 
 						if (asdu.Cot == CauseOfTransmission.ACTIVATION) {
 
@@ -335,7 +321,7 @@ namespace lib60870
 					case TypeID.C_TS_NA_1: /* 104 - test command */
 
 						if (debugOutput)
-							Console.WriteLine ("Rcvd test command C_TS_NA_1");
+							Console.WriteLine ("SLAVE: Rcvd test command C_TS_NA_1");
 
 						if (asdu.Cot != CauseOfTransmission.ACTIVATION)
 							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
@@ -351,7 +337,7 @@ namespace lib60870
 					case TypeID.C_RP_NA_1: /* 105 - Reset process command */
 
 						if (debugOutput)
-							Console.WriteLine ("Rcvd reset process command C_RP_NA_1");
+							Console.WriteLine ("SLAVE: Rcvd reset process command C_RP_NA_1");
 
 						if (asdu.Cot == CauseOfTransmission.ACTIVATION) {
 
@@ -375,7 +361,7 @@ namespace lib60870
 					case TypeID.C_CD_NA_1: /* 106 - Delay acquisition command */
 
 						if (debugOutput)
-							Console.WriteLine ("Rcvd delay acquisition command C_CD_NA_1");
+							Console.WriteLine ("SLAVE: Rcvd delay acquisition command C_CD_NA_1");
 
 						if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.SPONTANEOUS)) {
 							if (server.delayAcquisitionHandler != null) {
@@ -396,8 +382,8 @@ namespace lib60870
 					}
 
 					if ((messageHandled == false) && (server.asduHandler != null))
-					if (server.asduHandler (server.asduHandlerParameter, this, asdu))
-						messageHandled = true;
+						if (server.asduHandler (server.asduHandlerParameter, this, asdu))
+							messageHandled = true;
 
 					if (messageHandled == false) {
 						asdu.Cot = CauseOfTransmission.UNKNOWN_TYPE_ID;
@@ -407,7 +393,7 @@ namespace lib60870
 				} else {
 					// connection not activated --> skip message
 					if (debugOutput)
-						Console.WriteLine ("Message not activated. Skip I message");
+						Console.WriteLine ("SLAVE: Connection not activated. Skip I message");
 				}
 
 
@@ -418,7 +404,7 @@ namespace lib60870
 			else if ((buffer [2] & 0x43) == 0x43) {
 
 				if (debugOutput)
-					Console.WriteLine ("Send TESTFR_CON");
+					Console.WriteLine ("SLAVE: Send TESTFR_CON");
 
 				socket.Send (TESTFR_CON_MSG);
 			} 
@@ -427,7 +413,7 @@ namespace lib60870
 			else if ((buffer [2] & 0x07) == 0x07) {
 
 				if (debugOutput)
-					Console.WriteLine ("Send STARTDT_CON");
+					Console.WriteLine ("SLAVE: Send STARTDT_CON");
 
 				this.isActive = true;
 
@@ -438,7 +424,7 @@ namespace lib60870
 			else if ((buffer [2] & 0x13) == 0x13) {
 				
 				if (debugOutput)
-					Console.WriteLine ("Send STOPDT_CON");
+					Console.WriteLine ("SLAVE: Send STOPDT_CON");
 
 				this.isActive = false;
 
@@ -451,16 +437,12 @@ namespace lib60870
 				int messageCount = (buffer[4] + buffer[5] * 0x100) / 2;
 
 				if (debugOutput)
-					Console.WriteLine ("Recv S(" + messageCount + ") (own sendcounter = " + sendCount + ")");
+					Console.WriteLine ("SLAVE: Recv S(" + messageCount + ") (own sendcounter = " + sendCount + ")");
 			}
 			else {
 				if (debugOutput)
-					Console.WriteLine ("Unknown message");
-
-				return true;
+					Console.WriteLine ("SLAVE: Unknown message");
 			}
-
-			ResetT3Timeout ();
 
 			return true;
 		}
@@ -491,6 +473,16 @@ namespace lib60870
 						Console.WriteLine ("SLAVE: U message T3 timeout");
 					outStandingTestFRConMessages++;
 					ResetT3Timeout ();
+				}
+			}
+
+			if (unconfirmedMessages > 0) {
+
+				if (((long) currentTime - lastConfirmationTime) >= (parameters.T2 * 1000)) {
+
+					lastConfirmationTime = (long) currentTime;
+					unconfirmedMessages = 0;
+					sendSMessage ();
 				}
 			}
 
@@ -528,7 +520,12 @@ namespace lib60870
 							if (isActive)
 								checkServerQueue();
 												
-							SendSMessageIfRequired();
+							if (unconfirmedMessages > parameters.W) {
+								lastConfirmationTime = SystemUtils.currentTimeMillis();
+
+								unconfirmedMessages = 0;
+								sendSMessage ();
+							}
 							
 							Thread.Sleep(1);
 						} catch (SocketException) {
@@ -550,13 +547,13 @@ namespace lib60870
 
 				} catch (ArgumentNullException ane) {
 					if (debugOutput)
-						Console.WriteLine("ArgumentNullException : {0}",ane.ToString());
+						Console.WriteLine("SLAVE: ArgumentNullException : {0}",ane.ToString());
 				} catch (SocketException se) {
 					if (debugOutput)
-						Console.WriteLine("SocketException : {0}",se.ToString());
+						Console.WriteLine("SLAVE: SocketException : {0}",se.ToString());
 				} catch (Exception e) {
 					if (debugOutput)
-						Console.WriteLine("Unexpected exception : {0}", e.ToString());
+						Console.WriteLine("SLAVE: Unexpected exception : {0}", e.ToString());
 				}
 
 			} catch (Exception e) {

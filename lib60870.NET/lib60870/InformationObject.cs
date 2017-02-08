@@ -52,6 +52,12 @@ namespace lib60870
 			this.objectAddress = objectAddress;
 		}
 
+		/// <summary>
+		/// Gets the encoded size of the object (without the IOA)
+		/// </summary>
+		/// <returns>The encoded size.</returns>
+		public abstract int GetEncodedSize();
+
 		public int ObjectAddress {
 			get {
 				return this.objectAddress;

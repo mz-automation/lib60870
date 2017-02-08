@@ -47,6 +47,10 @@ namespace lib60870
 
 	public class InterrogationCommand : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 1;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_IC_NA_1;
@@ -93,6 +97,10 @@ namespace lib60870
 		
 	public class CounterInterrogationCommand : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 1;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_CI_NA_1;
@@ -144,6 +152,10 @@ namespace lib60870
 
 	public class ReadCommand : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 0;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_RD_NA_1;
@@ -169,6 +181,10 @@ namespace lib60870
 
 	public class ClockSynchronizationCommand : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 7;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_CS_NA_1;
@@ -215,6 +231,10 @@ namespace lib60870
 
 	public class ResetProcessCommand : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 1;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_RP_NA_1;
@@ -265,6 +285,10 @@ namespace lib60870
 
 	public class DelayAcquisitionCommand : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 2;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.C_CD_NA_1;

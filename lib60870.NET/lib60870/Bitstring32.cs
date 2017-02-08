@@ -28,6 +28,10 @@ namespace lib60870
 	
 	public class Bitstring32 : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 5;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_BO_NA_1;
@@ -90,6 +94,10 @@ namespace lib60870
 
 	public class Bitstring32WithCP24Time2a : Bitstring32
 	{
+		override public int GetEncodedSize() {
+			return 8;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_BO_TA_1;
@@ -133,11 +141,14 @@ namespace lib60870
 
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
-
 	}
 
 	public class Bitstring32WithCP56Time2a : Bitstring32
 	{
+		override public int GetEncodedSize() {
+			return 12;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_BO_TB_1;

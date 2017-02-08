@@ -26,6 +26,10 @@ namespace lib60870
 
 	public class PackedOutputCircuitInfo : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 7;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_EP_TC_1;
@@ -111,6 +115,10 @@ namespace lib60870
 
 	public class PackedOutputCircuitInfoWithCP56Time2a : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 11;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_EP_TF_1;

@@ -27,6 +27,10 @@ namespace lib60870
 {
 	public class MeasuredValueScaled : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 3;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_ME_NB_1;
@@ -93,6 +97,10 @@ namespace lib60870
 
 	public class MeasuredValueScaledWithCP24Time2a : MeasuredValueScaled
 	{
+		override public int GetEncodedSize() {
+			return 6;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_ME_TB_1;
@@ -141,6 +149,10 @@ namespace lib60870
 
 	public class MeasuredValueScaledWithCP56Time2a : MeasuredValueScaled
 	{
+		override public int GetEncodedSize() {
+			return 10;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_ME_TE_1;

@@ -182,6 +182,12 @@ Static memory allocation:
 
 The debug output to the console can be enabled by setting _CONFIG_DEBUG_OUTPUT_ to 1. This will enable the debug output by default. The debug output can be disabled my using the function *Lib60870_enableDebugOutput*. The default implementation of the debug output function will print to the console (using printf). If you need to redirect the output the most easy way would be to change the implementation of the debug output *lib60870_debug_print* function in _lib60870_common.c_.
 
+== Advanced topics ==
+
+=== Creating non-standard information object types ===
+
+For lib60870.NET you should derive a new class from the *InformationObject* class.
+
 == Reference information
 
 === Supported message types

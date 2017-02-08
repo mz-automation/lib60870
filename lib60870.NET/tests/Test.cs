@@ -171,7 +171,9 @@ namespace tests
 
 		[Test()]
 		public void TestASDUAddInformationObjects() {
-			ASDU asdu = new ASDU (CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			ConnectionParameters cp = new ConnectionParameters ();
+
+			ASDU asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
 
 			asdu.AddInformationObject (new SinglePointInformation (100, false, new QualityDescriptor()));
 			asdu.AddInformationObject (new SinglePointInformation (101, false, new QualityDescriptor()));
@@ -191,12 +193,43 @@ namespace tests
 
 		[Test()]
 		public void TestASDUAddTooMuchInformationObjects() {
-			ASDU asdu = new ASDU (CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			ConnectionParameters cp = new ConnectionParameters ();
 
-			asdu.AddInformationObject (new SinglePointInformation (100, false, new QualityDescriptor()));
-			asdu.AddInformationObject (new SinglePointInformation (101, false, new QualityDescriptor()));
+			ASDU asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
 
-			//TODO implement test case
+			int addedCounter = 0;
+			int ioa = 100;
+
+			while (asdu.AddInformationObject (new SinglePointInformation (ioa, false, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+		
+			Assert.AreEqual (62, addedCounter); 
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new SinglePointInformation (ioa, false, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (246, addedCounter); 
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueShortWithCP56Time2a (ioa, 0.0f, QualityDescriptor.VALID(), new CP56Time2a ()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (16, addedCounter); 
 		}
 			
 		[Test()]
@@ -217,7 +250,7 @@ namespace tests
 
 			connection.Connect ();
 
-			ASDU asdu = new ASDU (CauseOfTransmission.SPONTANEOUS, false, false, 0, 1, false);
+			ASDU asdu = new ASDU (clientParameters, CauseOfTransmission.SPONTANEOUS, false, false, 0, 1, false);
 			asdu.AddInformationObject (new SinglePointInformation (100, false, new QualityDescriptor()));
 
 			connection.SendASDU(asdu);
@@ -273,7 +306,7 @@ namespace tests
 
 			connection.SetRawMessageHandler (testSendTestFRTimeoutMasterRawMessageHandler, null);
 
-			ASDU asdu = new ASDU (CauseOfTransmission.SPONTANEOUS, false, false, 0, 1, false);
+			ASDU asdu = new ASDU (clientParameters, CauseOfTransmission.SPONTANEOUS, false, false, 0, 1, false);
 			asdu.AddInformationObject (new SinglePointInformation (100, false, new QualityDescriptor()));
 
 			connection.SendASDU(asdu);
@@ -360,7 +393,7 @@ namespace tests
 
 			// Connection is closed. SendASDU should fail
 			try {
-				ASDU asdu = new ASDU (CauseOfTransmission.SPONTANEOUS, false, false, 0, 1, false);
+				ASDU asdu = new ASDU (clientParameters, CauseOfTransmission.SPONTANEOUS, false, false, 0, 1, false);
 				asdu.AddInformationObject (new SinglePointInformation (100, false, new QualityDescriptor()));
 
 				connection.SendASDU(asdu);

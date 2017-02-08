@@ -27,6 +27,10 @@ namespace lib60870
 {
 	public class IntegratedTotals : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 5;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_IT_NA_1;
@@ -71,6 +75,10 @@ namespace lib60870
 
 	public class IntegratedTotalsWithCP24Time2a : IntegratedTotals
 	{
+		override public int GetEncodedSize() {
+			return 8;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_IT_TA_1;
@@ -117,6 +125,10 @@ namespace lib60870
 
 	public class IntegratedTotalsWithCP56Time2a : IntegratedTotals
 	{
+		override public int GetEncodedSize() {
+			return 12;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_IT_TB_1;

@@ -29,6 +29,10 @@ namespace lib60870
 
 	public class PackedStartEventsOfProtectionEquipment : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 7;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_EP_TB_1;
@@ -113,6 +117,10 @@ namespace lib60870
 
 	public class PackedStartEventsOfProtectionEquipmentWithCP56Time2a : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 11;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_EP_TE_1;

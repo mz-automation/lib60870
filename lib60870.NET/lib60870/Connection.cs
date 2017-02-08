@@ -772,12 +772,14 @@ namespace lib60870
 		private bool handleTimeouts() {
 			UInt64 currentTime = (UInt64) SystemUtils.currentTimeMillis();
 
-			if (checkConfirmTimeout ((long) currentTime)) {
+			if (unconfirmedSlaveMessages > 0) {
+				if (checkConfirmTimeout ((long)currentTime)) {
 
-				lastConfirmationTime = (long) currentTime;
-				unconfirmedSlaveMessages = 0;
+					lastConfirmationTime = (long)currentTime;
+					unconfirmedSlaveMessages = 0;
 
-				sendSMessage (); /* send confirmation message */
+					sendSMessage (); /* send confirmation message */
+				}
 			}
 				
 			if (currentTime > nextT3Timeout) {
@@ -813,7 +815,6 @@ namespace lib60870
 		private void HandleConnection() {
 
 			byte[] bytes = new byte[300];
-
 
 			try {
 

@@ -26,7 +26,17 @@ namespace lib60870
 	public class QualityDescriptor
 	{
 		private byte encodedValue;
-	
+
+		public static QualityDescriptor VALID() {
+			return new QualityDescriptor ();
+		}
+
+		public static QualityDescriptor INVALID() {
+			var qd = new QualityDescriptor ();
+			qd.Invalid = true;
+			return qd;
+		}
+
 		public QualityDescriptor()
 		{
 			this.encodedValue = 0;

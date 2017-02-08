@@ -34,6 +34,10 @@ namespace lib60870
 
 	public class DoublePointInformation : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 1;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_DP_NA_1;
@@ -96,6 +100,10 @@ namespace lib60870
 
 	public class DoublePointWithCP24Time2a : DoublePointInformation
 	{
+		override public int GetEncodedSize() {
+			return 4;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_DP_TA_1;
@@ -143,6 +151,10 @@ namespace lib60870
 
 	public class DoublePointWithCP56Time2a : DoublePointInformation
 	{
+		override public int GetEncodedSize() {
+			return 8;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_DP_TB_1;

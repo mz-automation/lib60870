@@ -25,6 +25,10 @@ namespace lib60870
 {
 	public class SinglePointInformation : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 1;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_SP_NA_1;
@@ -187,6 +191,10 @@ namespace lib60870
 
 	public class PackedSinglePointWithSCD : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 5;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_PS_NA_1;

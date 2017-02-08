@@ -214,6 +214,15 @@ namespace lib60870
 			}
 		}
 
+		/// <summary>
+		/// Gets the connection parameters.
+		/// </summary>
+		/// <returns>The connection parameters used by the server.</returns>
+		public ConnectionParameters GetConnectionParameters()
+		{
+			return parameters;
+		}
+
 		private void ServerAcceptThread()
 		{
 			running = true;

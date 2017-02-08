@@ -26,6 +26,10 @@ namespace lib60870
 
 	public class ParameterNormalizedValue : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 3;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.P_ME_NA_1;
@@ -98,6 +102,10 @@ namespace lib60870
 
 	public class ParameterScaledValue : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 3;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.P_ME_NB_1;
@@ -160,6 +168,10 @@ namespace lib60870
 
 	public class ParameterFloatValue : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 5;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.P_ME_NC_1;
@@ -226,6 +238,10 @@ namespace lib60870
 
 	public class ParameterActivation : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 1;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.P_AC_NA_1;

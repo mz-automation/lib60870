@@ -28,6 +28,10 @@ namespace lib60870
 
 	public class MeasuredValueNormalizedWithoutQuality : InformationObject
 	{
+		override public int GetEncodedSize() {
+			return 2;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_ME_ND_1;
@@ -85,6 +89,10 @@ namespace lib60870
 
 	public class MeasuredValueNormalized : MeasuredValueNormalizedWithoutQuality
 	{
+		override public int GetEncodedSize() {
+			return 3;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_ME_NA_1;
@@ -133,6 +141,10 @@ namespace lib60870
 
 	public class MeasuredValueNormalizedWithCP24Time2a : MeasuredValueNormalized
 	{
+		override public int GetEncodedSize() {
+			return 6;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_ME_TA_1;
@@ -181,6 +193,10 @@ namespace lib60870
 
 	public class MeasuredValueNormalizedWithCP56Time2a : MeasuredValueNormalized
 	{
+		override public int GetEncodedSize() {
+			return 10;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_ME_TD_1;
