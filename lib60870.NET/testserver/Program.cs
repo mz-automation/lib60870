@@ -107,8 +107,7 @@ namespace testserver
 
 			Server server = new Server ();
 
-			if (BitConverter.IsLittleEndian)
-				Console.WriteLine ("Platform is little endian");
+			server.DebugOutput = true;
 
 			server.MaxQueueSize = 10;
 

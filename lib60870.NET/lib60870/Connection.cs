@@ -208,7 +208,7 @@ namespace lib60870
 
 			if (running) {
 				socket.Send (frame.GetBuffer (), frame.GetMsgSize (), SocketFlags.None);
-				sendSequenceNumber++;
+				sendSequenceNumber = (sendSequenceNumber + 1) % 32768;
 				statistics.SentMsgCounter++;
 			}
 			else {
@@ -582,6 +582,7 @@ namespace lib60870
 		private int receiveMessage(Socket socket, byte[] buffer) 
 		{
 			// wait for first byte
+			//TODO check if byte is available in buffer
 			if (socket.Poll (50, SelectMode.SelectRead)) {
 
 				if (socket.Available == 0)

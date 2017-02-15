@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016, 2017 MZ Automation GmbH
  *
  *  This file is part of lib60870.NET
  *
@@ -25,11 +25,21 @@ using lib60870;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace lib60870
 {
 	public class ServerConnection 
 	{
+		private static int connectionsCounter = 0;
+
+		private int connectionID;
+
+		private void DebugLog(string message)
+		{
+			if (debugOutput)
+				Console.WriteLine ("SLAVE CONNECTION " + connectionID + ": " + message);
+		}
 
 		static byte[] STARTDT_CON_MSG = new byte[] { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
 
@@ -52,15 +62,71 @@ namespace lib60870
 		private ConnectionParameters parameters;
 		private Server server;
 
+		private Queue<ASDU> receivedASDUs = null;
+		private Thread callbackThread = null;
+		private bool callbackThreadRunning = false;
+
+		private Queue<ASDU> waitingASDUsHighPrio = null;
+
+		/* data structure for k-size sent ASDU buffer */
+		private struct SentASDU
+		{
+			//public ASDU asdu; //TODO not required - remove
+			public bool used; /* true if entry is used */
+
+			// required to identify message in server (low-priority) queue
+			public long entryTime;
+			public int queueIndex; /* -1 if ASDU is not from low-priority queue */
+
+			// required for T1 timeout
+			public long sentTime;
+			public int seqNo;
+		}
+
+		private int maxSentASDUs;
+		private int oldestSentASDU = -1;
+		private int newestSentASDU = -1;
+		private SentASDU[] sentASDUs = null;
+
+		private void ProcessASDUs()
+		{
+			callbackThreadRunning = true;
+
+			while (callbackThreadRunning) {
+
+				while ((receivedASDUs.Count > 0) && (callbackThreadRunning))
+					HandleASDU (receivedASDUs.Dequeue ());
+
+				Thread.Sleep (50);
+			}
+		}
+
 		public ServerConnection(Socket socket, ConnectionParameters parameters, Server server) 
 		{
+			connectionsCounter++;
+			connectionID = connectionsCounter;
+
 			this.socket = socket;
 			this.parameters = parameters;
 			this.server = server;
 
+			ResetT3Timeout ();
+
+			maxSentASDUs = parameters.K;
+			this.sentASDUs = new SentASDU[maxSentASDUs];
+
+			for (int i = 0; i < maxSentASDUs; i++)
+				sentASDUs [i].used = false;
+
+			//TODO only needed when message is activated
+			receivedASDUs = new Queue<ASDU> ();
+			waitingASDUsHighPrio = new Queue<ASDU> ();
+
 			Thread workerThread = new Thread(HandleConnection);
+			callbackThread = new Thread (ProcessASDUs);
 
 			workerThread.Start ();
+			callbackThread.Start ();
 		}
 
 		/// <summary>
@@ -96,12 +162,10 @@ namespace lib60870
 			set {
 				isActive = value;
 
-				if (debugOutput) {
-					if (isActive)
-						Console.WriteLine ("SLAVE: " + this.ToString () + " is active");
-					else
-						Console.WriteLine ("SLAVE: " + this.ToString () + " is not active");
-				}
+				if (isActive)
+					DebugLog("is active");
+				else
+					DebugLog("is not active");
 			}
 		}
 
@@ -123,8 +187,7 @@ namespace lib60870
 					return 0;
 
 				if (buffer [0] != 0x68) {
-					if (debugOutput)
-						Console.WriteLine ("SLAVE: Missing SOF indicator!");
+					DebugLog("Missing SOF indicator!");
 					return 0;
 				}
 
@@ -136,8 +199,7 @@ namespace lib60870
 
 				// read remaining frame
 				if (socket.Receive (buffer, 2, length, SocketFlags.None) != length) {
-					if (debugOutput)
-						Console.WriteLine ("SLAVE: Failed to read complete frame!");
+					DebugLog("Failed to read complete frame!");
 					return 0;
 				}
 
@@ -146,17 +208,33 @@ namespace lib60870
 				return 0;
 		}
 
-		private void sendIMessage(Frame frame) 
+		/// <summary>
+		/// Sends the I message.
+		/// </summary>
+		/// <returns>The sent sequence number if the message</returns>
+		private int sendIMessage(Frame frame) 
 		{
-			frame.PrepareToSend (sendCount, receiveCount);
-			socket.Send (frame.GetBuffer (), frame.GetMsgSize (), SocketFlags.None);
-			sendCount++;
+		//	int seqNumber = -1;
+
+			try {
+				lock (socket) {
+					frame.PrepareToSend (sendCount, receiveCount);
+					socket.Send (frame.GetBuffer (), frame.GetMsgSize (), SocketFlags.None);
+					//seqNumber = sendCount;
+					sendCount = (sendCount + 1) % 32768;
+				}
+			}
+			catch (SocketException) {
+				// socket error --> close connection
+				running = false;
+			}
+
+			return sendCount;
 		}
 
 		private void sendSMessage() 
 		{
-			if (debugOutput)
-				Console.WriteLine ("SLAVE: Send S message");
+			DebugLog(" Send S message");
 
 			byte[] msg = new byte[6];
 
@@ -164,17 +242,177 @@ namespace lib60870
 			msg [1] = 0x04;
 			msg [2] = 0x01;
 			msg [3] = 0;
-			msg [4] = (byte) ((receiveCount % 128) * 2);
-			msg [5] = (byte) (receiveCount / 128);
 
-			socket.Send (msg);
+			lock (socket) {
+				msg [4] = (byte)((receiveCount % 128) * 2);
+				msg [5] = (byte)(receiveCount / 128);
+
+				try {
+					socket.Send (msg);
+				}
+				catch (SocketException) {
+					// socket error --> close connection
+					running = false;
+				}
+			}
 		}
 
-		public void SendASDU(ASDU asdu) {
+		private int writeASDUtoSocket(ASDU asdu)
+		{
 			Frame frame = new T104Frame ();
 			asdu.Encode (frame, parameters);
 
-			sendIMessage (frame);
+			return sendIMessage (frame);
+		}
+
+		private bool isSentBufferFull() {
+
+			if (oldestSentASDU == -1)
+				return false;
+
+			int newIndex = (newestSentASDU + 1) % maxSentASDUs;
+
+			if (newIndex == oldestSentASDU)
+				return true;
+			else
+				return false;
+		}
+
+		private void PrintSendBuffer() {
+
+			if (oldestSentASDU != -1) {
+
+				int currentIndex = oldestSentASDU;
+
+				int nextIndex = 0;
+
+				DebugLog ("------k-buffer------");
+
+				do {
+					DebugLog (currentIndex + " : S " + sentASDUs[currentIndex].seqNo + " : time " +
+						sentASDUs[currentIndex].sentTime + " : " + sentASDUs[currentIndex].queueIndex);
+
+					if (currentIndex == newestSentASDU)
+						nextIndex = -1;
+
+					currentIndex = (currentIndex + 1) % maxSentASDUs;
+
+				} while (nextIndex != -1);
+
+				DebugLog ("--------------------");
+					
+			}
+
+		}
+
+		private void sendNextAvailableASDU() {
+
+			lock (sentASDUs) {
+				if (isSentBufferFull ())
+					return;
+
+				long timestamp;
+				int index;
+
+				ASDU asdu = server.GetNextWaitingASDU (out timestamp, out index);
+
+				if (asdu != null) {
+
+					int currentIndex = 0;
+
+					if (oldestSentASDU == -1) {
+						oldestSentASDU = 0;
+						newestSentASDU = 0;
+
+					} else {
+						currentIndex = (newestSentASDU + 1) % maxSentASDUs;
+					}
+
+					sentASDUs [currentIndex].used = true;
+					sentASDUs [currentIndex].entryTime = timestamp;
+					sentASDUs [currentIndex].queueIndex = index;
+					sentASDUs [currentIndex].seqNo = writeASDUtoSocket (asdu);
+					sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
+
+					newestSentASDU = currentIndex;
+
+					PrintSendBuffer ();
+				}
+			}
+		}
+
+		private bool sendNextHighPriorityASDU() {
+			lock (sentASDUs) {
+				if (isSentBufferFull ())
+					return false;
+
+				ASDU asdu = waitingASDUsHighPrio.Dequeue ();
+
+				if (asdu != null) {
+
+					int currentIndex = 0;
+
+					if (oldestSentASDU == -1) {
+						oldestSentASDU = 0;
+						newestSentASDU = 0;
+
+					} else {
+						currentIndex = (newestSentASDU + 1) % maxSentASDUs;
+					}
+
+					sentASDUs [currentIndex].used = true;
+					sentASDUs [currentIndex].queueIndex = -1;
+					sentASDUs [currentIndex].seqNo = writeASDUtoSocket (asdu);
+					sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
+
+					newestSentASDU = currentIndex;
+
+					PrintSendBuffer ();
+				} else
+					return false;
+			}
+
+			return true;
+		}
+
+
+
+		private void SendWaitingASDUs()
+		{
+
+			lock (waitingASDUsHighPrio) {
+
+				while (waitingASDUsHighPrio.Count > 0) {
+
+					if (sendNextHighPriorityASDU () == false)
+						return;
+
+					if (running == false)
+						return;
+				}
+			}
+
+			// send messages from low-priority queue
+			sendNextAvailableASDU();
+		}
+
+		private void SendASDUInternal(ASDU asdu)
+		{
+			if (isActive) {
+				lock (waitingASDUsHighPrio) {
+					waitingASDUsHighPrio.Enqueue (asdu);
+				}
+
+				SendWaitingASDUs ();
+			} 
+		}
+
+		public void SendASDU(ASDU asdu) 
+		{
+			if (isActive)
+				SendASDUInternal (asdu);
+			else
+				throw new ConnectionException ("Connection not active");
 		}
 
 		public void SendACT_CON(ASDU asdu, bool negative) {
@@ -193,7 +431,7 @@ namespace lib60870
 
 		private void IncreaseReceivedMessageCounters ()
 		{
-			receiveCount++;
+			receiveCount = (receiveCount + 1) % 32768;
 			unconfirmedMessages++;
 
 			if (unconfirmedMessages == 1) {
@@ -202,209 +440,282 @@ namespace lib60870
 			}
 		}
 
+		private void HandleASDU(ASDU asdu)
+		{		
+			bool messageHandled = false;
+
+			switch (asdu.TypeId) {
+
+			case TypeID.C_IC_NA_1: /* 100 - interrogation command */
+
+				DebugLog("Rcvd interrogation command C_IC_NA_1");
+
+				if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.DEACTIVATION)) {
+					if (server.interrogationHandler != null) {
+
+						InterrogationCommand irc = (InterrogationCommand)asdu.GetElement (0);
+
+						if (server.interrogationHandler (server.InterrogationHandlerParameter, this, asdu, irc.QOI))
+							messageHandled = true;
+					}
+				} else {
+					asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+					this.SendASDUInternal (asdu);
+				}
+
+				break;
+
+			case TypeID.C_CI_NA_1: /* 101 - counter interrogation command */
+
+				DebugLog("Rcvd counter interrogation command C_CI_NA_1");
+
+				if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.DEACTIVATION)) {
+					if (server.counterInterrogationHandler != null) {
+
+						CounterInterrogationCommand cic = (CounterInterrogationCommand)asdu.GetElement (0);
+
+						if (server.counterInterrogationHandler (server.counterInterrogationHandlerParameter, this, asdu, cic.QCC))
+							messageHandled = true;
+					}
+				} else {
+					asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+					this.SendASDUInternal (asdu);
+				}
+
+				break;
+
+			case TypeID.C_RD_NA_1: /* 102 - read command */
+
+				DebugLog("Rcvd read command C_RD_NA_1");
+
+				if (asdu.Cot == CauseOfTransmission.REQUEST) {
+
+					DebugLog("Read request for object: " + asdu.Ca);
+
+					if (server.readHandler != null) {
+						ReadCommand rc = (ReadCommand)asdu.GetElement (0);
+
+						if (server.readHandler (server.readHandlerParameter, this, asdu, rc.ObjectAddress))
+							messageHandled = true;
+
+					}
+
+				} else {
+					asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+					this.SendASDUInternal (asdu);
+				}
+
+				break;
+
+			case TypeID.C_CS_NA_1: /* 103 - Clock synchronization command */
+
+				DebugLog("Rcvd clock sync command C_CS_NA_1");
+
+				if (asdu.Cot == CauseOfTransmission.ACTIVATION) {
+
+					if (server.clockSynchronizationHandler != null) {
+
+						ClockSynchronizationCommand csc = (ClockSynchronizationCommand)asdu.GetElement (0);
+
+						if (server.clockSynchronizationHandler (server.clockSynchronizationHandlerParameter,
+							    this, asdu, csc.NewTime))
+							messageHandled = true;
+					}
+
+				} else {
+					asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+					this.SendASDUInternal (asdu);
+				}
+
+				break;
+
+			case TypeID.C_TS_NA_1: /* 104 - test command */
+
+				DebugLog("Rcvd test command C_TS_NA_1");
+
+				if (asdu.Cot != CauseOfTransmission.ACTIVATION)
+					asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+				else
+					asdu.Cot = CauseOfTransmission.ACTIVATION_CON;
+
+				this.SendASDUInternal (asdu);
+
+				messageHandled = true;
+
+				break;
+
+			case TypeID.C_RP_NA_1: /* 105 - Reset process command */
+
+				DebugLog("Rcvd reset process command C_RP_NA_1");
+
+				if (asdu.Cot == CauseOfTransmission.ACTIVATION) {
+
+					if (server.resetProcessHandler != null) {
+
+						ResetProcessCommand rpc = (ResetProcessCommand)asdu.GetElement (0);
+
+						if (server.resetProcessHandler (server.resetProcessHandlerParameter,
+							    this, asdu, rpc.QRP))
+							messageHandled = true;
+					}
+
+				} else {
+					asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+					this.SendASDUInternal (asdu);
+				}
+
+
+				break;
+
+			case TypeID.C_CD_NA_1: /* 106 - Delay acquisition command */
+
+				DebugLog("Rcvd delay acquisition command C_CD_NA_1");
+
+				if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.SPONTANEOUS)) {
+					if (server.delayAcquisitionHandler != null) {
+
+						DelayAcquisitionCommand dac = (DelayAcquisitionCommand)asdu.GetElement (0);
+
+						if (server.delayAcquisitionHandler (server.delayAcquisitionHandlerParameter,
+							    this, asdu, dac.Delay))
+							messageHandled = true;
+					}
+				} else {
+					asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
+					this.SendASDUInternal (asdu);
+				}
+
+				break;
+
+			}
+
+			if ((messageHandled == false) && (server.asduHandler != null))
+				if (server.asduHandler (server.asduHandlerParameter, this, asdu))
+					messageHandled = true;
+
+			if (messageHandled == false) {
+				asdu.Cot = CauseOfTransmission.UNKNOWN_TYPE_ID;
+				this.SendASDUInternal (asdu);
+			}
+
+		}
+
+		private bool CheckSequenceNumber(int seqNo) {
+
+			lock (sentASDUs) {
+
+				/* check if received sequence number is valid */
+
+				bool valid = false;
+
+				if (oldestSentASDU == -1) { /* if k-Buffer is empty */
+					if (seqNo == sendCount)
+						valid = true;
+				}
+				else {
+
+					// Two cases are required to reflect sequence number overflow
+					if (sentASDUs[oldestSentASDU].seqNo <= sentASDUs[newestSentASDU].seqNo) {
+
+						if ((seqNo >= sentASDUs [oldestSentASDU].seqNo) &&
+						    (seqNo <= sentASDUs [newestSentASDU].seqNo))
+							valid = true;
+					
+					} else {
+						if ((seqNo >= sentASDUs [oldestSentASDU].seqNo) ||
+							(seqNo <= sentASDUs [newestSentASDU].seqNo))
+							valid = true;
+					}
+
+					int latestValidSeqNo = (sentASDUs [oldestSentASDU].seqNo - 1) % 32768;
+
+					if (latestValidSeqNo == seqNo)
+						valid = true;
+				}
+					
+				if (valid == false) {
+					DebugLog ("Received sequence number out of range");
+					return false;
+				}
+
+				bool lastRound = false;
+			
+				if (oldestSentASDU != -1) {
+
+					do {
+
+						sentASDUs [oldestSentASDU].used = false;
+
+						/* remove from server (low-priority) queue if required */
+						if (sentASDUs [oldestSentASDU].queueIndex != -1) {
+							server.MarkASDUAsConfirmed (sentASDUs [oldestSentASDU].queueIndex,
+								sentASDUs [oldestSentASDU].entryTime);
+						}
+
+						oldestSentASDU = (oldestSentASDU + 1) % maxSentASDUs;
+
+						int checkIndex = (newestSentASDU + 1) % maxSentASDUs;
+
+						if (oldestSentASDU == checkIndex) {
+							oldestSentASDU = -1;
+							break;
+						}
+
+						if (lastRound == true)
+							break;
+
+						if (sentASDUs [oldestSentASDU].seqNo == seqNo)
+							lastRound = true;
+
+					} while (true);
+						
+				}
+
+			}
+
+			return true;
+		}
+
 		private bool HandleMessage(Socket socket, byte[] buffer, int msgSize)
 		{
 			ResetT3Timeout ();
 
 			if ((buffer [2] & 1) == 0) {
 
-				if (debugOutput)
-					Console.WriteLine ("SLAVE: Received I frame");
+				DebugLog("Received I frame");
 
 				if (msgSize < 7) {
 
-					if (debugOutput)
-						Console.WriteLine ("SLAVE: I msg too small!");
+					DebugLog("I msg too small!");
 
 					return false;
 				}
-					
+
+				int otherSeqNo = (buffer[2] + buffer[3] * 0x100) / 2;
+				int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
+
+				DebugLog ("I-MSG: S=" + seqNo + " R=" + otherSeqNo);
+
+				if (CheckSequenceNumber (seqNo) == false)
+					return false;
 
 				IncreaseReceivedMessageCounters ();
 
 				if (isActive) {
-
-					bool messageHandled = false;
-
 					ASDU asdu = new ASDU (parameters, buffer, msgSize);
-
-					switch (asdu.TypeId) {
-
-					case TypeID.C_IC_NA_1: /* 100 - interrogation command */
-
-						if (debugOutput)
-							Console.WriteLine ("SLAVE: Rcvd interrogation command C_IC_NA_1");
-
-						if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.DEACTIVATION)) {
-							if (server.interrogationHandler != null) {
-
-								InterrogationCommand irc = (InterrogationCommand)asdu.GetElement (0);
-
-								if (server.interrogationHandler (server.InterrogationHandlerParameter, this, asdu, irc.QOI))
-									messageHandled = true;
-							}
-						} else {
-							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
-							this.SendASDU (asdu);
-						}
-
-						break;
-
-					case TypeID.C_CI_NA_1: /* 101 - counter interrogation command */
-
-						if (debugOutput)
-							Console.WriteLine ("SLAVE: Rcvd counter interrogation command C_CI_NA_1");
-
-						if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.DEACTIVATION)) {
-							if (server.counterInterrogationHandler != null) {
-
-								CounterInterrogationCommand cic = (CounterInterrogationCommand)asdu.GetElement (0);
-
-								if (server.counterInterrogationHandler (server.counterInterrogationHandlerParameter, this, asdu, cic.QCC))
-									messageHandled = true;
-							}
-						} else {
-							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
-							this.SendASDU (asdu);
-						}
-
-						break;
-
-					case TypeID.C_RD_NA_1: /* 102 - read command */
-
-						if (debugOutput)
-							Console.WriteLine ("SLAVE: Rcvd read command C_RD_NA_1");
-
-						if (asdu.Cot == CauseOfTransmission.REQUEST) {
-
-							if (debugOutput)
-								Console.WriteLine ("SLAVE: Read request for object: " + asdu.Ca);
-
-							if (server.readHandler != null) {
-								ReadCommand rc = (ReadCommand)asdu.GetElement (0);
-
-								if (server.readHandler (server.readHandlerParameter, this, asdu, rc.ObjectAddress))
-									messageHandled = true;
-
-							}
-
-						} else {
-							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
-							this.SendASDU (asdu);
-						}
-
-						break;
-
-					case TypeID.C_CS_NA_1: /* 103 - Clock synchronization command */
-
-						if (debugOutput)
-							Console.WriteLine ("SLAVE: Rcvd clock sync command C_CS_NA_1");
-
-						if (asdu.Cot == CauseOfTransmission.ACTIVATION) {
-
-							if (server.clockSynchronizationHandler != null) {
-
-								ClockSynchronizationCommand csc = (ClockSynchronizationCommand)asdu.GetElement (0);
-
-								if (server.clockSynchronizationHandler (server.clockSynchronizationHandlerParameter,
-									    this, asdu, csc.NewTime))
-									messageHandled = true;
-							}
-
-						} else {
-							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
-							this.SendASDU (asdu);
-						}
-
-						break;
-
-					case TypeID.C_TS_NA_1: /* 104 - test command */
-
-						if (debugOutput)
-							Console.WriteLine ("SLAVE: Rcvd test command C_TS_NA_1");
-
-						if (asdu.Cot != CauseOfTransmission.ACTIVATION)
-							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
-						else
-							asdu.Cot = CauseOfTransmission.ACTIVATION_CON;
-
-						this.SendASDU (asdu);
-
-						messageHandled = true;
-
-						break;
-
-					case TypeID.C_RP_NA_1: /* 105 - Reset process command */
-
-						if (debugOutput)
-							Console.WriteLine ("SLAVE: Rcvd reset process command C_RP_NA_1");
-
-						if (asdu.Cot == CauseOfTransmission.ACTIVATION) {
-
-							if (server.resetProcessHandler != null) {
-
-								ResetProcessCommand rpc = (ResetProcessCommand)asdu.GetElement (0);
-
-								if (server.resetProcessHandler (server.resetProcessHandlerParameter,
-									this, asdu, rpc.QRP))
-									messageHandled = true;
-							}
-
-						} else {
-							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
-							this.SendASDU (asdu);
-						}
-
-
-						break;
-
-					case TypeID.C_CD_NA_1: /* 106 - Delay acquisition command */
-
-						if (debugOutput)
-							Console.WriteLine ("SLAVE: Rcvd delay acquisition command C_CD_NA_1");
-
-						if ((asdu.Cot == CauseOfTransmission.ACTIVATION) || (asdu.Cot == CauseOfTransmission.SPONTANEOUS)) {
-							if (server.delayAcquisitionHandler != null) {
-
-								DelayAcquisitionCommand dac = (DelayAcquisitionCommand)asdu.GetElement (0);
-
-								if (server.delayAcquisitionHandler (server.delayAcquisitionHandlerParameter,
-									    this, asdu, dac.Delay))
-									messageHandled = true;
-							}
-						} else {
-							asdu.Cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION;
-							this.SendASDU (asdu);
-						}
-
-						break;
-
-					}
-
-					if ((messageHandled == false) && (server.asduHandler != null))
-						if (server.asduHandler (server.asduHandlerParameter, this, asdu))
-							messageHandled = true;
-
-					if (messageHandled == false) {
-						asdu.Cot = CauseOfTransmission.UNKNOWN_TYPE_ID;
-						this.SendASDU (asdu);
-					}
-						
+				
+					// push to handler thread for processing
+					receivedASDUs.Enqueue (asdu);
 				} else {
 					// connection not activated --> skip message
-					if (debugOutput)
-						Console.WriteLine ("SLAVE: Connection not activated. Skip I message");
+					DebugLog("Connection not activated. Skip I message");
 				}
-
-
-				return true;
 			}
 
 			// Check for TESTFR_ACT message
 			else if ((buffer [2] & 0x43) == 0x43) {
 
-				if (debugOutput)
-					Console.WriteLine ("SLAVE: Send TESTFR_CON");
+				DebugLog("Send TESTFR_CON");
 
 				socket.Send (TESTFR_CON_MSG);
 			} 
@@ -412,8 +723,7 @@ namespace lib60870
 			// Check for STARTDT_ACT message
 			else if ((buffer [2] & 0x07) == 0x07) {
 
-				if (debugOutput)
-					Console.WriteLine ("SLAVE: Send STARTDT_CON");
+				DebugLog("Send STARTDT_CON");
 
 				this.isActive = true;
 
@@ -423,8 +733,7 @@ namespace lib60870
 			// Check for STOPDT_ACT message
 			else if ((buffer [2] & 0x13) == 0x13) {
 				
-				if (debugOutput)
-					Console.WriteLine ("SLAVE: Send STOPDT_CON");
+				DebugLog("Send STOPDT_CON");
 
 				this.isActive = false;
 
@@ -434,25 +743,19 @@ namespace lib60870
 			// S-message
 			else if (buffer [2] == 0x01) {
 
-				int messageCount = (buffer[4] + buffer[5] * 0x100) / 2;
+				int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
 
-				if (debugOutput)
-					Console.WriteLine ("SLAVE: Recv S(" + messageCount + ") (own sendcounter = " + sendCount + ")");
+				DebugLog("Recv S(" + seqNo + ") (own sendcounter = " + sendCount + ")");
+
+				if (CheckSequenceNumber (seqNo) == false)
+					return false;
+					
 			}
 			else {
-				if (debugOutput)
-					Console.WriteLine ("SLAVE: Unknown message");
+				DebugLog("Unknown message");
 			}
 
 			return true;
-		}
-
-		private void checkServerQueue()
-		{
-			ASDU asdu = server.DequeueASDU ();
-
-			if (asdu != null)
-				SendASDU(asdu);
 		}
 
 		private bool handleTimeouts() {
@@ -461,18 +764,21 @@ namespace lib60870
 			if (currentTime > nextT3Timeout) {
 
 				if (outStandingTestFRConMessages > 2) {
-					if (debugOutput)
-						Console.WriteLine ("SLAVE: Timeout for TESTFR_CON message");
+					DebugLog("Timeout for TESTFR_CON message");
 
 					// close connection
 					return false;
 				} else {
-					socket.Send (TESTFR_ACT_MSG);
+					try  {
+						socket.Send (TESTFR_ACT_MSG);
 
-					if (debugOutput)
-						Console.WriteLine ("SLAVE: U message T3 timeout");
-					outStandingTestFRConMessages++;
-					ResetT3Timeout ();
+						DebugLog("U message T3 timeout");
+						outStandingTestFRConMessages++;
+						ResetT3Timeout ();
+					}
+					catch (SocketException) {
+						running = false;
+					}
 				}
 			}
 
@@ -483,6 +789,17 @@ namespace lib60870
 					lastConfirmationTime = (long) currentTime;
 					unconfirmedMessages = 0;
 					sendSMessage ();
+				}
+			}
+
+			/* check if counterpart confirmed I messages */
+			lock (sentASDUs) {
+			
+				if (oldestSentASDU != -1) {
+
+					if (((long)currentTime - sentASDUs [oldestSentASDU].sentTime) >= (parameters.T1 * 1000)) {
+						return false;
+					}
 				}
 			}
 
@@ -516,68 +833,72 @@ namespace lib60870
 									running = false;
 								}
 							}
-
-							if (isActive)
-								checkServerQueue();
-												
-							if (unconfirmedMessages > parameters.W) {
+																	
+							if (unconfirmedMessages >= parameters.W) {
 								lastConfirmationTime = SystemUtils.currentTimeMillis();
 
 								unconfirmedMessages = 0;
 								sendSMessage ();
-							}
-							
-							Thread.Sleep(1);
+							}				
+
 						} catch (SocketException) {
 							running = false;
 						}
 
-						running = handleTimeouts();
+						if (handleTimeouts() == false)
+							running = false;
+
+						if (running) {
+							if (isActive)
+								SendWaitingASDUs();
+
+							Thread.Sleep(1);
+						}
 					}
 
-					if (debugOutput)
-						Console.WriteLine("SLAVE: CLOSE CONNECTION!");
+					isActive = false;
+
+					DebugLog("CLOSE CONNECTION!");
 
 					// Release the socket.
 					socket.Shutdown(SocketShutdown.Both);
 					socket.Close();
 
-					if (debugOutput)
-						Console.WriteLine("SLAVE: CONNECTION CLOSED!");
+					DebugLog("CONNECTION CLOSED!");
 
+					callbackThreadRunning = false;
 				} catch (ArgumentNullException ane) {
-					if (debugOutput)
-						Console.WriteLine("SLAVE: ArgumentNullException : {0}",ane.ToString());
+					DebugLog("ArgumentNullException : " + ane.ToString());
 				} catch (SocketException se) {
-					if (debugOutput)
-						Console.WriteLine("SLAVE: SocketException : {0}",se.ToString());
+					DebugLog("SocketException : " + se.ToString());
 				} catch (Exception e) {
-					if (debugOutput)
-						Console.WriteLine("SLAVE: Unexpected exception : {0}", e.ToString());
+					DebugLog("Unexpected exception : " + e.ToString());
 				}
 
 			} catch (Exception e) {
 				Console.WriteLine( e.ToString());
 			}
 
+			// unmark unconfirmed messages in server queue
+			if (oldestSentASDU != -1)
+				server.MarkASDUAsConfirmed (sentASDUs [newestSentASDU].queueIndex, sentASDUs [newestSentASDU].entryTime);
+				
 			server.Remove (this);
+
+			callbackThread.Join ();
+
+			DebugLog("Connection thread finished");
 		}
-
-
+			
 		public void Close() 
 		{
 			running = false;
 		}
-
-
+			
 		public void ASDUReadyToSend () 
 		{
-			if (isActive) {
-				ASDU asdu = server.DequeueASDU ();	
-
-				if (asdu != null)
-					SendASDU (asdu);
-			}
+			if (isActive)
+				SendWaitingASDUs ();
 		}
 
 	}

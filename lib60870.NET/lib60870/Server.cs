@@ -82,6 +82,22 @@ namespace lib60870
 
 		private int maxQueueSize = 1000;
 
+		private bool debugOutput;
+
+		public bool DebugOutput {
+			get {
+				return this.debugOutput;
+			}
+			set {
+				debugOutput = value;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the maximum size of the ASDU queue. Setting this property has no
+		/// effect after calling the Start method.
+		/// </summary>
+		/// <value>The size of the max queue.</value>
 		public int MaxQueueSize {
 			get {
 				return this.maxQueueSize;
@@ -96,8 +112,25 @@ namespace lib60870
 		// List of all open connections
 		private List<ServerConnection> allOpenConnections = new List<ServerConnection>();
 
+		private enum QueueEntryState {
+			NOT_USED,
+			WAITING_FOR_TRANSMISSION,
+			SENT_BUT_NOT_CONFIRMED
+		}
+
+		private struct ASDUQueueEntry {
+			public long entryTimestamp;
+			public ASDU asdu;
+			public QueueEntryState state;
+		}
+
 		// Queue for messages (ASDUs)
-		private Queue<ASDU> enqueuedASDUs = null;
+		private ASDUQueueEntry[] enqueuedASDUs = null;
+		private int oldestQueueEntry = -1;
+		private int latestQueueEntry = -1;
+		private int numberOfAsduInQueue = 0;
+
+		//private Queue<ASDU> enqueuedASDUs = null;
 
 		/// <summary>
 		/// Create a new server using default connection parameters
@@ -227,7 +260,8 @@ namespace lib60870
 		{
 			running = true;
 
-			Console.WriteLine ("Waiting for connections...");
+			if (debugOutput)
+				Console.WriteLine ("SLAVE: Waiting for connections...");
 
 			while (running) {
 
@@ -236,7 +270,8 @@ namespace lib60870
 					Socket newSocket = listeningSocket.Accept ();
 
 					if (newSocket != null) {
-						Console.WriteLine ("Connected");
+						if (debugOutput)
+							Console.WriteLine ("SLAVE: New connection");
 
 						allOpenConnections.Add(
 							new ServerConnection (newSocket, parameters, this));
@@ -245,8 +280,7 @@ namespace lib60870
 				} catch (Exception) {
 					running = false;
 				}
-
-
+					
 			}
 		}
 
@@ -290,6 +324,17 @@ namespace lib60870
 
 			Thread acceptThread = new Thread(ServerAcceptThread);
 
+			if (enqueuedASDUs == null) {
+				enqueuedASDUs = new ASDUQueueEntry[maxQueueSize];
+
+				for (int i = 0; i < maxQueueSize; i++)
+					enqueuedASDUs [i].state = QueueEntryState.NOT_USED;
+
+				oldestQueueEntry = -1;
+				latestQueueEntry = -1;
+				numberOfAsduInQueue = 0;
+			}
+
 			acceptThread.Start ();
 
 		}
@@ -323,34 +368,142 @@ namespace lib60870
 		/// If an active connection exists the ASDU will be sent to the active client immediately. Otherwhise
 		/// the ASDU will be added to the transmission queue for later transmission.
 		/// <param name="asdu">ASDU to be sent</param>
-		public void EnqueueASDU(ASDU asdu) 
+		public void EnqueueASDU(ASDU asdu)
 		{
-			if (enqueuedASDUs == null) {
-				enqueuedASDUs = new Queue<ASDU> ();
-			}
+			if (enqueuedASDUs != null) {
 
-			if (enqueuedASDUs.Count == maxQueueSize)
-				enqueuedASDUs.Dequeue ();
+				lock (enqueuedASDUs) {
 
-			enqueuedASDUs.Enqueue (asdu);
+					if (oldestQueueEntry == -1) {
+						oldestQueueEntry = 0;
+						latestQueueEntry = 0;
+						numberOfAsduInQueue = 1;
 
-			Console.WriteLine ("Queue contains " + enqueuedASDUs.Count + " messages");
+						enqueuedASDUs [0].asdu = asdu;
+						enqueuedASDUs [0].entryTimestamp = SystemUtils.currentTimeMillis ();
+						enqueuedASDUs [0].state = QueueEntryState.WAITING_FOR_TRANSMISSION;
+					} else {
+						latestQueueEntry = (latestQueueEntry + 1) % maxQueueSize;
 
-			foreach (ServerConnection connection in allOpenConnections) {
-				if (connection.IsActive)
-					connection.ASDUReadyToSend ();
+						if (latestQueueEntry == oldestQueueEntry)
+							oldestQueueEntry = (oldestQueueEntry + 1) % maxQueueSize;
+						else
+							numberOfAsduInQueue++;
+
+						enqueuedASDUs [latestQueueEntry].asdu = asdu;
+						enqueuedASDUs [latestQueueEntry].entryTimestamp = SystemUtils.currentTimeMillis ();
+						enqueuedASDUs [latestQueueEntry].state = QueueEntryState.WAITING_FOR_TRANSMISSION;
+					}
+				}
+
+				if (debugOutput)
+					Console.WriteLine ("SLAVE: Queue contains " + numberOfAsduInQueue + " messages (oldest: " + oldestQueueEntry + " latest: " + latestQueueEntry + ")");
+
+				foreach (ServerConnection connection in allOpenConnections) {
+					if (connection.IsActive)
+						connection.ASDUReadyToSend ();
+				}
 			}
 		}
 
-		internal ASDU DequeueASDU() 
+
+		internal ASDU GetNextWaitingASDU(out long timestamp, out int index)
 		{
+			timestamp = 0;
+			index = -1;
+
 			if (enqueuedASDUs == null)
 				return null;
 
-			if (enqueuedASDUs.Count > 0)
-				return enqueuedASDUs.Dequeue ();
-			else
-				return null;
+			lock (enqueuedASDUs) {
+				if (numberOfAsduInQueue > 0) {
+
+					int currentIndex = oldestQueueEntry;
+
+					while (enqueuedASDUs [currentIndex].state != QueueEntryState.WAITING_FOR_TRANSMISSION) {
+
+						if (enqueuedASDUs [currentIndex].state == QueueEntryState.NOT_USED)
+							break;
+
+						currentIndex = (currentIndex + 1) % maxQueueSize;
+
+						// break if we reached the oldest entry again
+						if (currentIndex == oldestQueueEntry)
+							break;
+					}
+
+					if (enqueuedASDUs [currentIndex].state == QueueEntryState.WAITING_FOR_TRANSMISSION) {
+						enqueuedASDUs [currentIndex].state = QueueEntryState.SENT_BUT_NOT_CONFIRMED;
+						timestamp = enqueuedASDUs [currentIndex].entryTimestamp;
+						index = currentIndex;
+						return enqueuedASDUs [currentIndex].asdu;
+					}
+
+					return null;
+				}
+			}
+
+			return null;
+		}
+
+		internal void MarkASDUAsConfirmed(int index, long timestamp)
+		{
+			if (enqueuedASDUs == null)
+				return;
+		
+			lock (enqueuedASDUs) {
+
+				if (numberOfAsduInQueue > 0) {
+
+					if (enqueuedASDUs [index].state == QueueEntryState.SENT_BUT_NOT_CONFIRMED) {
+					
+						if (enqueuedASDUs [index].entryTimestamp == timestamp) {
+
+							int currentIndex = index;
+
+							while (enqueuedASDUs [currentIndex].state == QueueEntryState.SENT_BUT_NOT_CONFIRMED) {
+
+
+								if (debugOutput)
+									Console.WriteLine ("SLAVE: Remove from queue with index " + currentIndex);
+
+								enqueuedASDUs [currentIndex].state = QueueEntryState.NOT_USED;
+								enqueuedASDUs [currentIndex].entryTimestamp = 0;
+								numberOfAsduInQueue -= 1;
+
+								if (numberOfAsduInQueue == 0) {
+									oldestQueueEntry = -1;
+									latestQueueEntry = -1;
+									break;
+								}
+
+								if (currentIndex == oldestQueueEntry) {
+									oldestQueueEntry = (index + 1) % maxQueueSize;
+
+									if (numberOfAsduInQueue == 1)
+										latestQueueEntry = oldestQueueEntry;
+
+									break;
+								}
+									
+								currentIndex = currentIndex - 1;
+
+								if (currentIndex < 0)
+									currentIndex = maxQueueSize - 1;
+
+								// break if we reached the first deleted entry again
+								if (currentIndex == index)
+									break;
+
+							}
+
+							if (debugOutput)
+								Console.WriteLine ("SLAVE: queue state: noASDUs: " + numberOfAsduInQueue + " oldest: " + oldestQueueEntry + " latest: " + latestQueueEntry);
+							
+						}			
+					}
+				}
+			}
 		}
 
 		internal void Activated(ServerConnection activeConnection)
