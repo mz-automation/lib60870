@@ -111,6 +111,8 @@ namespace testclient
 			//Connection con = new Connection ("192.168.1.50");
 			Connection con = new Connection ("127.0.0.1");
 
+			con.DebugOutput = true;
+
 			con.SetASDUReceivedHandler (asduReceivedHandler, null);
 			con.SetConnectionHandler (ConnectionHandler, null);
 
@@ -124,13 +126,13 @@ namespace testclient
 
 			Thread.Sleep (5000);
 
-			con.SendControlCommand (TypeID.C_SC_NA_1, CauseOfTransmission.ACTIVATION, 1, new SingleCommand (5000, true, false, 0));
+			con.SendControlCommand (CauseOfTransmission.ACTIVATION, 1, new SingleCommand (5000, true, false, 0));
 
-			con.SendControlCommand (TypeID.C_DC_NA_1, CauseOfTransmission.ACTIVATION, 1, new DoubleCommand (5001, DoubleCommand.ON, false, 0));
+			con.SendControlCommand (CauseOfTransmission.ACTIVATION, 1, new DoubleCommand (5001, DoubleCommand.ON, false, 0));
 
-			con.SendControlCommand (TypeID.C_RC_NA_1, CauseOfTransmission.ACTIVATION, 1, new StepCommand (5002, StepCommandValue.HIGHER, false, 0));
+			con.SendControlCommand (CauseOfTransmission.ACTIVATION, 1, new StepCommand (5002, StepCommandValue.HIGHER, false, 0));
 
-			con.SendControlCommand (TypeID.C_SC_TA_1, CauseOfTransmission.ACTIVATION, 1, 
+			con.SendControlCommand (CauseOfTransmission.ACTIVATION, 1, 
 			                        new SingleCommandWithCP56Time2a (5000, false, false, 0, new CP56Time2a (DateTime.Now)));
 
 			/* Synchronize clock of the controlled station */

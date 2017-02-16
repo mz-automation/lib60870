@@ -52,7 +52,7 @@ namespace lib60870
 		private int sendCount = 0;
 		private int receiveCount = 0;
 
-		private int unconfirmedMessages = 0; /* number of unconfirmed messages received */
+		private int unconfirmedReceivedIMessages = 0; /* number of unconfirmed messages received */
 		private Int64 lastConfirmationTime = System.Int64.MaxValue; /* timestamp when the last confirmation message was sent */
 
 		/* T3 parameter handling */
@@ -68,10 +68,11 @@ namespace lib60870
 
 		private Queue<ASDU> waitingASDUsHighPrio = null;
 
+		private bool firstIMessageReceived = false;
+
 		/* data structure for k-size sent ASDU buffer */
 		private struct SentASDU
 		{
-			//public ASDU asdu; //TODO not required - remove
 			public bool used; /* true if entry is used */
 
 			// required to identify message in server (low-priority) queue
@@ -214,14 +215,11 @@ namespace lib60870
 		/// <returns>The sent sequence number if the message</returns>
 		private int sendIMessage(Frame frame) 
 		{
-		//	int seqNumber = -1;
-
 			try {
 				lock (socket) {
 					frame.PrepareToSend (sendCount, receiveCount);
 					socket.Send (frame.GetBuffer (), frame.GetMsgSize (), SocketFlags.None);
-					//seqNumber = sendCount;
-					sendCount = (sendCount + 1) % 32768;
+					sendCount = (sendCount + 1) % 32768;;
 				}
 			}
 			catch (SocketException) {
@@ -232,9 +230,9 @@ namespace lib60870
 			return sendCount;
 		}
 
-		private void sendSMessage() 
+		private void SendSMessage() 
 		{
-			DebugLog(" Send S message");
+			DebugLog("Send S message");
 
 			byte[] msg = new byte[6];
 
@@ -429,16 +427,16 @@ namespace lib60870
 			SendASDU (asdu);
 		}
 
-		private void IncreaseReceivedMessageCounters ()
-		{
-			receiveCount = (receiveCount + 1) % 32768;
-			unconfirmedMessages++;
-
-			if (unconfirmedMessages == 1) {
-				// start timeout if only one unconfirmed message
-				lastConfirmationTime = SystemUtils.currentTimeMillis();
-			}
-		}
+//		private void IncreaseReceivedMessageCounters ()
+//		{
+//			receiveCount = (receiveCount + 1) % 32768;
+//			unconfirmedMessages++;
+//
+//			if (unconfirmedMessages == 1) {
+//				// start timeout if only one unconfirmed message
+//				lastConfirmationTime = SystemUtils.currentTimeMillis();
+//			}
+//		}
 
 		private void HandleASDU(ASDU asdu)
 		{		
@@ -605,7 +603,6 @@ namespace lib60870
 			lock (sentASDUs) {
 
 				/* check if received sequence number is valid */
-
 				bool valid = false;
 
 				if (oldestSentASDU == -1) { /* if k-Buffer is empty */
@@ -641,9 +638,7 @@ namespace lib60870
 				bool lastRound = false;
 			
 				if (oldestSentASDU != -1) {
-
 					do {
-
 						sentASDUs [oldestSentASDU].used = false;
 
 						/* remove from server (low-priority) queue if required */
@@ -668,9 +663,7 @@ namespace lib60870
 							lastRound = true;
 
 					} while (true);
-						
 				}
-
 			}
 
 			return true;
@@ -678,11 +671,14 @@ namespace lib60870
 
 		private bool HandleMessage(Socket socket, byte[] buffer, int msgSize)
 		{
-			ResetT3Timeout ();
+			long currentTime = SystemUtils.currentTimeMillis ();
 
 			if ((buffer [2] & 1) == 0) {
 
-				DebugLog("Received I frame");
+				if (firstIMessageReceived == false) {
+					firstIMessageReceived = true;
+					lastConfirmationTime = currentTime; /* start timeout T2 */
+				}
 
 				if (msgSize < 7) {
 
@@ -690,16 +686,23 @@ namespace lib60870
 
 					return false;
 				}
+		
+				int frameSendSequenceNumber = ((buffer [3] * 0x100) + (buffer [2] & 0xfe)) / 2;
+				int frameRecvSequenceNumber = ((buffer [5] * 0x100) + (buffer [4] & 0xfe)) / 2;
 
-				int otherSeqNo = (buffer[2] + buffer[3] * 0x100) / 2;
-				int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
+				DebugLog("Received I frame: N(S) = " + frameSendSequenceNumber + " N(R) = " + frameRecvSequenceNumber);
 
-				DebugLog ("I-MSG: S=" + seqNo + " R=" + otherSeqNo);
+				/* check the receive sequence number N(R) - connection will be closed on an unexpected value */
+				if (frameSendSequenceNumber != receiveCount) {
+					DebugLog("Sequence error: Close connection!");
+					return false;
+				}
 
-				if (CheckSequenceNumber (seqNo) == false)
+				if (CheckSequenceNumber (frameRecvSequenceNumber) == false)
 					return false;
 
-				IncreaseReceivedMessageCounters ();
+				receiveCount = (receiveCount + 1) % 32768;
+				unconfirmedReceivedIMessages++;
 
 				if (isActive) {
 					ASDU asdu = new ASDU (parameters, buffer, msgSize);
@@ -755,6 +758,8 @@ namespace lib60870
 				DebugLog("Unknown message");
 			}
 
+			ResetT3Timeout ();
+
 			return true;
 		}
 
@@ -782,16 +787,16 @@ namespace lib60870
 				}
 			}
 
-			if (unconfirmedMessages > 0) {
+			if (unconfirmedReceivedIMessages > 0) {
 
 				if (((long) currentTime - lastConfirmationTime) >= (parameters.T2 * 1000)) {
 
 					lastConfirmationTime = (long) currentTime;
-					unconfirmedMessages = 0;
-					sendSMessage ();
+					unconfirmedReceivedIMessages = 0;
+					SendSMessage ();
 				}
 			}
-
+				
 			/* check if counterpart confirmed I messages */
 			lock (sentASDUs) {
 			
@@ -832,14 +837,14 @@ namespace lib60870
 									/* close connection on error */
 									running = false;
 								}
-							}
-																	
-							if (unconfirmedMessages >= parameters.W) {
-								lastConfirmationTime = SystemUtils.currentTimeMillis();
 
-								unconfirmedMessages = 0;
-								sendSMessage ();
-							}				
+								if (unconfirmedReceivedIMessages >= parameters.W) {
+									lastConfirmationTime = SystemUtils.currentTimeMillis();
+
+									unconfirmedReceivedIMessages = 0;
+									SendSMessage ();
+								}	
+							}
 
 						} catch (SocketException) {
 							running = false;

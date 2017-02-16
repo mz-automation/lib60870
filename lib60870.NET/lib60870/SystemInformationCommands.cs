@@ -176,7 +176,56 @@ namespace lib60870
 			base(parameters, msg, startIndex, false)
 		{
 		}
+	}
 
+	public class TestCommand : InformationObject
+	{
+		override public int GetEncodedSize() {
+			return 2;
+		}
+
+		override public TypeID Type {
+			get {
+				return TypeID.C_TS_NA_1;
+			}
+		}
+
+		private bool valid = true;
+
+		public bool Valid {
+			get {
+				return valid;
+			}
+		}
+
+		override public bool SupportsSequence {
+			get {
+				return false;
+			}
+		}
+
+		public TestCommand () : base(0)
+		{
+		}
+
+		internal TestCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
+		base(parameters, msg, startIndex, false)
+		{
+			startIndex += parameters.SizeOfIOA; /* skip IOA */
+
+			if (msg [startIndex++] != 0xcc)
+				valid = false;
+
+			if (msg [startIndex] != 0x55)
+				valid = false;
+		}
+
+		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
+			base.Encode(frame, parameters, isSequence);
+
+			frame.SetNextByte (0xcc);
+			frame.SetNextByte (0x55);
+		}
 	}
 
 	public class ClockSynchronizationCommand : InformationObject

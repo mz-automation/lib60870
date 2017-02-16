@@ -386,10 +386,6 @@ namespace tests
 
 			Thread.Sleep (6000);
 
-			// Expect connection to be closed due to three missing TESTFR_CON responses
-			//Assert.IsFalse(connection.IsRunning);
-
-			ConnectionException ce = null;
 
 			// Connection is closed. SendASDU should fail
 			try {
@@ -398,12 +394,9 @@ namespace tests
 
 				connection.SendASDU(asdu);
 			}
-			catch (ConnectionException e) {
-				ce = e;
+			catch (ConnectionException) {
 			}
-
-		//	Assert.IsNotNull (ce);
-	//		Assert.AreEqual ("not connected", ce.Message);
+				
 
 			while (connection.IsRunning == true)
 				Thread.Sleep (10);

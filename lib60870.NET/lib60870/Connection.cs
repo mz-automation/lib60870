@@ -1,7 +1,7 @@
 /*
  *  Connection.cs
  *
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016, 2017 MZ Automation GmbH
  *
  *  This file is part of lib60870.NET
  *
@@ -27,6 +27,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Collections.Generic;
 
 namespace lib60870
 {
@@ -79,11 +80,47 @@ namespace lib60870
 		private int receiveSequenceNumber;
 
 		private UInt64 uMessageTimeout = 0;
-		private UInt64 iMessageTimeout = 0;
 
-		private int lastUnconfirmedSendMessageNumber = 0;
+		/* data structure for k-size sent ASDU buffer */
+		private struct SentASDU
+		{
+			public bool used; /* true if entry is used */
+
+			// required for T1 timeout
+			public long sentTime;
+			public int seqNo;
+		}
+
+		private int maxSentASDUs;
+		private int oldestSentASDU = -1;
+		private int newestSentASDU = -1;
+		private SentASDU[] sentASDUs = null;
+
+
+		private Queue<ASDU> waitingToBeSent = null;
+		private bool useSendMessageQueue = true;
+
 		private UInt64 nextT3Timeout;
 		private int outStandingTestFRConMessages = 0;
+
+		/// <summary>
+		/// Gets or sets a value indicating whether this <see cref="lib60870.Connection"/> use send message queue.
+		/// </summary>
+		/// <description>
+		/// If <c>true</c> the Connection stores the ASDUs to be sent in a Queue when the connection cannot send
+		/// ASDUs. This is the case when the counterpart (slave/server) is (temporarily) not able to handle new message,
+		/// or the slave did not confirm the reception of the ASDUs for other reasons. If <c>false</c> the ASDU will be 
+		/// ignored and a <see cref="lib60870.ConnectionException"/> will be thrown in this case.
+		/// </description>
+		/// <value><c>true</c> if use send message queue; otherwise, <c>false</c>.</value>
+		public bool UseSendMessageQueue {
+			get {
+				return this.useSendMessageQueue;
+			}
+			set {
+				useSendMessageQueue = value;
+			}
+		}
 
 		/// <summary>
 		/// Gets or sets the send sequence number N(S). WARNING: For test purposes only! Do net set
@@ -98,7 +135,7 @@ namespace lib60870
 				this.sendSequenceNumber = value;
 			}
 		}
-
+			
 		/// <summary>
 		/// Gets or sets the receive sequence number N(R). WARNING: For test purposes only! Do net set
 		/// in real application!
@@ -113,13 +150,18 @@ namespace lib60870
 			}
 		}
 
-		private int unconfirmedSlaveMessages; /* number of unconfirmed messages received */
+		private int unconfirmedReceivedIMessages; /* number of unconfirmed messages received */
 		private long lastConfirmationTime; /* timestamp when the last confirmation message was sent */
 
         private Socket socket;
 
 		private bool autostart = true;
 
+		/// <summary>
+		/// Gets or sets a value indicating whether this <see cref="lib60870.Connection"/> is automatically sends
+		/// a STARTDT_ACT message on startup.
+		/// </summary>
+		/// <value><c>true</c> to send STARTDT_ACT message on startup; otherwise, <c>false</c>.</value>
 		public bool Autostart {
 			get {
 				return this.autostart;
@@ -139,24 +181,37 @@ namespace lib60870
 		private SocketException lastException;
 
 		private bool debugOutput = false;
+		private static int connectionCounter = 0;
+		private int connectionID;
+
+		private void DebugLog(string message)
+		{
+			if (debugOutput)
+				Console.WriteLine ("MASTER CONNECTION " + connectionID + ": " + message);
+		}
 
 		private ConnectionStatistics statistics = new ConnectionStatistics();
 
 		private void ResetConnection() {
 			sendSequenceNumber = 0;
 			receiveSequenceNumber = 0;
-			unconfirmedSlaveMessages = 0;
+			unconfirmedReceivedIMessages = 0;
 			lastConfirmationTime = System.Int64.MaxValue;
 			firstIMessageReceived = false;
 			outStandingTestFRConMessages = 0;
 
 			uMessageTimeout = 0;
-			iMessageTimeout = 0;
-
-			lastUnconfirmedSendMessageNumber = 0;
 
 			socketError = false;
 			lastException = null;
+
+			maxSentASDUs = parameters.K;
+			oldestSentASDU = -1;
+			newestSentASDU = -1;
+			sentASDUs = new SentASDU[maxSentASDUs];
+
+			if (useSendMessageQueue)
+				waitingToBeSent = new Queue<ASDU> ();
 
 			statistics.Reset ();
 		}
@@ -183,7 +238,7 @@ namespace lib60870
 		RawMessageHandler rawMessageHandler = null;
 		object rawMessageHandlerParameter = null;
 
-		private void sendSMessage() {
+		private void SendSMessage() {
 			byte[] msg = new byte[6];
 
 			msg [0] = 0x68;
@@ -198,11 +253,87 @@ namespace lib60870
 			statistics.SentMsgCounter++;
 		}
 
+		private bool CheckSequenceNumber(int seqNo) {
 
-		private void sendIMessage(Frame frame) 
-		{
-			if (running == false)
-				throw new ConnectionException("not connected", new SocketException (10057));
+			lock (sentASDUs) {
+
+				/* check if received sequence number is valid */
+				bool valid = false;
+
+				if (oldestSentASDU == -1) { /* if k-Buffer is empty */
+					if (seqNo == sendSequenceNumber)
+						valid = true;
+				}
+				else {
+
+					// Two cases are required to reflect sequence number overflow
+					if (sentASDUs[oldestSentASDU].seqNo <= sentASDUs[newestSentASDU].seqNo) {
+
+						if ((seqNo >= sentASDUs [oldestSentASDU].seqNo) &&
+							(seqNo <= sentASDUs [newestSentASDU].seqNo))
+							valid = true;
+
+					} else {
+						if ((seqNo >= sentASDUs [oldestSentASDU].seqNo) ||
+							(seqNo <= sentASDUs [newestSentASDU].seqNo))
+							valid = true;
+					}
+
+					int latestValidSeqNo = (sentASDUs [oldestSentASDU].seqNo - 1) % 32768;
+
+					if (latestValidSeqNo == seqNo)
+						valid = true;
+				}
+
+				if (valid == false) {
+					DebugLog ("Received sequence number out of range");
+					return false;
+				}
+
+				bool lastRound = false;
+
+				if (oldestSentASDU != -1) {
+					do {
+						sentASDUs [oldestSentASDU].used = false;
+
+						oldestSentASDU = (oldestSentASDU + 1) % maxSentASDUs;
+
+						int checkIndex = (newestSentASDU + 1) % maxSentASDUs;
+
+						if (oldestSentASDU == checkIndex) {
+							oldestSentASDU = -1;
+							break;
+						}
+
+						if (lastRound == true)
+							break;
+
+						if (sentASDUs [oldestSentASDU].seqNo == seqNo)
+							lastRound = true;
+
+					} while (true);
+				}
+			}
+
+			return true;
+		}
+
+		private bool IsSentBufferFull() {
+
+			if (oldestSentASDU == -1)
+				return false;
+
+			int newIndex = (newestSentASDU + 1) % maxSentASDUs;
+
+			if (newIndex == oldestSentASDU)
+				return true;
+			else
+				return false;
+		}
+
+		private int SendIMessage(ASDU asdu) {
+			Frame frame = new T104Frame ();
+			asdu.Encode (frame, parameters);
 
 			frame.PrepareToSend (sendSequenceNumber, receiveSequenceNumber);
 
@@ -210,43 +341,134 @@ namespace lib60870
 				socket.Send (frame.GetBuffer (), frame.GetMsgSize (), SocketFlags.None);
 				sendSequenceNumber = (sendSequenceNumber + 1) % 32768;
 				statistics.SentMsgCounter++;
-			}
-			else {
-				if (lastException != null)
-					throw new ConnectionException(lastException.Message, lastException);
-				else
-					throw new ConnectionException("not connected", new SocketException (10057));
-			}
 
+				return sendSequenceNumber;
+			} else {
+				if (lastException != null)
+					throw new ConnectionException (lastException.Message, lastException);
+				else
+					throw new ConnectionException ("not connected", new SocketException (10057));
+			}
 		}
 
-		private void setup(string hostname, ConnectionParameters parameters, int tcpPort)
+		private void PrintSendBuffer() {
+
+			if (oldestSentASDU != -1) {
+
+				int currentIndex = oldestSentASDU;
+
+				int nextIndex = 0;
+
+				DebugLog ("------k-buffer------");
+
+				do {
+					DebugLog (currentIndex + " : S " + sentASDUs[currentIndex].seqNo + " : time " +
+						sentASDUs[currentIndex].sentTime);
+
+					if (currentIndex == newestSentASDU)
+						nextIndex = -1;
+
+					currentIndex = (currentIndex + 1) % maxSentASDUs;
+
+				} while (nextIndex != -1);
+
+				DebugLog ("--------------------");
+
+			}
+		}
+
+		private void SendNextWaitingASDU() {
+			lock (waitingToBeSent) {
+
+				while (waitingToBeSent.Count > 0) {
+
+					if (IsSentBufferFull () == true)
+						break;
+
+					ASDU asdu = waitingToBeSent.Dequeue ();
+
+					if (asdu != null) {
+
+						lock (sentASDUs) {
+
+							int currentIndex = 0;
+
+							if (oldestSentASDU == -1) {
+								oldestSentASDU = 0;
+								newestSentASDU = 0;
+
+							} else {
+								currentIndex = (newestSentASDU + 1) % maxSentASDUs;
+							}
+
+							sentASDUs [currentIndex].used = true;
+							sentASDUs [currentIndex].seqNo = SendIMessage (asdu);
+							sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
+
+							newestSentASDU = currentIndex;
+
+							PrintSendBuffer ();
+						}
+					} else
+						break;
+					
+				}
+			}
+		}
+
+		private void SendASDUInternal(ASDU asdu) 
+		{
+			lock (socket) {
+
+				if (running == false)
+					throw new ConnectionException ("not connected", new SocketException (10057));
+
+				if (useSendMessageQueue) {
+					lock (waitingToBeSent) {
+						waitingToBeSent.Enqueue (asdu);
+					}
+				
+					SendNextWaitingASDU ();
+				} else {
+
+					if (IsSentBufferFull())
+						throw new ConnectionException ("Flow control congestion. Try again later.");
+
+					SendIMessage (asdu);
+				}	
+			}
+		}
+
+		private void Setup(string hostname, ConnectionParameters parameters, int tcpPort)
 		{
 			this.hostname = hostname;
 			this.parameters = parameters;
 			this.tcpPort = tcpPort;
 			this.connectTimeoutInMs = parameters.T0 * 1000;
+
+			connectionCounter++;
+			connectionID = connectionCounter;
 		}
 
 		public Connection (string hostname)
 		{
-			setup (hostname, new ConnectionParameters(), 2404);
+			Setup (hostname, new ConnectionParameters(), 2404);
 		}
 
 
 		public Connection (string hostname, int tcpPort)
 		{
-			setup (hostname, new ConnectionParameters(), tcpPort);
+			Setup (hostname, new ConnectionParameters(), tcpPort);
 		}
 
 		public Connection (string hostname, ConnectionParameters parameters)
 		{
-			setup (hostname, parameters.clone(), 2404);
+			Setup (hostname, parameters.clone(), 2404);
 		}
 
 		public Connection (string hostname, int tcpPort, ConnectionParameters parameters)
 		{
-			setup (hostname, parameters.clone(), tcpPort);
+			Setup (hostname, parameters.clone(), tcpPort);
 		}
 
 		public ConnectionStatistics GetStatistics() {
@@ -258,33 +480,6 @@ namespace lib60870
 			this.connectTimeoutInMs = millies;
 		}
 
-		private void EncodeIdentificationField(Frame frame, TypeID typeId, 
-		                                       int vsq, CauseOfTransmission cot, int ca) 
-		{
-			frame.SetNextByte ((byte) typeId);
-			frame.SetNextByte ((byte) vsq); /* SQ:false; NumIX:1 */
-
-			/* encode COT */
-			frame.SetNextByte ((byte) cot);  
-			if (parameters.SizeOfCOT == 2)
-				frame.SetNextByte ((byte) parameters.OriginatorAddress);
-
-			/* encode CA */
-			frame.SetNextByte ((byte)(ca & 0xff));
-			if (parameters.SizeOfCA == 2) 
-				frame.SetNextByte ((byte) ((ca & 0xff00) >> 8));
-		}
-
-		private void EncodeIOA(Frame frame, int ioa) {
-			frame.SetNextByte((byte)(ioa & 0xff));
-
-			if (parameters.SizeOfIOA > 1)
-				frame.SetNextByte((byte)((ioa / 0x100) & 0xff));
-
-			if (parameters.SizeOfIOA > 2)
-				frame.SetNextByte((byte)((ioa / 0x10000) & 0xff));
-		}
-
 		/// <summary>
 		/// Sends the interrogation command.
 		/// </summary>
@@ -294,19 +489,11 @@ namespace lib60870
 		/// <exception cref="ConnectionException">description</exception>
 		public void SendInterrogationCommand(CauseOfTransmission cot, int ca, byte qoi) 
 		{
-			Frame frame = new T104Frame ();
+			ASDU asdu = new ASDU (parameters, cot, false, false, (byte) parameters.OriginatorAddress, ca, false);
 
-			EncodeIdentificationField (frame, TypeID.C_IC_NA_1, 1, cot, ca);
+			asdu.AddInformationObject (new InterrogationCommand (0, qoi));
 
-			EncodeIOA (frame, 0);
-
-			/* encode COI (7.2.6.21) */
-			frame.SetNextByte (qoi); /* 20 = station interrogation */
-
-			if (debugOutput)
-				Console.WriteLine("MASTER: Encoded C_IC_NA_1 with " + frame.GetMsgSize() + " bytes.");
-
-			sendIMessage (frame);
+			SendASDUInternal (asdu);
 		}
 
 		/// <summary>
@@ -318,19 +505,11 @@ namespace lib60870
 		/// <exception cref="ConnectionException">description</exception>
 		public void SendCounterInterrogationCommand(CauseOfTransmission cot, int ca, byte qcc)
 		{
-			Frame frame = new T104Frame ();
+			ASDU asdu = new ASDU (parameters, cot, false, false, (byte) parameters.OriginatorAddress, ca, false);
 
-			EncodeIdentificationField (frame, TypeID.C_CI_NA_1, 1, cot, ca);
+			asdu.AddInformationObject (new CounterInterrogationCommand(0, qcc));
 
-			EncodeIOA (frame, 0);
-
-			/* encode QCC */
-			frame.SetNextByte (qcc);
-
-			if (debugOutput)
-				Console.WriteLine("MASTER: Encoded C_CI_NA_1 with " + frame.GetMsgSize() + " bytes.");
-
-			sendIMessage (frame);
+			SendASDUInternal (asdu);
 		}
 	
 		/// <summary>
@@ -345,16 +524,11 @@ namespace lib60870
 		/// <exception cref="ConnectionException">description</exception>
 		public void SendReadCommand(int ca, int ioa)
 		{
-			Frame frame = new T104Frame ();
+			ASDU asdu = new ASDU (parameters, CauseOfTransmission.REQUEST, false, false, (byte) parameters.OriginatorAddress, ca, false);
 
-			EncodeIdentificationField (frame, TypeID.C_RD_NA_1, 1, CauseOfTransmission.REQUEST, ca);
+			asdu.AddInformationObject(new ReadCommand(ioa));
 
-			EncodeIOA (frame, ioa);
-
-			if (debugOutput)
-				Console.WriteLine("MASTER: Encoded C_RD_NA_1 with " + frame.GetMsgSize() + " bytes.");
-
-			sendIMessage (frame);
+			SendASDUInternal (asdu);
 		}
 
 		/// <summary>
@@ -365,18 +539,11 @@ namespace lib60870
 		/// <exception cref="ConnectionException">description</exception>
 		public void SendClockSyncCommand(int ca, CP56Time2a time)
 		{
-			Frame frame = new T104Frame ();
+			ASDU asdu = new ASDU (parameters, CauseOfTransmission.ACTIVATION, false, false, (byte) parameters.OriginatorAddress, ca, false);
 
-			EncodeIdentificationField (frame, TypeID.C_CS_NA_1, 1, CauseOfTransmission.ACTIVATION, ca);
+			asdu.AddInformationObject (new ClockSynchronizationCommand (0, time));
 
-			EncodeIOA (frame, 0);
-
-			frame.AppendBytes (time.GetEncodedValue ());
-
-			if (debugOutput)
-				Console.WriteLine("MASTER: Encoded C_CS_NA_1 with " + frame.GetMsgSize() + " bytes.");
-
-			sendIMessage (frame);
+			SendASDUInternal (asdu);
 		}
 
 		/// <summary>
@@ -389,19 +556,11 @@ namespace lib60870
 		/// <exception cref="ConnectionException">description</exception>
 		public void SendTestCommand(int ca)
 		{
-			Frame frame = new T104Frame ();
+			ASDU asdu = new ASDU (parameters, CauseOfTransmission.ACTIVATION, false, false, (byte) parameters.OriginatorAddress, ca, false);
 
-			EncodeIdentificationField (frame, TypeID.C_TS_NA_1, 1, CauseOfTransmission.ACTIVATION, ca);
+			asdu.AddInformationObject (new TestCommand ());
 
-			EncodeIOA (frame, 0);
-
-			frame.SetNextByte (0xcc);
-			frame.SetNextByte (0x55);
-
-			if (debugOutput)
-				Console.WriteLine("MASTER: Encoded C_TS_NA_1 with " + frame.GetMsgSize() + " bytes.");
-
-			sendIMessage (frame);
+			SendASDUInternal (asdu);
 		}
 
 		/// <summary>
@@ -413,18 +572,11 @@ namespace lib60870
 		/// <exception cref="ConnectionException">description</exception>
 		public void SendResetProcessCommand(CauseOfTransmission cot, int ca, byte qrp)
 		{
-			Frame frame = new T104Frame ();
+			ASDU asdu = new ASDU (parameters, CauseOfTransmission.ACTIVATION, false, false, (byte) parameters.OriginatorAddress, ca, false);
 
-			EncodeIdentificationField (frame, TypeID.C_RP_NA_1, 1, cot, ca);
+			asdu.AddInformationObject (new ResetProcessCommand(0, qrp));
 
-			EncodeIOA (frame, 0);
-
-			frame.SetNextByte (qrp);
-
-			if (debugOutput)
-				Console.WriteLine("MASTER: Encoded C_RP_NA_1 with " + frame.GetMsgSize() + " bytes.");
-
-			sendIMessage (frame);
+			SendASDUInternal (asdu);
 		}
 
 
@@ -437,18 +589,11 @@ namespace lib60870
 		/// <exception cref="ConnectionException">description</exception>
 		public void SendDelayAcquisitionCommand(CauseOfTransmission cot, int ca, CP16Time2a delay)
 		{
-			Frame frame = new T104Frame ();
+			ASDU asdu = new ASDU (parameters, CauseOfTransmission.ACTIVATION, false, false, (byte) parameters.OriginatorAddress, ca, false);
 
-			EncodeIdentificationField (frame, TypeID.C_CD_NA_1, 1, cot, ca);
+			asdu.AddInformationObject (new DelayAcquisitionCommand (0, delay));
 
-			EncodeIOA (frame, 0);
-
-			frame.AppendBytes (delay.GetEncodedValue ());
-
-			if (debugOutput)
-				Console.WriteLine("MASTER: Encoded C_CD_NA_1 with " + frame.GetMsgSize() + " bytes.");
-
-			sendIMessage (frame);
+			SendASDUInternal (asdu);
 		}
 
 		/// <summary>
@@ -466,23 +611,47 @@ namespace lib60870
 		/// C_SE_NC_1 -> SetpointCommandShort
 		/// C_BO_NA_1 -> Bitstring32Command
 		/// 
-		/// 
 		/// <param name="typeId">Type ID of the control command</param>
 		/// <param name="cot">Cause of transmission (use ACTIVATION to start a control sequence)</param>
 		/// <param name="ca">Common address</param>
 		/// <param name="sc">Information object of the command</param>
 		/// <exception cref="ConnectionException">description</exception>
+		[Obsolete("Use function without TypeID instead. TypeID will be derived from sc parameter")]
 		public void SendControlCommand(TypeID typeId, CauseOfTransmission cot, int ca, InformationObject sc) {
-			Frame frame = new T104Frame ();
 
-			EncodeIdentificationField (frame, typeId, 1 /* SQ:false; NumIX:1 */, cot, ca);
+			ASDU controlCommand = new ASDU (parameters, cot, false, false, (byte) parameters.OriginatorAddress, ca, false);
 
-			sc.Encode (frame, parameters, false);
+			controlCommand.AddInformationObject (sc);
 
-			if (debugOutput)
-				Console.WriteLine("MASTER: Encoded " +  typeId.ToString() + " with " + frame.GetMsgSize() + " bytes.");
+			SendASDUInternal (controlCommand);
+		}
 
-			sendIMessage (frame);
+		/// <summary>
+		/// Sends the control command.
+		/// </summary>
+		/// 
+		/// The type ID has to match the type of the InformationObject!
+		/// 
+		/// C_SC_NA_1 -> SingleCommand
+		/// C_DC_NA_1 -> DoubleCommand
+		/// C_RC_NA_1 -> StepCommand
+		/// C_SC_TA_1 -> SingleCommandWithCP56Time2a
+		/// C_SE_NA_1 -> SetpointCommandNormalized
+		/// C_SE_NB_1 -> SetpointCommandScaled
+		/// C_SE_NC_1 -> SetpointCommandShort
+		/// C_BO_NA_1 -> Bitstring32Command
+		/// 
+		/// <param name="cot">Cause of transmission (use ACTIVATION to start a control sequence)</param>
+		/// <param name="ca">Common address</param>
+		/// <param name="sc">Information object of the command</param>
+		/// <exception cref="ConnectionException">description</exception>
+		public void SendControlCommand(CauseOfTransmission cot, int ca, InformationObject sc) {
+
+			ASDU controlCommand = new ASDU (parameters, cot, false, false, (byte) parameters.OriginatorAddress, ca, false);
+
+			controlCommand.AddInformationObject (sc);
+
+			SendASDUInternal (controlCommand);
 		}
 
 		/// <summary>
@@ -491,10 +660,7 @@ namespace lib60870
 		/// <param name="asdu">The ASDU to send</param>
 		public void SendASDU(ASDU asdu) 
 		{
-			Frame frame = new T104Frame ();
-			asdu.Encode (frame, parameters);
-
-			sendIMessage (frame);
+			SendASDUInternal (asdu);
 		}
 
 		/// <summary>
@@ -599,8 +765,7 @@ namespace lib60870
 				}
 
 				if (buffer [0] != 0x68) {
-					if (debugOutput)
-						Console.WriteLine ("MASTER: Missing SOF indicator!");
+					DebugLog("Missing SOF indicator!");
 
 					return -1;
 				}
@@ -613,8 +778,7 @@ namespace lib60870
 
 				// read remaining frame
 				if (socket.Receive (buffer, 2, length, SocketFlags.None) != length) {
-					if (debugOutput)
-						Console.WriteLine ("MASTER: Failed to read complete frame!");
+					DebugLog("Failed to read complete frame!");
 
 					return -1;
 				}
@@ -645,45 +809,39 @@ namespace lib60870
 
 				if (msgSize < 7) {
 
-					if (debugOutput)
-						Console.WriteLine ("MASTER: I msg too small!");
+					DebugLog("I msg too small!");
 
 					return false;
 				}
-					
+
 				int frameSendSequenceNumber = ((buffer [3] * 0x100) + (buffer [2] & 0xfe)) / 2;
 				int frameRecvSequenceNumber = ((buffer [5] * 0x100) + (buffer [4] & 0xfe)) / 2;
-					
-				if (debugOutput)
-					Console.WriteLine ("MASTER: Received I frame: N(S) = " + frameSendSequenceNumber + " N(R) = " +
-				frameRecvSequenceNumber);
 
-				int expectedSequenceNumber = receiveSequenceNumber;
+				DebugLog("Received I frame: N(S) = " + frameSendSequenceNumber + " N(R) = " + frameRecvSequenceNumber);
 
 				/* check the receive sequence number N(R) - connection will be closed on an unexpected value */
-				if (frameSendSequenceNumber != expectedSequenceNumber) {
-					if (debugOutput)
-						Console.WriteLine ("MASTER: Sequence error: Close connection!");
+				if (frameSendSequenceNumber != receiveSequenceNumber) {
+					DebugLog("Sequence error: Close connection!");
 					return false;
 				}
-					
+
+				if (CheckSequenceNumber (frameRecvSequenceNumber) == false)
+					return false;
+
 				receiveSequenceNumber = (receiveSequenceNumber + 1) % 32768;
-				unconfirmedSlaveMessages++;
-
-				if ((unconfirmedSlaveMessages > parameters.W) || checkConfirmTimeout (currentTime)) {
-
-					lastConfirmationTime = currentTime;
-
-					unconfirmedSlaveMessages = 0;
-					sendSMessage (); /* send confirmation message */
-				}
+				unconfirmedReceivedIMessages++;
 
 				ASDU asdu = new ASDU (parameters, buffer, msgSize);
 
 				if (asduReceivedHandler != null)
 					asduReceivedHandler (asduReceivedHandlerParameter, asdu);
 			} else if ((buffer [2] & 0x03) == 0x01) { /* S format frame */
-				//TODO check if message is confirmed
+				int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
+
+				DebugLog("Recv S(" + seqNo + ") (own sendcounter = " + sendSequenceNumber + ")");
+
+				if (CheckSequenceNumber (seqNo) == false)
+					return false;
 			} else if ((buffer [2] & 0x03) == 0x03) { /* U format frame */
 
 				uMessageTimeout = 0;
@@ -711,8 +869,7 @@ namespace lib60870
 				}
 
 			} else {
-				if (debugOutput)
-					Console.WriteLine ("MASTER: Unknown message type");
+				DebugLog("Unknown message type");
 				return false;
 			}
 
@@ -734,14 +891,12 @@ namespace lib60870
 			}
 			catch (SocketException e) {
 				if (e.NativeErrorCode.Equals (10035)) {
-					if (debugOutput)
-						Console.WriteLine ("MASTER: Still Connected, but the Send would block");
+					DebugLog("Still Connected, but the Send would block");
 					return true;
 				}
 				else
 				{
-					if (debugOutput)
-						Console.WriteLine("MASTER: Disconnected: error code {0}!", e.NativeErrorCode);
+					DebugLog("Disconnected: error code " + e.NativeErrorCode);
 					return false;
 				}
 			}
@@ -773,40 +928,47 @@ namespace lib60870
 		private bool handleTimeouts() {
 			UInt64 currentTime = (UInt64) SystemUtils.currentTimeMillis();
 
-			if (unconfirmedSlaveMessages > 0) {
-				if (checkConfirmTimeout ((long)currentTime)) {
-
-					lastConfirmationTime = (long)currentTime;
-					unconfirmedSlaveMessages = 0;
-
-					sendSMessage (); /* send confirmation message */
-				}
-			}
-				
 			if (currentTime > nextT3Timeout) {
 
 				if (outStandingTestFRConMessages > 2) {
-					if (debugOutput)
-						Console.WriteLine ("MASTER: Timeout for TESTFR_CON message");
+					DebugLog("Timeout for TESTFR_CON message");
 
 					// close connection
 					return false;
 				} else {
 					socket.Send (TESTFR_ACT_MSG);
 					statistics.SentMsgCounter++;
-					if (debugOutput)
-						Console.WriteLine ("MASTER: U message T3 timeout");
+					DebugLog("U message T3 timeout");
 					uMessageTimeout = (UInt64)currentTime + (UInt64)(parameters.T1 * 1000);
 					outStandingTestFRConMessages++;
 					ResetT3Timeout ();
 				}
 			}
 
+			if (unconfirmedReceivedIMessages > 0) {
+				if (checkConfirmTimeout ((long)currentTime)) {
+
+					lastConfirmationTime = (long)currentTime;
+					unconfirmedReceivedIMessages = 0;
+
+					SendSMessage (); /* send confirmation message */
+				}
+			}
+
 			if (uMessageTimeout != 0) {
 				if (currentTime > uMessageTimeout) {
-					if (debugOutput) 
-						Console.WriteLine ("MASTER: U message T1 timeout");
+					DebugLog("U message T1 timeout");
 					throw new SocketException (10060);
+				}
+			}
+
+			/* check if counterpart confirmed I messages */
+			lock (sentASDUs) {
+				if (oldestSentASDU != -1) {
+
+					if (((long)currentTime - sentASDUs [oldestSentASDU].sentTime) >= (parameters.T1 * 1000)) {
+						return false;
+					}
 				}
 			}
 
@@ -827,9 +989,7 @@ namespace lib60870
 						// Connect to a remote device.
 						ConnectSocketWithTimeout();
 
-						if (debugOutput)
-							Console.WriteLine("MASTER: Socket connected to {0}",
-								socket.RemoteEndPoint.ToString());
+						DebugLog("Socket connected to " + socket.RemoteEndPoint.ToString());
 
 						if (autostart) {
 							socket.Send(STARTDT_ACT_MSG);
@@ -844,8 +1004,7 @@ namespace lib60870
 							connectionHandler(connectionHandlerParameter, ConnectionEvent.OPENED);
 						
 					} catch (SocketException se) {
-						if (debugOutput)
-							Console.WriteLine("MASTER: SocketException : {0}",se.ToString());
+						DebugLog("SocketException: " + se.ToString());
 
 						running = false;
 						socketError = true;
@@ -879,6 +1038,13 @@ namespace lib60870
 										loopRunning = false;
 									}
 								}
+
+								if (unconfirmedReceivedIMessages >= parameters.W) {
+									lastConfirmationTime = SystemUtils.currentTimeMillis();
+
+									unconfirmedReceivedIMessages = 0;
+									SendSMessage ();
+								}	
 							}
 							else if (bytesRec == -1)
 								loopRunning = false;
@@ -888,14 +1054,16 @@ namespace lib60870
 
 							if (isConnected() == false)
 								loopRunning = false;
+
+							if (useSendMessageQueue)
+								SendNextWaitingASDU();
 						}
 						catch (SocketException) {	
 							loopRunning = false;
 						}
 					}
 
-					if (debugOutput)
-						Console.WriteLine("MASTER: CLOSE CONNECTION!");
+					DebugLog("CLOSE CONNECTION!");
 
 					// Release the socket.
 					try {
@@ -911,14 +1079,13 @@ namespace lib60870
 
 				} catch (ArgumentNullException ane) {
                     connecting = false;
-					if (debugOutput)
-						Console.WriteLine("MASTER: ArgumentNullException : {0}",ane.ToString());
+					DebugLog("ArgumentNullException: " + ane.ToString());
 				} catch (SocketException se) {
 					if (debugOutput)
-						Console.WriteLine("MASTER: SocketException : {0}",se.ToString());
+						DebugLog("SocketException: " + se.ToString());
 				} catch (Exception e) {
 					if (debugOutput)
-						Console.WriteLine("MASTER: Unexpected exception : {0}", e.ToString());
+						DebugLog("Unexpected exception: " + e.ToString());
 				}
 					
 			} catch (Exception e) {
