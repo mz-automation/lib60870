@@ -94,6 +94,10 @@ namespace lib60870
 
 	public class SinglePointWithCP24Time2a : SinglePointInformation
 	{
+		override public int GetEncodedSize() {
+			return 4;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_SP_TA_1;
@@ -144,6 +148,10 @@ namespace lib60870
 	/// </summary>
 	public class SinglePointWithCP56Time2a : SinglePointInformation
 	{
+		override public int GetEncodedSize() {
+			return 8;
+		}
+
 		override public TypeID Type {
 			get {
 				return TypeID.M_SP_TB_1;

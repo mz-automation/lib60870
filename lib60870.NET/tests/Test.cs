@@ -79,7 +79,31 @@ namespace tests
 			Assert.AreEqual (-0.5f, sc.NormalizedValue, 0.001f);
 		
 			Assert.AreEqual (true, sc.QOS.Select);
+		}
 
+		[Test()]
+		public void TestStepPositionInformation() 
+		{
+			StepPositionInformation spi = new StepPositionInformation (103, 27, false, new QualityDescriptor ());
+
+			Assert.IsFalse (spi.Transient);
+			Assert.NotNull (spi.Quality);
+
+			spi = null;
+
+			try {
+				spi = new StepPositionInformation (103, 64, false, new QualityDescriptor ());
+			}
+			catch (ArgumentOutOfRangeException) {
+			}
+
+			Assert.IsNull (spi);
+
+			try {
+				spi = new StepPositionInformation (103, -65, false, new QualityDescriptor ());
+			}
+			catch (ArgumentOutOfRangeException) {
+			}
 		}
 
 		[Test()]
@@ -218,6 +242,30 @@ namespace tests
 			}
 
 			Assert.AreEqual (246, addedCounter); 
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new SinglePointWithCP24Time2a (ioa, false, new QualityDescriptor(), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (61, addedCounter); 
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new SinglePointWithCP56Time2a (ioa, false, new QualityDescriptor(), new CP56Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (30, addedCounter); 
 
 			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
 

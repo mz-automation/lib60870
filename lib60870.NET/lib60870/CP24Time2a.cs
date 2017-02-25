@@ -38,8 +38,13 @@ namespace lib60870
 				encodedValue [i] = msg [startIndex + i];
 		}
 
+		public CP24Time2a () {
+			for (int i = 0; i < 3; i++)
+				encodedValue [i] = 0;
+		}
+			
 		/// <summary>
-		/// Gets the totoal milliseconds of the elapsed time
+		/// Gets the total milliseconds of the elapsed time
 		/// </summary>
 		/// <returns>The milliseconds.</returns>
 		public int GetMilliseconds() {
@@ -68,6 +73,9 @@ namespace lib60870
 		public int Minute {
 			get {
 				return (encodedValue [2] & 0x3f);
+			}
+			set {
+				encodedValue [2] = (byte) (((byte) encodedValue [2] & (byte) 0xc0) + (byte)(value & 0x3f));
 			}
 		}
 

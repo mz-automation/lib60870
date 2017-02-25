@@ -84,11 +84,15 @@ namespace lib60870
 			}
 		}
 
-		public StepPositionInformation(int ioa, int value, bool isTransient) :
+		public StepPositionInformation(int ioa, int value, bool isTransient, QualityDescriptor quality) :
 			base(ioa)
 		{
+			if ((value < -64) || (value > 63))
+				throw new ArgumentOutOfRangeException ("value has to be in range -64 .. 63");
+
 			Value = value;
 			Transient = isTransient;
+			this.quality = quality;
 		}
 
 		internal StepPositionInformation (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
@@ -159,8 +163,8 @@ namespace lib60870
 			}
 		}
 			
-		public StepPositionWithCP24Time2a(int ioa, int value, bool isTransient, CP24Time2a timestamp) :
-			base(ioa, value, isTransient)
+		public StepPositionWithCP24Time2a(int ioa, int value, bool isTransient, QualityDescriptor quality, CP24Time2a timestamp) :
+		base(ioa, value, isTransient, quality)
 		{
 			Timestamp = timestamp;
 		}
@@ -214,8 +218,8 @@ namespace lib60870
 			}
 		}
 
-		public StepPositionWithCP56Time2a(int ioa, int value, bool isTransient, CP56Time2a timestamp) :
-			base(ioa, value, isTransient)
+		public StepPositionWithCP56Time2a(int ioa, int value, bool isTransient, QualityDescriptor quality, CP56Time2a timestamp) :
+		base(ioa, value, isTransient, quality)
 		{
 			Timestamp = timestamp;
 		}
