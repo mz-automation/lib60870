@@ -187,7 +187,7 @@ namespace lib60870
 		private void DebugLog(string message)
 		{
 			if (debugOutput)
-				Console.WriteLine ("MASTER CONNECTION " + connectionID + ": " + message);
+				Console.WriteLine ("CS104 MASTER CONNECTION " + connectionID + ": " + message);
 		}
 
 		private ConnectionStatistics statistics = new ConnectionStatistics();
@@ -261,6 +261,7 @@ namespace lib60870
 				bool valid = false;
 
 				if (oldestSentASDU == -1) { /* if k-Buffer is empty */
+
 					if (seqNo == sendSequenceNumber)
 						valid = true;
 				}
@@ -268,7 +269,6 @@ namespace lib60870
 
 					// Two cases are required to reflect sequence number overflow
 					if (sentASDUs[oldestSentASDU].seqNo <= sentASDUs[newestSentASDU].seqNo) {
-
 						if ((seqNo >= sentASDUs [oldestSentASDU].seqNo) &&
 							(seqNo <= sentASDUs [newestSentASDU].seqNo))
 							valid = true;
@@ -294,6 +294,9 @@ namespace lib60870
 
 				if (oldestSentASDU != -1) {
 					do {
+						if (seqNo < sentASDUs [oldestSentASDU].seqNo)
+							break;
+
 						sentASDUs [oldestSentASDU].used = false;
 
 						oldestSentASDU = (oldestSentASDU + 1) % maxSentASDUs;
@@ -338,7 +341,10 @@ namespace lib60870
 			frame.PrepareToSend (sendSequenceNumber, receiveSequenceNumber);
 
 			if (running) {
+				Console.WriteLine ("SEND_MESSAGE");
+				socket.NoDelay = true;
 				socket.Send (frame.GetBuffer (), frame.GetMsgSize (), SocketFlags.None);
+				Console.WriteLine ("MESSAGE SENT");
 				sendSequenceNumber = (sendSequenceNumber + 1) % 32768;
 				statistics.SentMsgCounter++;
 
@@ -378,41 +384,51 @@ namespace lib60870
 		}
 
 		private void SendNextWaitingASDU() {
-			lock (waitingToBeSent) {
 
-				while (waitingToBeSent.Count > 0) {
+			if (running == false)
+				throw new ConnectionException ("connection lost");
 
-					if (IsSentBufferFull () == true)
-						break;
+			try {
 
-					ASDU asdu = waitingToBeSent.Dequeue ();
+				lock (waitingToBeSent) {
 
-					if (asdu != null) {
+					while (waitingToBeSent.Count > 0) {
 
-						lock (sentASDUs) {
+						if (IsSentBufferFull () == true)
+							break;
 
-							int currentIndex = 0;
+						ASDU asdu = waitingToBeSent.Dequeue ();
 
-							if (oldestSentASDU == -1) {
-								oldestSentASDU = 0;
-								newestSentASDU = 0;
+						if (asdu != null) {
 
-							} else {
-								currentIndex = (newestSentASDU + 1) % maxSentASDUs;
+							lock (sentASDUs) {
+
+								int currentIndex = 0;
+
+								if (oldestSentASDU == -1) {
+									oldestSentASDU = 0;
+									newestSentASDU = 0;
+
+								} else {
+									currentIndex = (newestSentASDU + 1) % maxSentASDUs;
+								}
+
+								sentASDUs [currentIndex].used = true;
+								sentASDUs [currentIndex].seqNo = SendIMessage (asdu);
+								sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
+
+								newestSentASDU = currentIndex;
+
+								PrintSendBuffer ();
 							}
-
-							sentASDUs [currentIndex].used = true;
-							sentASDUs [currentIndex].seqNo = SendIMessage (asdu);
-							sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
-
-							newestSentASDU = currentIndex;
-
-							PrintSendBuffer ();
-						}
-					} else
-						break;
-					
+						} else
+							break;
+						
+					}
 				}
+			} catch (Exception) {
+				running = false;
+				throw new ConnectionException ("connection lost");
 			}
 		}
 
@@ -435,7 +451,7 @@ namespace lib60870
 						throw new ConnectionException ("Flow control congestion. Try again later.");
 
 					SendIMessage (asdu);
-				}	
+				}
 			}
 		}
 

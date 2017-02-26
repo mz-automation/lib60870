@@ -93,6 +93,14 @@ namespace lib60870
 			}
 		}
 
+		private void DebugLog(string msg)
+		{
+			if (debugOutput) {
+				Console.Write ("CS104 SLAVE: ");
+				Console.WriteLine (msg);
+			}
+		}
+
 		/// <summary>
 		/// Gets or sets the maximum size of the ASDU queue. Setting this property has no
 		/// effect after calling the Start method.
@@ -260,8 +268,7 @@ namespace lib60870
 		{
 			running = true;
 
-			if (debugOutput)
-				Console.WriteLine ("SLAVE: Waiting for connections...");
+			DebugLog("Waiting for connections...");
 
 			while (running) {
 
@@ -270,8 +277,7 @@ namespace lib60870
 					Socket newSocket = listeningSocket.Accept ();
 
 					if (newSocket != null) {
-						if (debugOutput)
-							Console.WriteLine ("SLAVE: New connection");
+						DebugLog("New connection");
 
 						allOpenConnections.Add(
 							new ServerConnection (newSocket, parameters, this));
@@ -396,8 +402,7 @@ namespace lib60870
 					}
 				}
 
-				if (debugOutput)
-					Console.WriteLine ("SLAVE: Queue contains " + numberOfAsduInQueue + " messages (oldest: " + oldestQueueEntry + " latest: " + latestQueueEntry + ")");
+				DebugLog("Queue contains " + numberOfAsduInQueue + " messages (oldest: " + oldestQueueEntry + " latest: " + latestQueueEntry + ")");
 
 				foreach (ServerConnection connection in allOpenConnections) {
 					if (connection.IsActive)
@@ -446,9 +451,23 @@ namespace lib60870
 			return null;
 		}
 
+		internal void UnmarkAllASDUs() {
+			lock (enqueuedASDUs) {
+				if (numberOfAsduInQueue > 0) {
+					for (int i = 0; i < enqueuedASDUs.Length; i++) {
+						if (enqueuedASDUs [i].state == QueueEntryState.SENT_BUT_NOT_CONFIRMED)
+							enqueuedASDUs [i].state = QueueEntryState.WAITING_FOR_TRANSMISSION;
+					}
+				}
+			}
+		}
+
 		internal void MarkASDUAsConfirmed(int index, long timestamp)
 		{
 			if (enqueuedASDUs == null)
+				return;
+
+			if ((index < 0) || (index > enqueuedASDUs.Length))
 				return;
 		
 			lock (enqueuedASDUs) {
@@ -462,10 +481,8 @@ namespace lib60870
 							int currentIndex = index;
 
 							while (enqueuedASDUs [currentIndex].state == QueueEntryState.SENT_BUT_NOT_CONFIRMED) {
-
-
-								if (debugOutput)
-									Console.WriteLine ("SLAVE: Remove from queue with index " + currentIndex);
+								
+								DebugLog("Remove from queue with index " + currentIndex);
 
 								enqueuedASDUs [currentIndex].state = QueueEntryState.NOT_USED;
 								enqueuedASDUs [currentIndex].entryTimestamp = 0;
@@ -497,9 +514,7 @@ namespace lib60870
 
 							}
 
-							if (debugOutput)
-								Console.WriteLine ("SLAVE: queue state: noASDUs: " + numberOfAsduInQueue + " oldest: " + oldestQueueEntry + " latest: " + latestQueueEntry);
-							
+							DebugLog("queue state: noASDUs: " + numberOfAsduInQueue + " oldest: " + oldestQueueEntry + " latest: " + latestQueueEntry);			
 						}			
 					}
 				}

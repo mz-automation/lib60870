@@ -35,10 +35,14 @@ namespace lib60870
 
 		private int connectionID;
 
-		private void DebugLog(string message)
+		private void DebugLog(string msg)
 		{
-			if (debugOutput)
-				Console.WriteLine ("SLAVE CONNECTION " + connectionID + ": " + message);
+			if (debugOutput) {
+				Console.Write ("CS104 SLAVE CONNECTION ");
+				Console.Write (connectionID);
+				Console.Write (": ");
+				Console.WriteLine (msg);
+			}
 		}
 
 		static byte[] STARTDT_CON_MSG = new byte[] { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
@@ -93,9 +97,9 @@ namespace lib60870
 		{
 			callbackThreadRunning = true;
 
-			while (callbackThreadRunning) {
+			while (callbackThreadRunning && running) {
 
-				while ((receivedASDUs.Count > 0) && (callbackThreadRunning))
+				while ((receivedASDUs.Count > 0) && (callbackThreadRunning) && (running))
 					HandleASDU (receivedASDUs.Dequeue ());
 
 				Thread.Sleep (50);
@@ -426,18 +430,7 @@ namespace lib60870
 
 			SendASDU (asdu);
 		}
-
-//		private void IncreaseReceivedMessageCounters ()
-//		{
-//			receiveCount = (receiveCount + 1) % 32768;
-//			unconfirmedMessages++;
-//
-//			if (unconfirmedMessages == 1) {
-//				// start timeout if only one unconfirmed message
-//				lastConfirmationTime = SystemUtils.currentTimeMillis();
-//			}
-//		}
-
+			
 		private void HandleASDU(ASDU asdu)
 		{		
 			bool messageHandled = false;
@@ -603,42 +596,47 @@ namespace lib60870
 			lock (sentASDUs) {
 
 				/* check if received sequence number is valid */
-				bool valid = false;
+				bool seqNoIsValid = false;
+				bool counterOverflowDetected = false;
 
 				if (oldestSentASDU == -1) { /* if k-Buffer is empty */
 					if (seqNo == sendCount)
-						valid = true;
+						seqNoIsValid = true;
 				}
 				else {
 
 					// Two cases are required to reflect sequence number overflow
 					if (sentASDUs[oldestSentASDU].seqNo <= sentASDUs[newestSentASDU].seqNo) {
-
 						if ((seqNo >= sentASDUs [oldestSentASDU].seqNo) &&
 						    (seqNo <= sentASDUs [newestSentASDU].seqNo))
-							valid = true;
+							seqNoIsValid = true;
 					
 					} else {
 						if ((seqNo >= sentASDUs [oldestSentASDU].seqNo) ||
 							(seqNo <= sentASDUs [newestSentASDU].seqNo))
-							valid = true;
+							seqNoIsValid = true;
+
+						counterOverflowDetected = true;
 					}
 
 					int latestValidSeqNo = (sentASDUs [oldestSentASDU].seqNo - 1) % 32768;
 
 					if (latestValidSeqNo == seqNo)
-						valid = true;
+						seqNoIsValid = true;
 				}
 					
-				if (valid == false) {
+				if (seqNoIsValid == false) {
 					DebugLog ("Received sequence number out of range");
 					return false;
 				}
-
-				bool lastRound = false;
-			
+								
 				if (oldestSentASDU != -1) {
+					
 					do {
+						if (counterOverflowDetected == false)
+							if (seqNo < sentASDUs [oldestSentASDU].seqNo)
+								break;
+
 						sentASDUs [oldestSentASDU].used = false;
 
 						/* remove from server (low-priority) queue if required */
@@ -656,11 +654,8 @@ namespace lib60870
 							break;
 						}
 
-						if (lastRound == true)
-							break;
-
 						if (sentASDUs [oldestSentASDU].seqNo == seqNo)
-							lastRound = true;
+							break;
 
 					} while (true);
 				}
@@ -829,9 +824,7 @@ namespace lib60870
 							
 							if (bytesRec != 0) {
 							
-								if (debugOutput)
-									Console.WriteLine(
-										BitConverter.ToString(bytes, 0, bytesRec));
+								DebugLog("RCVD: " +	BitConverter.ToString(bytes, 0, bytesRec));
 							
 								if (HandleMessage(socket, bytes, bytesRec) == false) {
 									/* close connection on error */
@@ -884,10 +877,10 @@ namespace lib60870
 				Console.WriteLine( e.ToString());
 			}
 
-			// unmark unconfirmed messages in server queue
+			// unmark unconfirmed messages in server queue if k-buffer not empty
 			if (oldestSentASDU != -1)
-				server.MarkASDUAsConfirmed (sentASDUs [newestSentASDU].queueIndex, sentASDUs [newestSentASDU].entryTime);
-				
+				server.UnmarkAllASDUs ();
+
 			server.Remove (this);
 
 			callbackThread.Join ();
