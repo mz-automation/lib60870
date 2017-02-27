@@ -261,12 +261,10 @@ namespace lib60870
 				bool valid = false;
 
 				if (oldestSentASDU == -1) { /* if k-Buffer is empty */
-
 					if (seqNo == sendSequenceNumber)
 						valid = true;
 				}
 				else {
-
 					// Two cases are required to reflect sequence number overflow
 					if (sentASDUs[oldestSentASDU].seqNo <= sentASDUs[newestSentASDU].seqNo) {
 						if ((seqNo >= sentASDUs [oldestSentASDU].seqNo) &&
@@ -335,16 +333,26 @@ namespace lib60870
 		}
 
 		private int SendIMessage(ASDU asdu) {
-			Frame frame = new T104Frame ();
+			BufferFrame frame = new BufferFrame(new byte[260], 6);
 			asdu.Encode (frame, parameters);
 
-			frame.PrepareToSend (sendSequenceNumber, receiveSequenceNumber);
+			byte[] buffer = frame.GetBuffer ();
+			int msgSize = frame.GetMsgSize () + 6; /* ASDU size + ACPI size */
+
+			buffer [0] = 0x68;
+
+			/* set size field */
+			buffer [1] = (byte) (msgSize - 2);
+
+			buffer [2] = (byte) ((sendSequenceNumber % 128) * 2);
+			buffer [3] = (byte) (sendSequenceNumber / 128);
+
+			buffer [4] = (byte) ((receiveSequenceNumber % 128) * 2);
+			buffer [5] = (byte) (receiveSequenceNumber / 128);
 
 			if (running) {
-				Console.WriteLine ("SEND_MESSAGE");
 				socket.NoDelay = true;
-				socket.Send (frame.GetBuffer (), frame.GetMsgSize (), SocketFlags.None);
-				Console.WriteLine ("MESSAGE SENT");
+				socket.Send (buffer, msgSize, SocketFlags.None);
 				sendSequenceNumber = (sendSequenceNumber + 1) % 32768;
 				statistics.SentMsgCounter++;
 
@@ -383,6 +391,30 @@ namespace lib60870
 			}
 		}
 
+		private void SendIMessageAndUpdateSentASDUs(ASDU asdu)
+		{
+			lock (sentASDUs) {
+
+				int currentIndex = 0;
+
+				if (oldestSentASDU == -1) {
+					oldestSentASDU = 0;
+					newestSentASDU = 0;
+
+				} else {
+					currentIndex = (newestSentASDU + 1) % maxSentASDUs;
+				}
+
+				sentASDUs [currentIndex].used = true;
+				sentASDUs [currentIndex].seqNo = SendIMessage (asdu);
+				sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
+
+				newestSentASDU = currentIndex;
+
+				PrintSendBuffer ();
+			}
+		}
+
 		private void SendNextWaitingASDU() {
 
 			if (running == false)
@@ -399,29 +431,9 @@ namespace lib60870
 
 						ASDU asdu = waitingToBeSent.Dequeue ();
 
-						if (asdu != null) {
-
-							lock (sentASDUs) {
-
-								int currentIndex = 0;
-
-								if (oldestSentASDU == -1) {
-									oldestSentASDU = 0;
-									newestSentASDU = 0;
-
-								} else {
-									currentIndex = (newestSentASDU + 1) % maxSentASDUs;
-								}
-
-								sentASDUs [currentIndex].used = true;
-								sentASDUs [currentIndex].seqNo = SendIMessage (asdu);
-								sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
-
-								newestSentASDU = currentIndex;
-
-								PrintSendBuffer ();
-							}
-						} else
+						if (asdu != null)
+							SendIMessageAndUpdateSentASDUs(asdu);
+						else
 							break;
 						
 					}
@@ -450,7 +462,7 @@ namespace lib60870
 					if (IsSentBufferFull())
 						throw new ConnectionException ("Flow control congestion. Try again later.");
 
-					SendIMessage (asdu);
+					SendIMessageAndUpdateSentASDUs (asdu);
 				}
 			}
 		}
@@ -764,7 +776,6 @@ namespace lib60870
 		private int receiveMessage(Socket socket, byte[] buffer) 
 		{
 			// wait for first byte
-			//TODO check if byte is available in buffer
 			if (socket.Poll (50, SelectMode.SelectRead)) {
 
 				if (socket.Available == 0)
@@ -1155,6 +1166,18 @@ namespace lib60870
 		{
 			rawMessageHandler = handler;
 			rawMessageHandlerParameter = parameter;
+		}
+
+		/// <summary>
+		/// Determines whether the transmit (send) buffer is full. If true the next send command will throw a ConnectionException
+		/// </summary>
+		/// <returns><c>true</c> if this instance is send buffer full; otherwise, <c>false</c>.</returns>
+		public bool IsTransmitBufferFull()
+		{
+			if (useSendMessageQueue)
+				return false;
+			else
+				return IsSentBufferFull ();
 		}
 	}
 }

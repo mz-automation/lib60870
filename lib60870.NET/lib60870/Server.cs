@@ -128,7 +128,7 @@ namespace lib60870
 
 		private struct ASDUQueueEntry {
 			public long entryTimestamp;
-			public ASDU asdu;
+			public BufferFrame asdu;
 			public QueueEntryState state;
 		}
 
@@ -333,8 +333,10 @@ namespace lib60870
 			if (enqueuedASDUs == null) {
 				enqueuedASDUs = new ASDUQueueEntry[maxQueueSize];
 
-				for (int i = 0; i < maxQueueSize; i++)
+				for (int i = 0; i < maxQueueSize; i++) {
+					enqueuedASDUs [i].asdu = new BufferFrame (new byte[260], 6);
 					enqueuedASDUs [i].state = QueueEntryState.NOT_USED;
+				}
 
 				oldestQueueEntry = -1;
 				latestQueueEntry = -1;
@@ -385,7 +387,9 @@ namespace lib60870
 						latestQueueEntry = 0;
 						numberOfAsduInQueue = 1;
 
-						enqueuedASDUs [0].asdu = asdu;
+						enqueuedASDUs [0].asdu.ResetFrame ();
+						asdu.Encode (enqueuedASDUs [0].asdu, parameters);
+
 						enqueuedASDUs [0].entryTimestamp = SystemUtils.currentTimeMillis ();
 						enqueuedASDUs [0].state = QueueEntryState.WAITING_FOR_TRANSMISSION;
 					} else {
@@ -396,7 +400,9 @@ namespace lib60870
 						else
 							numberOfAsduInQueue++;
 
-						enqueuedASDUs [latestQueueEntry].asdu = asdu;
+						enqueuedASDUs [latestQueueEntry].asdu.ResetFrame ();
+						asdu.Encode (enqueuedASDUs [latestQueueEntry].asdu, parameters);
+
 						enqueuedASDUs [latestQueueEntry].entryTimestamp = SystemUtils.currentTimeMillis ();
 						enqueuedASDUs [latestQueueEntry].state = QueueEntryState.WAITING_FOR_TRANSMISSION;
 					}
@@ -412,7 +418,17 @@ namespace lib60870
 		}
 
 
-		internal ASDU GetNextWaitingASDU(out long timestamp, out int index)
+		internal void LockASDUQueue()
+		{
+			Monitor.Enter (enqueuedASDUs);
+		}
+
+		internal void UnlockASDUQueue()
+		{
+			Monitor.Exit (enqueuedASDUs);
+		}
+
+		internal BufferFrame GetNextWaitingASDU(out long timestamp, out int index)
 		{
 			timestamp = 0;
 			index = -1;
@@ -420,33 +436,33 @@ namespace lib60870
 			if (enqueuedASDUs == null)
 				return null;
 
-			lock (enqueuedASDUs) {
-				if (numberOfAsduInQueue > 0) {
+			//lock (enqueuedASDUs) {
+			if (numberOfAsduInQueue > 0) {
 
-					int currentIndex = oldestQueueEntry;
+				int currentIndex = oldestQueueEntry;
 
-					while (enqueuedASDUs [currentIndex].state != QueueEntryState.WAITING_FOR_TRANSMISSION) {
+				while (enqueuedASDUs [currentIndex].state != QueueEntryState.WAITING_FOR_TRANSMISSION) {
 
-						if (enqueuedASDUs [currentIndex].state == QueueEntryState.NOT_USED)
-							break;
+					if (enqueuedASDUs [currentIndex].state == QueueEntryState.NOT_USED)
+						break;
 
-						currentIndex = (currentIndex + 1) % maxQueueSize;
+					currentIndex = (currentIndex + 1) % maxQueueSize;
 
-						// break if we reached the oldest entry again
-						if (currentIndex == oldestQueueEntry)
-							break;
-					}
-
-					if (enqueuedASDUs [currentIndex].state == QueueEntryState.WAITING_FOR_TRANSMISSION) {
-						enqueuedASDUs [currentIndex].state = QueueEntryState.SENT_BUT_NOT_CONFIRMED;
-						timestamp = enqueuedASDUs [currentIndex].entryTimestamp;
-						index = currentIndex;
-						return enqueuedASDUs [currentIndex].asdu;
-					}
-
-					return null;
+					// break if we reached the oldest entry again
+					if (currentIndex == oldestQueueEntry)
+						break;
 				}
+
+				if (enqueuedASDUs [currentIndex].state == QueueEntryState.WAITING_FOR_TRANSMISSION) {
+					enqueuedASDUs [currentIndex].state = QueueEntryState.SENT_BUT_NOT_CONFIRMED;
+					timestamp = enqueuedASDUs [currentIndex].entryTimestamp;
+					index = currentIndex;
+					return enqueuedASDUs [currentIndex].asdu;
+				}
+
+				return null;
 			}
+			//}
 
 			return null;
 		}

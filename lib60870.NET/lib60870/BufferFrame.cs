@@ -1,7 +1,5 @@
-/*
- *  Frame.cs
- *
- *  Copyright 2016 MZ Automation GmbH
+﻿/*
+ *  Copyright 2017 MZ Automation GmbH
  *
  *  This file is part of lib60870.NET
  *
@@ -22,23 +20,45 @@
  */
 
 using System;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading;
 
 namespace lib60870
 {
-	internal abstract class Frame
-	{
-		public abstract void ResetFrame ();
+	internal class BufferFrame : Frame {
 
-		public abstract void SetNextByte (byte value);
+		private byte[] buffer;
+		private int startPos;
+		private int bufPos;
 
-		public abstract void AppendBytes (byte[] bytes);
+		public BufferFrame(byte[] buffer, int startPos) {
+			this.buffer = buffer;
+			this.startPos = startPos;
+			this.bufPos = startPos;
+		}
 
-		public abstract int GetMsgSize ();
+		public override void ResetFrame ()
+		{
+			bufPos = startPos;
+		}
 
-		public abstract byte[] GetBuffer ();
+		public override void SetNextByte (byte value)
+		{
+			buffer [bufPos++] = value;
+		}
+
+		public override void AppendBytes (byte[] bytes)
+		{
+			for (int i = 0; i < bytes.Length; i++)
+				buffer [bufPos++] = bytes [i];
+		}
+
+		public override int GetMsgSize () {
+			return (bufPos - startPos);
+		}
+
+		public override byte[] GetBuffer ()
+		{
+			return buffer;
+		}
 	}
 }
+

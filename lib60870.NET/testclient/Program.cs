@@ -97,7 +97,13 @@ namespace testclient
 					Console.WriteLine ("  IOA: " + msv.ObjectAddress + " scaled value: " + msv.NormalizedValue);
 				}
 
-			} else {
+			} else if (asdu.TypeId == TypeID.C_IC_NA_1) {
+				if (asdu.Cot == CauseOfTransmission.ACTIVATION_CON)
+					Console.WriteLine ((asdu.IsNegative ? "Negative" : "Positive") + "confirmation for interrogation command");
+				else if (asdu.Cot == CauseOfTransmission.ACTIVATION_TERMINATION)
+					Console.WriteLine ("Interrogation command terminated");
+			}
+			else {
 				Console.WriteLine ("Unknown message type!");
 			}
 

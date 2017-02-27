@@ -183,7 +183,7 @@ namespace lib60870
 			Buffer.BlockCopy (msg, bufPos, payload, 0, payloadSize);
 		}
 
-		public void Encode(Frame frame, ConnectionParameters parameters) {
+		internal void Encode(Frame frame, ConnectionParameters parameters) {
 			frame.SetNextByte ((byte)typeId);
 			frame.SetNextByte (vsq);
 

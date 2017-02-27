@@ -70,7 +70,7 @@ namespace lib60870
 		private Thread callbackThread = null;
 		private bool callbackThreadRunning = false;
 
-		private Queue<ASDU> waitingASDUsHighPrio = null;
+		private Queue<BufferFrame> waitingASDUsHighPrio = null;
 
 		private bool firstIMessageReceived = false;
 
@@ -123,9 +123,9 @@ namespace lib60870
 			for (int i = 0; i < maxSentASDUs; i++)
 				sentASDUs [i].used = false;
 
-			//TODO only needed when message is activated
+			//TODO only needed when connection is activated
 			receivedASDUs = new Queue<ASDU> ();
-			waitingASDUsHighPrio = new Queue<ASDU> ();
+			waitingASDUsHighPrio = new Queue<BufferFrame> ();
 
 			Thread workerThread = new Thread(HandleConnection);
 			callbackThread = new Thread (ProcessASDUs);
@@ -212,28 +212,7 @@ namespace lib60870
 			} else
 				return 0;
 		}
-
-		/// <summary>
-		/// Sends the I message.
-		/// </summary>
-		/// <returns>The sent sequence number if the message</returns>
-		private int sendIMessage(Frame frame) 
-		{
-			try {
-				lock (socket) {
-					frame.PrepareToSend (sendCount, receiveCount);
-					socket.Send (frame.GetBuffer (), frame.GetMsgSize (), SocketFlags.None);
-					sendCount = (sendCount + 1) % 32768;;
-				}
-			}
-			catch (SocketException) {
-				// socket error --> close connection
-				running = false;
-			}
-
-			return sendCount;
-		}
-
+			
 		private void SendSMessage() 
 		{
 			DebugLog("Send S message");
@@ -259,12 +238,36 @@ namespace lib60870
 			}
 		}
 
-		private int writeASDUtoSocket(ASDU asdu)
+		private int SendIMessage(BufferFrame asdu)
 		{
-			Frame frame = new T104Frame ();
-			asdu.Encode (frame, parameters);
 
-			return sendIMessage (frame);
+			byte[] buffer = asdu.GetBuffer ();
+
+			int msgSize = asdu.GetMsgSize () + 6; /* ASDU size + ACPI size */
+
+			buffer [0] = 0x68;
+
+			/* set size field */
+			buffer [1] = (byte) (msgSize - 2);
+
+			buffer [2] = (byte) ((sendCount % 128) * 2);
+			buffer [3] = (byte) (sendCount / 128);
+
+			buffer [4] = (byte) ((receiveCount % 128) * 2);
+			buffer [5] = (byte) (receiveCount / 128);
+
+			try {
+				lock (socket) {
+					socket.Send (buffer, msgSize, SocketFlags.None);
+					sendCount = (sendCount + 1) % 32768;;
+				}
+			}
+			catch (SocketException) {
+				// socket error --> close connection
+				running = false;
+			}
+
+			return sendCount;;
 		}
 
 		private bool isSentBufferFull() {
@@ -316,29 +319,38 @@ namespace lib60870
 				long timestamp;
 				int index;
 
-				ASDU asdu = server.GetNextWaitingASDU (out timestamp, out index);
+				server.LockASDUQueue ();
 
-				if (asdu != null) {
+				BufferFrame asdu = server.GetNextWaitingASDU (out timestamp, out index);
 
-					int currentIndex = 0;
+				try {
 
-					if (oldestSentASDU == -1) {
-						oldestSentASDU = 0;
-						newestSentASDU = 0;
+					if (asdu != null) {
 
-					} else {
-						currentIndex = (newestSentASDU + 1) % maxSentASDUs;
+						int currentIndex = 0;
+
+						if (oldestSentASDU == -1) {
+							oldestSentASDU = 0;
+							newestSentASDU = 0;
+
+						} else {
+							currentIndex = (newestSentASDU + 1) % maxSentASDUs;
+						}
+
+						sentASDUs [currentIndex].used = true;
+						sentASDUs [currentIndex].entryTime = timestamp;
+						sentASDUs [currentIndex].queueIndex = index;
+						sentASDUs [currentIndex].seqNo = SendIMessage (asdu);
+						sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
+
+						newestSentASDU = currentIndex;
+
+						PrintSendBuffer ();
 					}
+				}
+				finally {
 
-					sentASDUs [currentIndex].used = true;
-					sentASDUs [currentIndex].entryTime = timestamp;
-					sentASDUs [currentIndex].queueIndex = index;
-					sentASDUs [currentIndex].seqNo = writeASDUtoSocket (asdu);
-					sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
-
-					newestSentASDU = currentIndex;
-
-					PrintSendBuffer ();
+					server.UnlockASDUQueue ();
 				}
 			}
 		}
@@ -348,7 +360,7 @@ namespace lib60870
 				if (isSentBufferFull ())
 					return false;
 
-				ASDU asdu = waitingASDUsHighPrio.Dequeue ();
+				BufferFrame asdu = waitingASDUsHighPrio.Dequeue ();
 
 				if (asdu != null) {
 
@@ -364,7 +376,7 @@ namespace lib60870
 
 					sentASDUs [currentIndex].used = true;
 					sentASDUs [currentIndex].queueIndex = -1;
-					sentASDUs [currentIndex].seqNo = writeASDUtoSocket (asdu);
+					sentASDUs [currentIndex].seqNo = SendIMessage (asdu);
 					sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
 
 					newestSentASDU = currentIndex;
@@ -402,7 +414,12 @@ namespace lib60870
 		{
 			if (isActive) {
 				lock (waitingASDUsHighPrio) {
-					waitingASDUsHighPrio.Enqueue (asdu);
+
+					BufferFrame frame = new BufferFrame (new byte[260], 6);
+
+					asdu.Encode (frame, parameters);
+
+					waitingASDUsHighPrio.Enqueue (frame);
 				}
 
 				SendWaitingASDUs ();
@@ -600,11 +617,11 @@ namespace lib60870
 				bool counterOverflowDetected = false;
 
 				if (oldestSentASDU == -1) { /* if k-Buffer is empty */
+
 					if (seqNo == sendCount)
 						seqNoIsValid = true;
 				}
 				else {
-
 					// Two cases are required to reflect sequence number overflow
 					if (sentASDUs[oldestSentASDU].seqNo <= sentASDUs[newestSentASDU].seqNo) {
 						if ((seqNo >= sentASDUs [oldestSentASDU].seqNo) &&
@@ -633,9 +650,14 @@ namespace lib60870
 				if (oldestSentASDU != -1) {
 					
 					do {
-						if (counterOverflowDetected == false)
+						if (counterOverflowDetected == false) {
 							if (seqNo < sentASDUs [oldestSentASDU].seqNo)
 								break;
+						}
+						else {
+							if (seqNo == ((sentASDUs [oldestSentASDU].seqNo - 1) % 32768))
+								break;
+						}
 
 						sentASDUs [oldestSentASDU].used = false;
 
