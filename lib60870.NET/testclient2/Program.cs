@@ -136,7 +136,7 @@ namespace testclient2
 
 			con.Connect ();
 
-			for (int i = 0; i < 5000; i++) {
+			for (int i = 0; i < 5; i++) {
 				Console.WriteLine ("Send GI " + i);
 
 				if (con.IsTransmitBufferFull()) {
@@ -147,7 +147,7 @@ namespace testclient2
 				con.SendInterrogationCommand (CauseOfTransmission.ACTIVATION, 1, QualifierOfInterrogation.STATION);
 			}
 
-			while (interrogationConfirmationReceived < 4999)
+			while (interrogationTerminationReceived < 5)
 				Thread.Sleep (100);
 
 			Console.WriteLine ("interrogationTerminationReceived: " + interrogationTerminationReceived);

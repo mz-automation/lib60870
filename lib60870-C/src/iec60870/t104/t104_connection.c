@@ -56,6 +56,12 @@ struct sT104ConnectionParameters defaultConnectionParameters = {
 #define HOST_NAME_MAX 64
 #endif
 
+typedef struct {
+    uint64_t sentTime; /* required for T1 timeout */
+    int seqNo;
+} SentASDU;
+
+
 struct sT104Connection {
     char hostname[HOST_NAME_MAX + 1];
     int tcpPort;
@@ -63,11 +69,19 @@ struct sT104Connection {
     int connectTimeoutInMs;
     uint8_t sMessage[6];
 
+    SentASDU* sentASDUs; /* the k-buffer */
+    int maxSentASDUs;    /* maximum number of ASDU to be sent without confirmation - parameter k */
+    int oldestSentASDU;  /* index of oldest entry in k-buffer */
+    int newestSentASDU;  /* index of newest entry in k-buffer */
+
     int receiveCount;
     int sendCount;
 
-    int unconfirmedMessages;
+    int unconfirmedReceivedIMessages;
     uint64_t lastConfirmationTime;
+
+    uint64_t nextT3Timeout;
+    int outstandingTestFCConMessages;
 
     Socket socket;
     bool running;
@@ -113,14 +127,16 @@ sendSMessage(T104Connection self)
     Socket_write(self->socket, msg, 6);
 }
 
-static void
+static int
 sendIMessage(T104Connection self, Frame frame)
 {
     T104Frame_prepareToSend((T104Frame) frame, self->sendCount, self->receiveCount);
 
     Socket_write(self->socket, T104Frame_getBuffer(frame), T104Frame_getMsgSize(frame));
 
-    self->sendCount++;
+    self->sendCount = (self->sendCount + 1) % 32768;
+
+    return self->sendCount;
 }
 
 T104Connection
@@ -133,16 +149,6 @@ T104Connection_create(const char* hostname, int tcpPort)
         self->tcpPort = tcpPort;
         self->parameters = defaultConnectionParameters;
 
-        self->connectTimeoutInMs = self->parameters.t0 * 1000;
-
-        self->running = false;
-        self->failure = false;
-
-        self->receiveCount = 0;
-        self->sendCount = 0;
-        self->unconfirmedMessages = 0;
-        self->lastConfirmationTime = 0xffffffffffffffff;
-
         self->receivedHandler = NULL;
         self->receivedHandlerParameter = NULL;
 
@@ -153,6 +159,114 @@ T104Connection_create(const char* hostname, int tcpPort)
     }
 
     return self;
+}
+
+
+static void
+resetConnection(T104Connection self)
+{
+    self->connectTimeoutInMs = self->parameters.t0 * 1000;
+
+    self->running = false;
+    self->failure = false;
+    self->close = false;
+
+    self->receiveCount = 0;
+    self->sendCount = 0;
+
+    self->unconfirmedReceivedIMessages = 0;
+    self->lastConfirmationTime = 0xffffffffffffffff;
+
+    self->maxSentASDUs = self->parameters.k;
+    self->oldestSentASDU = -1;
+    self->newestSentASDU = -1;
+
+    self->sentASDUs = GLOBAL_MALLOC(sizeof(SentASDU) + self->maxSentASDUs);
+
+    self->outstandingTestFCConMessages = 0;
+}
+
+static bool
+checkSequenceNumber(T104Connection self, int seqNo)
+{
+    //TODO lock access to sentASDUs
+
+    /* check if received sequence number is valid */
+
+    bool seqNoIsValid = false;
+    bool counterOverflowDetected = false;
+
+    if (self->oldestSentASDU == -1) { /* if k-Buffer is empty */
+        if (seqNo == self->sendCount)
+            seqNoIsValid = true;
+    }
+    else {
+        /* Two cases are required to reflect sequence number overflow */
+        if (self->sentASDUs[self->oldestSentASDU].seqNo <= self->sentASDUs[self->newestSentASDU].seqNo) {
+            if ((seqNo >= self->sentASDUs[self->oldestSentASDU].seqNo) &&
+                (seqNo <= self->sentASDUs[self->newestSentASDU].seqNo))
+                seqNoIsValid = true;
+        }
+        else {
+            if ((seqNo >= self->sentASDUs[self->oldestSentASDU].seqNo) ||
+                (seqNo <= self->sentASDUs[self->newestSentASDU].seqNo))
+                seqNoIsValid = true;
+
+            counterOverflowDetected = true;
+        }
+
+        int latestValidSeqNo = (self->sentASDUs[self->oldestSentASDU].seqNo - 1) % 32768;
+
+        if (latestValidSeqNo == seqNo)
+            seqNoIsValid = true;
+    }
+
+    if (seqNoIsValid) {
+
+        if (self->oldestSentASDU != -1) {
+
+            do {
+                if (counterOverflowDetected == false) {
+                    if (seqNo < self->sentASDUs [self->oldestSentASDU].seqNo)
+                        break;
+                }
+                else {
+                    if (seqNo == ((self->sentASDUs [self->oldestSentASDU].seqNo - 1) % 32768))
+                        break;
+                }
+
+                self->oldestSentASDU = (self->oldestSentASDU + 1) % self->maxSentASDUs;
+
+                int checkIndex = (self->newestSentASDU + 1) % self->maxSentASDUs;
+
+                if (self->oldestSentASDU == checkIndex) {
+                    self->oldestSentASDU = -1;
+                    break;
+                }
+
+                if (self->sentASDUs [self->oldestSentASDU].seqNo == seqNo)
+                    break;
+            } while (true);
+
+        }
+    }
+
+    return seqNoIsValid;
+}
+
+
+static bool
+isSentBufferFull(T104Connection self)
+{
+    if (self->oldestSentASDU == -1)
+        return false;
+
+    int newIndex = (self->newestSentASDU + 1) % self->maxSentASDUs;
+
+    if (newIndex == self->oldestSentASDU)
+        return true;
+    else
+        return false;
 }
 
 static void
@@ -241,15 +355,15 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
         }
 
         self->receiveCount++;
-        self->unconfirmedMessages++;
+        self->unconfirmedReceivedIMessages++;
 
         uint64_t currentTime = Hal_getTimeInMs();
 
-        if ((self->unconfirmedMessages > self->parameters.w) || checkConfirmTimeout(self, currentTime)) {
+        if ((self->unconfirmedReceivedIMessages > self->parameters.w) || checkConfirmTimeout(self, currentTime)) {
 
             self->lastConfirmationTime = currentTime;
 
-            self->unconfirmedMessages = 0;
+            self->unconfirmedReceivedIMessages = 0;
             sendSMessage(self);
         }
 
@@ -304,7 +418,7 @@ handleConnection(void* parameter)
 {
     T104Connection self = (T104Connection) parameter;
 
-    self->close = false;
+    resetConnection(self);
 
     Socket socket = TcpSocket_create();
 
@@ -445,7 +559,45 @@ T104Connection_sendStopDT(T104Connection self)
     Socket_write(self->socket, STOPDT_ACT_MSG, STOPDT_ACT_MSG_SIZE);
 }
 
-void
+static void
+sendIMessageAndUpdateSentASDUs(T104Connection self, Frame frame)
+{
+    //TODO lock sentASDUs
+
+    int currentIndex = 0;
+
+    if (self->oldestSentASDU == -1) {
+        self->oldestSentASDU = 0;
+        self->newestSentASDU = 0;
+
+    } else {
+        currentIndex = (self->newestSentASDU + 1) % self->maxSentASDUs;
+    }
+
+    self->sentASDUs [currentIndex].seqNo = sendIMessage (self, frame);
+    self->sentASDUs [currentIndex].sentTime = Hal_getTimeInMs();
+
+    self->newestSentASDU = currentIndex;
+}
+
+static bool
+sendASDUInternal(T104Connection self, Frame frame)
+{
+    bool retVal = false;
+
+    if (self->running) {
+        if (isSentBufferFull(self) == false) {
+            sendIMessageAndUpdateSentASDUs(self, frame);
+            retVal = true;
+        }
+    }
+
+    T104Frame_destroy(frame);
+
+    return retVal;
+}
+
+bool
 T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, QualifierOfInterrogation qoi)
 {
     Frame frame = (Frame) T104Frame_create();
@@ -457,12 +609,10 @@ T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission
     /* encode QOI (7.2.6.22) */
     T104Frame_setNextByte(frame, qoi); /* 20 = station interrogation */
 
-    sendIMessage(self, frame);
-
-    T104Frame_destroy(frame);
+    return sendASDUInternal(self, frame);
 }
 
-void
+bool
 T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, uint8_t qcc)
 {
     Frame frame = (Frame) T104Frame_create();
@@ -474,12 +624,10 @@ T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTrans
     /* encode QCC */
     T104Frame_setNextByte(frame, qcc);
 
-    sendIMessage(self, frame);
-
-    T104Frame_destroy(frame);
+    return sendASDUInternal(self, frame);
 }
 
-void
+bool
 T104Connection_sendReadCommend(T104Connection self, int ca, int ioa)
 {
     Frame frame = (Frame) T104Frame_create();
@@ -488,12 +636,10 @@ T104Connection_sendReadCommend(T104Connection self, int ca, int ioa)
 
     encodeIOA(self, frame, 0);
 
-    sendIMessage(self, frame);
-
-    T104Frame_destroy(frame);
+    return sendASDUInternal(self, frame);
 }
 
-void
+bool
 T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time)
 {
     Frame frame = (Frame) T104Frame_create();
@@ -504,12 +650,10 @@ T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time
 
     T104Frame_appendBytes(frame, CP56Time2a_getEncodedValue(time), 7);
 
-    sendIMessage(self, frame);
-
-    T104Frame_destroy(frame);
+    return sendASDUInternal(self, frame);
 }
 
-void
+bool
 T104Connection_sendTestCommand(T104Connection self, int ca)
 {
     Frame frame = (Frame) T104Frame_create();
@@ -521,12 +665,10 @@ T104Connection_sendTestCommand(T104Connection self, int ca)
     T104Frame_setNextByte(frame, 0xcc);
     T104Frame_setNextByte(frame, 0x55);
 
-    sendIMessage(self, frame);
-
-    T104Frame_destroy(frame);
+    return sendASDUInternal(self, frame);
 }
 
-void
+bool
 T104Connection_sendControlCommand(T104Connection self, TypeID typeId, CauseOfTransmission cot, int ca, InformationObject sc)
 {
     Frame frame = (Frame) T104Frame_create();
@@ -535,7 +677,22 @@ T104Connection_sendControlCommand(T104Connection self, TypeID typeId, CauseOfTra
 
     InformationObject_encode(sc, frame, (ConnectionParameters) &(self->parameters), false);
 
-    sendIMessage(self, frame);
-
-    T104Frame_destroy(frame);
+    return sendASDUInternal(self, frame);
 }
+
+bool
+T104Connection_sendASDU(T104Connection self, ASDU asdu)
+{
+    Frame frame = (Frame) T104Frame_create();
+
+    ASDU_encode(asdu, frame);
+
+    return sendASDUInternal(self, frame);
+}
+
+bool
+T104Connection_isTransmitBufferFull(T104Connection self)
+{
+    return isSentBufferFull(self);
+}
+

@@ -94,13 +94,25 @@ void
 T104Connection_sendStopDT(T104Connection self);
 
 /**
+ * \brief Check if the transmit (send) buffer is full. If true the next send command will fail.
+ *
+ * The transmit buffer is full when the slave/server didn't confirm the last k sent messages.
+ * In this case the next message can only be sent after the next confirmation (by I or S messages)
+ * that frees part of the sent messages buffer.
+ */
+bool
+T104Connection_isTransmitBufferFull(T104Connection self);
+
+/**
  * \brief send an interrogation command
  *
  * \param cot cause of transmission
  * \param ca Common address of the slave/server
  * \param qoi qualifier of interrogation (20 for station interrogation)
+ *
+ * \return true if message was sent, false otherwise
  */
-void
+bool
 T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, QualifierOfInterrogation qoi);
 
 /**
@@ -109,8 +121,10 @@ T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission
  * \param cot cause of transmission
  * \param ca Common address of the slave/server
  * \param qcc
+ *
+ * \return true if message was sent, false otherwise
  */
-void
+bool
 T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, uint8_t qcc);
 
 /**
@@ -121,8 +135,10 @@ T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTrans
  *
  * \param ca Common address of the slave/server
  * \param ioa Information object address of the data point to read
+ *
+ * \return true if message was sent, false otherwise
  */
-void
+bool
 T104Connection_sendReadCommend(T104Connection self, int ca, int ioa);
 
 /**
@@ -130,8 +146,10 @@ T104Connection_sendReadCommend(T104Connection self, int ca, int ioa);
  *
  * \param ca Common address of the slave/server
  * \param time new system time for the slave/server
+ *
+ * \return true if message was sent, false otherwise
  */
-void
+bool
 T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time);
 
 /**
@@ -140,13 +158,26 @@ T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time
  * Note: This command is not supported by IEC 60870-5-104
  *
  * \param ca Common address of the slave/server
+ *
+ * \return true if message was sent, false otherwise
  */
-void
+bool
 T104Connection_sendTestCommand(T104Connection self, int ca);
 
-void
+bool
 T104Connection_sendControlCommand(T104Connection self, TypeID typeId, CauseOfTransmission cot,
         int ca, InformationObject command);
+
+
+/**
+ * \brief Send a user specified ASDU
+ *
+ * \param asdu the ASDU to send
+ *
+ * \return true if message was sent, false otherwise
+ */
+bool
+T104Connection_sendASDU(T104Connection self, ASDU asdu);
 
 typedef bool (*ASDUReceivedHandler) (void* parameter, ASDU asdu);
 

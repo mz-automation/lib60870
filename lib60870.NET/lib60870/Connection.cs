@@ -81,22 +81,22 @@ namespace lib60870
 
 		private UInt64 uMessageTimeout = 0;
 
+		/**********************************************/
 		/* data structure for k-size sent ASDU buffer */
 		private struct SentASDU
 		{
-			public bool used; /* true if entry is used */
-
-			// required for T1 timeout
-			public long sentTime;
+			public long sentTime; // required for T1 timeout
 			public int seqNo;
 		}
+			
+		private int maxSentASDUs; /* maximum number of ASDU to be sent without confirmation - parameter k */
+		private int oldestSentASDU = -1; /* index of oldest entry in k-buffer */
+		private int newestSentASDU = -1; /* index of newest entry in k-buffer */
+		private SentASDU[] sentASDUs = null; /* the k-buffer */
 
-		private int maxSentASDUs;
-		private int oldestSentASDU = -1;
-		private int newestSentASDU = -1;
-		private SentASDU[] sentASDUs = null;
+		/**********************************************/
 
-
+		
 		private Queue<ASDU> waitingToBeSent = null;
 		private bool useSendMessageQueue = true;
 
@@ -258,45 +258,51 @@ namespace lib60870
 			lock (sentASDUs) {
 
 				/* check if received sequence number is valid */
-				bool valid = false;
+
+				bool seqNoIsValid = false;
+				bool counterOverflowDetected = false;
 
 				if (oldestSentASDU == -1) { /* if k-Buffer is empty */
 					if (seqNo == sendSequenceNumber)
-						valid = true;
+						seqNoIsValid = true;
 				}
 				else {
 					// Two cases are required to reflect sequence number overflow
 					if (sentASDUs[oldestSentASDU].seqNo <= sentASDUs[newestSentASDU].seqNo) {
 						if ((seqNo >= sentASDUs [oldestSentASDU].seqNo) &&
 							(seqNo <= sentASDUs [newestSentASDU].seqNo))
-							valid = true;
+							seqNoIsValid = true;
 
 					} else {
 						if ((seqNo >= sentASDUs [oldestSentASDU].seqNo) ||
 							(seqNo <= sentASDUs [newestSentASDU].seqNo))
-							valid = true;
+							seqNoIsValid = true;
+
+						counterOverflowDetected = true;
 					}
 
 					int latestValidSeqNo = (sentASDUs [oldestSentASDU].seqNo - 1) % 32768;
 
 					if (latestValidSeqNo == seqNo)
-						valid = true;
+						seqNoIsValid = true;
 				}
 
-				if (valid == false) {
+				if (seqNoIsValid == false) {
 					DebugLog ("Received sequence number out of range");
 					return false;
 				}
 
-				bool lastRound = false;
-
 				if (oldestSentASDU != -1) {
 					do {
-						if (seqNo < sentASDUs [oldestSentASDU].seqNo)
-							break;
-
-						sentASDUs [oldestSentASDU].used = false;
-
+						if (counterOverflowDetected == false) {
+							if (seqNo < sentASDUs [oldestSentASDU].seqNo)
+								break;
+						}
+						else {
+							if (seqNo == ((sentASDUs [oldestSentASDU].seqNo - 1) % 32768))
+								break;
+						}
+							
 						oldestSentASDU = (oldestSentASDU + 1) % maxSentASDUs;
 
 						int checkIndex = (newestSentASDU + 1) % maxSentASDUs;
@@ -306,11 +312,8 @@ namespace lib60870
 							break;
 						}
 
-						if (lastRound == true)
-							break;
-
 						if (sentASDUs [oldestSentASDU].seqNo == seqNo)
-							lastRound = true;
+							break;
 
 					} while (true);
 				}
@@ -404,8 +407,7 @@ namespace lib60870
 				} else {
 					currentIndex = (newestSentASDU + 1) % maxSentASDUs;
 				}
-
-				sentASDUs [currentIndex].used = true;
+					
 				sentASDUs [currentIndex].seqNo = SendIMessage (asdu);
 				sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
 

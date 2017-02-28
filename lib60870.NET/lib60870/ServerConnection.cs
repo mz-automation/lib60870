@@ -77,8 +77,6 @@ namespace lib60870
 		/* data structure for k-size sent ASDU buffer */
 		private struct SentASDU
 		{
-			public bool used; /* true if entry is used */
-
 			// required to identify message in server (low-priority) queue
 			public long entryTime;
 			public int queueIndex; /* -1 if ASDU is not from low-priority queue */
@@ -97,13 +95,15 @@ namespace lib60870
 		{
 			callbackThreadRunning = true;
 
-			while (callbackThreadRunning && running) {
+			while (callbackThreadRunning) {
 
 				while ((receivedASDUs.Count > 0) && (callbackThreadRunning) && (running))
 					HandleASDU (receivedASDUs.Dequeue ());
 
 				Thread.Sleep (50);
 			}
+
+			DebugLog ("ProcessASDUs exit thread");
 		}
 
 		public ServerConnection(Socket socket, ConnectionParameters parameters, Server server) 
@@ -119,9 +119,6 @@ namespace lib60870
 
 			maxSentASDUs = parameters.K;
 			this.sentASDUs = new SentASDU[maxSentASDUs];
-
-			for (int i = 0; i < maxSentASDUs; i++)
-				sentASDUs [i].used = false;
 
 			//TODO only needed when connection is activated
 			receivedASDUs = new Queue<ASDU> ();
@@ -336,8 +333,7 @@ namespace lib60870
 						} else {
 							currentIndex = (newestSentASDU + 1) % maxSentASDUs;
 						}
-
-						sentASDUs [currentIndex].used = true;
+							
 						sentASDUs [currentIndex].entryTime = timestamp;
 						sentASDUs [currentIndex].queueIndex = index;
 						sentASDUs [currentIndex].seqNo = SendIMessage (asdu);
@@ -373,8 +369,7 @@ namespace lib60870
 					} else {
 						currentIndex = (newestSentASDU + 1) % maxSentASDUs;
 					}
-
-					sentASDUs [currentIndex].used = true;
+						
 					sentASDUs [currentIndex].queueIndex = -1;
 					sentASDUs [currentIndex].seqNo = SendIMessage (asdu);
 					sentASDUs [currentIndex].sentTime = SystemUtils.currentTimeMillis ();
@@ -450,6 +445,8 @@ namespace lib60870
 			
 		private void HandleASDU(ASDU asdu)
 		{		
+			DebugLog ("Handle received ASDU");
+
 			bool messageHandled = false;
 
 			switch (asdu.TypeId) {
@@ -613,6 +610,7 @@ namespace lib60870
 			lock (sentASDUs) {
 
 				/* check if received sequence number is valid */
+
 				bool seqNoIsValid = false;
 				bool counterOverflowDetected = false;
 
@@ -658,8 +656,6 @@ namespace lib60870
 							if (seqNo == ((sentASDUs [oldestSentASDU].seqNo - 1) % 32768))
 								break;
 						}
-
-						sentASDUs [oldestSentASDU].used = false;
 
 						/* remove from server (low-priority) queue if required */
 						if (sentASDUs [oldestSentASDU].queueIndex != -1) {
@@ -715,8 +711,10 @@ namespace lib60870
 					return false;
 				}
 
-				if (CheckSequenceNumber (frameRecvSequenceNumber) == false)
+				if (CheckSequenceNumber (frameRecvSequenceNumber) == false) {
+					DebugLog ("Sequence number check failed");
 					return false;
+				}
 
 				receiveCount = (receiveCount + 1) % 32768;
 				unconfirmedReceivedIMessages++;
@@ -725,6 +723,7 @@ namespace lib60870
 					ASDU asdu = new ASDU (parameters, buffer, msgSize);
 				
 					// push to handler thread for processing
+					DebugLog("Enqueue received I-message for processing");
 					receivedASDUs.Enqueue (asdu);
 				} else {
 					// connection not activated --> skip message
@@ -886,7 +885,6 @@ namespace lib60870
 
 					DebugLog("CONNECTION CLOSED!");
 
-					callbackThreadRunning = false;
 				} catch (ArgumentNullException ane) {
 					DebugLog("ArgumentNullException : " + ane.ToString());
 				} catch (SocketException se) {
@@ -898,6 +896,8 @@ namespace lib60870
 			} catch (Exception e) {
 				Console.WriteLine( e.ToString());
 			}
+
+			callbackThreadRunning = false;
 
 			// unmark unconfirmed messages in server queue if k-buffer not empty
 			if (oldestSentASDU != -1)
