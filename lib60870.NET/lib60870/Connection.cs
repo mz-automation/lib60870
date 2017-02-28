@@ -837,9 +837,7 @@ namespace lib60870
 				}
 
 				if (msgSize < 7) {
-
 					DebugLog("I msg too small!");
-
 					return false;
 				}
 
@@ -883,7 +881,6 @@ namespace lib60870
 					statistics.RcvdTestFrConCounter++;
 					outStandingTestFRConMessages = 0;
 				} else if (buffer [2] == 0x07) { /* STARTDT ACT */
-
 					socket.Send (STARTDT_CON_MSG);
 					statistics.SentMsgCounter++;
 				} else if (buffer [2] == 0x0b) { /* STARTDT_CON */

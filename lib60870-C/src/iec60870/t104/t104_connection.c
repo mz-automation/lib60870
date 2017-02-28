@@ -73,15 +73,23 @@ struct sT104Connection {
     int maxSentASDUs;    /* maximum number of ASDU to be sent without confirmation - parameter k */
     int oldestSentASDU;  /* index of oldest entry in k-buffer */
     int newestSentASDU;  /* index of newest entry in k-buffer */
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore sentASDUsLock;
+    Thread connectionHandlingThread;
+#endif
 
     int receiveCount;
     int sendCount;
+
+    bool firstIMessageReceived;
 
     int unconfirmedReceivedIMessages;
     uint64_t lastConfirmationTime;
 
     uint64_t nextT3Timeout;
     int outstandingTestFCConMessages;
+
+    uint64_t uMessageTimeout;
 
     Socket socket;
     bool running;
@@ -95,8 +103,12 @@ struct sT104Connection {
     void* connectionHandlerParameter;
 };
 
+
 static uint8_t STARTDT_ACT_MSG[] = { 0x68, 0x04, 0x07, 0x00, 0x00, 0x00 };
 #define STARTDT_ACT_MSG_SIZE 6
+
+static uint8_t TESTFR_ACT_MSG[] = { 0x68, 0x04, 0x43, 0x00, 0x00, 0x00 };
+#define TESTFR_ACT_MSG_SIZE 6
 
 static uint8_t TESTFR_CON_MSG[] = { 0x68, 0x04, 0x83, 0x00, 0x00, 0x00 };
 #define TESTFR_CON_MSG_SIZE 6
@@ -106,6 +118,8 @@ static uint8_t STOPDT_ACT_MSG[] = { 0x68, 0x04, 0x13, 0x00, 0x00, 0x00 };
 
 static uint8_t STARTDT_CON_MSG[] = { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
 #define STARTDT_CON_MSG_SIZE 6
+
+
 
 static void
 prepareSMessage(uint8_t* msg)
@@ -155,6 +169,13 @@ T104Connection_create(const char* hostname, int tcpPort)
         self->connectionHandler = NULL;
         self->connectionHandlerParameter = NULL;
 
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+        self->sentASDUsLock = Semaphore_create(1);
+        self->connectionHandlingThread = NULL;
+#endif
+
+        self->sentASDUs = NULL;
+
         prepareSMessage(self->sMessage);
     }
 
@@ -176,20 +197,31 @@ resetConnection(T104Connection self)
 
     self->unconfirmedReceivedIMessages = 0;
     self->lastConfirmationTime = 0xffffffffffffffff;
+    self->firstIMessageReceived = false;
 
-    self->maxSentASDUs = self->parameters.k;
     self->oldestSentASDU = -1;
     self->newestSentASDU = -1;
 
-    self->sentASDUs = GLOBAL_MALLOC(sizeof(SentASDU) + self->maxSentASDUs);
+    if (self->sentASDUs == NULL) {
+        self->maxSentASDUs = self->parameters.k;
+        self->sentASDUs = GLOBAL_MALLOC(sizeof(SentASDU) + self->maxSentASDUs);
+    }
 
     self->outstandingTestFCConMessages = 0;
+    self->uMessageTimeout = 0;
+}
+
+static void
+resetT3Timeout(T104Connection self) {
+    self->nextT3Timeout = Hal_getTimeInMs() + (self->parameters.t3 * 1000);
 }
 
 static bool
 checkSequenceNumber(T104Connection self, int seqNo)
 {
-    //TODO lock access to sentASDUs
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->sentASDUsLock);
+#endif
 
     /* check if received sequence number is valid */
 
@@ -251,6 +283,10 @@ checkSequenceNumber(T104Connection self, int seqNo)
         }
     }
 
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->sentASDUsLock);
+#endif
+
     return seqNoIsValid;
 }
 
@@ -280,12 +316,23 @@ T104Connection_close(T104Connection self)
         while (self->running)
             Thread_sleep(1);
     }
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Thread_destroy(self->connectionHandlingThread);
+#endif
 }
 
 void
 T104Connection_destroy(T104Connection self)
 {
     T104Connection_close(self);
+
+    if (self->sentASDUs != NULL)
+        GLOBAL_FREEMEM(self->sentASDUs);
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_destroy(self->sentASDUsLock);
+#endif
 
     GLOBAL_FREEMEM(self);
 }
@@ -347,35 +394,40 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
 {
     if ((buffer[2] & 1) == 0) { /* I format frame */
 
-        DEBUG_PRINT("Received I frame\n");
+        if (self->firstIMessageReceived == false) {
+            self->firstIMessageReceived = true;
+            self->lastConfirmationTime = Hal_getTimeInMs(); /* start timeout T2 */
+        }
 
         if (msgSize < 7) {
             DEBUG_PRINT("I msg too small!\n");
             return false;
         }
 
-        self->receiveCount++;
-        self->unconfirmedReceivedIMessages++;
+        int frameSendSequenceNumber = ((buffer [3] * 0x100) + (buffer [2] & 0xfe)) / 2;
+        int frameRecvSequenceNumber = ((buffer [5] * 0x100) + (buffer [4] & 0xfe)) / 2;
 
-        uint64_t currentTime = Hal_getTimeInMs();
+        DEBUG_PRINT("Received I frame: N(S) = %i N(R) = %i\n", frameSendSequenceNumber, frameRecvSequenceNumber);
 
-        if ((self->unconfirmedReceivedIMessages > self->parameters.w) || checkConfirmTimeout(self, currentTime)) {
-
-            self->lastConfirmationTime = currentTime;
-
-            self->unconfirmedReceivedIMessages = 0;
-            sendSMessage(self);
+        /* check the receive sequence number N(R) - connection will be closed on an unexpected value */
+        if (frameSendSequenceNumber != self->receiveCount) {
+            DEBUG_PRINT("Sequence error: Close connection!");
+            return false;
         }
 
-        //TODO check T104 specific header
+        if (checkSequenceNumber(self, frameRecvSequenceNumber) == false)
+            return false;
+
+        self->receiveCount = (self->receiveCount + 1) % 32768;
+        self->unconfirmedReceivedIMessages++;
 
         ASDU asdu = ASDU_createFromBuffer((ConnectionParameters)&(self->parameters), buffer + 6, msgSize - 6);
 
         if (asdu != NULL) {
-
             if (self->receivedHandler != NULL)
                 self->receivedHandler(self->receivedHandlerParameter, asdu);
 
+            ASDU_destroy(asdu);
         }
         else
             return false;
@@ -385,14 +437,18 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
 
         DEBUG_PRINT("Received U frame\n");
 
+        self->uMessageTimeout = 0;
+
         if (buffer[2] == 0x43) { /* Check for TESTFR_ACT message */
             DEBUG_PRINT("Send TESTFR_CON\n");
-
             Socket_write(self->socket, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
+        }
+        else if (buffer[2] == 0x83) { /* TESTFR_CON */
+            DEBUG_PRINT("Rcvd TESTFR_CON\n");
+            self->outstandingTestFCConMessages = 0;
         }
         else if (buffer[2] == 0x07) { /* STARTDT_ACT */
             DEBUG_PRINT("Send STARTDT_CON\n");
-
             Socket_write(self->socket, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
         }
         else if (buffer[2] == 0x0b) { /* STARTDT_CON */
@@ -410,7 +466,75 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
 
     }
 
+    resetT3Timeout(self);
+
     return true;
+}
+
+static bool
+handleTimeouts(T104Connection self)
+{
+    bool retVal = true;
+
+    uint64_t currentTime = Hal_getTimeInMs();
+
+    if (currentTime > self->nextT3Timeout) {
+
+        if (self->outstandingTestFCConMessages > 2) {
+            DEBUG_PRINT("Timeout for TESTFR_CON message\n");
+
+            /* close connection */
+            retVal = false;
+            goto exit_function;
+        }
+        else {
+            DEBUG_PRINT("U message T3 timeout\n");
+
+            Socket_write(self->socket, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE);
+            self->uMessageTimeout = currentTime + (self->parameters.t1 * 1000);
+            self->outstandingTestFCConMessages++;
+
+            resetT3Timeout(self);
+        }
+    }
+
+    if (self->unconfirmedReceivedIMessages > 0) {
+
+        if (checkConfirmTimeout(self, currentTime)) {
+
+            self->lastConfirmationTime = currentTime;
+            self->unconfirmedReceivedIMessages = 0;
+
+            sendSMessage(self); /* send confirmation message */
+        }
+    }
+
+    if (self->uMessageTimeout != 0) {
+        if (currentTime > self->uMessageTimeout) {
+            DEBUG_PRINT("U message T1 timeout\n");
+            retVal = false;
+            goto exit_function;
+        }
+    }
+
+    /* check if counterpart confirmed I messages */
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->sentASDUsLock);
+#endif
+    if (self->oldestSentASDU != -1) {
+        if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->parameters.t1 * 1000)) {
+            DEBUG_PRINT("I message timeout\n");
+            retVal = false;
+        }
+    }
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->sentASDUsLock);
+#endif
+
+
+exit_function:
+
+    return retVal;
 }
 
 static void*
@@ -420,14 +544,13 @@ handleConnection(void* parameter)
 
     resetConnection(self);
 
-    Socket socket = TcpSocket_create();
+    self->socket = TcpSocket_create();
 
-    Socket_setConnectTimeout(socket, self->connectTimeoutInMs);
+    Socket_setConnectTimeout(self->socket, self->connectTimeoutInMs);
 
-    if (Socket_connect(socket, self->hostname, self->tcpPort)) {
+    if (Socket_connect(self->socket, self->hostname, self->tcpPort)) {
 
         self->running = true;
-        self->socket = socket;
 
         /* Call connection handler */
         if (self->connectionHandler != NULL)
@@ -435,18 +558,20 @@ handleConnection(void* parameter)
 
         HandleSet handleSet = Handleset_new();
 
-        while (self->running) {
+        bool loopRunning = true;
+
+        while (loopRunning) {
 
             uint8_t buffer[300];
 
             Handleset_reset(handleSet);
-            Handleset_addSocket(handleSet, socket);
+            Handleset_addSocket(handleSet, self->socket);
 
             if (Handleset_waitReady(handleSet, 100)) {
-                int bytesRec = receiveMessage(socket, buffer);
+                int bytesRec = receiveMessage(self->socket, buffer);
 
                 if (bytesRec == -1) {
-                    self->running = false;
+                    loopRunning = false;
                     self->failure = true;
                 }
 
@@ -455,18 +580,26 @@ handleConnection(void* parameter)
 
                     if (checkMessage(self, buffer, bytesRec) == false) {
                         /* close connection on error */
-                        self->running = false;
+                        loopRunning= false;
                         self->failure = true;
                     }
                 }
+
+                if (self->unconfirmedReceivedIMessages >= self->parameters.w) {
+                    self->lastConfirmationTime = Hal_getTimeInMs();
+                    self->unconfirmedReceivedIMessages = 0;
+                    sendSMessage(self);
+                }
             }
 
+            if (handleTimeouts(self) == false)
+                loopRunning = false;
+
             if (self->close)
-                self->running = false;
+                loopRunning = false;
         }
 
         Handleset_destroy(handleSet);
-        Socket_destroy(socket);
 
         /* Call connection handler */
         if (self->connectionHandler != NULL)
@@ -474,8 +607,13 @@ handleConnection(void* parameter)
     }
     else {
         self->failure = true;
-        self->running = false;
     }
+
+    Socket_destroy(self->socket);
+
+    DEBUG_PRINT("EXIT CONNECTION HANDLING THREAD\n");
+
+    self->running = false;
 
     return NULL;
 }
@@ -483,19 +621,20 @@ handleConnection(void* parameter)
 void
 T104Connection_connectAsync(T104Connection self)
 {
-    Thread workerThread = Thread_create(handleConnection, self, true);
+    resetConnection(self);
 
-    if (workerThread)
-        Thread_start(workerThread);
+    resetT3Timeout(self);
+
+    self->connectionHandlingThread = Thread_create(handleConnection, self, false);
+
+    if (self->connectionHandlingThread)
+        Thread_start(self->connectionHandlingThread);
 }
 
 bool
 T104Connection_connect(T104Connection self)
 {
-    Thread workerThread = Thread_create(handleConnection, self, true);
-
-    if (workerThread)
-        Thread_start(workerThread);
+    T104Connection_connectAsync(self);
 
     while ((self->running == false) && (self->failure == false))
         Thread_sleep(1);
@@ -562,7 +701,9 @@ T104Connection_sendStopDT(T104Connection self)
 static void
 sendIMessageAndUpdateSentASDUs(T104Connection self, Frame frame)
 {
-    //TODO lock sentASDUs
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->sentASDUsLock);
+#endif
 
     int currentIndex = 0;
 
@@ -578,6 +719,10 @@ sendIMessageAndUpdateSentASDUs(T104Connection self, Frame frame)
     self->sentASDUs [currentIndex].sentTime = Hal_getTimeInMs();
 
     self->newestSentASDU = currentIndex;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->sentASDUsLock);
+#endif
 }
 
 static bool

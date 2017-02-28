@@ -7,7 +7,7 @@
 
 
 /* print debugging information with printf if set to 1 */
-#define CONFIG_DEBUG_OUTPUT 0
+#define CONFIG_DEBUG_OUTPUT 1
 
 /* activate TCP keep alive mechanism. 1 -> activate */
 #define CONFIG_ACTIVATE_TCP_KEEPALIVE 1

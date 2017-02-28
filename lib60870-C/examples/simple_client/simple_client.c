@@ -76,14 +76,13 @@ asduReceivedHandler (void* parameter, ASDU asdu)
 int
 main(int argc, char** argv)
 {
-    T104Connection con = T104Connection_create("192.168.1.50", IEC_60870_5_104_DEFAULT_PORT);
+    T104Connection con = T104Connection_create("127.0.0.1", IEC_60870_5_104_DEFAULT_PORT);
 
     T104Connection_setConnectionHandler(con, connectionHandler, NULL);
+    T104Connection_setASDUReceivedHandler(con, asduReceivedHandler, NULL);
 
     if (T104Connection_connect(con)) {
         printf("Connected!\n");
-
-        T104Connection_setASDUReceivedHandler(con, asduReceivedHandler, NULL);
 
         T104Connection_sendStartDT(con);
 
@@ -114,9 +113,9 @@ main(int argc, char** argv)
     else
         printf("Connect failed!\n");
 
-    T104Connection_destroy(con);
-
     Thread_sleep(1000);
+
+    T104Connection_destroy(con);
 
     printf("exit\n");
 }

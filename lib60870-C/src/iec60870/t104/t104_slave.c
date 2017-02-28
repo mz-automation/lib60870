@@ -918,7 +918,7 @@ Slave_start(Slave self)
         self->isRunning = false;
         self->stopRunning = false;
 
-        Thread server = Thread_create(serverThread, (void*) self, true);
+        Thread server = Thread_create(serverThread, (void*) self, false);
 
         Thread_start(server);
 
