@@ -263,6 +263,8 @@ namespace lib60870
 				// socket error --> close connection
 				running = false;
 			}
+				
+			unconfirmedReceivedIMessages = 0;
 
 			return sendCount;;
 		}
@@ -649,12 +651,14 @@ namespace lib60870
 					
 					do {
 						if (counterOverflowDetected == false) {
-							if (seqNo < sentASDUs [oldestSentASDU].seqNo)
+							if (seqNo < sentASDUs [oldestSentASDU].seqNo) {
 								break;
+							}
 						}
 						else {
-							if (seqNo == ((sentASDUs [oldestSentASDU].seqNo - 1) % 32768))
+							if (seqNo == ((sentASDUs [oldestSentASDU].seqNo - 1) % 32768)) {
 								break;
+							}
 						}
 
 						/* remove from server (low-priority) queue if required */
@@ -671,9 +675,17 @@ namespace lib60870
 							oldestSentASDU = -1;
 							break;
 						}
+							
+						if (sentASDUs [oldestSentASDU].seqNo == seqNo) {
+							/* we arrived at the seq# that has been confirmed */
 
-						if (sentASDUs [oldestSentASDU].seqNo == seqNo)
+							if (oldestSentASDU == newestSentASDU)
+								oldestSentASDU = -1;
+							else 
+								oldestSentASDU = (oldestSentASDU + 1) % maxSentASDUs;
+
 							break;
+						}
 
 					} while (true);
 				}
@@ -695,7 +707,7 @@ namespace lib60870
 
 				if (msgSize < 7) {
 
-					DebugLog("I msg too small!");
+					DebugLog ("I msg too small!");
 
 					return false;
 				}
@@ -703,11 +715,11 @@ namespace lib60870
 				int frameSendSequenceNumber = ((buffer [3] * 0x100) + (buffer [2] & 0xfe)) / 2;
 				int frameRecvSequenceNumber = ((buffer [5] * 0x100) + (buffer [4] & 0xfe)) / 2;
 
-				DebugLog("Received I frame: N(S) = " + frameSendSequenceNumber + " N(R) = " + frameRecvSequenceNumber);
+				DebugLog ("Received I frame: N(S) = " + frameSendSequenceNumber + " N(R) = " + frameRecvSequenceNumber);
 
 				/* check the receive sequence number N(R) - connection will be closed on an unexpected value */
 				if (frameSendSequenceNumber != receiveCount) {
-					DebugLog("Sequence error: Close connection!");
+					DebugLog ("Sequence error: Close connection!");
 					return false;
 				}
 
@@ -723,18 +735,18 @@ namespace lib60870
 					ASDU asdu = new ASDU (parameters, buffer, msgSize);
 				
 					// push to handler thread for processing
-					DebugLog("Enqueue received I-message for processing");
+					DebugLog ("Enqueue received I-message for processing");
 					receivedASDUs.Enqueue (asdu);
 				} else {
 					// connection not activated --> skip message
-					DebugLog("Connection not activated. Skip I message");
+					DebugLog ("Connection not activated. Skip I message");
 				}
 			}
 
 			// Check for TESTFR_ACT message
 			else if ((buffer [2] & 0x43) == 0x43) {
 
-				DebugLog("Send TESTFR_CON");
+				DebugLog ("Send TESTFR_CON");
 
 				socket.Send (TESTFR_CON_MSG);
 			} 
@@ -742,7 +754,7 @@ namespace lib60870
 			// Check for STARTDT_ACT message
 			else if ((buffer [2] & 0x07) == 0x07) {
 
-				DebugLog("Send STARTDT_CON");
+				DebugLog ("Send STARTDT_CON");
 
 				this.isActive = true;
 
@@ -752,12 +764,19 @@ namespace lib60870
 			// Check for STOPDT_ACT message
 			else if ((buffer [2] & 0x13) == 0x13) {
 				
-				DebugLog("Send STOPDT_CON");
+				DebugLog ("Send STOPDT_CON");
 
 				this.isActive = false;
 
 				socket.Send (STOPDT_CON_MSG);
 			} 
+
+			// Check for TESTFR_CON message
+			else if ((buffer [2] & 0x83) == 0x83) {
+				DebugLog ("Recv TESTFR_CON");
+
+				outStandingTestFRConMessages = 0;
+			}
 
 			// S-message
 			else if (buffer [2] == 0x01) {
@@ -819,6 +838,9 @@ namespace lib60870
 				if (oldestSentASDU != -1) {
 
 					if (((long)currentTime - sentASDUs [oldestSentASDU].sentTime) >= (parameters.T1 * 1000)) {
+
+						PrintSendBuffer ();
+						DebugLog("I message timeout for " + oldestSentASDU + " seqNo: " + sentASDUs[oldestSentASDU].seqNo);
 						return false;
 					}
 				}

@@ -229,6 +229,12 @@ namespace lib60870
 
 		private ConnectionParameters parameters;
 
+		public ConnectionParameters Parameters {
+			get {
+				return this.parameters;
+			}
+		}
+
 		ASDUReceivedHandler asduReceivedHandler = null;
 		object asduReceivedHandlerParameter = null;
 
@@ -358,6 +364,7 @@ namespace lib60870
 				socket.Send (buffer, msgSize, SocketFlags.None);
 				sendSequenceNumber = (sendSequenceNumber + 1) % 32768;
 				statistics.SentMsgCounter++;
+				unconfirmedReceivedIMessages = 0;
 
 				return sendSequenceNumber;
 			} else {
@@ -875,20 +882,26 @@ namespace lib60870
 
 				if (buffer [2] == 0x43) { // Check for TESTFR_ACT message
 					statistics.RcvdTestFrActCounter++;
+					DebugLog ("RCVD TESTFR_ACT");
+					DebugLog ("SEND TESTFR_CON");
 					socket.Send (TESTFR_CON_MSG);
 					statistics.SentMsgCounter++;
 				} else if (buffer [2] == 0x83) { /* TESTFR_CON */
+					DebugLog ("RCVD TESTFR_CON");
 					statistics.RcvdTestFrConCounter++;
 					outStandingTestFRConMessages = 0;
 				} else if (buffer [2] == 0x07) { /* STARTDT ACT */
+					DebugLog ("RCVD STARTDT_ACT");
 					socket.Send (STARTDT_CON_MSG);
 					statistics.SentMsgCounter++;
 				} else if (buffer [2] == 0x0b) { /* STARTDT_CON */
+					DebugLog ("RCVD STARTDT_CON");
 
 					if (connectionHandler != null)
 						connectionHandler (connectionHandlerParameter, ConnectionEvent.STARTDT_CON_RECEIVED);
 
 				} else if (buffer [2] == 0x23) { /* STOPDT_CON */
+					DebugLog ("RCVD STOPDT_CON");
 
 					if (connectionHandler != null)
 						connectionHandler (connectionHandlerParameter, ConnectionEvent.STOPDT_CON_RECEIVED);
@@ -930,8 +943,16 @@ namespace lib60870
 
 		private void ConnectSocketWithTimeout()
 		{
-			IPAddress ipAddress = IPAddress.Parse(hostname);
-			IPEndPoint remoteEP = new IPEndPoint(ipAddress, tcpPort);
+			IPAddress ipAddress;
+			IPEndPoint remoteEP;
+
+			try {
+				ipAddress = IPAddress.Parse(hostname);
+				remoteEP = new IPEndPoint(ipAddress, tcpPort);
+			}
+			catch(Exception) {
+				throw new SocketException (87); // wrong argument
+			}
 
 			// Create a TCP/IP  socket.
 			socket = new Socket(AddressFamily.InterNetwork, 
@@ -1037,81 +1058,84 @@ namespace lib60870
 						lastException = se;
 					}
 
-					bool loopRunning = running;
+					if (running) {
 
-					while (loopRunning) {
+						bool loopRunning = running;
 
-						try {
-							// Receive a message from from the remote device.
-							int bytesRec = receiveMessage(socket, bytes);
+						while (loopRunning) {
 
-							if (bytesRec > 0) {
+							try {
+								// Receive a message from from the remote device.
+								int bytesRec = receiveMessage(socket, bytes);
 
-								if (debugOutput)
-									Console.WriteLine(
-										BitConverter.ToString(bytes, 0, bytesRec));
+								if (bytesRec > 0) {
 
-								statistics.RcvdMsgCounter++;
-							
-								bool handleMessage = true;
+									DebugLog("RCVD: " + BitConverter.ToString(bytes, 0, bytesRec));
 
-								if (rawMessageHandler != null) 
-									handleMessage = rawMessageHandler(rawMessageHandlerParameter, bytes, bytesRec);
-											
-								if (handleMessage) {
-									if (checkMessage(socket, bytes, bytesRec) == false) {
-										/* close connection on error */
-										loopRunning = false;
+									statistics.RcvdMsgCounter++;
+								
+									bool handleMessage = true;
+
+									if (rawMessageHandler != null) 
+										handleMessage = rawMessageHandler(rawMessageHandlerParameter, bytes, bytesRec);
+												
+									if (handleMessage) {
+										if (checkMessage(socket, bytes, bytesRec) == false) {
+											/* close connection on error */
+											loopRunning = false;
+										}
 									}
+
+									if (unconfirmedReceivedIMessages >= parameters.W) {
+										lastConfirmationTime = SystemUtils.currentTimeMillis();
+
+										unconfirmedReceivedIMessages = 0;
+										SendSMessage ();
+									}	
+								}
+								else if (bytesRec == -1)
+									loopRunning = false;
+								else {
+									// save CPU time when no message received
+									Thread.Sleep(50);
 								}
 
-								if (unconfirmedReceivedIMessages >= parameters.W) {
-									lastConfirmationTime = SystemUtils.currentTimeMillis();
+								if (handleTimeouts() == false)
+									loopRunning = false;
 
-									unconfirmedReceivedIMessages = 0;
-									SendSMessage ();
-								}	
+								if (isConnected() == false)
+									loopRunning = false;
+
+								if (useSendMessageQueue)
+									SendNextWaitingASDU();
 							}
-							else if (bytesRec == -1)
+							catch (SocketException) {	
 								loopRunning = false;
-
-							if (handleTimeouts() == false)
-								loopRunning = false;
-
-							if (isConnected() == false)
-								loopRunning = false;
-
-							if (useSendMessageQueue)
-								SendNextWaitingASDU();
+							}
 						}
-						catch (SocketException) {	
-							loopRunning = false;
+
+						DebugLog("CLOSE CONNECTION!");
+
+						// Release the socket.
+						try {
+							socket.Shutdown(SocketShutdown.Both);
 						}
+						catch (SocketException) {
+						}
+
+						socket.Close();
+
+						if (connectionHandler != null)
+							connectionHandler(connectionHandlerParameter, ConnectionEvent.CLOSED);
 					}
-
-					DebugLog("CLOSE CONNECTION!");
-
-					// Release the socket.
-					try {
-						socket.Shutdown(SocketShutdown.Both);
-					}
-					catch (SocketException) {
-					}
-
-					socket.Close();
-
-					if (connectionHandler != null)
-						connectionHandler(connectionHandlerParameter, ConnectionEvent.CLOSED);
 
 				} catch (ArgumentNullException ane) {
                     connecting = false;
 					DebugLog("ArgumentNullException: " + ane.ToString());
 				} catch (SocketException se) {
-					if (debugOutput)
-						DebugLog("SocketException: " + se.ToString());
+					DebugLog("SocketException: " + se.ToString());
 				} catch (Exception e) {
-					if (debugOutput)
-						DebugLog("Unexpected exception: " + e.ToString());
+					DebugLog("Unexpected exception: " + e.ToString());
 				}
 					
 			} catch (Exception e) {
