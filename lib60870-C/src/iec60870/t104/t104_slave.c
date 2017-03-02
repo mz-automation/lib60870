@@ -31,6 +31,7 @@
 #include "hal_thread.h"
 #include "hal_time.h"
 #include "lib_memory.h"
+#include "buffer_frame.h"
 
 #include "lib60870_config.h"
 #include "lib60870_internal.h"
@@ -57,6 +58,11 @@ static struct sT104ConnectionParameters defaultConnectionParameters = {
 };
 
 
+typedef struct {
+    uint8_t msg[256];
+    int msgSize;
+} FrameBuffer;
+
 struct sMessageQueue {
     int size;
     int entryCounter;
@@ -64,9 +70,9 @@ struct sMessageQueue {
     int firstMsgIndex;
 
 #if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
-    ASDU asdus[CONFIG_SLAVE_MESSAGE_QUEUE_SIZE];
+    FrameBuffer asdus[CONFIG_SLAVE_MESSAGE_QUEUE_SIZE];
 #else
-    ASDU* asdus;
+    FrameBuffer* asdus;
 #endif
 
 #if (CONFIG_SLAVE_USING_THREADS == 1)
@@ -108,6 +114,7 @@ struct sSlave {
     int tcpPort;
 
     char* localAddress;
+    Thread listeningThread;
 };
 
 #if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
@@ -138,7 +145,7 @@ initializeMessageQueue(Slave self, int maxQueueSize)
     if (maxQueueSize < 1)
         maxQueueSize = CONFIG_SLAVE_MESSAGE_QUEUE_SIZE;
 
-    self->messageQueue.asdus = GLOBAL_CALLOC(maxQueueSize, sizeof(ASDU));
+    self->messageQueue.asdus = GLOBAL_CALLOC(maxQueueSize, sizeof(FrameBuffer));
 #endif
 
     self->messageQueue.entryCounter = 0;
@@ -183,6 +190,7 @@ T104Slave_create(ConnectionParameters parameters, int maxQueueSize)
         self->localAddress = NULL;
         self->tcpPort = T104_DEFAULT_PORT;
         self->openConnections = 0;
+        self->listeningThread = NULL;
     }
 
     return self;
@@ -276,7 +284,6 @@ Slave_enqueueASDU(Slave self, ASDU asdu)
 
     if (removeEntry == false) {
         DEBUG_PRINT("add entry (nextIndex:%i)\n", nextIndex);
-        self->messageQueue.asdus[nextIndex] = asdu;
         self->messageQueue.lastMsgIndex = nextIndex;
         self->messageQueue.entryCounter++;
     }
@@ -285,8 +292,6 @@ Slave_enqueueASDU(Slave self, ASDU asdu)
         DEBUG_PRINT("add entry (nextIndex:%i) -> remove oldest\n", nextIndex);
 
         /* remove oldest entry */
-        ASDU_destroy(self->messageQueue.asdus[nextIndex]);
-        self->messageQueue.asdus[nextIndex] = asdu;
         self->messageQueue.lastMsgIndex = nextIndex;
 
         int firstIndex = nextIndex + 1;
@@ -296,6 +301,17 @@ Slave_enqueueASDU(Slave self, ASDU asdu)
 
         self->messageQueue.firstMsgIndex = firstIndex;
     }
+
+    struct sBufferFrame bufferFrame;
+
+    Frame frame = BufferFrame_initialize(&bufferFrame, self->messageQueue.asdus[nextIndex].msg,
+                                            IEC60870_5_104_APCI_LENGTH);
+
+    ASDU_encode(asdu, frame);
+
+    self->messageQueue.asdus[nextIndex].msgSize = Frame_getMsgSize(frame);
+
+    ASDU_destroy(asdu);
 
     DEBUG_PRINT("ASDUs in FIFO: %i (first: %i, last: %i)\n", self->messageQueue.entryCounter,
             self->messageQueue.firstMsgIndex, self->messageQueue.lastMsgIndex);
@@ -314,41 +330,43 @@ releaseAllQueuedASDUs(Slave self)
     Semaphore_wait(self->messageQueue.queueLock);
 #endif
 
-    while (self->messageQueue.entryCounter > 0) {
-        ASDU_destroy(self->messageQueue.asdus[self->messageQueue.firstMsgIndex]);
-
-        self->messageQueue.entryCounter--;
-
-        self->messageQueue.firstMsgIndex++;
-
-        if (self->messageQueue.firstMsgIndex == self->messageQueue.size)
-            self->messageQueue.firstMsgIndex = 0;
-    }
-
-
     self->messageQueue.firstMsgIndex = 0;
     self->messageQueue.lastMsgIndex = 0;
+    self->messageQueue.entryCounter = 0;
 
 #if (CONFIG_SLAVE_USING_THREADS == 1)
     Semaphore_post(self->messageQueue.queueLock);
 #endif
 }
 
-ASDU
-Slave_dequeueASDU(Slave self)
+static void
+Slave_lockQueue(Slave self)
 {
-    ASDU asdu = NULL;
-
 #if (CONFIG_SLAVE_USING_THREADS == 1)
     Semaphore_wait(self->messageQueue.queueLock);
 #endif
+}
+
+static void
+Slave_unlockQueue(Slave self)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->messageQueue.queueLock);
+#endif
+}
+
+static uint8_t*
+Slave_dequeueASDU(Slave self, int* msgSize)
+{
+    uint8_t* buffer = NULL;
 
     if (self->messageQueue.entryCounter != 0) {
         int firstMsgIndex = self->messageQueue.firstMsgIndex;
 
         DEBUG_PRINT("remove entry (%i)\n", firstMsgIndex);
 
-        asdu = self->messageQueue.asdus[firstMsgIndex];
+        buffer = self->messageQueue.asdus[firstMsgIndex].msg;
+        *msgSize = self->messageQueue.asdus[firstMsgIndex].msgSize;
 
         firstMsgIndex++;
 
@@ -366,12 +384,18 @@ Slave_dequeueASDU(Slave self)
 
     }
 
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_post(self->messageQueue.queueLock);
-#endif
-
-    return asdu;
+    return buffer;
 }
+
+typedef struct {
+    // required to identify message in server (low-priority) queue
+    uint64_t entryTime;
+    int queueIndex; /* -1 if ASDU is not from low-priority queue */
+
+    // required for T1 timeout
+    uint64_t sentTime;
+    int seqNo;
+} SentASDUSlave;
 
 struct sMasterConnection {
     Socket socket;
@@ -379,11 +403,21 @@ struct sMasterConnection {
     bool isActive;
     bool isRunning;
 
-    int sendCount;
-    int receiveCount;
+    int sendCount;     /* sent messages - sequence counter */
+    int receiveCount;  /* received messages - sequence counter */
 
-    int unconfirmedMessages;
-    uint64_t lastConfirmationTime;
+    int unconfirmedReceivedIMessages; /* number of unconfirmed messages received */
+    uint64_t lastConfirmationTime; /* timestamp when the last confirmation message (for I messages) was sent */
+
+    uint64_t nextT3Timeout;
+    int outstandingTestFRConMessages;
+
+    int maxSentASDUs;
+    int oldestSentASDU;
+    int newestSentASDU;
+    SentASDUSlave* sentASDUs;
+
+    bool firstIMessageReceived;
 };
 
 
@@ -415,38 +449,75 @@ static void
 increaseReceivedMessageCounters(MasterConnection self)
 {
     self->receiveCount++;
-    self->unconfirmedMessages++;
+    self->unconfirmedReceivedIMessages++;
 
-    if (self->unconfirmedMessages == 1)
+    if (self->unconfirmedReceivedIMessages == 1)
         self->lastConfirmationTime = Hal_getTimeInMs();
 
 }
 
 static void
-sendIMessage(MasterConnection self, T104Frame frame)
+sendIMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 {
-    T104Frame_prepareToSend(frame, self->sendCount, self->receiveCount);
-    Socket_write(self->socket, T104Frame_getBuffer((Frame) frame), T104Frame_getMsgSize((Frame) frame));
-    self->sendCount++;
+    //TODO lock socket
+
+    buffer[0] = (uint8_t) 0x68;
+    buffer[1] = (uint8_t) (msgSize - 2);
+
+    buffer[2] = (uint8_t) ((self->sendCount % 128) * 2);
+    buffer[3] = (uint8_t) (self->sendCount / 128);
+
+    buffer[4] = (uint8_t) ((self->receiveCount % 128) * 2);
+    buffer[5] = (uint8_t) (self->receiveCount / 128);
+
+    Socket_write(self->socket, buffer, msgSize);
+
+    self->sendCount = (self->sendCount + 1) % 32768;
+
+    self->unconfirmedReceivedIMessages = 0;
+}
+
+static bool
+isSentBufferFull(MasterConnection self)
+{
+    //TODO lock k-buffer
+    if (self->oldestSentASDU == -1)
+        return false;
+
+    int newIndex = (self->newestSentASDU + 1) % (self->maxSentASDUs);
+
+    if (newIndex == self->oldestSentASDU)
+        return true;
+    else
+        return false;
 }
 
 static void
-sendASDU(MasterConnection self, ASDU asdu)
+sendASDU(MasterConnection self, uint8_t* buffer, int msgSize)
 {
-    Frame frame = (Frame) T104Frame_create();
+    sendIMessage(self, buffer, msgSize);
+}
+
+static void
+sendASDUInternal(MasterConnection self, ASDU asdu)
+{
+    struct sBufferFrame bufferFrame;
+
+    uint8_t buffer[IEC60870_5_104_MAX_ASDU_LENGTH + IEC60870_5_104_APCI_LENGTH];
+
+    Frame frame = BufferFrame_initialize(&bufferFrame, buffer,
+                                            IEC60870_5_104_APCI_LENGTH);
 
     ASDU_encode(asdu, frame);
 
-    sendIMessage(self, (T104Frame) frame);
-
-    T104Frame_destroy(frame);
+    sendASDU(self, buffer, Frame_getMsgSize(frame));
 }
 
 static void responseCOTUnknown(ASDU asdu, MasterConnection self)
 {
     DEBUG_PRINT("  with unknown COT\n");
     ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
-    sendASDU(self, asdu);
+    sendASDUInternal(self, asdu);
 }
 
 static void
@@ -555,7 +626,7 @@ handleASDU(MasterConnection self, ASDU asdu)
         else
             ASDU_setCOT(asdu, ACTIVATION_CON);
 
-        sendASDU(self, asdu);
+        sendASDUInternal(self, asdu);
 
         messageHandled = true;
 
@@ -616,7 +687,7 @@ handleASDU(MasterConnection self, ASDU asdu)
     if (messageHandled == false) {
         /* send error response */
         ASDU_setCOT(asdu, UNKNOWN_TYPE_ID);
-        sendASDU(self, asdu);
+        sendASDUInternal(self, asdu);
     }
 }
 
@@ -628,7 +699,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
         DEBUG_PRINT("Received I frame\n");
 
         if (msgSize < 7) {
-            printf("I msg too small!\n");
+            DEBUG_PRINT("I msg too small!\n");
             return false;
         }
 
@@ -685,13 +756,16 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 static void
 checkServerQueue(MasterConnection self)
 {
-    ASDU asdu = Slave_dequeueASDU(self->slave);
+    Slave_lockQueue(self->slave);
 
-    if (asdu != NULL) {
-        sendASDU(self, asdu);
+    int msgSize;
 
-        ASDU_destroy(asdu);
-    }
+    uint8_t* buffer = Slave_dequeueASDU(self->slave, &msgSize);
+
+    if (buffer != NULL)
+        sendASDU(self, buffer, msgSize);
+
+    Slave_unlockQueue(self->slave);
 }
 
 static void sendSMessage(MasterConnection self)
@@ -723,18 +797,18 @@ checkConfirmTimeout(MasterConnection self, uint64_t currentTime)
 static void
 sendSMessageIfRequired(MasterConnection self)
 {
-    if (self->unconfirmedMessages > 0) {
+    if (self->unconfirmedReceivedIMessages > 0) {
         uint64_t currentTime = Hal_getTimeInMs();
 
 		T104ConnectionParameters parameters = (T104ConnectionParameters) &(self->slave->parameters);
 
-        if ((self->unconfirmedMessages > parameters->w) || checkConfirmTimeout(self, currentTime)) {
+        if ((self->unconfirmedReceivedIMessages > parameters->w) || checkConfirmTimeout(self, currentTime)) {
 
-            printf("Send S message\n");
+            DEBUG_PRINT("Send S message\n");
 
             self->lastConfirmationTime = currentTime;
 
-            self->unconfirmedMessages = 0;
+            self->unconfirmedReceivedIMessages = 0;
 
             sendSMessage(self);
         }
@@ -747,8 +821,16 @@ MasterConnection_destroy(MasterConnection self)
     if (self) {
         Socket_destroy(self->socket);
 
+        GLOBAL_FREEMEM(self->sentASDUs);
+
         GLOBAL_FREEMEM(self);
     }
+}
+
+static void
+resetT3Timeout(MasterConnection self)
+{
+    self->nextT3Timeout = Hal_getTimeInMs() + (uint64_t) (self->slave->parameters.t3 * 1000);
 }
 
 static void*
@@ -808,8 +890,17 @@ MasterConnection_create(Slave slave, Socket socket)
         self->receiveCount = 0;
         self->sendCount = 0;
 
-        self->unconfirmedMessages = 0;
+        self->unconfirmedReceivedIMessages = 0;
         self->lastConfirmationTime = UINT64_MAX;
+
+        self->firstIMessageReceived = false;
+
+        self->maxSentASDUs = slave->parameters.k;
+        self->oldestSentASDU = -1;
+        self->newestSentASDU = -1;
+        self->sentASDUs = (SentASDUSlave*) GLOBAL_MALLOC(sizeof(SentASDUSlave) * self->maxSentASDUs);
+
+        self->outstandingTestFRConMessages = 0;
 
         Thread newThread =
                Thread_create((ThreadExecutionFunction) connectionHandlingThread,
@@ -821,27 +912,14 @@ MasterConnection_create(Slave slave, Socket socket)
     return self;
 }
 
-/**
- * \brief send an ASDU using this client(master) connection
- *
- * The ASDU will be released by this function after the message is sent.
- * You should not call the ASDU_destroy function for the given ASDU after
- * calling this function!
- *
- * \param asdu ASDU to send
- */
+
 void
 MasterConnection_sendASDU(MasterConnection self, ASDU asdu)
 {
-    Frame frame = (Frame) T104Frame_create();
-    ASDU_encode(asdu, frame);
+    sendASDUInternal(self, asdu);
 
     if (ASDU_isStackCreated(asdu) == false)
         ASDU_destroy(asdu);
-
-    sendIMessage(self, (T104Frame) frame);
-
-    Frame_destroy(frame);
 }
 
 void
@@ -918,9 +996,9 @@ Slave_start(Slave self)
         self->isRunning = false;
         self->stopRunning = false;
 
-        Thread server = Thread_create(serverThread, (void*) self, false);
+        self->listeningThread = Thread_create(serverThread, (void*) self, false);
 
-        Thread_start(server);
+        Thread_start(self->listeningThread);
 
         while (self->isStarting)
             Thread_sleep(1);
@@ -942,6 +1020,10 @@ Slave_stop(Slave self)
         while (self->isRunning)
             Thread_sleep(1);
     }
+
+    Thread_destroy(self->listeningThread);
+
+    self->listeningThread = NULL;
 }
 
 
@@ -952,6 +1034,9 @@ Slave_destroy(Slave self)
         Slave_stop(self);
 
     releaseAllQueuedASDUs(self);
+
+    if (self->localAddress != NULL)
+        GLOBAL_FREEMEM(self->localAddress);
 
 #if (CONFIG_SLAVE_USING_THREADS == 1)
     Semaphore_destroy(self->messageQueue.queueLock);

@@ -131,18 +131,23 @@ Slave_isRunning(Slave self);
 void
 Slave_stop(Slave self);
 
+/**
+ * \brief Add an ASDU to the low-priority queue of the slave (use for periodic and spontaneous messages)
+ *
+ * \param asdu the ASDU to add
+ */
 void
 Slave_enqueueASDU(Slave self, ASDU asdu);
-
-//TODO internal - remove from API
-ASDU
-Slave_dequeueASDU(Slave self);
 
 void
 Slave_destroy(Slave self);
 
 /**
  * \brief Send an ASDU to the client/master
+ *
+ * The ASDU will be released by this function after the message is sent.
+ * You should not call the ASDU_destroy function for the given ASDU after
+ * calling this function!
  *
  * \param self the connection object (this is usually received as a parameter of a callback function)
  * \param asdu the ASDU to send to the client/master

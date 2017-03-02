@@ -256,7 +256,7 @@ namespace lib60870
 			try {
 				lock (socket) {
 					socket.Send (buffer, msgSize, SocketFlags.None);
-					sendCount = (sendCount + 1) % 32768;;
+					sendCount = (sendCount + 1) % 32768;
 				}
 			}
 			catch (SocketException) {
