@@ -240,7 +240,7 @@ namespace lib60870
 
 			byte[] buffer = asdu.GetBuffer ();
 
-			int msgSize = asdu.GetMsgSize () + 6; /* ASDU size + ACPI size */
+			int msgSize = asdu.GetMsgSize (); /* ASDU size + ACPI size */
 
 			buffer [0] = 0x68;
 
@@ -256,6 +256,7 @@ namespace lib60870
 			try {
 				lock (socket) {
 					socket.Send (buffer, msgSize, SocketFlags.None);
+					DebugLog("SEND I (size = " + msgSize + ") : " +	BitConverter.ToString(buffer, 0, msgSize));
 					sendCount = (sendCount + 1) % 32768;
 				}
 			}
@@ -412,7 +413,7 @@ namespace lib60870
 			if (isActive) {
 				lock (waitingASDUsHighPrio) {
 
-					BufferFrame frame = new BufferFrame (new byte[260], 6);
+					BufferFrame frame = new BufferFrame (new byte[256], 6);
 
 					asdu.Encode (frame, parameters);
 
@@ -916,7 +917,7 @@ namespace lib60870
 				}
 
 			} catch (Exception e) {
-				Console.WriteLine( e.ToString());
+				DebugLog( e.ToString());
 			}
 
 			callbackThreadRunning = false;

@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testclient2", "testclient2\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMasterSlave", "TestMasterSlave\TestMasterSlave.csproj", "{7D9193D5-E114-4E8D-BF85-59A08CCDDC3E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "slave1", "slave1\slave1.csproj", "{C48F029B-D26C-47E9-9958-994543664DB7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -37,6 +39,10 @@ Global
 		{7D9193D5-E114-4E8D-BF85-59A08CCDDC3E}.Debug|x86.Build.0 = Debug|x86
 		{7D9193D5-E114-4E8D-BF85-59A08CCDDC3E}.Release|x86.ActiveCfg = Release|x86
 		{7D9193D5-E114-4E8D-BF85-59A08CCDDC3E}.Release|x86.Build.0 = Release|x86
+		{C48F029B-D26C-47E9-9958-994543664DB7}.Debug|x86.ActiveCfg = Debug|x86
+		{C48F029B-D26C-47E9-9958-994543664DB7}.Debug|x86.Build.0 = Debug|x86
+		{C48F029B-D26C-47E9-9958-994543664DB7}.Release|x86.ActiveCfg = Release|x86
+		{C48F029B-D26C-47E9-9958-994543664DB7}.Release|x86.Build.0 = Release|x86
 		{DAEA188F-6E13-4161-82F2-3BDC19F3DAA0}.Debug|x86.ActiveCfg = Debug|x86
 		{DAEA188F-6E13-4161-82F2-3BDC19F3DAA0}.Debug|x86.Build.0 = Debug|x86
 		{DAEA188F-6E13-4161-82F2-3BDC19F3DAA0}.Release|x86.ActiveCfg = Release|x86

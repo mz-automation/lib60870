@@ -59,7 +59,7 @@ namespace lib60870
 		private bool isNegative; /* is message a negative confirmation */
 
 		private int ca; /* Common address */
-		private int spaceLeft = IEC60870_5_104_MAX_ASDU_LENGTH;
+		private int spaceLeft = 0;
 
 		private byte[] payload = null;
 		private List<InformationObject> informationObjects = null;
@@ -90,6 +90,8 @@ namespace lib60870
 			this.isNegative = isNegative;
 			this.oa = oa;
 			this.ca = ca;
+			this.spaceLeft = IEC60870_5_104_MAX_ASDU_LENGTH - 
+				parameters.SizeOfTypeId - parameters.SizeOfVSQ - parameters.SizeOfCA - parameters.SizeOfCOT;
 
 			if (isSequence)
 				this.vsq = 0x80;
@@ -129,7 +131,7 @@ namespace lib60870
 				if (spaceLeft == IEC60870_5_104_MAX_ASDU_LENGTH) // is first object?
 					objectSize += parameters.SizeOfIOA;
 			}
-
+				
 			if (objectSize <= spaceLeft) {
 
 				spaceLeft -= objectSize;

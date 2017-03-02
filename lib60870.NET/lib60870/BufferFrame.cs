@@ -52,7 +52,7 @@ namespace lib60870
 		}
 
 		public override int GetMsgSize () {
-			return (bufPos - startPos);
+			return bufPos;
 		}
 
 		public override byte[] GetBuffer ()
