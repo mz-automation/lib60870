@@ -581,6 +581,67 @@ namespace tests
 			Assert.AreEqual (18, addedCounter);
 			Assert.NotNull (asdu.AsByteArray ());
 
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new PackedSinglePointWithSCD (ioa, new StatusAndStatusChangeDetection(), new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (30, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new PackedOutputCircuitInfo (ioa, new OutputCircuitInfo(), new QualityDescriptorP(), new CP16Time2a(10), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (24, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new PackedOutputCircuitInfoWithCP56Time2a (ioa, new OutputCircuitInfo(), new QualityDescriptorP(), new CP16Time2a(10), new CP56Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (17, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new PackedStartEventsOfProtectionEquipment (ioa, new StartEvent(), new QualityDescriptorP(), new CP16Time2a(10), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (24, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new PackedStartEventsOfProtectionEquipmentWithCP56Time2a (ioa, new StartEvent(), new QualityDescriptorP(), new CP16Time2a(10), new CP56Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (17, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
 			//TODO add missing tests
 		}
 
@@ -678,10 +739,49 @@ namespace tests
 
 			Assert.AreEqual (48, addedCounter);
 			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new PackedSinglePointWithSCD (ioa,new StatusAndStatusChangeDetection(), new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (48, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new PackedOutputCircuitInfo (ioa, new OutputCircuitInfo(), new QualityDescriptorP(), new CP16Time2a(10), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (34, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new PackedStartEventsOfProtectionEquipment (ioa, new StartEvent(), new QualityDescriptorP(), new CP16Time2a(0), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (34, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
 		}
 			
 		[Test()]
-		//[Ignore("Ignore to save execution time")]
+		[Ignore("Ignore to save execution time")]
 		public void TestSendTestFR() {
 			ConnectionParameters clientParameters = new ConnectionParameters ();
 			ConnectionParameters serverParameters = new ConnectionParameters ();
@@ -735,7 +835,7 @@ namespace tests
 		/// doesn't receive the TESTFR_CON messages
 		/// </summary>
 		[Test()]
-		//[Ignore("Ignore to save execution time")]
+		[Ignore("Ignore to save execution time")]
 		public void TestSendTestFRTimeoutMaster() {
 			ConnectionParameters clientParameters = new ConnectionParameters ();
 			ConnectionParameters serverParameters = new ConnectionParameters ();
@@ -806,7 +906,7 @@ namespace tests
 		/// doesn't send the TESTFR_CON messages
 		/// </summary>
 		[Test()]
-		//[Ignore("Ignore to save execution time")]
+		[Ignore("Ignore to save execution time")]
 		public void TestSendTestFRTimeoutSlave() {
 			ConnectionParameters clientParameters = new ConnectionParameters ();
 			ConnectionParameters serverParameters = new ConnectionParameters ();

@@ -52,6 +52,10 @@ namespace lib60870
 				return false;
 		}
 
+		public StatusAndStatusChangeDetection ()
+		{
+		}
+
 		public StatusAndStatusChangeDetection (byte[] msg, int startIndex)
 		{
 			if (msg.Length < startIndex + 4)
@@ -61,7 +65,7 @@ namespace lib60870
 				encodedValue [i] = msg [startIndex + i];
 		}
 
-		private byte[] encodedValue = new byte[0];
+		private byte[] encodedValue = new byte[4];
 
 		public byte[] GetEncodedValue() 
 		{
