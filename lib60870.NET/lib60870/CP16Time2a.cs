@@ -38,6 +38,11 @@ namespace lib60870
 				encodedValue [i] = msg [startIndex + i];
 		}
 
+		public CP16Time2a(int elapsedTimeInMs)
+		{
+			ElapsedTimeInMs = elapsedTimeInMs;
+		}
+
 		public int ElapsedTimeInMs {
 			get {
 				return (encodedValue[0] + (encodedValue[1] * 0x100));

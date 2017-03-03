@@ -241,9 +241,9 @@ namespace tests
 				addedCounter++;
 			}
 
-			Assert.AreEqual (243, addedCounter); 
+			Assert.AreEqual (240, addedCounter); 
 
-			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
 
 			addedCounter = 0;
 			ioa = 100;
@@ -253,7 +253,7 @@ namespace tests
 				addedCounter++;
 			}
 
-			Assert.AreEqual (60, addedCounter); 
+			Assert.AreEqual (34, addedCounter); 
 
 			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
 
@@ -278,6 +278,406 @@ namespace tests
 			}
 
 			Assert.AreEqual (16, addedCounter); 
+		}
+
+		[Test()]
+		public void TestEncodeASDUsWithManyInformationObjects() {
+			ConnectionParameters cp = new ConnectionParameters ();
+
+			ASDU asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			int addedCounter = 0;
+			int ioa = 100;
+
+			while (asdu.AddInformationObject (new SinglePointInformation (ioa, false, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (60, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new SinglePointWithCP24Time2a (ioa, true, new QualityDescriptor(), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (34, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new SinglePointWithCP56Time2a (ioa, true, new QualityDescriptor(), new CP56Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (22, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new DoublePointInformation (ioa, DoublePointValue.ON, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (60, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new DoublePointWithCP24Time2a (ioa, DoublePointValue.ON, new QualityDescriptor(), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (34, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new DoublePointWithCP56Time2a (ioa, DoublePointValue.ON, new QualityDescriptor(), new CP56Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (22, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+	
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueNormalized (ioa, 1f, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (40, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueNormalizedWithCP24Time2a (ioa, 1f, new QualityDescriptor(), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (27, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueNormalizedWithCP56Time2a (ioa, 1f, new QualityDescriptor(), new CP56Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (18, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueScaled (ioa, 0, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (40, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueScaledWithCP24Time2a (ioa, 0, new QualityDescriptor(), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (27, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueScaledWithCP56Time2a (ioa, 0, new QualityDescriptor(), new CP56Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (18, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueShort (ioa, 0f, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (30, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueShortWithCP24Time2a (ioa, 0f, new QualityDescriptor(), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (22, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueShortWithCP56Time2a (ioa, 0f, new QualityDescriptor(), new CP56Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (16, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new StepPositionInformation (ioa, 0, false, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (48, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new StepPositionWithCP24Time2a (ioa, 0, false, new QualityDescriptor(), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (30, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new StepPositionWithCP56Time2a (ioa, 0, false, new QualityDescriptor(), new CP56Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (20, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new IntegratedTotals (ioa, new BinaryCounterReading()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (30, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new IntegratedTotalsWithCP24Time2a (ioa, new BinaryCounterReading(), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (22, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new IntegratedTotalsWithCP56Time2a (ioa, new BinaryCounterReading(), new CP56Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (16, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new EventOfProtectionEquipment (ioa, new SingleEvent(), new CP16Time2a(10), new CP24Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (27, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new EventOfProtectionEquipmentWithCP56Time2a (ioa, new SingleEvent(), new CP16Time2a(10), new CP56Time2a()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (18, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+			//TODO add missing tests
+		}
+
+		[Test()]
+		public void TestEncodeASDUsWithManyInformationObjectsSequenceOfIO() {
+
+			ConnectionParameters cp = new ConnectionParameters ();
+
+			ASDU asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+			int addedCounter = 0;
+			int ioa = 100;
+
+			while (asdu.AddInformationObject (new SinglePointInformation (ioa, false, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (240, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new DoublePointInformation (ioa, DoublePointValue.OFF, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (240, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueNormalized (ioa, 1f, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+
+			Assert.AreEqual (80, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueScaled (ioa, 0, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (80, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new MeasuredValueShort (ioa, 0f, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (48, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new StepPositionInformation (ioa, 0, false, new QualityDescriptor()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (120, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
+
+
+			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+			addedCounter = 0;
+			ioa = 100;
+
+			while (asdu.AddInformationObject (new IntegratedTotals (ioa, new BinaryCounterReading()))) {
+				ioa++;
+				addedCounter++;
+			}
+
+			Assert.AreEqual (48, addedCounter);
+			Assert.NotNull (asdu.AsByteArray ());
 		}
 			
 		[Test()]
@@ -406,6 +806,7 @@ namespace tests
 		/// doesn't send the TESTFR_CON messages
 		/// </summary>
 		[Test()]
+		//[Ignore("Ignore to save execution time")]
 		public void TestSendTestFRTimeoutSlave() {
 			ConnectionParameters clientParameters = new ConnectionParameters ();
 			ConnectionParameters serverParameters = new ConnectionParameters ();

@@ -28,7 +28,7 @@ namespace lib60870
 	public class EventOfProtectionEquipment : InformationObject
 	{
 		override public int GetEncodedSize() {
-			return 3;
+			return 6;
 		}
 
 		override public TypeID Type {

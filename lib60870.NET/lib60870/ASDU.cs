@@ -128,7 +128,7 @@ namespace lib60870
 			if (IsSquence == false)
 				objectSize += parameters.SizeOfIOA;
 			else {
-				if (spaceLeft == IEC60870_5_104_MAX_ASDU_LENGTH) // is first object?
+				if (informationObjects.Count == 0) // is first object?
 					objectSize += parameters.SizeOfIOA;
 			}
 				
@@ -227,6 +227,20 @@ namespace lib60870
 
 				}
 			}
+		}
+
+		public byte[] AsByteArray()
+		{
+			int expectedSize = IEC60870_5_104_MAX_ASDU_LENGTH - spaceLeft;
+
+			BufferFrame frame = new BufferFrame (new byte[expectedSize], 0);
+
+			Encode (frame, parameters);
+
+			if (frame.GetMsgSize () == expectedSize)
+				return frame.GetBuffer ();
+			else
+				return null;
 		}
 
 		public TypeID TypeId {
