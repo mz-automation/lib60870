@@ -144,11 +144,14 @@ namespace lib60870
 				return false;
 		}
 
-		public ASDU (ConnectionParameters parameters, byte[] msg, int msgLength)
+		public ASDU (ConnectionParameters parameters, byte[] msg, int bufPos, int msgLength)
 		{
 			this.parameters = parameters;
 
-			int bufPos = 6;
+			int asduHeaderSize = 2 + parameters.SizeOfCOT + parameters.SizeOfCA;
+
+			if ((msgLength - bufPos) < asduHeaderSize)
+				throw new ASDUParsingException ("Message header too small");
 
 			typeId = (TypeID) msg [bufPos++];
 			vsq = msg [bufPos++];
@@ -178,6 +181,8 @@ namespace lib60870
 				ca += (msg [bufPos++] * 0x100);
 
 			int payloadSize = msgLength - bufPos;
+
+			//TODO add plausibility check for payload length (using TypeID, SizeOfIOA, and VSQ)
 
 			payload = new byte[payloadSize];
 

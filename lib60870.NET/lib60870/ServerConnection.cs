@@ -733,11 +733,18 @@ namespace lib60870
 				unconfirmedReceivedIMessages++;
 
 				if (isActive) {
-					ASDU asdu = new ASDU (parameters, buffer, msgSize);
-				
-					// push to handler thread for processing
-					DebugLog ("Enqueue received I-message for processing");
-					receivedASDUs.Enqueue (asdu);
+
+					try {
+						ASDU asdu = new ASDU (parameters, buffer, 6, msgSize);
+					
+						// push to handler thread for processing
+						DebugLog ("Enqueue received I-message for processing");
+						receivedASDUs.Enqueue (asdu);
+					}
+					catch (ASDUParsingException e) {
+						DebugLog ("ASDU parsing failed: " + e.Message);
+						return false;
+					}
 				} else {
 					// connection not activated --> skip message
 					DebugLog ("Connection not activated. Skip I message");

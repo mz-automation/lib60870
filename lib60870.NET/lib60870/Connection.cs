@@ -865,10 +865,17 @@ namespace lib60870
 				receiveSequenceNumber = (receiveSequenceNumber + 1) % 32768;
 				unconfirmedReceivedIMessages++;
 
-				ASDU asdu = new ASDU (parameters, buffer, msgSize);
+				try {
+					ASDU asdu = new ASDU (parameters, buffer, 6, msgSize);
 
-				if (asduReceivedHandler != null)
-					asduReceivedHandler (asduReceivedHandlerParameter, asdu);
+					if (asduReceivedHandler != null)
+						asduReceivedHandler (asduReceivedHandlerParameter, asdu);
+				}
+				catch (ASDUParsingException e) {
+					DebugLog ("ASDU parsing failed: " + e.Message);
+					return false;
+				}
+					
 			} else if ((buffer [2] & 0x03) == 0x01) { /* S format frame */
 				int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
 
