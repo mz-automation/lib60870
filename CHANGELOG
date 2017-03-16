@@ -1,3 +1,27 @@
+Changes to version 0.9.4
+------------------------
+- added length check when adding information objects to ASDUs --> changed signature of ASDU_addInformationObject
+- lib60870-C: added TARGET=UCLINUX-XPORT to compile for Lantronix XPORT PRO
+- lib60870-C: added CauseOfTransmission_toString function
+- lib60870.NET: fixed bug in parsing of MeasuredValueNormalizedWithoutQuality when SEQ = 1
+- added all missing timeout handling for master and slave side
+- lib60870.NET: added client side ConnectionStatistics
+- lib60870.NET: client socket uses Poll instead of read timeout
+- lib60870.NET: added TestCommand ASDU
+- lib60870.NET: client - some refactoring - added ASDU queue for congestion handling
+- lib60870.NET: fixed constructors for StepPosition information objects (added quality)
+- lib60870.NET: Added missing GetEncodedSize in SinglePointWithCPxxx objects
+- lib60870.NET: added constructors and set properties for CP24Time2a
+- lib60870-C: implemented BufferFrame to enable ASDU and IO encoding to arbitrary memory buffers
+- lib60870-C: slave - replaced ASDU queue by queue consisiting of buffers of encoded ASDUs
+- lib60870.NET: fixed bug in encoding of sequence of information objects
+- lib60870.NET: fixed bug in EventOfProtectionEquipment
+- lib60870.NET: added public constructor for CP16Time2a
+- lib60870.NET: added encoding tests (with maximum number of information objects in ASDU w/wo sequence of information objects)
+- lib60870.NET: fixed bug in StatusAndStatusChangeDetection
+- lib60870.NET: ASDU parser - added header length check
+
+
 Changes to version 0.9.3
 ------------------------
 - lib60870.NET: changed visibility of InformationObject.Encode method to internal

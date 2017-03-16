@@ -111,7 +111,8 @@ namespace TestMasterSlave
 			con.SendASDU (asdu);
 
 			while (running) {
-				Thread.Sleep(100);	
+				con.SendASDU (asdu);
+				//Thread.Sleep(100);	
 			}
 
 			Console.WriteLine ("Stop server");

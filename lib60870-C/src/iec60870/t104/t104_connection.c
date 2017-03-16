@@ -73,7 +73,7 @@ struct sT104Connection {
     int maxSentASDUs;    /* maximum number of ASDU to be sent without confirmation - parameter k */
     int oldestSentASDU;  /* index of oldest entry in k-buffer */
     int newestSentASDU;  /* index of newest entry in k-buffer */
-#if (CONFIG_SLAVE_USING_THREADS == 1)
+#if (CONFIG_MASTER_USING_THREADS == 1)
     Semaphore sentASDUsLock;
     Thread connectionHandlingThread;
 #endif
@@ -169,7 +169,7 @@ T104Connection_create(const char* hostname, int tcpPort)
         self->connectionHandler = NULL;
         self->connectionHandlerParameter = NULL;
 
-#if (CONFIG_SLAVE_USING_THREADS == 1)
+#if (CONFIG_MASTER_USING_THREADS == 1)
         self->sentASDUsLock = Semaphore_create(1);
         self->connectionHandlingThread = NULL;
 #endif
@@ -219,7 +219,7 @@ resetT3Timeout(T104Connection self) {
 static bool
 checkSequenceNumber(T104Connection self, int seqNo)
 {
-#if (CONFIG_SLAVE_USING_THREADS == 1)
+#if (CONFIG_MASTER_USING_THREADS == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
@@ -283,7 +283,7 @@ checkSequenceNumber(T104Connection self, int seqNo)
         }
     }
 
-#if (CONFIG_SLAVE_USING_THREADS == 1)
+#if (CONFIG_MASTER_USING_THREADS == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 
@@ -317,7 +317,7 @@ T104Connection_close(T104Connection self)
             Thread_sleep(1);
     }
 
-#if (CONFIG_SLAVE_USING_THREADS == 1)
+#if (CONFIG_MASTER_USING_THREADS == 1)
     Thread_destroy(self->connectionHandlingThread);
 #endif
 }
@@ -330,7 +330,7 @@ T104Connection_destroy(T104Connection self)
     if (self->sentASDUs != NULL)
         GLOBAL_FREEMEM(self->sentASDUs);
 
-#if (CONFIG_SLAVE_USING_THREADS == 1)
+#if (CONFIG_MASTER_USING_THREADS == 1)
     Semaphore_destroy(self->sentASDUsLock);
 #endif
 
@@ -518,7 +518,7 @@ handleTimeouts(T104Connection self)
     }
 
     /* check if counterpart confirmed I messages */
-#if (CONFIG_SLAVE_USING_THREADS == 1)
+#if (CONFIG_MASTER_USING_THREADS == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
     if (self->oldestSentASDU != -1) {
@@ -527,7 +527,7 @@ handleTimeouts(T104Connection self)
             retVal = false;
         }
     }
-#if (CONFIG_SLAVE_USING_THREADS == 1)
+#if (CONFIG_MASTER_USING_THREADS == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 
@@ -625,7 +625,7 @@ T104Connection_connectAsync(T104Connection self)
 
     resetT3Timeout(self);
 
-    self->connectionHandlingThread = Thread_create(handleConnection, self, false);
+    self->connectionHandlingThread = Thread_create(handleConnection, (void*) self, false);
 
     if (self->connectionHandlingThread)
         Thread_start(self->connectionHandlingThread);
@@ -701,7 +701,7 @@ T104Connection_sendStopDT(T104Connection self)
 static void
 sendIMessageAndUpdateSentASDUs(T104Connection self, Frame frame)
 {
-#if (CONFIG_SLAVE_USING_THREADS == 1)
+#if (CONFIG_MASTER_USING_THREADS == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
@@ -720,7 +720,7 @@ sendIMessageAndUpdateSentASDUs(T104Connection self, Frame frame)
 
     self->newestSentASDU = currentIndex;
 
-#if (CONFIG_SLAVE_USING_THREADS == 1)
+#if (CONFIG_MASTER_USING_THREADS == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 }

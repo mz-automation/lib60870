@@ -76,8 +76,9 @@ typedef bool (*DelayAcquisitionHandler) (void* parameter, MasterConnection conne
  */
 typedef bool (*ASDUHandler) (void* parameter, MasterConnection connection, ASDU asdu);
 
+
 Slave
-T104Slave_create(ConnectionParameters parameters, int maxQueueSize);
+T104Slave_create(ConnectionParameters parameters, int maxQueueSize, int maxHighPrioQueueSize);
 
 /**
  * \brief Set the local IP address to bind the server
@@ -151,14 +152,16 @@ Slave_destroy(Slave self);
  *
  * \param self the connection object (this is usually received as a parameter of a callback function)
  * \param asdu the ASDU to send to the client/master
+ *
+ * \return true if message was sent (queued), false otherwise (queue full or connection not active)
  */
-void
+bool
 MasterConnection_sendASDU(MasterConnection self, ASDU asdu);
 
-void
+bool
 MasterConnection_sendACT_CON(MasterConnection self, ASDU asdu, bool negative);
 
-void
+bool
 MasterConnection_sendACT_TERM(MasterConnection self, ASDU asdu);
 
 #ifdef __cplusplus

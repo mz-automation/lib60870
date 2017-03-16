@@ -81,9 +81,8 @@ namespace lib60870
 			public long entryTime;
 			public int queueIndex; /* -1 if ASDU is not from low-priority queue */
 
-			// required for T1 timeout
-			public long sentTime;
-			public int seqNo;
+			public long sentTime; /* timestamp when the message was sent (for T1 timeout) */
+			public int seqNo;     /* sequence number used to send the message */
 		}
 
 		private int maxSentASDUs;
@@ -258,16 +257,15 @@ namespace lib60870
 					socket.Send (buffer, msgSize, SocketFlags.None);
 					DebugLog("SEND I (size = " + msgSize + ") : " +	BitConverter.ToString(buffer, 0, msgSize));
 					sendCount = (sendCount + 1) % 32768;
+					unconfirmedReceivedIMessages = 0;
 				}
 			}
 			catch (SocketException) {
 				// socket error --> close connection
 				running = false;
 			}
-				
-			unconfirmedReceivedIMessages = 0;
 
-			return sendCount;;
+			return sendCount;
 		}
 
 		private bool isSentBufferFull() {
@@ -299,8 +297,8 @@ namespace lib60870
 
 					if (currentIndex == newestSentASDU)
 						nextIndex = -1;
-
-					currentIndex = (currentIndex + 1) % maxSentASDUs;
+					else
+						currentIndex = (currentIndex + 1) % maxSentASDUs;
 
 				} while (nextIndex != -1);
 
@@ -310,8 +308,8 @@ namespace lib60870
 
 		}
 
-		private void sendNextAvailableASDU() {
-
+		private void sendNextAvailableASDU() 
+		{
 			lock (sentASDUs) {
 				if (isSentBufferFull ())
 					return;
@@ -701,18 +699,16 @@ namespace lib60870
 
 			if ((buffer [2] & 1) == 0) {
 
+				if (msgSize < 7) {
+					DebugLog ("I msg too small!");
+					return false;
+				}
+					
 				if (firstIMessageReceived == false) {
 					firstIMessageReceived = true;
 					lastConfirmationTime = currentTime; /* start timeout T2 */
 				}
 
-				if (msgSize < 7) {
-
-					DebugLog ("I msg too small!");
-
-					return false;
-				}
-		
 				int frameSendSequenceNumber = ((buffer [3] * 0x100) + (buffer [2] & 0xfe)) / 2;
 				int frameRecvSequenceNumber = ((buffer [5] * 0x100) + (buffer [4] & 0xfe)) / 2;
 
@@ -866,6 +862,8 @@ namespace lib60870
 				try {
 
 					running = true;
+
+					ResetT3Timeout();
 
 					while (running) {
 

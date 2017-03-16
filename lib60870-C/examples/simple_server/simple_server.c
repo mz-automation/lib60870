@@ -157,7 +157,7 @@ main(int argc, char** argv)
 
     /* create a new slave/server instance with default connection parameters and
      * default message queue size */
-    Slave slave = T104Slave_create(NULL, 0);
+    Slave slave = T104Slave_create(NULL, 100, 100);
 
     T104Slave_setLocalAddress(slave, "0.0.0.0");
 
