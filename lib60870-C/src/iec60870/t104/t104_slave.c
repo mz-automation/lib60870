@@ -1413,32 +1413,38 @@ connectionHandlingThread(void* parameter)
 
     resetT3Timeout(self);
 
+    HandleSet handleSet = Handleset_new();
+
     while (self->isRunning) {
-        //TODO use select
-        int bytesRec = receiveMessage(self->socket, buffer);
 
-        if (bytesRec == -1) {
-            DEBUG_PRINT("Error reading from socket\n");
-            break;
-        }
+        Handleset_reset(handleSet);
+        Handleset_addSocket(handleSet, self->socket);
 
-        if (bytesRec > 0) {
-            DEBUG_PRINT("Connection: rcvd msg(%i bytes)\n", bytesRec);
+        if (Handleset_waitReady(handleSet, 100)) {
 
-            if (handleMessage(self, buffer, bytesRec) == false)
-                self->isRunning = false;
+            int bytesRec = receiveMessage(self->socket, buffer);
 
-            if (self->unconfirmedReceivedIMessages >= self->slave->parameters.w) {
+            if (bytesRec == -1) {
+                DEBUG_PRINT("Error reading from socket\n");
+                break;
+            }
 
-                self->lastConfirmationTime = Hal_getTimeInMs();
+            if (bytesRec > 0) {
+                DEBUG_PRINT("Connection: rcvd msg(%i bytes)\n", bytesRec);
 
-                self->unconfirmedReceivedIMessages = 0;
+                if (handleMessage(self, buffer, bytesRec) == false)
+                    self->isRunning = false;
 
-                sendSMessage(self);
+                if (self->unconfirmedReceivedIMessages >= self->slave->parameters.w) {
+
+                    self->lastConfirmationTime = Hal_getTimeInMs();
+
+                    self->unconfirmedReceivedIMessages = 0;
+
+                    sendSMessage(self);
+                }
             }
         }
-        else
-            Thread_sleep(10);
 
         if (handleTimeouts(self) == false)
             self->isRunning = false;
@@ -1449,6 +1455,8 @@ connectionHandlingThread(void* parameter)
     }
 
     DEBUG_PRINT("Connection closed\n");
+
+    Handleset_destroy(handleSet);
 
     self->isRunning = false;
     self->slave->openConnections--;
