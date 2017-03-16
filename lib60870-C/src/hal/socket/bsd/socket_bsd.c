@@ -28,6 +28,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
+#include <stdio.h>
 
 #include <fcntl.h>
 
@@ -110,6 +111,7 @@ Handleset_destroy(HandleSet self)
    GLOBAL_FREEMEM(self);
 }
 
+#if (CONFIG_ACTIVATE_TCP_KEEPALIVE == 1)
 static void
 activateKeepAlive(int sd)
 {
@@ -132,6 +134,7 @@ activateKeepAlive(int sd)
 
 #endif /* SO_KEEPALIVE */
 }
+#endif /* (CONFIG_ACTIVATE_TCP_KEEPALIVE == 1) */
 
 static bool
 prepareServerAddress(const char* address, int port, struct sockaddr_in* sockaddr)
@@ -356,8 +359,6 @@ Socket_getPeerAddress(Socket self)
 int
 Socket_read(Socket self, uint8_t* buf, int size)
 {
-    assert(self != NULL);
-
     if (self->fd == -1)
         return -1;
 

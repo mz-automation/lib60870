@@ -1216,7 +1216,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
         self->outstandingTestFRConMessages = 0;
     }
 
-    else if ((buffer [2] == 0x01)) /* S-message */ {
+    else if (buffer [2] == 0x01) { /* S-message */
         int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
 
         DEBUG_PRINT("Rcvd S(%i) (own sendcounter = %i)\n", seqNo, self->sendCount);
