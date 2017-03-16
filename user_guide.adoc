@@ -158,26 +158,6 @@ If the command has been successful the outstation will answer with an ACT_CON re
 
 == lib60870-C specific topics
 
-=== Dynamic or static memory allocation
-
-Depending on the type of system you can use *dynamic* or *static* memory allocation. Static memory allocation is preferable for very resource constraint embedded systems where dynamic memory allocation is either not available or not wanted e.g. because memory is very scarce and you have to prevent memory fragmentation or you need predictable behavior.
-
-The difference between dynamic and static memory allocation will be illustrated here.
-
-Dynamic memory allocation:
-
-  SingleCommand sc = SingleCommand_create(NULL, 1001, true, false, 0);
-
-The above command creates a new SingleCommand information object instance. It allocates all required memory by using dynamic memory allocation (e.g. using system calls like *malloc*). The _NULL_ as first argument indicates the function that it has to allocate the memory by itself.
-
-Static memory allocation:
-
-  struct sSingleCommand sc;
-
-  SingleCommand_initialize(&sc);
-
-  SingleCommand_create(&sc, 1001, true, false, 0);
-
 === Debug output
 
 The debug output to the console can be enabled by setting _CONFIG_DEBUG_OUTPUT_ to 1. This will enable the debug output by default. The debug output can be disabled my using the function *Lib60870_enableDebugOutput*. The default implementation of the debug output function will print to the console (using printf). If you need to redirect the output the most easy way would be to change the implementation of the debug output *lib60870_debug_print* function in _lib60870_common.c_.
