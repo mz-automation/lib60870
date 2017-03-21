@@ -376,9 +376,19 @@ CP56Time2a_getDayOfMonth(CP56Time2a self);
 void
 CP56Time2a_setDayOfMonth(CP56Time2a self, int value);
 
+/**
+ * \brief Get the month field of the time
+ *
+ * \return value the month (1..12)
+ */
 int
 CP56Time2a_getMonth(CP56Time2a self);
 
+/**
+ * \brief Set the month field of the time
+ *
+ * \param value the month (1..12)
+ */
 void
 CP56Time2a_setMonth(CP56Time2a self, int value);
 

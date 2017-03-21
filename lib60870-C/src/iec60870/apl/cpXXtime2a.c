@@ -321,7 +321,7 @@ CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
     /* set day of week to 0 = not present */
     CP56Time2a_setDayOfWeek(self, 0);
 
-    CP56Time2a_setMonth(self, tmTime.tm_mon);
+    CP56Time2a_setMonth(self, tmTime.tm_mon + 1);
 
     CP56Time2a_setYear(self, tmTime.tm_year - 100);
 }
@@ -336,7 +336,7 @@ CP56Time2a_toMsTimestamp(CP56Time2a self)
     tmTime.tm_min = CP56Time2a_getMinute(self);
     tmTime.tm_hour = CP56Time2a_getHour(self);
     tmTime.tm_mday = CP56Time2a_getDayOfMonth(self);
-    tmTime.tm_mon = CP56Time2a_getMonth(self);
+    tmTime.tm_mon = CP56Time2a_getMonth(self) - 1;
     tmTime.tm_year = CP56Time2a_getYear(self) + 100;
 
     time_t timestamp = my_mktime(&tmTime);

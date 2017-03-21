@@ -3,8 +3,6 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{F604286A-1AFC-4355-8C2C-A998CFCEE979}</ProjectGuid>
     <OutputType>Library</OutputType>
     <RootNamespace>lib60870</RootNamespace>
