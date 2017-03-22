@@ -424,7 +424,9 @@ namespace lib60870
 			}
 		}
 
-		private void SendNextWaitingASDU() {
+		private bool SendNextWaitingASDU() 
+		{
+			bool sentAsdu = false;
 
 			if (running == false)
 				throw new ConnectionException ("connection lost");
@@ -440,8 +442,10 @@ namespace lib60870
 
 						ASDU asdu = waitingToBeSent.Dequeue ();
 
-						if (asdu != null)
+						if (asdu != null) {
 							SendIMessageAndUpdateSentASDUs(asdu);
+							sentAsdu = true;
+						}
 						else
 							break;
 						
@@ -451,6 +455,8 @@ namespace lib60870
 				running = false;
 				throw new ConnectionException ("connection lost");
 			}
+
+			return sentAsdu;
 		}
 
 		private void SendASDUInternal(ASDU asdu) 
@@ -1071,6 +1077,8 @@ namespace lib60870
 
 						while (loopRunning) {
 
+							bool suspendThread = true;
+
 							try {
 								// Receive a message from from the remote device.
 								int bytesRec = receiveMessage(socket, bytes);
@@ -1098,14 +1106,13 @@ namespace lib60870
 
 										unconfirmedReceivedIMessages = 0;
 										SendSMessage ();
-									}	
+									}
+
+									suspendThread = false;
 								}
 								else if (bytesRec == -1)
 									loopRunning = false;
-								else {
-									// save CPU time when no message received
-									Thread.Sleep(50);
-								}
+								
 
 								if (handleTimeouts() == false)
 									loopRunning = false;
@@ -1113,8 +1120,14 @@ namespace lib60870
 								if (isConnected() == false)
 									loopRunning = false;
 
-								if (useSendMessageQueue)
-									SendNextWaitingASDU();
+								if (useSendMessageQueue) {
+									if (SendNextWaitingASDU() == true)
+										suspendThread = false;
+								}
+
+								if (suspendThread)
+									Thread.Sleep(10);
+
 							}
 							catch (SocketException) {	
 								loopRunning = false;

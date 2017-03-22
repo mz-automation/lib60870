@@ -63,6 +63,7 @@ namespace lib60870
 		public Bitstring32 (int ioa, UInt32 value, QualityDescriptor quality) : base(ioa)
 		{
 			this.value = value;
+			this.quality = quality;
 		}
 
 		internal Bitstring32 (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :

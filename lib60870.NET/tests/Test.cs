@@ -957,6 +957,46 @@ namespace tests
 
 		//	Assert.AreEqual (0, connection.GetStatistics ().RcvdTestFrConCounter);
 		}
+
+
+		[Test()]
+		public void TestEncodeDecodeSetpointCommandNormalized() {
+			Server server = new Server ();
+			server.SetLocalPort (20213);
+
+			float recvValue = 0f;
+			float sendValue = 1.0f;
+			bool hasReceived = false;
+
+			server.SetASDUHandler(delegate(object parameter, ServerConnection con, ASDU asdu) {
+
+				if (asdu.TypeId == TypeID.C_SE_NA_1) {
+					SetpointCommandNormalized spn = (SetpointCommandNormalized) asdu.GetElement(0);
+				
+					recvValue = spn.NormalizedValue ;
+					hasReceived = true;
+				}
+
+				return true;
+			}, null);
+			server.Start ();
+
+			Connection connection = new Connection ("127.0.0.1", 20213);
+			connection.Connect ();
+
+			ASDU newAsdu = new ASDU (CauseOfTransmission.ACTIVATION, false, false, 0, 1, false);
+			newAsdu.AddInformationObject (new SetpointCommandNormalized (100, sendValue, new SetpointCommandQualifier (false, 0)));
+		
+			connection.SendASDU (newAsdu);
+
+			while (hasReceived == false)
+				Thread.Sleep (50);
+
+			connection.Close ();
+			server.Stop ();
+
+			Assert.AreEqual (sendValue, recvValue, 0.001);
+		}
 	}
 }
 
