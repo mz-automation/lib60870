@@ -42,11 +42,20 @@ namespace lib60870
 			}
 		}
 
-		private int scaledValue;
+		private ScaledValue scaledValue;
+
+		public short RawValue {
+			get {
+				return scaledValue.ShortValue;
+			}
+			set {
+				scaledValue.ShortValue = value;
+			}
+		}
 
 		public float NormalizedValue {
 			get {
-				float nv = (float) scaledValue / 32767f;
+				float nv = (float) scaledValue.Value / 32768f;
 
 				return nv;
 			}
@@ -63,22 +72,29 @@ namespace lib60870
 		public SetpointCommandNormalized (int objectAddress, float value, SetpointCommandQualifier qos)
 			: base(objectAddress)
 		{
-			// TODO check if value is in range
+			this.scaledValue = new ScaledValue((int) (value * 32768f));
+			this.qos = qos;
+		}
 
-			this.scaledValue = (int) (value * 32767f);
+		public SetpointCommandNormalized (int ObjectAddress, short value, SetpointCommandQualifier qos)
+			: base (ObjectAddress)
+		{
+			this.scaledValue = new ScaledValue (value);
 			this.qos = qos;
 		}
 
 		internal SetpointCommandNormalized (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex, false)
 		{
+			scaledValue = new ScaledValue ();
+
 			startIndex += parameters.SizeOfIOA; /* skip IOA */
 
-			scaledValue = msg [startIndex++];
-			scaledValue += (msg [startIndex++] * 0x100);
+			scaledValue.Value = msg [startIndex++];
+			scaledValue.Value += (msg [startIndex++] * 0x100);
 
-			if (scaledValue > 32767)
-				scaledValue = scaledValue - 65536;
+			if (scaledValue.Value > 32767)
+				scaledValue.Value = scaledValue.Value - 65536;
 
 			this.qos = new SetpointCommandQualifier (msg [startIndex++]);
 		}
@@ -88,10 +104,10 @@ namespace lib60870
 
 			int valueToEncode;
 
-			if (scaledValue < 0)
-				valueToEncode = scaledValue + 65536;
+			if (scaledValue.Value < 0)
+				valueToEncode = scaledValue.Value + 65536;
 			else
-				valueToEncode = scaledValue;
+				valueToEncode = scaledValue.Value;
 
 			frame.SetNextByte ((byte)(valueToEncode % 256));
 			frame.SetNextByte ((byte)(valueToEncode / 256));
@@ -127,6 +143,12 @@ namespace lib60870
 		}
 
 		public SetpointCommandNormalizedWithCP56Time2a (int objectAddress, float value, SetpointCommandQualifier qos, CP56Time2a timestamp)
+			: base(objectAddress, value, qos)
+		{
+			this.timestamp = timestamp;
+		}
+
+		public SetpointCommandNormalizedWithCP56Time2a (int objectAddress, short value, SetpointCommandQualifier qos, CP56Time2a timestamp)
 			: base(objectAddress, value, qos)
 		{
 			this.timestamp = timestamp;

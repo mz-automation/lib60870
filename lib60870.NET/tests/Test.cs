@@ -69,6 +69,31 @@ namespace tests
 		}
 
 		[Test()]
+		public void TestScaledValue()
+		{
+			ScaledValue scaledValue = new ScaledValue (0);
+
+			Assert.AreEqual (0, scaledValue.Value);
+			Assert.AreEqual ((short)0, scaledValue.ShortValue);
+
+			scaledValue = new ScaledValue (32767);
+			Assert.AreEqual (32767, scaledValue.Value);
+			Assert.AreEqual ((short)32767, scaledValue.ShortValue);
+
+			scaledValue = new ScaledValue (32768);
+			Assert.AreEqual (32767, scaledValue.Value);
+			Assert.AreEqual ((short)32767, scaledValue.ShortValue);
+
+			scaledValue = new ScaledValue (-32768);
+			Assert.AreEqual (-32768, scaledValue.Value);
+			Assert.AreEqual ((short)-32768, scaledValue.ShortValue);
+
+			scaledValue = new ScaledValue (-32769);
+			Assert.AreEqual (-32768, scaledValue.Value);
+			Assert.AreEqual ((short)-32768, scaledValue.ShortValue);
+		}
+
+		[Test()]
 		public void TestSetpointCommandNormalized()
 		{
 			SetpointCommandNormalized sc = new SetpointCommandNormalized (102, -0.5f,
@@ -79,6 +104,18 @@ namespace tests
 			Assert.AreEqual (-0.5f, sc.NormalizedValue, 0.001f);
 		
 			Assert.AreEqual (true, sc.QOS.Select);
+
+			sc = new SetpointCommandNormalized(102, 32767, new SetpointCommandQualifier (true, 0));
+
+			Assert.AreEqual (1.0, sc.NormalizedValue, 0.001f);
+
+			Assert.AreEqual (32767, sc.RawValue);
+
+			sc = new SetpointCommandNormalized(102, -32768, new SetpointCommandQualifier (true, 0));
+
+			Assert.AreEqual (-1.0, sc.NormalizedValue, 0.001f);
+
+			Assert.AreEqual (-32768, sc.RawValue);
 		}
 
 		[Test()]

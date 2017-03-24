@@ -46,9 +46,18 @@ namespace lib60870
 
 		private ScaledValue scaledValue;
 
+		public short RawValue {
+			get {
+				return scaledValue.ShortValue;
+			}
+			set {
+				scaledValue.ShortValue = value;
+			}
+		}
+
 		public float NormalizedValue {
 			get {
-				float nv = (float) (scaledValue.Value) / 32767f;
+				float nv = (float) (scaledValue.Value) / 32768f;
 
 				return nv;
 			}
@@ -58,16 +67,20 @@ namespace lib60870
 				else if (value < -1.0f)
 					value = -1.0f;
 				
-				scaledValue.Value = (int)(value * 32767f); 
+				scaledValue.Value = (int)(value * 32768f); 
 			}
 		}
 
 		public MeasuredValueNormalizedWithoutQuality (int objectAddress, float value)
 			: base(objectAddress)
 		{
-			this.scaledValue = new ScaledValue ((int)(value * 32767f));
+			this.scaledValue = new ScaledValue ((int)(value * 32768f));
+		}
 
-			this.NormalizedValue = value;
+		public MeasuredValueNormalizedWithoutQuality(int objectAddress, short value)
+			:base (objectAddress)
+		{
+			this.scaledValue = new ScaledValue (value);
 		}
 
 		internal MeasuredValueNormalizedWithoutQuality (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
@@ -114,6 +127,12 @@ namespace lib60870
 		}
 
 		public MeasuredValueNormalized (int objectAddress, float value, QualityDescriptor quality)
+			: base(objectAddress, value)
+		{
+			this.quality = quality;
+		}
+
+		public MeasuredValueNormalized (int objectAddress, short value, QualityDescriptor quality)
 			: base(objectAddress, value)
 		{
 			this.quality = quality;
@@ -172,6 +191,12 @@ namespace lib60870
 			this.timestamp = timestamp;
 		}
 
+		public MeasuredValueNormalizedWithCP24Time2a (int objectAddress, short value, QualityDescriptor quality, CP24Time2a timestamp)
+			: base(objectAddress, value, quality)
+		{
+			this.timestamp = timestamp;
+		}
+
 		internal MeasuredValueNormalizedWithCP24Time2a (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
 		base(parameters, msg, startIndex, isSequence)
 		{
@@ -218,6 +243,12 @@ namespace lib60870
 		}
 
 		public MeasuredValueNormalizedWithCP56Time2a (int objectAddress, float value, QualityDescriptor quality, CP56Time2a timestamp)
+			: base(objectAddress, value, quality)
+		{
+			this.timestamp = timestamp;
+		}
+
+		public MeasuredValueNormalizedWithCP56Time2a (int objectAddress, short value, QualityDescriptor quality, CP56Time2a timestamp)
 			: base(objectAddress, value, quality)
 		{
 			this.timestamp = timestamp;

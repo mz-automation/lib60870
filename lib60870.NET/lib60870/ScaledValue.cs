@@ -35,9 +35,18 @@ namespace lib60870
 				encodedValue [i] = msg [startIndex + i];
 		}
 
+		public ScaledValue()
+		{
+		}
+
 		public ScaledValue(int value)
 		{
 			this.Value = value;
+		}
+
+		public ScaledValue(short value)
+		{
+			this.ShortValue = value;
 		}
 
 		public byte[] GetEncodedValue() 
@@ -58,6 +67,11 @@ namespace lib60870
 				return value;
 			}
 			set {
+				if (value > 32767)
+					value = 32767;
+				else if (value < -32768)
+					value = -32768;
+
 				int valueToEncode;
 
 				if (value < 0)
@@ -70,6 +84,23 @@ namespace lib60870
 			}
 		}
 
+		public short ShortValue {
+			get {
+				UInt16 uintVal;
+
+				uintVal = encodedValue [0];
+				uintVal += (UInt16) (encodedValue [1] * 0x100);
+
+				return (short)uintVal;
+			}
+
+			set {
+				UInt16 uintVal = (UInt16)value;
+
+				encodedValue[0] = (byte)(uintVal % 256);
+				encodedValue[1] = (byte)(uintVal / 256);
+			}
+		}
 	}
 	
 }
