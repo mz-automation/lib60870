@@ -66,6 +66,14 @@ namespace lib60870
 	/// </summary>
 	public delegate bool ASDUHandler (object parameter, ServerConnection connection, ASDU asdu);
 
+	/// <summary>
+	/// Connection request handler is called when a client tries to connect to the server.
+	/// </summary>
+	/// <param name="parameter">User provided parameter</param>
+	/// <param name="ipAddress">IP address of the connecting client</param>
+	/// <returns>true if the connection has to be accepted, false otherwise</returns>
+	public delegate bool ConnectionRequestHandler(object parameter, IPAddress ipAddress);
+
     public enum ServerMode
     {
         /// <summary>
@@ -310,6 +318,7 @@ namespace lib60870
 		private Socket listeningSocket;
 
 		private int maxQueueSize = 1000;
+		private int maxOpenConnections = 10;
 
         // only required for single redundancy group mode
         private ASDUQueue asduQueue = null;
@@ -323,7 +332,7 @@ namespace lib60870
         }
 
 
-        private bool debugOutput;
+        private bool debugOutput = false;
 
         public bool DebugOutput {
 			get {
@@ -353,6 +362,19 @@ namespace lib60870
 			}
 			set {
 				maxQueueSize = value;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the maximum number of open TCP connections
+		/// </summary>
+		/// <value>The maximum number of open TCP connections.</value>
+		public int MaxOpenConnections {
+			get {
+				return this.maxOpenConnections;
+			}
+			set {
+				maxOpenConnections = value;
 			}
 		}
 
@@ -394,6 +416,21 @@ namespace lib60870
 
 		public DelayAcquisitionHandler delayAcquisitionHandler = null;
 		public object delayAcquisitionHandlerParameter = null;
+
+		public ConnectionRequestHandler connectionRequestHandler = null;
+		public object connectionRequestHandlerParameter = null;
+
+		/// <summary>
+		/// Sets a callback handler for connection request. The user can allow (returning true) or deny (returning false)
+		/// the connection attempt. If no handler is installed every new connection will be accepted. 
+		/// </summary>
+		/// <param name="handler">Handler.</param>
+		/// <param name="parameter">Parameter.</param>
+		public void SetConnectionRequestHandler(ConnectionRequestHandler handler, object parameter)
+		{
+			this.connectionRequestHandler = handler;
+			this.connectionRequestHandlerParameter = parameter;
+		}
 
 		/// <summary>
 		/// Sets a callback for interrogaton requests.
@@ -470,7 +507,7 @@ namespace lib60870
 		/// Gets the number of connected master/client stations.
 		/// </summary>
 		/// <value>The number of open connections.</value>
-		public int ActiveConnections {
+		public int OpenConnections {
 			get {
 				return this.allOpenConnections.Count;
 			}
@@ -499,12 +536,31 @@ namespace lib60870
 
 					if (newSocket != null) {
 						DebugLog("New connection");
+
+						IPEndPoint ipEndPoint = (IPEndPoint) newSocket.RemoteEndPoint;
           
-                        if (serverMode == ServerMode.SINGLE_REDUNDANCY_GROUP)
-						    allOpenConnections.Add(new ServerConnection (newSocket, parameters, this, asduQueue));
-                        else
-                            allOpenConnections.Add(new ServerConnection(newSocket, parameters, this,
-                                new ASDUQueue(maxQueueSize, parameters, DebugLog)));
+						DebugLog("  from IP: " + ipEndPoint.Address.ToString());
+
+						bool acceptConnection = true;
+
+						if (OpenConnections >= maxOpenConnections)
+							acceptConnection = false;
+
+						if (acceptConnection && (connectionRequestHandler != null)) {
+							acceptConnection = connectionRequestHandler(connectionRequestHandlerParameter, ipEndPoint.Address);
+						}
+
+						if (acceptConnection) {
+	                        if (serverMode == ServerMode.SINGLE_REDUNDANCY_GROUP)
+								allOpenConnections.Add(new ServerConnection (newSocket, parameters, this, asduQueue, debugOutput));
+	                        else
+	                            allOpenConnections.Add(new ServerConnection(newSocket, parameters, this,
+									new ASDUQueue(maxQueueSize, parameters, DebugLog), debugOutput));
+
+							//TODO add ConnectionEstablishedHandler
+						}
+						else
+							newSocket.Close();
                     }
 
 				} catch (Exception) {
@@ -611,31 +667,6 @@ namespace lib60870
                         connection.ASDUReadyToSend();
                     }
                 }
-            }
-		}
-
-
-        internal void LockASDUQueue()
-        {
-            Monitor.Enter(asduQueue);
-        }
-
-        internal void UnlockASDUQueue()
-        {
-            Monitor.Exit(asduQueue);
-        }
-
-        internal BufferFrame GetNextWaitingASDU(out long timestamp, out int index)
-		{
-	        if (serverMode == ServerMode.SINGLE_REDUNDANCY_GROUP)
-            {
-                return asduQueue.GetNextWaitingASDU(out timestamp, out index);
-            }
-            else
-            {
-                timestamp = 0;
-                index = -1;
-                return null;
             }
 		}
 

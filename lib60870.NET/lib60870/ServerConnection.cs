@@ -113,7 +113,7 @@ namespace lib60870
 			DebugLog ("ProcessASDUs exit thread");
 		}
 
-		internal ServerConnection(Socket socket, ConnectionParameters parameters, Server server, ASDUQueue asduQueue) 
+		internal ServerConnection(Socket socket, ConnectionParameters parameters, Server server, ASDUQueue asduQueue, bool debugOutput) 
 		{
 			connectionsCounter++;
 			connectionID = connectionsCounter;
@@ -122,6 +122,7 @@ namespace lib60870
 			this.parameters = parameters;
 			this.server = server;
             this.asduQueue = asduQueue;
+			this.debugOutput = debugOutput;
 
 			ResetT3Timeout ();
 
