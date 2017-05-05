@@ -90,6 +90,14 @@ namespace lib60870
 		private int newestSentASDU = -1;
 		private SentASDU[] sentASDUs = null;
 
+        // only available if the server has multiple redundancy groups
+        private ASDUQueue asduQueue = null;
+
+        internal ASDUQueue GetASDUQueue()
+        {
+            return asduQueue;
+        }
+
 		private void ProcessASDUs()
 		{
 			callbackThreadRunning = true;
@@ -105,7 +113,7 @@ namespace lib60870
 			DebugLog ("ProcessASDUs exit thread");
 		}
 
-		public ServerConnection(Socket socket, ConnectionParameters parameters, Server server) 
+		internal ServerConnection(Socket socket, ConnectionParameters parameters, Server server, ASDUQueue asduQueue) 
 		{
 			connectionsCounter++;
 			connectionID = connectionsCounter;
@@ -113,6 +121,7 @@ namespace lib60870
 			this.socket = socket;
 			this.parameters = parameters;
 			this.server = server;
+            this.asduQueue = asduQueue;
 
 			ResetT3Timeout ();
 
@@ -317,11 +326,10 @@ namespace lib60870
 				long timestamp;
 				int index;
 
-				server.LockASDUQueue ();
+                asduQueue.LockASDUQueue();
+                BufferFrame asdu = asduQueue.GetNextWaitingASDU(out timestamp, out index);
 
-				BufferFrame asdu = server.GetNextWaitingASDU (out timestamp, out index);
-
-				try {
+                try {
 
 					if (asdu != null) {
 
@@ -346,8 +354,7 @@ namespace lib60870
 					}
 				}
 				finally {
-
-					server.UnlockASDUQueue ();
+                    asduQueue.UnlockASDUQueue();
 				}
 			}
 		}
