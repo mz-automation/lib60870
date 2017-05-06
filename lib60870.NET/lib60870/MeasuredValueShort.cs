@@ -49,6 +49,9 @@ namespace lib60870
 			get {
 				return this.value;
 			}
+			set {
+				this.value = value;
+			}
 		}
 
 		private QualityDescriptor quality;

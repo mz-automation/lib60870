@@ -3,7 +3,7 @@ Michael Zillgith
 
 == Introduction
 
-lib60870 is a new implementation of the IEC 60870-5-104 protocol for client (master station) and server (controlled station). The library implements all data types from the IEC 60870-5-101/104 specifications. It comes with two flavors which are actually two different implementations that share a similar API:
+lib60870 is a new implementation of the IEC 60870-5-104 protocol for client (master station) and server (controlled station). The library implements all data types of the IEC 60870-5-101/104 specifications. It comes with two flavors which are actually two different implementations that share a similar API:
 
 * *lib60870-C* is an implementation written in the C99 standard. It is designed to be used on resource restricted embedded systems but is easy to use as well.
 * *lib60870.NET* is a pure C#/.NET implementation. It is designed to be as easy to use as possible. Since it is using only standardized .NET features it is compatible with Windows systems and the Microsoft .NET implementation as well as on Linux and other operating systems running with Mono.
@@ -156,11 +156,100 @@ In order to send a direct operate command the _selectCommand_ parameter should b
 
 If the command has been successful the outstation will answer with an ACT_CON response message with the _negative flag_ not set. In case the outstation cannot execute the command it will also answer with an ACT_CON response but with the _negative flag_ set. You can check if this flag is set with the IsNegative property of the received ASDU instance.
 
+
+== Server configuration and setup
+
+To configure and setup an IEC 60870-5-104 server/slave an instance of the _Server_ class is required.
+
+  Server server = new Server ();
+
+After the server instance is created it can be configured
+
+*LIB60870-C:* In the C version a server/slave is represented by the _Slave_ data type. To create a slave instance for IEC 60870-5-104 the _T104Slave_create_ function is required.
+
+  Slave slave = T104Slave_create(NULL, 100, 100);
+
+=== Server mode
+
+From version 0.9.5 the server provides two different modes.
+
+The default mode (_SINGLE_REDUNDANCY_GROUP_) allows only a *single active client connection*. An active client connection is a connection where ASDUs are sent. All other connections are standby connections. There is a single queue for events. Events are also stored when no client is connected or when no connection is active.
+
+The second mode (_CONNECION_IS_REDUNDANCY_GROUP_) allows *multiple active client connections*. Every connection has its own event queue. The event queue will be deleted when the client connection is closed. This mode has to be used when more then one client has to access the application data.
+
+The server mode can be set with the _ServerMode_ property of the _Server_ class.
+
+  server.ServerMode = ServerMode.CONNECION_IS_REDUNDANCY_GROUP;
+
+=== Restrict the number of client connections
+
+The number of clients can be restricted with the _MaxOpenConnections_ property of the _Server_ class.
+
+  server.MaxOpenConnections = 2;
+
+In this case the server will only allow two concurrent client connections.
+
+=== Setting local port and IP address
+
+The default TCP port for IEC 60870-5-104 is 2404. The port can be changed with the _SetLocalPort_ method of the _Server_ class.
+
+  server.SetLocalPort(2405);
+
+Per default the server listens to all local IP addresses. With the _SetLocalAddress_ method of the _Server_ class it is possible to restrict the server to a single local IP address.
+
+  server.SetLocalAddress("192.168.1.50");
+
+=== Set the size of the event queue
+
+The maximum size of the event queue(s) can be set with the _MaxQueueSize_ property of the _Server_ class. The default size is 1000. Each queue entry needs approximately 260 bytes.
+
+    server.MaxQueueSize = 10;
+
+=== Set a connection request handler to restrict the access and track connections
+
+The _ConnectionRequestHandler_ can be used to restrict the access to the server. With the return value the application can allow or deny the connection attempt of a client.
+
+A _ConnectionRequestHandler_ can be set with the _SetConnectionRequestHandler_ method of the _Server_ class. The second parameter is an arbitrary user provided object that will be passed to the handler when it is called. If not needed it can be set to _null_.
+
+  server.SetConnectionRequestHandler (connectionRequestHandler, null);
+
+[[app-listing]]
+[source, csharp]
+.Example how to implement a ConnectionRequestHandler in C#
+----
+static bool connectionRequestHandler(object parameter, IPAddress ipAddress)
+{
+  // Allow only known IP addresses!
+  // You can implement your allowed client whitelist here
+  if (ipAddress.ToString ().Equals ("127.0.0.1"))
+    return true;
+  else
+    return false;
+}
+----
+
+In the handler you can optionally check the client IP address against a whitelist of allowed clients or implement a blacklist.
+
+=== Starting/Stopping the server
+
+After the server is configured it can be started with the _Start_ method
+
+  server.Start ();
+
+To deactivate the IEC 60870-5-104 service the server can be stopped with the _Stop_ method.
+
+  server.Stop ();
+
+
 == lib60870-C specific topics
 
 === Debug output
 
 The debug output to the console can be enabled by setting _CONFIG_DEBUG_OUTPUT_ to 1. This will enable the debug output by default. The debug output can be disabled my using the function *Lib60870_enableDebugOutput*. The default implementation of the debug output function will print to the console (using printf). If you need to redirect the output the most easy way would be to change the implementation of the debug output *lib60870_debug_print* function in _lib60870_common.c_.
+
+=== Configuration options at library compile time
+
+Some configuration options are fixed at compile time of the library code. These options can be found in the file *lib60870_config.h*.
 
 == Advanced topics ==
 

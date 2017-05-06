@@ -114,7 +114,6 @@ namespace testclient
 		{
 			Console.WriteLine ("Using lib60870.NET version " + LibraryCommon.GetLibraryVersionString ());
 
-			//Connection con = new Connection ("192.168.1.50");
 			Connection con = new Connection ("127.0.0.1");
 
 			con.DebugOutput = true;
@@ -156,6 +155,9 @@ namespace testclient
 			Thread.Sleep (5000);
 
 			con.Close ();
+
+			Console.WriteLine("Press any key to terminate...");
+			Console.ReadKey();
 		}
 	}
 }

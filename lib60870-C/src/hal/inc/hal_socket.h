@@ -234,7 +234,9 @@ Socket_write(Socket self, uint8_t* buf, int size);
  *
  * The peer address has to be returned as
  *
- * Implementation of this function is MANDATORY
+ * Implementation of this function is MANDATORY until version 0.9.5
+ *
+ * \deprecated starting from version 0.9.5 library uses Socket_getPeerAddressStatic
  *
  * \param self the client, connection or server socket instance
  *
@@ -242,6 +244,23 @@ Socket_write(Socket self, uint8_t* buf, int size);
  */
 char*
 Socket_getPeerAddress(Socket self);
+
+/**
+ * \brief Get the address of the peer application (IP address and port number)
+ *
+ * The peer address has to be returned as
+ *
+ * Implementation of this function is MANDATORY
+ *
+ * \param self the client, connection or server socket instance
+ * \param peerAddressString a string to store the peer address (the string should have space
+ *        for at least 60 characters)
+ *
+ * \return the IP address and port number as strings separated by the ':' character. If the
+ *         address is an IPv6 address the IP part is encapsulated in square brackets.
+ */
+char*
+Socket_getPeerAddressStatic(Socket self, char* peerAddressString);
 
 /**
  * \brief destroy a socket (close the socket if a connection is established)

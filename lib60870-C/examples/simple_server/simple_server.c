@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <signal.h>
 
 #include "iec60870_slave.h"
@@ -117,7 +118,7 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
 }
 
 static bool
-asduHandler (void* parameter, MasterConnection connection, ASDU asdu)
+asduHandler(void* parameter, MasterConnection connection, ASDU asdu)
 {
     if (ASDU_getTypeID(asdu) == C_SC_NA_1) {
         printf("received single command\n");
@@ -149,6 +150,21 @@ asduHandler (void* parameter, MasterConnection connection, ASDU asdu)
     return false;
 }
 
+static bool
+connectionRequestHandler(void* parameter, const char* ipAddress)
+{
+    printf("New connection from %s\n", ipAddress);
+
+    if (strcmp(ipAddress, "127.0.0.1") == 0) {
+        printf("Accept connection\n");
+        return true;
+    }
+    else {
+        printf("Deny connection\n");
+        return false;
+    }
+}
+
 int
 main(int argc, char** argv)
 {
@@ -172,6 +188,8 @@ main(int argc, char** argv)
 
     /* set handler for other message types */
     Slave_setASDUHandler(slave, asduHandler, NULL);
+
+    T104Slave_setConnectionRequestHandler(slave, connectionRequestHandler, NULL);
 
     Slave_start(slave);
 

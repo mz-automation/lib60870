@@ -77,6 +77,23 @@ typedef bool (*DelayAcquisitionHandler) (void* parameter, MasterConnection conne
 typedef bool (*ASDUHandler) (void* parameter, MasterConnection connection, ASDU asdu);
 
 
+/**
+ * \brief Connection request handler is called when a client tries to connect to the server.
+ *
+ * \param parameter user provided parameter
+ * \param ipAddress string containing IP address and TCP port number (e.g. "192.168.1.1:34521")
+ *
+ * \return true to accept the connection request, false to deny
+ */
+typedef bool (*ConnectionRequestHandler) (void* parameter, const char* ipAddress);
+
+/**
+ * \brief Create a new instance of a CS104 slave (server)
+ *
+ * \param parameters the connection parameters to use (or NULL to use the default parameters)
+ * \param maxQueueSize the maximum size of the event queue
+ * \param
+ */
 Slave
 T104Slave_create(ConnectionParameters parameters, int maxQueueSize, int maxHighPrioQueueSize);
 
@@ -101,6 +118,9 @@ T104Slave_setLocalPort(Slave self, int tcpPort);
 
 int
 T104Slave_getOpenConnections(Slave self);
+
+void
+T104Slave_setConnectionRequestHandler(Slave self, ConnectionRequestHandler handler, void* parameter);
 
 void
 Slave_setInterrogationHandler(Slave self, InterrogationHandler handler, void*  parameter);

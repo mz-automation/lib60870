@@ -135,6 +135,9 @@ struct sSlave {
     ASDUHandler asduHandler;
     void* asduHandlerParameter;
 
+    ConnectionRequestHandler connectionRequestHandler;
+    void* connectionRequestHandlerParameter;
+
     struct sMessageQueue asduQueue; /* low priority ASDU queue and buffer */
 
     struct sHighPriorityASDUQueue connectionAsduQueue; /* high priority ASDU queue */
@@ -245,6 +248,7 @@ T104Slave_create(ConnectionParameters parameters, int maxQueueSize, int maxHighP
         self->clockSyncHandler = NULL;
         self->resetProcessHandler = NULL;
         self->delayAcquisitionHandler = NULL;
+        self->connectionRequestHandler = NULL;
 
         self->isRunning = false;
         self->stopRunning = false;
@@ -280,6 +284,13 @@ int
 T104Slave_getOpenConnections(Slave self)
 {
     return self->openConnections;
+}
+
+void
+T104Slave_setConnectionRequestHandler(Slave self, ConnectionRequestHandler handler, void* parameter)
+{
+    self->connectionRequestHandler = handler;
+    self->connectionRequestHandlerParameter = parameter;
 }
 
 void
@@ -1566,8 +1577,31 @@ serverThread (void* parameter)
 
             //MasterConnection connection =
             //TODO save connection reference
-            MasterConnection_create(self, newSocket);
 
+            bool acceptConnection = true;
+
+            //TODO check if maximum number of open connections is exceeded
+
+            if (acceptConnection && (self->connectionRequestHandler != NULL)) {
+                char ipAddress[60];
+
+                Socket_getPeerAddressStatic(newSocket, ipAddress);
+
+                /* remove TCP port part */
+                char* separator = strchr(ipAddress, ':');
+                if (separator != NULL)
+                    *separator = 0;
+
+                acceptConnection = self->connectionRequestHandler(self->connectionRequestHandlerParameter,
+                        ipAddress);
+            }
+
+            if (acceptConnection) {
+                MasterConnection_create(self, newSocket);
+            }
+            else {
+                Socket_destroy(newSocket);
+            }
         }
         else
             Thread_sleep(10);

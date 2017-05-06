@@ -127,6 +127,7 @@ namespace multiclientserver
 			server.MaxOpenConnections = 2;
 
 			server.SetConnectionRequestHandler (connectionRequestHandler, null);
+
 			server.SetInterrogationHandler (interrogationHandler, null);
 
 			server.SetASDUHandler (asduHandler, null);
