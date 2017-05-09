@@ -29,6 +29,8 @@
 #ifdef __BYTE_ORDER__
 #if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #define PLATFORM_IS_BIGENDIAN 1
+#else
+#define PLATFORM_IS_BIGENDIAN 0
 #endif
 
 #else
@@ -38,8 +40,16 @@
 #define PLATFORM_IS_BIGENDIAN 1
 #endif
 
+#ifdef __m68k__
+#define PLATFORM_IS_BIGENDIAN 1
+#endif
+
 #endif /* __BYTE_ORDER__ */
 #endif /* __GNUC__ */
+#endif
+
+#ifndef PLATFORM_IS_BIGENDIAN
+#warning Automatic byte order determination failed! Please define PLATFORM_IS_BIGENDIAN
 #endif
 
 #if (PLATFORM_IS_BIGENDIAN == 1)

@@ -101,6 +101,11 @@ namespace lib60870
 				encodedValue[1] = (byte)(uintVal / 256);
 			}
 		}
+
+		public override string ToString ()
+		{
+			return "" + Value;
+		}
 	}
 	
 }

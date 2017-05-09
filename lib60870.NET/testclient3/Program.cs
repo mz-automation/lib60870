@@ -113,8 +113,8 @@ namespace testclient3
 		{
 			Console.WriteLine ("Using lib60870.NET version " + LibraryCommon.GetLibraryVersionString ());
 
-			//Connection con = new Connection ("192.168.1.50");
-			Connection con = new Connection ("127.0.0.1");
+			Connection con = new Connection ("192.168.1.50");
+			//Connection con = new Connection ("127.0.0.1");
 
 			con.DebugOutput = true;
 
