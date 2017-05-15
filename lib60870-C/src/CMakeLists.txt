@@ -1,6 +1,7 @@
 
 set (lib_common_SRCS
 ./common/lib_memory.c
+./common/linked_list.c
 ./iec60870/apl/asdu.c
 ./iec60870/apl/bcr.c
 ./iec60870/apl/cpXXtime2a.c

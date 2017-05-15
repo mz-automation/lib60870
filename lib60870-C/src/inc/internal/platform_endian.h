@@ -48,10 +48,6 @@
 #endif /* __GNUC__ */
 #endif
 
-#ifndef PLATFORM_IS_BIGENDIAN
-#warning Automatic byte order determination failed! Please define PLATFORM_IS_BIGENDIAN
-#endif
-
 #if (PLATFORM_IS_BIGENDIAN == 1)
 #  define ORDER_LITTLE_ENDIAN 0
 #else

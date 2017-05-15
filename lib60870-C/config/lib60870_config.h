@@ -63,7 +63,20 @@
  */
 #define CONFIG_SLAVE_CONNECTION_ASDU_QUEUE_SIZE 10
 
+/**
+ * Compile library with support for SINGLE_REDUNDANCY_GROUP server mode (only CS104 server)
+ */
+#define CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP 0
 
+/**
+ * Compile library with support for CONNECTION_IS_REDUNDANCY_GROUP server mode (only CS104 server)
+ */
+#define CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP 1
+
+/**
+ * Set the maximum number of client connections or 0 for no restriction
+ */
+#define CONFIG_CS104_MAX_CLIENT_CONNECTIONS 0
 
 /* activate TCP keep alive mechanism. 1 -> activate */
 #define CONFIG_ACTIVATE_TCP_KEEPALIVE 0

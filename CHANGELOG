@@ -1,3 +1,21 @@
+Changes to version 0.9.5
+------------------------
+- lib60870.NET: add support for server allowing multiple clients using the application layer (ServerMode.CONNECTION_IS_REDUNDANCY_GROUP)
+- lib60870-C: add support for server allowing multiple clients using the application layer (new mode where each client connection is a redundancy group)
+- lib60870-C: limit the number of allowed client connection (T104Slave_setMaxOpenConnections)
+- lib60870-C: only accept single active connection in ServerMode == SINGLE_REDUNDANCY_GROUP
+- lib60870-C: enhanced big endian platform detection
+- lib60870-C: CS104 slave/server: added support for ConnectionRequestHandler
+- lib60870-C: Socket_getPeerAddress replaced by Socket_getPeerAddressStatic to avoid dynamic memory allocation
+- lib60870.NET: server support for multiple clients with separate ASDU queues (added ServerMode property)
+- lib60870.NET: server - added MaxOpenConnections property
+- lib60870.NET: server - added ConnectionRequestHandler
+- lib60870.NET: Added RawValue properties to SetpointCommandNormalized and MeasuredValueNormalized, additional constructors with short values
+- lib60870.NET: ScaledValue adds proporty to get/set short value
+- lib60870.NET: fixed tests project dependencies
+- lib60870.NET: fixed bug in BitString32
+- lib60870-C: fixed month bug in CP56Time2a conversion functions
+
 Changes to version 0.9.4
 ------------------------
 - added length check when adding information objects to ASDUs --> changed signature of ASDU_addInformationObject

@@ -172,6 +172,8 @@ connectionRequestHandler(void* parameter, const char* ipAddress)
 int
 main(int argc, char** argv)
 {
+    int openConnections = 0;
+
     /* Add Ctrl-C handler */
     signal(SIGINT, sigint_handler);
 
@@ -195,6 +197,9 @@ main(int argc, char** argv)
 
     T104Slave_setConnectionRequestHandler(slave, connectionRequestHandler, NULL);
 
+    /* Set server mode to allow multiple clients using the application layer */
+    T104Slave_setServerMode(slave, CONNECTION_IS_REDUNDANCY_GROUP);
+
     Slave_start(slave);
 
     if (Slave_isRunning(slave) == false) {
@@ -205,6 +210,13 @@ main(int argc, char** argv)
     int16_t scaledValue = 0;
 
     while (running) {
+        int connectionsCount = T104Slave_getOpenConnections(slave);
+
+        if (connectionsCount != openConnections) {
+            openConnections = connectionsCount;
+
+            printf("Connected clients: %i\n", openConnections);
+        }
 
         Thread_sleep(1000);
 
@@ -229,6 +241,4 @@ main(int argc, char** argv)
 
 exit_program:
     Slave_destroy(slave);
-
-    Thread_sleep(500);
 }

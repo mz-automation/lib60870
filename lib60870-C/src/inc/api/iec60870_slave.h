@@ -35,7 +35,10 @@ typedef struct sMasterConnection* MasterConnection;
 typedef struct sSlave* Slave;
 typedef struct sT104Slave* T104Slave;
 
-typedef struct sIEC60750_Server* IEC60750_Server;
+typedef enum {
+    SINGLE_REDUNDANCY_GROUP,
+    CONNECTION_IS_REDUNDANCY_GROUP
+} ServerMode;
 
 /**
  * Callback handlers for master requests handling
@@ -91,11 +94,11 @@ typedef bool (*ConnectionRequestHandler) (void* parameter, const char* ipAddress
  * \brief Create a new instance of a CS104 slave (server)
  *
  * \param parameters the connection parameters to use (or NULL to use the default parameters)
- * \param maxQueueSize the maximum size of the event queue
- * \param
+ * \param maxLowPrioQueueSize the maximum size of the event queue
+ * \param maxHighPrioQueueSize the maximum size of the high-priority queue
  */
 Slave
-T104Slave_create(ConnectionParameters parameters, int maxQueueSize, int maxHighPrioQueueSize);
+T104Slave_create(ConnectionParameters parameters, int maxLowPrioQueueSize, int maxHighPrioQueueSize);
 
 /**
  * \brief Set the local IP address to bind the server
@@ -116,8 +119,27 @@ T104Slave_setLocalAddress(Slave self, const char* ipAddress);
 void
 T104Slave_setLocalPort(Slave self, int tcpPort);
 
+/**
+ * \brief Get the number of connected clients
+ *
+ * \param self the slave instance
+ */
 int
 T104Slave_getOpenConnections(Slave self);
+
+/**
+ * \brief set the maximum number of open client connections allowed
+ *
+ * NOTE: the number cannot be larger than the static maximum defined in
+ *
+ * \param self the slave instance
+ * \param maxOpenConnections the maximum number of open client connections allowed
+ */
+void
+T104Slave_setMaxOpenConnections(Slave self, int maxOpenConnections);
+
+void
+T104Slave_setServerMode(Slave self, ServerMode serverMode);
 
 void
 T104Slave_setConnectionRequestHandler(Slave self, ConnectionRequestHandler handler, void* parameter);
@@ -183,6 +205,12 @@ MasterConnection_sendACT_CON(MasterConnection self, ASDU asdu, bool negative);
 
 bool
 MasterConnection_sendACT_TERM(MasterConnection self, ASDU asdu);
+
+void
+MasterConnection_close(MasterConnection self);
+
+void
+MasterConnection_deactivate(MasterConnection self);
 
 #ifdef __cplusplus
 }

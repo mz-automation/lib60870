@@ -204,7 +204,7 @@ resetConnection(T104Connection self)
 
     if (self->sentASDUs == NULL) {
         self->maxSentASDUs = self->parameters.k;
-        self->sentASDUs = GLOBAL_MALLOC(sizeof(SentASDU) + self->maxSentASDUs);
+        self->sentASDUs = (SentASDU*) GLOBAL_MALLOC(sizeof(SentASDU) + self->maxSentASDUs);
     }
 
     self->outstandingTestFCConMessages = 0;

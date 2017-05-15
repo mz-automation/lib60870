@@ -31,12 +31,17 @@
 #include "hal_thread.h"
 #include "hal_time.h"
 #include "lib_memory.h"
+#include "linked_list.h"
 #include "buffer_frame.h"
 
 #include "lib60870_config.h"
 #include "lib60870_internal.h"
 
 #include "apl_types_internal.h"
+
+#if ((CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP != 1) && (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP != 1))
+#error Illegal configuration: Define either CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP or CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP
+#endif
 
 #define T104_DEFAULT_PORT 2404
 
@@ -77,6 +82,11 @@ struct sASDUQueueEntry {
 
 typedef struct sASDUQueueEntry* ASDUQueueEntry;
 
+
+/***************************************************
+ * MessageQueue
+ ***************************************************/
+
 struct sMessageQueue {
     int size;
     int entryCounter;
@@ -94,6 +104,270 @@ struct sMessageQueue {
 #endif
 };
 
+typedef struct sMessageQueue* MessageQueue;
+
+static void
+MessageQueue_initialize(MessageQueue self, int maxQueueSize)
+{
+#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
+#else
+    self->asdus = (ASDUQueueEntry) GLOBAL_CALLOC(maxQueueSize, sizeof(struct sASDUQueueEntry));
+#endif
+
+    self->entryCounter = 0;
+    self->firstMsgIndex = 0;
+    self->lastMsgIndex = 0;
+    self->size = maxQueueSize;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    self->queueLock = Semaphore_create(1);
+#endif
+}
+
+static MessageQueue
+MessageQueue_create(int maxQueueSize)
+{
+    MessageQueue self = (MessageQueue) GLOBAL_MALLOC(sizeof(struct sMessageQueue));
+
+    if (self != NULL)
+        MessageQueue_initialize(self, maxQueueSize);
+
+    return self;
+}
+
+static void
+MessageQueue_destroy(MessageQueue self)
+{
+    if (self != NULL) {
+#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE != 1)
+        GLOBAL_FREEMEM(self->asdus);
+#endif
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+        Semaphore_destroy(self->queueLock);
+#endif
+
+        GLOBAL_FREEMEM(self);
+    }
+}
+
+static void
+MessageQueue_lock(MessageQueue self)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+}
+
+static void
+MessageQueue_unlock(MessageQueue self)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->queueLock);
+#endif
+}
+
+
+/**
+ * Add an ASDU to the queue. When queue is full, override oldest entry.
+ */
+static void
+MessageQueue_enqueueASDU(MessageQueue self, ASDU asdu)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+
+    int nextIndex;
+    bool removeEntry = false;
+
+    if (self->entryCounter == 0) {
+        self->firstMsgIndex = 0;
+        nextIndex = 0;
+    }
+    else
+        nextIndex = self->lastMsgIndex + 1;
+
+    if (nextIndex == self->size)
+        nextIndex = 0;
+
+    if (self->entryCounter == self->size)
+        removeEntry = true;
+
+    if (removeEntry == false) {
+        DEBUG_PRINT("add entry (nextIndex:%i)\n", nextIndex);
+        self->lastMsgIndex = nextIndex;
+        self->entryCounter++;
+    }
+    else {
+        DEBUG_PRINT("add entry (nextIndex:%i) -> remove oldest\n", nextIndex);
+
+        /* remove oldest entry */
+        self->lastMsgIndex = nextIndex;
+
+        int firstIndex = nextIndex + 1;
+
+        if (firstIndex == self->size)
+            firstIndex = 0;
+
+        self->firstMsgIndex = firstIndex;
+    }
+
+    struct sBufferFrame bufferFrame;
+
+    Frame frame = BufferFrame_initialize(&bufferFrame, self->asdus[nextIndex].asdu.msg,
+                                            IEC60870_5_104_APCI_LENGTH);
+
+    ASDU_encode(asdu, frame);
+
+    self->asdus[nextIndex].asdu.msgSize = Frame_getMsgSize(frame);
+    self->asdus[nextIndex].entryTimestamp = Hal_getTimeInMs();
+    self->asdus[nextIndex].state = QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION;
+
+    DEBUG_PRINT("ASDUs in FIFO: %i (first: %i, last: %i)\n", self->entryCounter,
+            self->firstMsgIndex, self->lastMsgIndex);
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->queueLock);
+#endif
+}
+
+static bool
+MessageQueue_isAsduAvailable(MessageQueue self)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+
+    bool retVal;
+
+    if (self->entryCounter > 0)
+        retVal = true;
+    else
+        retVal = false;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->queueLock);
+#endif
+
+    return retVal;
+}
+
+
+static FrameBuffer*
+MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* timestamp, int* index)
+{
+    FrameBuffer* buffer = NULL;
+
+    if (self->entryCounter != 0) {
+        int currentIndex = self->firstMsgIndex;
+
+        while (self->asdus[currentIndex].state != QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION) {
+
+            if (self->asdus[currentIndex].state == QUEUE_ENTRY_STATE_NOT_USED)
+                break;
+
+            currentIndex = (currentIndex + 1) % self->size;
+
+            /* break when we reached the oldest entry again */
+            if (currentIndex == self->firstMsgIndex)
+                break;
+        }
+
+        if (self->asdus[currentIndex].state == QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION) {
+
+            self->asdus[currentIndex].state = QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED;
+            *timestamp = self->asdus[currentIndex].entryTimestamp;
+            *index = currentIndex;
+
+            buffer = &(self->asdus[currentIndex].asdu);
+        }
+    }
+
+    return buffer;
+}
+
+static void
+MessageQueue_releaseAllQueuedASDUs(MessageQueue self)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+
+    self->firstMsgIndex = 0;
+    self->lastMsgIndex = 0;
+    self->entryCounter = 0;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->queueLock);
+#endif
+}
+
+static void
+MessageQueue_markAsduAsConfirmed(MessageQueue self, int index, uint64_t timestamp)
+{
+    if ((index < 0) || (index > self->size))
+        return;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+
+    if (self->entryCounter > 0) {
+        if (self->asdus[index].state == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED) {
+
+            if (self->asdus[index].entryTimestamp == timestamp) {
+                int currentIndex = index;
+
+                while (self->asdus[currentIndex].state == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED) {
+
+                    DEBUG_PRINT("Remove from queue with index %i\n", currentIndex);
+
+                    self->asdus[currentIndex].state = QUEUE_ENTRY_STATE_NOT_USED;
+                    self->asdus[currentIndex].entryTimestamp = 0;
+
+                    self->entryCounter--;
+
+                    if (self->entryCounter == 0) {
+                        self->firstMsgIndex = -1;
+                        self->lastMsgIndex = -1;
+                        break;
+                    }
+
+                    if (currentIndex == self->firstMsgIndex) {
+                        self->firstMsgIndex = (index + 1) % self->size;
+
+                        if (self->entryCounter == 1)
+                            self->lastMsgIndex = self->firstMsgIndex;
+
+                        break;
+                    }
+
+                    currentIndex--;
+
+                    if (currentIndex < 0)
+                        currentIndex = self->size - 1;
+
+                    /* break if we reached the first deleted entry again */
+                    if (currentIndex == index)
+                        break;
+
+                    DEBUG_PRINT("queue state: noASDUs: %i oldest: %i latest: %i\n", self->entryCounter,
+                            self->firstMsgIndex, self->lastMsgIndex);
+
+                }
+            }
+        }
+    }
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->queueLock);
+#endif
+}
+
+/***************************************************
+ * HighPriorityASDUQueue
+ ***************************************************/
 
 struct sHighPriorityASDUQueue {
     int size;
@@ -112,6 +386,191 @@ struct sHighPriorityASDUQueue {
 #endif
 };
 
+typedef struct sHighPriorityASDUQueue* HighPriorityASDUQueue;
+
+
+static void
+HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self, int maxQueueSize)
+{
+#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
+#else
+    self->asdus = (FrameBuffer*) GLOBAL_CALLOC(maxQueueSize, sizeof(FrameBuffer));
+#endif
+
+    self->entryCounter = 0;
+    self->firstMsgIndex = 0;
+    self->lastMsgIndex = 0;
+    self->size = maxQueueSize;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    self->queueLock = Semaphore_create(1);
+#endif
+}
+
+static HighPriorityASDUQueue
+HighPriorityASDUQueue_create(int maxQueueSize)
+{
+    HighPriorityASDUQueue self = (HighPriorityASDUQueue) GLOBAL_MALLOC(sizeof(struct sHighPriorityASDUQueue));
+
+    if (self != NULL)
+        HighPriorityASDUQueue_initialize(self, maxQueueSize);
+
+    return self;
+}
+
+static void
+HighPriorityASDUQueue_destroy(HighPriorityASDUQueue self)
+{
+#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
+#else
+    GLOBAL_FREEMEM(self->asdus);
+#endif
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_destroy(self->queueLock);
+#endif
+
+    GLOBAL_FREEMEM(self);
+}
+
+static void
+HighPriorityASDUQueue_lock(HighPriorityASDUQueue self)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+}
+
+static void
+HighPriorityASDUQueue_unlock(HighPriorityASDUQueue self)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->queueLock);
+#endif
+}
+
+static bool
+HighPriorityASDUQueue_isAsduAvailable(HighPriorityASDUQueue self)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+
+    bool retVal;
+
+    if (self->entryCounter > 0)
+        retVal = true;
+    else
+        retVal = false;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->queueLock);
+#endif
+
+    return retVal;
+}
+
+static FrameBuffer*
+HighPriorityASDUQueue_getNextASDU(HighPriorityASDUQueue self)
+{
+    FrameBuffer* buffer = NULL;
+
+    if (self->entryCounter != 0)  {
+        int currentIndex = self->firstMsgIndex;
+
+        if (self->entryCounter == 1) {
+            self->entryCounter = 0;
+            self->firstMsgIndex = -1;
+            self->lastMsgIndex = -1;
+        }
+        else {
+            self->firstMsgIndex = (self->firstMsgIndex + 1) % (self->size);
+
+            self->entryCounter--;
+        }
+
+        buffer = &(self->asdus[currentIndex]);
+    }
+
+    return buffer;
+}
+
+//static bool
+//Slave_enqueueHighPrioASDU(Slave self, ASDU asdu)
+static bool
+HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, ASDU asdu)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+
+    bool enqueued = false;
+
+    if (self->entryCounter == self->size)
+        goto exit_function;
+
+    int nextIndex;
+
+    if (self->entryCounter == 0) {
+        self->firstMsgIndex = 0;
+        nextIndex = 0;
+    }
+    else
+        nextIndex = self->lastMsgIndex + 1;
+
+    if (nextIndex == self->size)
+        nextIndex = 0;
+
+    DEBUG_PRINT("HighPrio AsduQueue: add entry (nextIndex:%i)\n", nextIndex);
+    self->lastMsgIndex = nextIndex;
+    self->entryCounter++;
+
+    struct sBufferFrame bufferFrame;
+
+    Frame frame = BufferFrame_initialize(&bufferFrame, self->asdus[nextIndex].msg,
+                                            IEC60870_5_104_APCI_LENGTH);
+
+    ASDU_encode(asdu, frame);
+
+    self->asdus[nextIndex].msgSize = Frame_getMsgSize(frame);
+
+    DEBUG_PRINT("ASDUs in HighPrio FIFO: %i (first: %i, last: %i)\n", self->entryCounter,
+            self->firstMsgIndex, self->lastMsgIndex);
+
+    enqueued = true;
+
+exit_function:
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->queueLock);
+#endif
+
+    return enqueued;
+}
+
+//static void
+//Slave_resetConnectionQueue(Slave self)
+static void
+HighPriorityASDUQueue_resetConnectionQueue(HighPriorityASDUQueue self)
+{
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+
+    self->firstMsgIndex = 0;
+    self->lastMsgIndex = 0;
+    self->entryCounter = 0;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->queueLock);
+#endif
+}
+
+
+
+/***************************************************
+ * Slave
+ ***************************************************/
 
 struct sSlave {
     InterrogationHandler interrogationHandler;
@@ -138,9 +597,26 @@ struct sSlave {
     ConnectionRequestHandler connectionRequestHandler;
     void* connectionRequestHandlerParameter;
 
-    struct sMessageQueue asduQueue; /* low priority ASDU queue and buffer */
+#if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP)
+    MessageQueue asduQueue; /**< low priority ASDU queue and buffer */
+    HighPriorityASDUQueue connectionAsduQueue; /**< high priority ASDU queue */
+#endif
 
-    struct sHighPriorityASDUQueue connectionAsduQueue; /* high priority ASDU queue */
+#if (CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP)
+    int maxLowPrioQueueSize;
+    int maxHighPrioQueueSize;
+#endif
+
+    int openConnections; /**< number of connected clients */
+    LinkedList masterConnections; /**< references to all MasterConnection objects */
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore openConnectionsLock;
+#endif
+
+    int maxOpenConnections; /**< maximum accepted open client connections */
+
+    /* TODO if configured for fixed number of connections and connection_is_redundancy_group,
+     *  add connection queues here */
 
     struct sT104ConnectionParameters parameters;
 
@@ -148,8 +624,9 @@ struct sSlave {
     bool isRunning;
     bool stopRunning;
 
-    int openConnections;
     int tcpPort;
+
+    ServerMode serverMode;
 
     char* localAddress;
     Thread listeningThread;
@@ -177,11 +654,10 @@ static uint8_t TESTFR_ACT_MSG[] = { 0x68, 0x04, 0x43, 0x00, 0x00, 0x00 };
 
 #define TESTFR_ACT_MSG_SIZE 6
 
-
+#if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
 static void
 initializeMessageQueues(Slave self, int lowPrioMaxQueueSize, int highPrioMaxQueueSize)
 {
-
     /* initialized low priority queue */
 
 #if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
@@ -189,18 +665,10 @@ initializeMessageQueues(Slave self, int lowPrioMaxQueueSize, int highPrioMaxQueu
 #else
     if (lowPrioMaxQueueSize < 1)
         lowPrioMaxQueueSize = CONFIG_SLAVE_ASDU_QUEUE_SIZE;
-
-    self->asduQueue.asdus = GLOBAL_CALLOC(lowPrioMaxQueueSize, sizeof(struct sASDUQueueEntry));
 #endif
 
-    self->asduQueue.entryCounter = 0;
-    self->asduQueue.firstMsgIndex = 0;
-    self->asduQueue.lastMsgIndex = 0;
-    self->asduQueue.size = lowPrioMaxQueueSize;
-
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    self->asduQueue.queueLock = Semaphore_create(1);
-#endif
+    self->asduQueue = MessageQueue_create(lowPrioMaxQueueSize);
+    //TODO support static memory allocation mode
 
     /* initialize high priority queue */
 
@@ -209,22 +677,15 @@ initializeMessageQueues(Slave self, int lowPrioMaxQueueSize, int highPrioMaxQueu
 #else
     if (highPrioMaxQueueSize < 1)
         highPrioMaxQueueSize = CONFIG_SLAVE_CONNECTION_ASDU_QUEUE_SIZE;
-
-    self->connectionAsduQueue.asdus = (FrameBuffer*) GLOBAL_CALLOC(highPrioMaxQueueSize, sizeof(FrameBuffer));
 #endif
 
-    self->connectionAsduQueue.entryCounter = 0;
-    self->connectionAsduQueue.firstMsgIndex = 0;
-    self->connectionAsduQueue.lastMsgIndex = 0;
-    self->connectionAsduQueue.size = highPrioMaxQueueSize;
-
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    self->connectionAsduQueue.queueLock = Semaphore_create(1);
-#endif
+    self->connectionAsduQueue = HighPriorityASDUQueue_create(highPrioMaxQueueSize);
+    //TODO support static memory allocation mode
 }
+#endif /* (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
 Slave
-T104Slave_create(ConnectionParameters parameters, int maxQueueSize, int maxHighPrioQueueSize)
+T104Slave_create(ConnectionParameters parameters, int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 {
 #if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
     Slave self = &(singleStaticSlaveInstance);
@@ -233,8 +694,6 @@ T104Slave_create(ConnectionParameters parameters, int maxQueueSize, int maxHighP
 #endif
 
     if (self != NULL) {
-
-        initializeMessageQueues(self, maxQueueSize, maxHighPrioQueueSize);
 
         if (parameters != NULL)
             self->parameters = *((T104ConnectionParameters) parameters);
@@ -250,6 +709,17 @@ T104Slave_create(ConnectionParameters parameters, int maxQueueSize, int maxHighP
         self->delayAcquisitionHandler = NULL;
         self->connectionRequestHandler = NULL;
 
+#if (CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+        self->maxLowPrioQueueSize = maxLowPrioQueueSize;
+        self->maxHighPrioQueueSize = maxHighPrioQueueSize;
+#endif
+
+        self->masterConnections = LinkedList_create();
+        self->maxOpenConnections = CONFIG_CS104_MAX_CLIENT_CONNECTIONS;
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+        self->openConnectionsLock = Semaphore_create(1);
+#endif
+
         self->isRunning = false;
         self->stopRunning = false;
 
@@ -257,9 +727,24 @@ T104Slave_create(ConnectionParameters parameters, int maxQueueSize, int maxHighP
         self->tcpPort = T104_DEFAULT_PORT;
         self->openConnections = 0;
         self->listeningThread = NULL;
+
+#if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+        self->serverMode = SINGLE_REDUNDANCY_GROUP;
+#else
+#if (CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+        self->serverMode = CONNECTION_IS_REDUNDANCY_GROUP;
+#endif
+#endif
+
     }
 
     return self;
+}
+
+void
+T104Slave_setServerMode(Slave self, ServerMode serverMode)
+{
+    self->serverMode = serverMode;
 }
 
 void
@@ -287,10 +772,55 @@ T104Slave_getOpenConnections(Slave self)
 }
 
 void
+T104Slave_setMaxOpenConnections(Slave self, int maxOpenConnections)
+{
+    if (CONFIG_CS104_MAX_CLIENT_CONNECTIONS > 0) {
+        if (maxOpenConnections > CONFIG_CS104_MAX_CLIENT_CONNECTIONS)
+            maxOpenConnections = CONFIG_CS104_MAX_CLIENT_CONNECTIONS;
+    }
+
+    self->maxOpenConnections = maxOpenConnections;
+}
+
+void
 T104Slave_setConnectionRequestHandler(Slave self, ConnectionRequestHandler handler, void* parameter)
 {
     self->connectionRequestHandler = handler;
     self->connectionRequestHandlerParameter = parameter;
+}
+
+/**
+ * Activate connection and deactivate existing active connections if required
+ */
+static void
+T104Slave_activate(Slave self, MasterConnection connectionToActivate)
+{
+#if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+    if (self->serverMode == SINGLE_REDUNDANCY_GROUP) {
+
+        /* Deactivate all other connections */
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+        Semaphore_wait(self->openConnectionsLock);
+#endif
+
+        LinkedList element;
+
+        for (element = LinkedList_getNext(self->masterConnections);
+             element != NULL;
+             element = LinkedList_getNext(element))
+        {
+            MasterConnection connection = (MasterConnection) LinkedList_getData(element);
+
+            if (connection != connectionToActivate)
+                MasterConnection_deactivate(connection);
+        }
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+        Semaphore_post(self->openConnectionsLock);
+#endif
+
+    }
+#endif /* (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 }
 
 void
@@ -334,270 +864,12 @@ Slave_getConnectionParameters(Slave self)
     return (ConnectionParameters) &(self->parameters);
 }
 
-void
-Slave_enqueueASDU(Slave self, ASDU asdu)
-{
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_wait(self->asduQueue.queueLock);
-#endif
 
-    int nextIndex;
-    bool removeEntry = false;
 
-    if (self->asduQueue.entryCounter == 0) {
-        self->asduQueue.firstMsgIndex = 0;
-        nextIndex = 0;
-    }
-    else
-        nextIndex = self->asduQueue.lastMsgIndex + 1;
 
-    if (nextIndex == self->asduQueue.size)
-        nextIndex = 0;
-
-    if (self->asduQueue.entryCounter == self->asduQueue.size)
-        removeEntry = true;
-
-    if (removeEntry == false) {
-        DEBUG_PRINT("add entry (nextIndex:%i)\n", nextIndex);
-        self->asduQueue.lastMsgIndex = nextIndex;
-        self->asduQueue.entryCounter++;
-    }
-    else {
-        DEBUG_PRINT("add entry (nextIndex:%i) -> remove oldest\n", nextIndex);
-
-        /* remove oldest entry */
-        self->asduQueue.lastMsgIndex = nextIndex;
-
-        int firstIndex = nextIndex + 1;
-
-        if (firstIndex == self->asduQueue.size)
-            firstIndex = 0;
-
-        self->asduQueue.firstMsgIndex = firstIndex;
-    }
-
-    struct sBufferFrame bufferFrame;
-
-    Frame frame = BufferFrame_initialize(&bufferFrame, self->asduQueue.asdus[nextIndex].asdu.msg,
-                                            IEC60870_5_104_APCI_LENGTH);
-
-    ASDU_encode(asdu, frame);
-
-    self->asduQueue.asdus[nextIndex].asdu.msgSize = Frame_getMsgSize(frame);
-    self->asduQueue.asdus[nextIndex].entryTimestamp = Hal_getTimeInMs();
-    self->asduQueue.asdus[nextIndex].state = QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION;
-
-    ASDU_destroy(asdu);
-
-    DEBUG_PRINT("ASDUs in FIFO: %i (first: %i, last: %i)\n", self->asduQueue.entryCounter,
-            self->asduQueue.firstMsgIndex, self->asduQueue.lastMsgIndex);
-
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_post(self->asduQueue.queueLock);
-#endif
-
-    //TODO trigger active connection to send message
-}
-
-
-
-static bool
-Slave_isHighPrioASDUAvailable(Slave self)
-{
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_wait(self->connectionAsduQueue.queueLock);
-#endif
-
-    bool retVal;
-
-    if (self->connectionAsduQueue.entryCounter > 0)
-        retVal = true;
-    else
-        retVal = false;
-
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_post(self->connectionAsduQueue.queueLock);
-#endif
-
-    return retVal;
-}
-
-static bool
-Slave_enqueueHighPrioASDU(Slave self, ASDU asdu)
-{
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_wait(self->connectionAsduQueue.queueLock);
-#endif
-
-    bool enqueued = false;
-
-    if (self->connectionAsduQueue.entryCounter == self->connectionAsduQueue.size)
-        goto exit_function;
-
-    int nextIndex;
-
-    if (self->connectionAsduQueue.entryCounter == 0) {
-        self->connectionAsduQueue.firstMsgIndex = 0;
-        nextIndex = 0;
-    }
-    else
-        nextIndex = self->connectionAsduQueue.lastMsgIndex + 1;
-
-    if (nextIndex == self->connectionAsduQueue.size)
-        nextIndex = 0;
-
-    DEBUG_PRINT("HighPrio queue: add entry (nextIndex:%i)\n", nextIndex);
-    self->connectionAsduQueue.lastMsgIndex = nextIndex;
-    self->connectionAsduQueue.entryCounter++;
-
-    struct sBufferFrame bufferFrame;
-
-    Frame frame = BufferFrame_initialize(&bufferFrame, self->connectionAsduQueue.asdus[nextIndex].msg,
-                                            IEC60870_5_104_APCI_LENGTH);
-
-    ASDU_encode(asdu, frame);
-
-    self->connectionAsduQueue.asdus[nextIndex].msgSize = Frame_getMsgSize(frame);
-
-    DEBUG_PRINT("ASDUs in HighPrio FIFO: %i (first: %i, last: %i)\n", self->connectionAsduQueue.entryCounter,
-            self->connectionAsduQueue.firstMsgIndex, self->connectionAsduQueue.lastMsgIndex);
-
-    enqueued = true;
-
-exit_function:
-
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_post(self->connectionAsduQueue.queueLock);
-#endif
-
-    return enqueued;
-}
-
-
-
-
-static void
-releaseAllQueuedASDUs(Slave self)
-{
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_wait(self->asduQueue.queueLock);
-#endif
-
-    self->asduQueue.firstMsgIndex = 0;
-    self->asduQueue.lastMsgIndex = 0;
-    self->asduQueue.entryCounter = 0;
-
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_post(self->asduQueue.queueLock);
-#endif
-}
-
-static void
-Slave_resetConnectionQueue(Slave self)
-{
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_wait(self->connectionAsduQueue.queueLock);
-#endif
-
-    self->connectionAsduQueue.firstMsgIndex = 0;
-    self->connectionAsduQueue.lastMsgIndex = 0;
-    self->connectionAsduQueue.entryCounter = 0;
-
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_post(self->connectionAsduQueue.queueLock);
-#endif
-}
-
-static void
-Slave_lockQueue(Slave self)
-{
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_wait(self->asduQueue.queueLock);
-#endif
-}
-
-static void
-Slave_unlockQueue(Slave self)
-{
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_post(self->asduQueue.queueLock);
-#endif
-}
-
-static FrameBuffer*
-T104Slave_getNextWaitingASDU(Slave self, uint64_t* timestamp, int* index)
-{
-    FrameBuffer* buffer = NULL;
-
-    if (self->asduQueue.entryCounter != 0) {
-        int currentIndex = self->asduQueue.firstMsgIndex;
-
-        while (self->asduQueue.asdus[currentIndex].state != QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION) {
-
-            if (self->asduQueue.asdus[currentIndex].state == QUEUE_ENTRY_STATE_NOT_USED)
-                break;
-
-            currentIndex = (currentIndex + 1) % self->asduQueue.size;
-
-            /* break when we reached the oldest entry again */
-            if (currentIndex == self->asduQueue.firstMsgIndex)
-                break;
-        }
-
-        if (self->asduQueue.asdus[currentIndex].state == QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION) {
-
-            self->asduQueue.asdus[currentIndex].state = QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED;
-            *timestamp = self->asduQueue.asdus[currentIndex].entryTimestamp;
-            *index = currentIndex;
-
-            buffer = &(self->asduQueue.asdus[currentIndex].asdu);
-        }
-    }
-
-    return buffer;
-}
-
-static void
-Slave_lockConnectionQueue(Slave self)
-{
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_wait(self->connectionAsduQueue.queueLock);
-#endif
-}
-
-static void
-Slave_unlockConnectionQueue(Slave self)
-{
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_post(self->connectionAsduQueue.queueLock);
-#endif
-}
-
-static FrameBuffer*
-Slave_getNextHighPrioASDU(Slave self)
-{
-    FrameBuffer* buffer = NULL;
-
-    if (self->connectionAsduQueue.entryCounter != 0)  {
-        int currentIndex = self->connectionAsduQueue.firstMsgIndex;
-
-        if (self->connectionAsduQueue.entryCounter == 1) {
-            self->connectionAsduQueue.entryCounter = 0;
-            self->connectionAsduQueue.firstMsgIndex = -1;
-            self->connectionAsduQueue.lastMsgIndex = -1;
-        }
-        else {
-            self->connectionAsduQueue.firstMsgIndex = (self->connectionAsduQueue.firstMsgIndex + 1)
-                    % (self->connectionAsduQueue.size);
-
-            self->connectionAsduQueue.entryCounter--;
-        }
-
-        buffer = &(self->connectionAsduQueue.asdus[currentIndex]);
-    }
-
-    return buffer;
-}
+/********************************************************
+ * MasterConnection
+ *********************************************************/
 
 typedef struct {
     /* required to identify message in server (low-priority) queue */
@@ -631,6 +903,9 @@ struct sMasterConnection {
 #if (CONFIG_SLAVE_USING_THREADS == 1)
     Semaphore sentASDUsLock;
 #endif
+
+    MessageQueue lowPrioQueue;
+    HighPriorityASDUQueue highPrioQueue;
 
     bool firstIMessageReceived;
 };
@@ -692,7 +967,7 @@ receiveMessage(Socket socket, uint8_t* buffer)
 static int
 sendIMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 {
-    //TODO lock socket
+    //TODO lock socket?
 
     buffer[0] = (uint8_t) 0x68;
     buffer[1] = (uint8_t) (msgSize - 2);
@@ -759,7 +1034,7 @@ sendASDU(MasterConnection self, FrameBuffer* asdu, uint64_t timestamp, int index
 static bool
 sendASDUInternal(MasterConnection self, ASDU asdu)
 {
-    bool retVal;
+    bool asduSent;
 
     if (self->isActive) {
 
@@ -784,23 +1059,23 @@ sendASDUInternal(MasterConnection self, ASDU asdu)
             Semaphore_post(self->sentASDUsLock);
 #endif
 
-            retVal = true;
+            asduSent = true;
         }
         else {
 #if (CONFIG_SLAVE_USING_THREADS == 1)
             Semaphore_post(self->sentASDUsLock);
 #endif
-            retVal = Slave_enqueueHighPrioASDU(self->slave, asdu);
+            asduSent = HighPriorityASDUQueue_enqueue(self->highPrioQueue, asdu);
         }
 
     }
     else
-        retVal = false;
+        asduSent = false;
 
-    if (retVal == false)
+    if (asduSent == false)
         DEBUG_PRINT("unable to send response (isActive=%i)\n", self->isActive);
 
-    return retVal;
+    return asduSent;
 }
 
 
@@ -811,6 +1086,11 @@ static void responseCOTUnknown(ASDU asdu, MasterConnection self)
     sendASDUInternal(self, asdu);
 }
 
+/*
+ * Handle received ASDUs
+ *
+ * Call the appropriate callbacks according to ASDU type and CoT
+ */
 static void
 handleASDU(MasterConnection self, ASDU asdu)
 {
@@ -982,67 +1262,7 @@ handleASDU(MasterConnection self, ASDU asdu)
     }
 }
 
-static void
-Slave_markAsduAsConfirmed(Slave self, int index, uint64_t timestamp)
-{
-    if ((index < 0) || (index > self->asduQueue.size))
-        return;
 
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_wait(self->asduQueue.queueLock);
-#endif
-
-    if (self->asduQueue.entryCounter > 0) {
-        if (self->asduQueue.asdus[index].state == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED) {
-
-            if (self->asduQueue.asdus[index].entryTimestamp == timestamp) {
-                int currentIndex = index;
-
-                while (self->asduQueue.asdus[currentIndex].state == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED) {
-
-                    DEBUG_PRINT("Remove from queue with index %i\n", currentIndex);
-
-                    self->asduQueue.asdus[currentIndex].state = QUEUE_ENTRY_STATE_NOT_USED;
-                    self->asduQueue.asdus[currentIndex].entryTimestamp = 0;
-
-                    self->asduQueue.entryCounter--;
-
-                    if (self->asduQueue.entryCounter == 0) {
-                        self->asduQueue.firstMsgIndex = -1;
-                        self->asduQueue.lastMsgIndex = -1;
-                        break;
-                    }
-
-                    if (currentIndex == self->asduQueue.firstMsgIndex) {
-                        self->asduQueue.firstMsgIndex = (index + 1) % self->asduQueue.size;
-
-                        if (self->asduQueue.entryCounter == 1)
-                            self->asduQueue.lastMsgIndex = self->asduQueue.firstMsgIndex;
-
-                        break;
-                    }
-
-                    currentIndex--;
-
-                    if (currentIndex < 0)
-                        currentIndex = self->asduQueue.size - 1;
-
-                    /* break if we reached the first deleted entry again */
-                    if (currentIndex == index)
-                        break;
-
-                    DEBUG_PRINT("queue state: noASDUs: %i oldest: %i latest: %i\n", self->asduQueue.entryCounter,
-                            self->asduQueue.firstMsgIndex, self->asduQueue.lastMsgIndex);
-
-                }
-            }
-        }
-    }
-
-#if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_post(self->asduQueue.queueLock);
-#endif
-}
 
 static bool
 checkSequenceNumber(MasterConnection self, int seqNo)
@@ -1099,7 +1319,9 @@ checkSequenceNumber(MasterConnection self, int seqNo)
 
                 /* remove from server (low-priority) queue if required */
                 if (self->sentASDUs[self->oldestSentASDU].queueIndex != -1) {
-                    Slave_markAsduAsConfirmed (self->slave, self->sentASDUs[self->oldestSentASDU].queueIndex,
+
+                    MessageQueue_markAsduAsConfirmed(self->lowPrioQueue,
+                            self->sentASDUs[self->oldestSentASDU].queueIndex,
                             self->sentASDUs[self->oldestSentASDU].entryTime);
                 }
 
@@ -1205,8 +1427,11 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
     else if ((buffer [2] & 0x07) == 0x07) {
         DEBUG_PRINT("Send STARTDT_CON\n");
 
+        T104Slave_activate(self->slave, self);
+
         self->isActive = true;
-        Slave_resetConnectionQueue(self->slave);
+
+        HighPriorityASDUQueue_resetConnectionQueue(self->highPrioQueue);
 
         Socket_write(self->socket, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
     }
@@ -1281,7 +1506,7 @@ MasterConnection_destroy(MasterConnection self)
 
 
 static void
-sendNextAvailableASDU(MasterConnection self)
+sendNextLowPriorityASDU(MasterConnection self)
 {
 #if (CONFIG_SLAVE_USING_THREADS == 1)
     Semaphore_wait(self->sentASDUsLock);
@@ -1290,17 +1515,17 @@ sendNextAvailableASDU(MasterConnection self)
     if (isSentBufferFull(self))
         goto exit_function;
 
-    Slave_lockQueue(self->slave);
+    MessageQueue_lock(self->lowPrioQueue);
 
     uint64_t timestamp;
     int index;
 
-    FrameBuffer* asdu = T104Slave_getNextWaitingASDU(self->slave, &timestamp, &index);
+    FrameBuffer* asdu = MessageQueue_getNextWaitingASDU(self->lowPrioQueue, &timestamp, &index);
 
     if (asdu != NULL)
         sendASDU(self, asdu, timestamp, index);
 
-    Slave_unlockQueue(self->slave);
+    MessageQueue_unlock(self->lowPrioQueue);
 
 exit_function:
 #if (CONFIG_SLAVE_USING_THREADS == 1)
@@ -1320,16 +1545,16 @@ sendNextHighPriorityASDU(MasterConnection self)
     if (isSentBufferFull(self))
         goto exit_function;
 
-    Slave_lockConnectionQueue(self->slave);
+    HighPriorityASDUQueue_lock(self->highPrioQueue);
 
-    FrameBuffer* msg = Slave_getNextHighPrioASDU(self->slave);
+    FrameBuffer* msg = HighPriorityASDUQueue_getNextASDU(self->highPrioQueue);
 
     if (msg != NULL) {
         sendASDU(self, msg, 0, -1);
         retVal = true;
     }
 
-    Slave_unlockConnectionQueue(self->slave);
+    HighPriorityASDUQueue_unlock(self->highPrioQueue);
 
 exit_function:
 #if (CONFIG_SLAVE_USING_THREADS == 1)
@@ -1339,21 +1564,32 @@ exit_function:
     return retVal;
 }
 
-static void
+/**
+ * Send all high-priority ASDUs and the last waiting ASDU from the low-priority queue.
+ * Returns true if ASDUs are still waiting. This can happen when there are more ASDUs
+ * in the event (low-priority) buffer, or the connection is unavailable to send the high-priority
+ * ASDUs (congestion or connection lost).
+ */
+static bool
 sendWaitingASDUs(MasterConnection self)
 {
     /* send all available high priority ASDUs first */
-    while (Slave_isHighPrioASDUAvailable(self->slave)) {
+    while (HighPriorityASDUQueue_isAsduAvailable(self->highPrioQueue)) {
 
         if (sendNextHighPriorityASDU(self) == false)
-            return;
+            return true;
 
         if (self->isRunning == false)
-            return;
+            return true;
     }
 
     /* send messages from low-priority queue */
-    sendNextAvailableASDU(self);
+    sendNextLowPriorityASDU(self);
+
+    if (MessageQueue_isAsduAvailable(self->lowPrioQueue))
+        return true;
+    else
+        return false;
 }
 
 static bool
@@ -1413,6 +1649,23 @@ handleTimeouts(MasterConnection self)
     return timeoutsOk;
 }
 
+static void
+T104Slave_removeConnection(Slave self, MasterConnection connection)
+{
+#if (CONFIG_SLAVE_USING_THREADS)
+    Semaphore_wait(self->openConnectionsLock);
+#endif
+
+    self->openConnections--;
+    LinkedList_remove(self->masterConnections, (void*) connection);
+
+#if (CONFIG_SLAVE_USING_THREADS)
+    Semaphore_post(self->openConnectionsLock);
+#endif
+
+    MasterConnection_destroy(connection);
+}
+
 static void*
 connectionHandlingThread(void* parameter)
 {
@@ -1426,12 +1679,25 @@ connectionHandlingThread(void* parameter)
 
     HandleSet handleSet = Handleset_new();
 
+    bool isAsduWaiting = false;
+
     while (self->isRunning) {
 
         Handleset_reset(handleSet);
         Handleset_addSocket(handleSet, self->socket);
 
-        if (Handleset_waitReady(handleSet, 100)) {
+        int socketTimeout;
+
+        /*
+         * When an ASDU is waiting only have a short look to see if a client request
+         * was received. Otherwise wait to save CPU time.
+         */
+        if (isAsduWaiting)
+            socketTimeout = 1;
+        else
+            socketTimeout = 100; /* TODO replace by configurable parameter */
+
+        if (Handleset_waitReady(handleSet, socketTimeout)) {
 
             int bytesRec = receiveMessage(self->socket, buffer);
 
@@ -1462,7 +1728,7 @@ connectionHandlingThread(void* parameter)
 
         if (self->isRunning)
             if (self->isActive)
-                sendWaitingASDUs(self);
+                isAsduWaiting = sendWaitingASDUs(self);
     }
 
     DEBUG_PRINT("Connection closed\n");
@@ -1470,15 +1736,21 @@ connectionHandlingThread(void* parameter)
     Handleset_destroy(handleSet);
 
     self->isRunning = false;
-    self->slave->openConnections--;
 
-    MasterConnection_destroy(self);
+#if (CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+    if (self->slave->serverMode == CONNECTION_IS_REDUNDANCY_GROUP) {
+        MessageQueue_destroy(self->lowPrioQueue);
+        HighPriorityASDUQueue_destroy(self->highPrioQueue);
+    }
+#endif
+
+    T104Slave_removeConnection(self->slave, self);
 
     return NULL;
 }
 
 static MasterConnection
-MasterConnection_create(Slave slave, Socket socket)
+MasterConnection_create(Slave slave, Socket socket, MessageQueue lowPrioQueue, HighPriorityASDUQueue highPrioQueue)
 {
     MasterConnection self = (MasterConnection) GLOBAL_MALLOC(sizeof(struct sMasterConnection));
 
@@ -1505,6 +1777,9 @@ MasterConnection_create(Slave slave, Socket socket)
         self->sentASDUsLock = Semaphore_create(1);
 #endif
 
+        self->lowPrioQueue = lowPrioQueue;
+        self->highPrioQueue = highPrioQueue;
+
         self->outstandingTestFRConMessages = 0;
 
         Thread newThread =
@@ -1515,6 +1790,18 @@ MasterConnection_create(Slave slave, Socket socket)
     }
 
     return self;
+}
+
+void
+MasterConnection_close(MasterConnection self)
+{
+    self->isRunning = false;
+}
+
+void
+MasterConnection_deactivate(MasterConnection self)
+{
+    self->isActive = false;
 }
 
 
@@ -1575,12 +1862,13 @@ serverThread (void* parameter)
 
         if (newSocket != NULL) {
 
-            //MasterConnection connection =
-            //TODO save connection reference
-
             bool acceptConnection = true;
 
-            //TODO check if maximum number of open connections is exceeded
+            /* check if maximum number of open connections is reached */
+            if (self->maxOpenConnections > 0) {
+                if (self->openConnections >= self->maxOpenConnections)
+                    acceptConnection = false;
+            }
 
             if (acceptConnection && (self->connectionRequestHandler != NULL)) {
                 char ipAddress[60];
@@ -1597,7 +1885,38 @@ serverThread (void* parameter)
             }
 
             if (acceptConnection) {
-                MasterConnection_create(self, newSocket);
+
+                MessageQueue lowPrioQueue;
+                HighPriorityASDUQueue highPrioQueue;
+
+#if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+                if (self->serverMode == SINGLE_REDUNDANCY_GROUP) {
+                    lowPrioQueue = self->asduQueue;
+                    highPrioQueue = self->connectionAsduQueue;
+                }
+#endif
+
+#if (CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+                if (self->serverMode == CONNECTION_IS_REDUNDANCY_GROUP) {
+                    lowPrioQueue = MessageQueue_create(self->maxLowPrioQueueSize);
+                    highPrioQueue = HighPriorityASDUQueue_create(self->maxHighPrioQueueSize);
+                }
+#endif
+
+                MasterConnection connection =
+                        MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+
+#if (CONFIG_SLAVE_USING_THREADS)
+                Semaphore_wait(self->openConnectionsLock);
+#endif
+
+                self->openConnections++;
+                LinkedList_add(self->masterConnections, connection);
+
+#if (CONFIG_SLAVE_USING_THREADS)
+                Semaphore_post(self->openConnectionsLock);
+#endif
+
             }
             else {
                 Socket_destroy(newSocket);
@@ -1618,6 +1937,48 @@ exit_function:
 }
 
 void
+Slave_enqueueASDU(Slave self, ASDU asdu)
+{
+
+#if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+    if (self->serverMode == SINGLE_REDUNDANCY_GROUP)
+        MessageQueue_enqueueASDU(self->asduQueue, asdu);
+#endif /* (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
+
+#if (CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+    if (self->serverMode == CONNECTION_IS_REDUNDANCY_GROUP) {
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+        Semaphore_wait(self->openConnectionsLock);
+#endif
+
+        /************************************************
+         * Dispatch event to all open client connections
+         ************************************************/
+
+        LinkedList element;
+
+        for (element = LinkedList_getNext(self->masterConnections);
+             element != NULL;
+             element = LinkedList_getNext(element))
+        {
+            MasterConnection connection = (MasterConnection) LinkedList_getData(element);
+
+            MessageQueue_enqueueASDU(connection->lowPrioQueue, asdu);
+        }
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+        Semaphore_post(self->openConnectionsLock);
+#endif
+    }
+#endif /* (CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1) */
+
+    ASDU_destroy(asdu);
+
+    //TODO trigger active connection(s) to send message?
+}
+
+void
 Slave_start(Slave self)
 {
     if (self->isRunning == false) {
@@ -1626,6 +1987,10 @@ Slave_start(Slave self)
         self->isRunning = false;
         self->stopRunning = false;
 
+#if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+        if (self->serverMode == SINGLE_REDUNDANCY_GROUP)
+            initializeMessageQueues(self, self->maxLowPrioQueueSize, self->maxHighPrioQueueSize);
+#endif
         self->listeningThread = Thread_create(serverThread, (void*) self, false);
 
         Thread_start(self->listeningThread);
@@ -1656,26 +2021,62 @@ Slave_stop(Slave self)
     self->listeningThread = NULL;
 }
 
-
+//TODO factor out queue release functions!
 void
 Slave_destroy(Slave self)
 {
     if (self->isRunning)
         Slave_stop(self);
 
-    releaseAllQueuedASDUs(self);
+#if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+    if (self->serverMode == SINGLE_REDUNDANCY_GROUP)
+        MessageQueue_releaseAllQueuedASDUs(self->asduQueue);
+#endif
 
     if (self->localAddress != NULL)
         GLOBAL_FREEMEM(self->localAddress);
 
+    /*
+     * Stop all connections
+     * */
 #if (CONFIG_SLAVE_USING_THREADS == 1)
-    Semaphore_destroy(self->asduQueue.queueLock);
-    Semaphore_destroy(self->connectionAsduQueue.queueLock);
+    Semaphore_wait(self->openConnectionsLock);
+#endif
+
+    LinkedList element;
+
+    for (element = LinkedList_getNext(self->masterConnections);
+         element != NULL;
+         element = LinkedList_getNext(element))
+    {
+        MasterConnection connection = (MasterConnection) LinkedList_getData(element);
+
+        MasterConnection_close(connection);
+    }
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->openConnectionsLock);
+#endif
+
+    /* Wait until all connections are closed */
+    while (T104Slave_getOpenConnections(self) > 0)
+        Thread_sleep(10);
+
+    LinkedList_destroyStatic(self->masterConnections);
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_destroy(self->openConnectionsLock);
 #endif
 
 #if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 0)
-    GLOBAL_FREEMEM(self->asduQueue.asdus);
-    GLOBAL_FREEMEM(self->connectionAsduQueue.asdus);
+
+#if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+    if (self->serverMode == SINGLE_REDUNDANCY_GROUP) {
+        MessageQueue_destroy(self->asduQueue);
+        HighPriorityASDUQueue_destroy(self->connectionAsduQueue);
+    }
+#endif /* (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
     GLOBAL_FREEMEM(self);
-#endif
+
+#endif /* (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 0) */
 }
