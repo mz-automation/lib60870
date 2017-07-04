@@ -465,6 +465,15 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
         }
 
     }
+    else if (buffer [2] == 0x01) { /* S-message */
+        int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
+
+        DEBUG_PRINT("Rcvd S(%i) (own sendcounter = %i)\n", seqNo, self->sendCount);
+
+        if (checkSequenceNumber(self, seqNo) == false)
+            return false;
+    }
+
 
     resetT3Timeout(self);
 
