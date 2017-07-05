@@ -342,11 +342,11 @@ namespace lib60870
 		}
 
 		private int SendIMessage(ASDU asdu) {
-			BufferFrame frame = new BufferFrame(new byte[260], 6);
+			BufferFrame frame = new BufferFrame(new byte[260], 6); /* reserve space for ACPI */
 			asdu.Encode (frame, parameters);
 
 			byte[] buffer = frame.GetBuffer ();
-			int msgSize = frame.GetMsgSize () + 6; /* ASDU size + ACPI size */
+			int msgSize = frame.GetMsgSize (); /* ACPI + ASDU */
 
 			buffer [0] = 0x68;
 
