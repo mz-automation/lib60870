@@ -48,7 +48,8 @@ namespace lib60870
 		OPENED = 0,
 		CLOSED = 1,
 		STARTDT_CON_RECEIVED = 2,
-		STOPDT_CON_RECEIVED = 3
+		STOPDT_CON_RECEIVED = 3,
+        CONNECT_FAILED = 4
 	}
 
 	/// <summary>
@@ -1107,6 +1108,9 @@ namespace lib60870
 						running = false;
 						socketError = true;
 						lastException = se;
+
+                        if (connectionHandler != null)
+                            connectionHandler(connectionHandlerParameter, ConnectionEvent.CONNECT_FAILED);
 					}
 
 					if (running) {
