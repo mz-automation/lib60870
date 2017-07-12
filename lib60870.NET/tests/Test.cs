@@ -188,7 +188,7 @@ namespace tests
 
 
 		[Test()]
-		//[Ignore("Ignore to save execution time")]
+		[Ignore("Ignore to save execution time")]
 		public void TestConnectSameConnectionMultipleTimes()
 		{
 			ConnectionParameters parameters = new ConnectionParameters ();
@@ -316,6 +316,37 @@ namespace tests
 
 			Assert.AreEqual (16, addedCounter); 
 		}
+
+		[Test()]
+		public void TestASDUAddInformationObjectsInWrongOrderToSequence() {
+			ConnectionParameters cp = new ConnectionParameters ();
+
+			ASDU asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, true);
+
+			bool encoded = asdu.AddInformationObject (new SinglePointInformation (100, false, new QualityDescriptor ()));
+
+			Assert.IsTrue (encoded);
+
+			encoded = asdu.AddInformationObject (new SinglePointInformation (101, false, new QualityDescriptor ()));
+
+			Assert.IsTrue (encoded);
+
+			encoded = asdu.AddInformationObject (new SinglePointInformation (102, false, new QualityDescriptor ()));
+
+			Assert.IsTrue (encoded);
+
+			encoded = asdu.AddInformationObject (new SinglePointInformation (104, false, new QualityDescriptor ()));
+
+			Assert.IsFalse (encoded);
+
+			encoded = asdu.AddInformationObject (new SinglePointInformation (102, false, new QualityDescriptor ()));
+
+			Assert.IsFalse (encoded);
+
+			Assert.AreEqual (3, asdu.NumberOfElements);
+		}
+
+
 
 		[Test()]
 		public void TestEncodeASDUsWithManyInformationObjects() {
