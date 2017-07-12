@@ -38,6 +38,10 @@ namespace lib60870
 		M_ST_TA_1 = 6,
 		M_BO_NA_1 = 7,
 		M_BO_TA_1 = 8,
+
+        /// <summary>
+        /// Measured Value, normalized value
+        /// </summary>
 		M_ME_NA_1 = 9,
 		M_ME_TA_1 = 10,
 		M_ME_NB_1 = 11,

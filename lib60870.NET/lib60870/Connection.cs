@@ -241,8 +241,11 @@ namespace lib60870
 		ConnectionHandler connectionHandler = null;
 		object connectionHandlerParameter = null;
 
-		RawMessageHandler rawMessageHandler = null;
-		object rawMessageHandlerParameter = null;
+		RawMessageHandler recvRawMessageHandler = null;
+		object recvRawMessageHandlerParameter = null;
+
+        RawMessageHandler sentMessageHandler = null;
+        object sentMessageHandlerParameter = null;
 
 		private void SendSMessage() {
 			byte[] msg = new byte[6];
@@ -254,10 +257,15 @@ namespace lib60870
 			msg [4] = (byte) ((receiveSequenceNumber % 128) * 2);
 			msg [5] = (byte) (receiveSequenceNumber / 128);
 
-			socket.Send (msg);
+            socket.Send (msg);
 
 			statistics.SentMsgCounter++;
-		}
+
+            if (sentMessageHandler != null)
+            {
+                sentMessageHandler(sentMessageHandlerParameter, msg, 6);
+            }
+        }
 
 		private bool CheckSequenceNumber(int seqNo) {
 
@@ -342,11 +350,11 @@ namespace lib60870
 		}
 
 		private int SendIMessage(ASDU asdu) {
-			BufferFrame frame = new BufferFrame(new byte[260], 6);
+			BufferFrame frame = new BufferFrame(new byte[260], 6); /* reserve space for ACPI */
 			asdu.Encode (frame, parameters);
 
 			byte[] buffer = frame.GetBuffer ();
-			int msgSize = frame.GetMsgSize () + 6; /* ASDU size + ACPI size */
+			int msgSize = frame.GetMsgSize (); /* ASDU size + ACPI size */
 
 			buffer [0] = 0x68;
 
@@ -366,13 +374,20 @@ namespace lib60870
 				statistics.SentMsgCounter++;
 				unconfirmedReceivedIMessages = 0;
 
-				return sendSequenceNumber;
+                if (sentMessageHandler != null)
+                {
+                    sentMessageHandler(sentMessageHandlerParameter, buffer, msgSize);
+                }
+
+                return sendSequenceNumber;
 			} else {
 				if (lastException != null)
 					throw new ConnectionException (lastException.Message, lastException);
 				else
 					throw new ConnectionException ("not connected", new SocketException (10057));
 			}
+
+
 		}
 
 		private void PrintSendBuffer() {
@@ -713,7 +728,12 @@ namespace lib60870
 			if (running) {
 				socket.Send(STARTDT_ACT_MSG);
 				statistics.SentMsgCounter++;
-			}
+
+                if (sentMessageHandler != null)
+                {
+                    sentMessageHandler(sentMessageHandlerParameter, STARTDT_ACT_MSG, 6);
+                }
+            }
 			else {
 				if (lastException != null)
 					throw new ConnectionException(lastException.Message, lastException);
@@ -729,7 +749,11 @@ namespace lib60870
 			if (running) {
 				socket.Send(STOPDT_ACT_MSG);
 				statistics.SentMsgCounter++;
-			}
+                if (sentMessageHandler != null)
+                {
+                    sentMessageHandler(sentMessageHandlerParameter, STOPDT_ACT_MSG, 6);
+                }
+            }
 			else {
 				if (lastException != null)
 					throw new ConnectionException(lastException.Message, lastException);
@@ -899,7 +923,12 @@ namespace lib60870
 					DebugLog ("SEND TESTFR_CON");
 					socket.Send (TESTFR_CON_MSG);
 					statistics.SentMsgCounter++;
-				} else if (buffer [2] == 0x83) { /* TESTFR_CON */
+                    if (sentMessageHandler != null)
+                    {
+                        sentMessageHandler(sentMessageHandlerParameter, TESTFR_CON_MSG, 6);
+                    }
+
+                } else if (buffer [2] == 0x83) { /* TESTFR_CON */
 					DebugLog ("RCVD TESTFR_CON");
 					statistics.RcvdTestFrConCounter++;
 					outStandingTestFRConMessages = 0;
@@ -907,7 +936,11 @@ namespace lib60870
 					DebugLog ("RCVD STARTDT_ACT");
 					socket.Send (STARTDT_CON_MSG);
 					statistics.SentMsgCounter++;
-				} else if (buffer [2] == 0x0b) { /* STARTDT_CON */
+                    if (sentMessageHandler != null)
+                    {
+                        sentMessageHandler(sentMessageHandlerParameter, STARTDT_CON_MSG, 6);
+                    }
+                } else if (buffer [2] == 0x0b) { /* STARTDT_CON */
 					DebugLog ("RCVD STARTDT_CON");
 
 					if (connectionHandler != null)
@@ -1002,7 +1035,11 @@ namespace lib60870
 					uMessageTimeout = (UInt64)currentTime + (UInt64)(parameters.T1 * 1000);
 					outStandingTestFRConMessages++;
 					ResetT3Timeout ();
-				}
+                    if (sentMessageHandler != null)
+                    {
+                        sentMessageHandler(sentMessageHandlerParameter, TESTFR_ACT_MSG, 6);
+                    }
+                }
 			}
 
 			if (unconfirmedReceivedIMessages > 0) {
@@ -1091,8 +1128,8 @@ namespace lib60870
 								
 									bool handleMessage = true;
 
-									if (rawMessageHandler != null) 
-										handleMessage = rawMessageHandler(rawMessageHandlerParameter, bytes, bytesRec);
+									if (recvRawMessageHandler != null) 
+										handleMessage = recvRawMessageHandler(recvRawMessageHandlerParameter, bytes, bytesRec);
 												
 									if (handleMessage) {
 										if (checkMessage(socket, bytes, bytesRec) == false) {
@@ -1176,12 +1213,14 @@ namespace lib60870
 		{
 			if (running) {
 				socket.Shutdown (SocketShutdown.Both);
-
-				while (running)
-					Thread.Sleep (1);
 			}
 		}
 
+        /// <summary>
+        /// Set the ASDUReceivedHandler. This handler is invoked whenever a new ASDU is received
+        /// </summary>
+        /// <param name="handler">the handler to be called</param>
+        /// <param name="parameter">user provided parameter that is passed to the handler</param>
 		public void SetASDUReceivedHandler(ASDUReceivedHandler handler, object parameter)
 		{
 			asduReceivedHandler = handler;
@@ -1200,16 +1239,27 @@ namespace lib60870
 			connectionHandlerParameter = parameter;
 		}
 
-		/// <summary>
-		/// Sets the raw message handler. This is a callback to intercept raw messages received.
-		/// </summary>
-		/// <param name="handler">Handler.</param>
-		/// <param name="parameter">Parameter.</param>
-		public void SetRawMessageHandler(RawMessageHandler handler, object parameter)
+        /// <summary>
+        /// Sets the raw message handler. This is a callback to intercept raw messages received.
+        /// </summary>
+        /// <param name="handler">Handler/delegate that will be invoked when a message is received</param>
+        /// <param name="parameter">will be passed to the delegate</param>
+        public void SetRawMessageHandler(RawMessageHandler handler, object parameter)
 		{
-			rawMessageHandler = handler;
-			rawMessageHandlerParameter = parameter;
+			recvRawMessageHandler = handler;
+			recvRawMessageHandlerParameter = parameter;
 		}
+
+        /// <summary>
+        /// Sets the sent message handler. This is a callback to intercept the sent raw messages
+        /// </summary>
+        /// <param name="handler">Handler/delegate that will be invoked when a message is sent<</param>
+        /// <param name="parameter">will be passed to the delegate</param>
+        public void SetSentMessageHandler(RawMessageHandler handler, object parameter)
+        {
+            sentMessageHandler = handler;
+            sentMessageHandlerParameter = parameter;
+        }
 
 		/// <summary>
 		/// Determines whether the transmit (send) buffer is full. If true the next send command will throw a ConnectionException

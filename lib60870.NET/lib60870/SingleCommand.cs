@@ -34,6 +34,8 @@ namespace lib60870
 		INVALID_3 = 3
 	}
 
+
+
 	public class SingleCommand : InformationObject
 	{
 		override public int GetEncodedSize() {
