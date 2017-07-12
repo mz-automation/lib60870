@@ -354,7 +354,8 @@ namespace lib60870
 			asdu.Encode (frame, parameters);
 
 			byte[] buffer = frame.GetBuffer ();
-			int msgSize = frame.GetMsgSize (); /* ASDU size + ACPI size */
+
+			int msgSize = frame.GetMsgSize (); /* ACPI + ASDU */
 
 			buffer [0] = 0x68;
 

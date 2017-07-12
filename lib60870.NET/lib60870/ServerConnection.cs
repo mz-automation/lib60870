@@ -134,10 +134,8 @@ namespace lib60870
 			waitingASDUsHighPrio = new Queue<BufferFrame> ();
 
 			Thread workerThread = new Thread(HandleConnection);
-			callbackThread = new Thread (ProcessASDUs);
 
 			workerThread.Start ();
-			callbackThread.Start ();
 		}
 
 		/// <summary>
@@ -871,6 +869,9 @@ namespace lib60870
 
 					running = true;
 
+					callbackThread = new Thread (ProcessASDUs);
+					callbackThread.Start ();
+
 					ResetT3Timeout();
 
 					while (running) {
@@ -933,15 +934,16 @@ namespace lib60870
 				DebugLog( e.ToString());
 			}
 
-			callbackThreadRunning = false;
-
 			// unmark unconfirmed messages in server queue if k-buffer not empty
 			if (oldestSentASDU != -1)
 				server.UnmarkAllASDUs ();
 
 			server.Remove (this);
 
-			callbackThread.Join ();
+			if (callbackThreadRunning) {
+				callbackThreadRunning = false;
+				callbackThread.Join ();
+			}
 
 			DebugLog("Connection thread finished");
 		}
