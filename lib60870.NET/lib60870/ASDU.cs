@@ -107,7 +107,8 @@ namespace lib60870
 		/// This function add an information object (InformationObject) to the ASDU. NOTE: that all information objects
 		/// have to be of the same type. Otherwise an ArgumentException will be thrown.
 		/// The function returns true when the information object has been added to the ASDU. The function returns false if
-		/// there is no space left in the ASDU to add the information object.
+		/// there is no space left in the ASDU to add the information object, or when object cannot be added to a sequence
+		/// because the IOA does not match.
 		/// <returns><c>true</c>, if information object was added, <c>false</c> otherwise.</returns>
 		/// <param name="io">The information object to add</param>
 		public bool AddInformationObject(InformationObject io) 
@@ -130,6 +131,10 @@ namespace lib60870
 			else {
 				if (informationObjects.Count == 0) // is first object?
 					objectSize += parameters.SizeOfIOA;
+				else {
+					if (io.ObjectAddress !=  (informationObjects[0].ObjectAddress + informationObjects.Count))
+						return false;
+				}
 			}
 				
 			if (objectSize <= spaceLeft) {

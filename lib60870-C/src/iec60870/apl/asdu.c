@@ -196,6 +196,22 @@ ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLeng
     return self;
 }
 
+static inline int
+getFirstIOA(ASDU self)
+{
+    int startIndex = self->asduHeaderLength;
+
+    int ioa = self->asdu[startIndex];
+
+    if (self->parameters->sizeOfIOA > 1)
+        ioa += (self->asdu [startIndex + 1] * 0x100);
+
+    if (self->parameters->sizeOfIOA > 2)
+        ioa += (self->asdu [startIndex + 2] * 0x10000);
+
+    return ioa;
+}
+
 bool
 ASDU_addInformationObject(ASDU self, InformationObject io)
 {
@@ -208,8 +224,20 @@ ASDU_addInformationObject(ASDU self, InformationObject io)
 
     if (ASDU_getNumberOfElements(self) == 0)
         encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);
-    else
-        encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, ASDU_isSequence(self));
+    else {
+
+        if (ASDU_isSequence(self)) {
+
+            /* check that new information object has correct IOA */
+            if (InformationObject_getObjectAddress(io) == (getFirstIOA(self) + ASDU_getNumberOfElements(self)))
+                encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, true);
+            else
+                encoded = false;
+        }
+        else {
+            encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);;
+        }
+    }
 
     if (encoded)
         self->asdu[1]++; /* increase number of elements in VSQ */
