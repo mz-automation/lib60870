@@ -37,6 +37,7 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EndOfInitialization.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Connection.cs" />
     <Compile Include="ConnectionParameters.cs" />

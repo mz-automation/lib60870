@@ -117,6 +117,11 @@ namespace testserver
 
 			server.Start ();
 
+            ASDU newAsdu = new ASDU(server.GetConnectionParameters(), CauseOfTransmission.INITIALIZED, false, false, 0, 1, false);
+            EndOfInitialization eoi = new EndOfInitialization(0);
+            newAsdu.AddInformationObject(eoi);
+            server.EnqueueASDU(newAsdu);
+
 			int waitTime = 1000;
 
 			while (running) {
@@ -126,7 +131,7 @@ namespace testserver
 					waitTime -= 100;
 				else {
 
-					ASDU newAsdu = new ASDU (server.GetConnectionParameters(), CauseOfTransmission.PERIODIC, false, false, 2, 1, false);
+					newAsdu = new ASDU (server.GetConnectionParameters(), CauseOfTransmission.PERIODIC, false, false, 2, 1, false);
 
 					newAsdu.AddInformationObject (new MeasuredValueScaled (110, -1, new QualityDescriptor ()));
 				

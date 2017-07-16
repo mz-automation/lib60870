@@ -951,9 +951,14 @@ namespace lib60870
 
 				break;
 
-				/* TODO */
+                /* 65 - 69 reserved */
 
-			/* 65 - 69 reserved */
+            case TypeID.M_EI_NA_1: /* 70 - End of initialization */
+                elementSize = parameters.SizeOfCA + 1;
+
+                retVal = new EndOfInitialization(parameters, payload, index * elementSize);
+
+                break;
 
 			case TypeID.C_IC_NA_1: /* 100 - Interrogation command */
 
