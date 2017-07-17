@@ -72,12 +72,7 @@ namespace lib60870
 				else if (value < -32768)
 					value = -32768;
 
-				int valueToEncode;
-
-				if (value < 0)
-					valueToEncode = value + 65536;
-				else
-					valueToEncode = value;
+				short valueToEncode = (short)value;
 
 				encodedValue[0] = (byte)(valueToEncode % 256);
 				encodedValue[1] = (byte)(valueToEncode / 256);

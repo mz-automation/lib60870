@@ -86,15 +86,10 @@ namespace lib60870
 		internal SetpointCommandNormalized (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex, false)
 		{
-			scaledValue = new ScaledValue ();
+            startIndex += parameters.SizeOfIOA; /* skip IOA */
 
-			startIndex += parameters.SizeOfIOA; /* skip IOA */
-
-			scaledValue.Value = msg [startIndex++];
-			scaledValue.Value += (msg [startIndex++] * 0x100);
-
-			if (scaledValue.Value > 32767)
-				scaledValue.Value = scaledValue.Value - 65536;
+            scaledValue = new ScaledValue(msg, startIndex);
+            startIndex += 2;
 
 			this.qos = new SetpointCommandQualifier (msg [startIndex++]);
 		}
@@ -102,15 +97,7 @@ namespace lib60870
 		internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence) {
 			base.Encode(frame, parameters, isSequence);
 
-			int valueToEncode;
-
-			if (scaledValue.Value < 0)
-				valueToEncode = scaledValue.Value + 65536;
-			else
-				valueToEncode = scaledValue.Value;
-
-			frame.SetNextByte ((byte)(valueToEncode % 256));
-			frame.SetNextByte ((byte)(valueToEncode / 256));
+            frame.AppendBytes(scaledValue.GetEncodedValue());
 
 			frame.SetNextByte (this.qos.GetEncodedValue ());
 		}
