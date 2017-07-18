@@ -22,6 +22,8 @@
 #include <time.h>
 #include <stdint.h>
 
+#include "hal_time.h"
+
 #ifdef CONFIG_SYSTEM_HAS_CLOCK_GETTIME
 uint64_t
 Hal_getTimeInMs()

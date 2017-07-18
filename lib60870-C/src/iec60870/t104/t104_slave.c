@@ -287,6 +287,7 @@ MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* timestamp, int* ind
     return buffer;
 }
 
+#if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
 static void
 MessageQueue_releaseAllQueuedASDUs(MessageQueue self)
 {
@@ -302,6 +303,7 @@ MessageQueue_releaseAllQueuedASDUs(MessageQueue self)
     Semaphore_post(self->queueLock);
 #endif
 }
+#endif /* (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
 static void
 MessageQueue_markAsduAsConfirmed(MessageQueue self, int index, uint64_t timestamp)
@@ -1886,8 +1888,8 @@ serverThread (void* parameter)
 
             if (acceptConnection) {
 
-                MessageQueue lowPrioQueue;
-                HighPriorityASDUQueue highPrioQueue;
+                MessageQueue lowPrioQueue = NULL;
+                HighPriorityASDUQueue highPrioQueue = NULL;
 
 #if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
                 if (self->serverMode == SINGLE_REDUNDANCY_GROUP) {

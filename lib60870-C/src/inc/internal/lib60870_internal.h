@@ -24,10 +24,10 @@
 
 #include "lib60870_config.h"
 
-#if (CONFIG_DEBUG_OUTPUT == 1)
 void
 lib60870_debug_print(const char *format, ...);
 
+#if (CONFIG_DEBUG_OUTPUT == 1)
 #define DEBUG_PRINT(...)  do{ lib60870_debug_print(__VA_ARGS__ ); } while( false )
 #else
 #define DEBUG_PRINT(...) do{ } while ( false )
