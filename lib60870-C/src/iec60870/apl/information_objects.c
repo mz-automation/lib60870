@@ -1954,7 +1954,7 @@ MeasuredValueNormalizedWithoutQuality_create(MeasuredValueNormalizedWithoutQuali
 float
 MeasuredValueNormalizedWithoutQuality_getValue(MeasuredValueNormalizedWithoutQuality self)
 {
-    float nv = (float) (getScaledValue(self->encodedValue)) / 32767.f;
+    float nv = ((float) (getScaledValue(self->encodedValue) + 0.5) / 32767.5f);
 
     return nv;
 }
@@ -1967,7 +1967,7 @@ MeasuredValueNormalizedWithoutQuality_setValue(MeasuredValueNormalizedWithoutQua
     else if (value < -1.0f)
         value = -1.0f;
 
-    int scaledValue = (int)(value * 32767.f);
+    int scaledValue = (int) ((value * 32767.5f) - 0.5);
 
     setScaledValue(self->encodedValue, scaledValue);
 }
@@ -5186,7 +5186,7 @@ SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float 
 
     self->objectAddress = ioa;
 
-    int scaledValue = (int)(value * 32767.f);
+    int scaledValue = (int)((value * 32767.5) - 0.5);
 
     setScaledValue(self->encodedValue, scaledValue);
 
@@ -5202,7 +5202,7 @@ SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float 
 float
 SetpointCommandNormalized_getValue(SetpointCommandNormalized self)
 {
-    float nv = (float) (getScaledValue(self->encodedValue)) / 32767.f;
+    float nv = ((float) getScaledValue(self->encodedValue) + 0.5) / 32767.5;
 
     return nv;
 }
