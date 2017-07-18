@@ -44,24 +44,37 @@ namespace lib60870
 
 		private ScaledValue scaledValue;
 
-		public float NormalizedValue {
-			get {
-				float nv = (float) (scaledValue.Value) / 32767f;
+        public short RawValue
+        {
+            get
+            {
+                return scaledValue.ShortValue;
+            }
+            set
+            {
+                scaledValue.ShortValue = value;
+            }
+        }
 
-				return nv;
-			}
+        public float NormalizedValue
+        {
+            get
+            {
+                return (float)(scaledValue.Value + 0.5) / (float)32767.5;
+            }
+            set
+            {
+                /* Check value range */
+                if (value > 1.0f)
+                    value = 1.0f;
+                else if (value < -1.0f)
+                    value = -1.0f;
 
-			set {
-				if (value > 1.0f)
-					value = 1.0f;
-				else if (value < -1.0f)
-					value = -1.0f;
-				
-				scaledValue.Value = (int)(value * 32767f); 
-			}
-		}
+                this.scaledValue.Value = (int)((value * 32767.5) - 0.5);
+            }
+        }
 
-		private byte qpm;
+        private byte qpm;
 
 		public byte QPM {
 			get {
@@ -72,12 +85,19 @@ namespace lib60870
 		public ParameterNormalizedValue (int objectAddress, float normalizedValue, byte qpm) :
 			base (objectAddress)
 		{
-			scaledValue = new ScaledValue ((int)(normalizedValue * 32767f));
+            scaledValue = new ScaledValue();
 
 			this.NormalizedValue = normalizedValue;
 
 			this.qpm = qpm;
 		}
+
+        public ParameterNormalizedValue (int objectAddress, short rawValue, byte qpm) :
+            base (objectAddress)
+        {
+            scaledValue = new ScaledValue(rawValue);
+            this.qpm = qpm;
+        }
 
 		internal ParameterNormalizedValue (ConnectionParameters parameters, byte[] msg, int startIndex) :
 			base(parameters, msg, startIndex, false)

@@ -55,32 +55,35 @@ namespace lib60870
 			}
 		}
 
-		public float NormalizedValue {
-			get {
-				float nv = (float) (scaledValue.Value) / 32768f;
+		public float NormalizedValue
+        {
+            get
+            {
+                return (float)(scaledValue.Value + 0.5) / (float)32767.5;
+            }
+            set
+            {
+                /* Check value range */
+                if (value > 1.0f)
+                    value = 1.0f;
+                else if (value < -1.0f)
+                    value = -1.0f;
 
-				return nv;
-			}
-			set {
-				if (value > 1.0f)
-					value = 1.0f;
-				else if (value < -1.0f)
-					value = -1.0f;
-				
-				scaledValue.Value = (int)(value * 32768f); 
-			}
-		}
+                this.scaledValue.Value = (int)((value * 32767.5) - 0.5);
+            }
+        }
 
-		public MeasuredValueNormalizedWithoutQuality (int objectAddress, float value)
+        public MeasuredValueNormalizedWithoutQuality (int objectAddress, float normalizedValue)
 			: base(objectAddress)
 		{
-			this.scaledValue = new ScaledValue ((int)(value * 32768f));
+            this.scaledValue = new ScaledValue();
+            this.NormalizedValue = normalizedValue;
 		}
 
-		public MeasuredValueNormalizedWithoutQuality(int objectAddress, short value)
+		public MeasuredValueNormalizedWithoutQuality(int objectAddress, short rawValue)
 			:base (objectAddress)
 		{
-			this.scaledValue = new ScaledValue (value);
+			this.scaledValue = new ScaledValue (rawValue);
 		}
 
 		internal MeasuredValueNormalizedWithoutQuality (ConnectionParameters parameters, byte[] msg, int startIndex, bool isSequence) :
@@ -272,8 +275,6 @@ namespace lib60870
 			frame.AppendBytes (timestamp.GetEncodedValue ());
 		}
 	}
-
-
 
 }
 

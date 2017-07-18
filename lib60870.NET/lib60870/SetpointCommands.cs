@@ -55,10 +55,18 @@ namespace lib60870
 
 		public float NormalizedValue {
 			get {
-				float nv = (float) scaledValue.Value / 32768f;
-
-				return nv;
+				return (float) (scaledValue.Value + 0.5) / (float) 32767.5;
 			}
+            set
+            {
+                /* Check value range */
+                if (value > 1.0f)
+                    value = 1.0f;
+                else if (value < -1.0f)
+                    value = -1.0f;
+
+                this.scaledValue.Value = (int) ((value * 32767.5) - 0.5);
+            }
 		}
 
 		private SetpointCommandQualifier qos;
@@ -72,7 +80,7 @@ namespace lib60870
 		public SetpointCommandNormalized (int objectAddress, float value, SetpointCommandQualifier qos)
 			: base(objectAddress)
 		{
-			this.scaledValue = new ScaledValue((int) (value * 32768f));
+			this.scaledValue = new ScaledValue((int) ((value * 32767.5) - 0.5));
 			this.qos = qos;
 		}
 
