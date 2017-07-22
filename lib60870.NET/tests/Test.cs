@@ -19,6 +19,17 @@ namespace tests
             Assert.AreEqual(false, scd.CD(0));
             Assert.AreEqual(false, scd.CD(15));
 
+			Assert.AreEqual (false, scd.CD (1));
+
+			scd.CD (0, true);
+
+			Assert.AreEqual (true, scd.CD (0));
+			Assert.AreEqual (false, scd.CD (1));
+
+			scd.CD (15, true);
+
+			Assert.AreEqual (true, scd.CD (15));
+			Assert.AreEqual (false, scd.CD (14));
         }
 
 		[Test ()]

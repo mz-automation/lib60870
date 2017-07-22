@@ -29,7 +29,7 @@ namespace lib60870
 
 		public UInt16 STn {
 			get {
-				return (ushort) (encodedValue[0] + 256 * encodedValue[1]);
+				return (ushort) (encodedValue[0] + (256 * encodedValue[1]));
 			}
 
             set
@@ -41,7 +41,7 @@ namespace lib60870
 
 		public UInt16 CDn {
 			get {
-				return (ushort) (encodedValue[2] + 256 * encodedValue[3]);
+				return (ushort) (encodedValue[2] + (256 * encodedValue[3]));
 			}
 
             set
@@ -53,7 +53,7 @@ namespace lib60870
 
 		public bool ST(int i) {
 			if ((i >= 0) && (i < 16))
-				return ((int) (STn & (2^i)) != 0);
+				return ((int) (STn & (1 << i)) != 0);
 			else
 				return false;
 		}
@@ -63,15 +63,15 @@ namespace lib60870
             if ((i >= 0) && (i < 16))
             {
                 if (value)
-                    STn = (UInt16)(STn | (2 ^ i));
+                    STn = (UInt16)(STn | (1 << i));
                 else
-                    STn = (UInt16)(STn & ~(2 ^ i));
+                    STn = (UInt16)(STn & ~(1 << i));
             }
         }
 
         public bool CD(int i) {
 			if ((i >= 0) && (i < 16))
-				return ((int) (CDn & (2^i)) != 0);
+				return ((int) (CDn & (1 << i)) != 0);
 			else
 				return false;
 		}
@@ -81,9 +81,9 @@ namespace lib60870
             if ((i >= 0) && (i < 16))
             {
                 if (value)
-                    CDn = (UInt16)(CDn | (2 ^ i));
+					CDn = (UInt16)(CDn | (1 << i));
                 else
-                    CDn = (UInt16)(CDn & ~(2 ^ i));
+					CDn = (UInt16)(CDn & ~(1 << i));
             }
         }
 
