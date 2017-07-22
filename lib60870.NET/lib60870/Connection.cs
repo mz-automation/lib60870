@@ -104,6 +104,8 @@ namespace lib60870
 		private UInt64 nextT3Timeout;
 		private int outStandingTestFRConMessages = 0;
 
+		Thread workerThread = null;
+
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="lib60870.Connection"/> use send message queue.
 		/// </summary>
@@ -800,7 +802,7 @@ namespace lib60870
 
 				ResetT3Timeout ();
 
-                Thread workerThread = new Thread(HandleConnection);
+                workerThread = new Thread(HandleConnection);
 
                 workerThread.Start();
             }
@@ -1218,6 +1220,7 @@ namespace lib60870
 		{
 			if (running) {
 				socket.Shutdown (SocketShutdown.Both);
+				workerThread.Join ();
 			}
 		}
 
