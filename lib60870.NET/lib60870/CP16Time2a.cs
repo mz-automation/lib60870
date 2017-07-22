@@ -59,6 +59,10 @@ namespace lib60870
 			return encodedValue;
 		}
 
-	}
+        public override string ToString()
+        {
+            return ElapsedTimeInMs.ToString();
+        }
+    }
 }
 

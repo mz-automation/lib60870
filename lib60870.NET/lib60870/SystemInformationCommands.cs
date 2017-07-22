@@ -178,6 +178,98 @@ namespace lib60870
 		}
 	}
 
+    public class TestCommandWithCP56Time2a : InformationObject
+    {
+        private CP56Time2a time;
+
+        private ushort tsc;
+
+        /// <summary>
+        /// Test time
+        /// </summary>
+        public CP56Time2a Time
+        {
+            get
+            {
+                return time;
+            }
+
+            set
+            {
+                time = value;
+            }
+        }
+
+        /// <summary>
+        /// Test sequence number
+        /// </summary>
+        public ushort TSC
+        {
+            get
+            {
+                return tsc;
+            }
+
+            set
+            {
+                tsc = value;
+            }
+        }
+
+        override public int GetEncodedSize()
+        {
+            return 9;
+        }
+
+        override public TypeID Type
+        {
+            get
+            {
+                return TypeID.C_TS_TA_1;
+            }
+        }
+
+        override public bool SupportsSequence
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public TestCommandWithCP56Time2a() : base(0)
+        {
+            time = new CP56Time2a();
+        }
+
+        public TestCommandWithCP56Time2a(ushort tsc, CP56Time2a time) : base(0)
+        {
+            this.time = time;
+            this.tsc = tsc;
+        }
+
+        internal TestCommandWithCP56Time2a(ConnectionParameters parameters, byte[] msg, int startIndex) :
+		base(parameters, msg, startIndex, false)
+		{
+            startIndex += parameters.SizeOfIOA; /* skip IOA */
+
+            tsc = msg[startIndex++];
+            tsc += (ushort) (msg[startIndex++] * 256);
+
+            time = new CP56Time2a(msg, startIndex);
+        }
+
+        internal override void Encode(Frame frame, ConnectionParameters parameters, bool isSequence)
+        {
+            base.Encode(frame, parameters, isSequence);
+
+            frame.SetNextByte((byte)(tsc % 256));
+            frame.SetNextByte((byte)(tsc / 256));
+
+            frame.AppendBytes(time.GetEncodedValue());
+        }
+    }
+
 	public class TestCommand : InformationObject
 	{
 		override public int GetEncodedSize() {
@@ -207,6 +299,7 @@ namespace lib60870
 		public TestCommand () : base(0)
 		{
 		}
+
 
 		internal TestCommand (ConnectionParameters parameters, byte[] msg, int startIndex) :
 		base(parameters, msg, startIndex, false)

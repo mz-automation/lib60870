@@ -992,7 +992,15 @@ namespace lib60870
 
 				break;
 
-			case TypeID.C_RP_NA_1: /* 105 - Reset process command */
+            case TypeID.C_TS_NA_1: /* 104 - Test command */
+
+                elementSize = parameters.SizeOfIOA + 2;
+
+                retVal = new TestCommand(parameters, payload, index * elementSize);
+
+                break;
+
+            case TypeID.C_RP_NA_1: /* 105 - Reset process command */
 
 				elementSize = parameters.SizeOfIOA + 1;
 
@@ -1007,6 +1015,14 @@ namespace lib60870
 				retVal = new DelayAcquisitionCommand (parameters, payload, index * elementSize);
 
 				break;
+
+            case TypeID.C_TS_TA_1: /* 107 - Test command with CP56Time2a */
+
+                elementSize = parameters.SizeOfIOA + 9;
+
+                retVal = new TestCommandWithCP56Time2a(parameters, payload, index * elementSize);
+
+                break;
 
 				/* C_TS_TA_1 (107) is handled by the stack automatically */
 

@@ -22,6 +22,7 @@
  */
 
 using System;
+using System.Text;
 
 namespace lib60870
 {
@@ -128,6 +129,22 @@ namespace lib60870
 					encodedValue &= 0xf7;
 			}
 		}
-	}
+
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder(20);
+
+            if (GC)
+                sb.Append("[GC]");
+            if (CL1)
+                sb.Append("[CL1]");
+            if (CL2)
+                sb.Append("[CL2]");
+            if (CL3)
+                sb.Append("[CL3]");
+
+            return sb.ToString();
+        }
+    }
 
 }
