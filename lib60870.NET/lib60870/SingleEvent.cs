@@ -55,12 +55,20 @@ namespace lib60870
 			get {
 				return eventState;
 			}
+            set
+            {
+                eventState = value;
+            }
 		}
 
 		public QualityDescriptorP QDP {
 			get {
 				return qdp;
 			}
+            set
+            {
+                qdp = value;
+            }
 		}
 
 

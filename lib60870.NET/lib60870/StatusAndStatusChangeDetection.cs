@@ -20,6 +20,7 @@
  */
 
 using System;
+using System.Text;
 
 namespace lib60870
 {
@@ -30,12 +31,24 @@ namespace lib60870
 			get {
 				return (ushort) (encodedValue[0] + 256 * encodedValue[1]);
 			}
+
+            set
+            {
+                encodedValue[0] = (byte)(value % 256);
+                encodedValue[1] = (byte)(value / 256);
+            }
 		}
 
 		public UInt16 CDn {
 			get {
 				return (ushort) (encodedValue[2] + 256 * encodedValue[3]);
 			}
+
+            set
+            {
+                encodedValue[2] = (byte)(value % 256);
+                encodedValue[3] = (byte)(value / 256);
+            }
 		}
 
 		public bool ST(int i) {
@@ -45,12 +58,34 @@ namespace lib60870
 				return false;
 		}
 
-		public bool CD(int i) {
+        public void ST(int i, bool value)
+        {
+            if ((i >= 0) && (i < 16))
+            {
+                if (value)
+                    STn = (UInt16)(STn | (2 ^ i));
+                else
+                    STn = (UInt16)(STn & ~(2 ^ i));
+            }
+        }
+
+        public bool CD(int i) {
 			if ((i >= 0) && (i < 16))
 				return ((int) (CDn & (2^i)) != 0);
 			else
 				return false;
 		}
+
+        public void CD(int i, bool value)
+        {
+            if ((i >= 0) && (i < 16))
+            {
+                if (value)
+                    CDn = (UInt16)(CDn | (2 ^ i));
+                else
+                    CDn = (UInt16)(CDn & ~(2 ^ i));
+            }
+        }
 
 		public StatusAndStatusChangeDetection ()
 		{
@@ -71,5 +106,22 @@ namespace lib60870
 		{
 			return encodedValue;
 		}
-	}
+
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder(50);
+
+            sb.Append("ST:");
+
+            for (int i = 0; i < 16; i++)
+                sb.Append(ST(i) ? "1" : "0");
+
+            sb.Append(" CD:");
+
+            for (int i = 0; i < 16; i++)
+                sb.Append(CD(i) ? "1" : "0");
+
+            return sb.ToString();
+        }
+    }
 }

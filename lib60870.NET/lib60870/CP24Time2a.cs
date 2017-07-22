@@ -120,6 +120,14 @@ namespace lib60870
 			get {
 				return ((encodedValue [2] & 0x80) == 0x80);
 			}
+
+            set
+            {
+                if (value)
+                    encodedValue[2] = (byte)(encodedValue[2] | 0x80);
+                else
+                    encodedValue[2] = (byte)(encodedValue[2] & 0x7f);
+            }
 		}
 
 		/// <summary>
@@ -130,6 +138,14 @@ namespace lib60870
 			get {
 				return ((encodedValue [2] & 0x40) == 0x40);
 			}
+
+            set
+            {
+                if (value)
+                    encodedValue[2] = (byte)(encodedValue[2] | 0x40);
+                else
+                    encodedValue[2] = (byte)(encodedValue[2] & 0xbf);
+            }
 		}
 
 		public byte[] GetEncodedValue() 

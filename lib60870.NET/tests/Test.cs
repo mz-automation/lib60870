@@ -9,6 +9,18 @@ namespace tests
 	[TestFixture ()]
 	public class Test
 	{
+        [Test()]
+        public void TestStatusAndStatusChangedDetection()
+        {
+            StatusAndStatusChangeDetection scd = new StatusAndStatusChangeDetection();
+
+            Assert.AreEqual(false, scd.ST(0));
+            Assert.AreEqual(false, scd.ST(15));
+            Assert.AreEqual(false, scd.CD(0));
+            Assert.AreEqual(false, scd.CD(15));
+
+        }
+
 		[Test ()]
 		public void TestBCR ()
 		{
