@@ -21,6 +21,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace lib60870
 {
@@ -203,6 +204,29 @@ namespace lib60870
 			}
 		}
 
-	}
+        public override string ToString()
+        {
+            StringBuilder sb = new StringBuilder(30);
+
+            if (GS)
+                sb.Append("[GS]");
+            if (SL1)
+                sb.Append("[SL1]");
+            if (SL2)
+                sb.Append("[SL2]");
+            if (SL3)
+                sb.Append("[SL3]");
+            if (SIE)
+                sb.Append("[SIE]");
+            if (SRD)
+                sb.Append("[SRD]");
+            if (RES1)
+                sb.Append("[RES1]");
+            if (RES2)
+                sb.Append("[RES2]");
+
+            return sb.ToString();
+        }
+    }
 	
 }

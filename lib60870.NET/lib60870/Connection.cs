@@ -625,14 +625,30 @@ namespace lib60870
 			SendASDUInternal (asdu);
 		}
 
-		/// <summary>
-		/// Sends a reset process command (C_RP_NA_1 typeID: 105).
-		/// </summary>
-		/// <param name="cot">Cause of transmission</param>
-		/// <param name="ca">Common address</param>
-		/// <param name="qrp">Qualifier of reset process command</param>
-		/// <exception cref="ConnectionException">description</exception>
-		public void SendResetProcessCommand(CauseOfTransmission cot, int ca, byte qrp)
+        /// <summary>
+        /// Sends a test command with CP56Time2a time (C_TS_TA_1 typeID: 107).
+        /// </summary>
+        /// <param name="ca">Common address</param>
+        /// <param name="tsc">test sequence number</param>
+        /// <param name="time">test timestamp</param>
+        /// <exception cref="ConnectionException">description</exception>
+        public void SendTestCommandWithCP56Time2a(int ca, ushort tsc, CP56Time2a time)
+        {
+            ASDU asdu = new ASDU(parameters, CauseOfTransmission.ACTIVATION, false, false, (byte)parameters.OriginatorAddress, ca, false);
+
+            asdu.AddInformationObject(new TestCommandWithCP56Time2a(tsc, time));
+
+            SendASDUInternal(asdu);
+        }
+
+        /// <summary>
+        /// Sends a reset process command (C_RP_NA_1 typeID: 105).
+        /// </summary>
+        /// <param name="cot">Cause of transmission</param>
+        /// <param name="ca">Common address</param>
+        /// <param name="qrp">Qualifier of reset process command</param>
+        /// <exception cref="ConnectionException">description</exception>
+        public void SendResetProcessCommand(CauseOfTransmission cot, int ca, byte qrp)
 		{
 			ASDU asdu = new ASDU (parameters, CauseOfTransmission.ACTIVATION, false, false, (byte) parameters.OriginatorAddress, ca, false);
 
