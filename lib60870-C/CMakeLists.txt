@@ -41,7 +41,7 @@ set(API_HEADERS
 	src/hal/inc/hal_thread.h
 	src/hal/inc/hal_filesystem.h 
 	src/inc/api/iec60870_master.h
-	src/inc/api/iec60870_server.h
+	src/inc/api/iec60870_slave.h
 	src/inc/api/iec60870_common.h
 	src/inc/api/information_objects.h
 	src/inc/api/t104_connection.h
