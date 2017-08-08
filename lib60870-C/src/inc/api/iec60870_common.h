@@ -256,6 +256,9 @@ ASDU_setCOT(ASDU self, CauseOfTransmission value);
 int
 ASDU_getCA(ASDU self);
 
+void
+ASDU_setCA(ASDU self, int ca);
+
 IEC60870_5_TypeID
 ASDU_getTypeID(ASDU self);
 

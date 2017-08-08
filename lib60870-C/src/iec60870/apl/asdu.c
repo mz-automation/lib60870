@@ -318,6 +318,36 @@ ASDU_getCA(ASDU self)
     return ca;
 }
 
+void
+ASDU_setCA(ASDU self, int ca)
+{
+    int caIndex = 2 + self->parameters->sizeOfCOT;
+
+    int setCa;
+
+    /* Check if CA is in range and adjust if not */
+    if (ca < 0)
+        setCa = 0;
+    else {
+        if (self->parameters->sizeOfCA == 1) {
+            if (ca > 255)
+                setCa = 255;
+        }
+        else if (self->parameters->sizeOfCA > 1) {
+            if (ca > 65536)
+                setCa = 65536;
+        }
+    }
+
+    if (self->parameters->sizeOfCA == 1) {
+        self->asdu[caIndex] = (uint8_t) setCa;
+    }
+    else {
+        self->asdu[caIndex] = (uint8_t) (setCa % 0x100);
+        self->asdu[caIndex + 1] = (uint8_t) (setCa / 0x100);
+    }
+}
+
 IEC60870_5_TypeID
 ASDU_getTypeID(ASDU self)
 {
