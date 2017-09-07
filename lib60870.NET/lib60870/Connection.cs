@@ -106,6 +106,28 @@ namespace lib60870
 
 		Thread workerThread = null;
 
+		private int unconfirmedReceivedIMessages; /* number of unconfirmed messages received */
+		private long lastConfirmationTime; /* timestamp when the last confirmation message was sent */
+
+		private Socket socket;
+		private NetworkStream netStream = null;
+
+		private bool autostart = true;
+
+
+		private string hostname;
+		private int tcpPort;
+
+		private bool running = false;
+		private bool connecting = false;
+		private bool socketError;
+		private bool firstIMessageReceived = false;
+		private SocketException lastException;
+
+		private bool debugOutput = false;
+		private static int connectionCounter = 0;
+		private int connectionID;
+
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="lib60870.Connection"/> use send message queue.
 		/// </summary>
@@ -153,13 +175,6 @@ namespace lib60870
 			}
 		}
 
-		private int unconfirmedReceivedIMessages; /* number of unconfirmed messages received */
-		private long lastConfirmationTime; /* timestamp when the last confirmation message was sent */
-
-        private Socket socket;
-
-		private bool autostart = true;
-
 		/// <summary>
 		/// Gets or sets a value indicating whether this <see cref="lib60870.Connection"/> is automatically sends
 		/// a STARTDT_ACT message on startup.
@@ -174,18 +189,7 @@ namespace lib60870
 			}
 		}
 
-		private string hostname;
-		private int tcpPort;
 
-		private bool running = false;
-        private bool connecting = false;
-		private bool socketError;
-		private bool firstIMessageReceived = false;
-		private SocketException lastException;
-
-		private bool debugOutput = false;
-		private static int connectionCounter = 0;
-		private int connectionID;
 
 		private void DebugLog(string message)
 		{
@@ -260,7 +264,7 @@ namespace lib60870
 			msg [4] = (byte) ((receiveSequenceNumber % 128) * 2);
 			msg [5] = (byte) (receiveSequenceNumber / 128);
 
-            socket.Send (msg);
+			netStream.Write (msg, 0, msg.Length);
 
 			statistics.SentMsgCounter++;
 
@@ -372,8 +376,10 @@ namespace lib60870
 			buffer [5] = (byte) (receiveSequenceNumber / 128);
 
 			if (running) {
-				socket.NoDelay = true;
-				socket.Send (buffer, msgSize, SocketFlags.None);
+				//socket.Send (buffer, msgSize, SocketFlags.None);
+
+				netStream.Write (buffer, 0, msgSize);
+
 				sendSequenceNumber = (sendSequenceNumber + 1) % 32768;
 				statistics.SentMsgCounter++;
 				unconfirmedReceivedIMessages = 0;
@@ -746,7 +752,8 @@ namespace lib60870
 		/// </summary>
 		public void SendStartDT() {
 			if (running) {
-				socket.Send(STARTDT_ACT_MSG);
+				netStream.Write (STARTDT_ACT_MSG, 0, STARTDT_ACT_MSG.Length);
+
 				statistics.SentMsgCounter++;
 
                 if (sentMessageHandler != null)
@@ -767,7 +774,10 @@ namespace lib60870
 		/// </summary>
 		public void SendStopDT() {
 			if (running) {
-				socket.Send(STOPDT_ACT_MSG);
+				//socket.Send(STOPDT_ACT_MSG);
+
+				netStream.Write (STOPDT_ACT_MSG, 0, STOPDT_ACT_MSG.Length);
+
 				statistics.SentMsgCounter++;
                 if (sentMessageHandler != null)
                 {
@@ -832,23 +842,15 @@ namespace lib60870
             }
         }
 
-		private int receiveMessage(Socket socket, byte[] buffer) 
+		private int receiveMessage(byte[] buffer) 
 		{
-			// wait for first byte
-			if (socket.Poll (50, SelectMode.SelectRead)) {
+			int readLength = 0;
 
-				if (socket.Available == 0)
-					throw new SocketException ();
+			if (netStream.DataAvailable) {
 
-				try {
-					if (socket.Receive (buffer, 0, 1, SocketFlags.None) != 1)
-						return -1;
-				} catch (SocketException se) {
-					if ((se.SocketErrorCode == SocketError.TimedOut) || (se.SocketErrorCode == SocketError.WouldBlock))
-						return 0;
-					else
-						throw se;
-				}
+				// wait for first byte
+				if (netStream.Read (buffer, 0, 1) != 1)
+					return -1;
 
 				if (buffer [0] != 0x68) {
 					DebugLog("Missing SOF indicator!");
@@ -857,21 +859,22 @@ namespace lib60870
 				}
 
 				// read length byte
-				if (socket.Receive (buffer, 1, 1, SocketFlags.None) != 1)
+				if (netStream.Read (buffer, 1, 1) != 1)
 					return -1;
 
 				int length = buffer [1];
 
 				// read remaining frame
-				if (socket.Receive (buffer, 2, length, SocketFlags.None) != length) {
+				if (netStream.Read (buffer, 2, length) != length) {
 					DebugLog("Failed to read complete frame!");
 
 					return -1;
 				}
 
-				return length + 2;
-			} else
-				return 0;
+				readLength = length + 2;
+			} 
+
+			return readLength;
 		}
 
 		private bool checkConfirmTimeout(long currentTime) 
@@ -882,7 +885,7 @@ namespace lib60870
                 return false;
         }
 
-		private bool checkMessage(Socket socket, byte[] buffer, int msgSize)
+		private bool checkMessage(byte[] buffer, int msgSize)
 		{
 			long currentTime = SystemUtils.currentTimeMillis ();
 
@@ -941,7 +944,9 @@ namespace lib60870
 					statistics.RcvdTestFrActCounter++;
 					DebugLog ("RCVD TESTFR_ACT");
 					DebugLog ("SEND TESTFR_CON");
-					socket.Send (TESTFR_CON_MSG);
+
+					netStream.Write (TESTFR_CON_MSG, 0, TESTFR_CON_MSG.Length);
+
 					statistics.SentMsgCounter++;
                     if (sentMessageHandler != null)
                     {
@@ -954,7 +959,9 @@ namespace lib60870
 					outStandingTestFRConMessages = 0;
 				} else if (buffer [2] == 0x07) { /* STARTDT ACT */
 					DebugLog ("RCVD STARTDT_ACT");
-					socket.Send (STARTDT_CON_MSG);
+
+					netStream.Write (STARTDT_CON_MSG, 0, STARTDT_CON_MSG.Length);
+
 					statistics.SentMsgCounter++;
                     if (sentMessageHandler != null)
                     {
@@ -989,7 +996,7 @@ namespace lib60870
 			try {
 				byte[] tmp = new byte[1];
 
-				socket.Blocking = false;
+
 				socket.Send (tmp, 0, 0);
 
 				return true;
@@ -1030,6 +1037,12 @@ namespace lib60870
 			if (success)
 			{
 				socket.EndConnect(result);
+
+				socket.NoDelay = true;
+
+				netStream = new NetworkStream (socket);
+				netStream.ReadTimeout = 50;
+
 			}
 			else
 			{
@@ -1048,8 +1061,11 @@ namespace lib60870
 
 					// close connection
 					return false;
-				} else {
-					socket.Send (TESTFR_ACT_MSG);
+				} 
+				else 
+				{
+					netStream.Write (TESTFR_ACT_MSG, 0, TESTFR_ACT_MSG.Length);
+
 					statistics.SentMsgCounter++;
 					DebugLog("U message T3 timeout");
 					uMessageTimeout = (UInt64)currentTime + (UInt64)(parameters.T1 * 1000);
@@ -1109,7 +1125,8 @@ namespace lib60870
 						DebugLog("Socket connected to " + socket.RemoteEndPoint.ToString());
 
 						if (autostart) {
-							socket.Send(STARTDT_ACT_MSG);
+							netStream.Write(STARTDT_ACT_MSG, 0, STARTDT_ACT_MSG.Length);
+
 							statistics.SentMsgCounter++;
 						}
 
@@ -1141,7 +1158,7 @@ namespace lib60870
 
 							try {
 								// Receive a message from from the remote device.
-								int bytesRec = receiveMessage(socket, bytes);
+								int bytesRec = receiveMessage(bytes);
 
 								if (bytesRec > 0) {
 
@@ -1155,7 +1172,7 @@ namespace lib60870
 										handleMessage = recvRawMessageHandler(recvRawMessageHandlerParameter, bytes, bytesRec);
 												
 									if (handleMessage) {
-										if (checkMessage(socket, bytes, bytesRec) == false) {
+										if (checkMessage(bytes, bytesRec) == false) {
 											/* close connection on error */
 											loopRunning = false;
 										}
@@ -1192,6 +1209,13 @@ namespace lib60870
 							catch (SocketException) {	
 								loopRunning = false;
 							}
+							catch (System.IO.IOException e) {
+								DebugLog("IOException: " + e.ToString());
+								loopRunning = false;
+							}
+							catch (ConnectionException) {
+								loopRunning = false;
+							}
 						}
 
 						DebugLog("CLOSE CONNECTION!");
@@ -1204,6 +1228,8 @@ namespace lib60870
 						}
 
 						socket.Close();
+
+						netStream.Dispose();
 
 						if (connectionHandler != null)
 							connectionHandler(connectionHandlerParameter, ConnectionEvent.CLOSED);
@@ -1235,7 +1261,7 @@ namespace lib60870
 		public void Close()
 		{
 			if (running) {
-				socket.Shutdown (SocketShutdown.Both);
+				running = false;
 				workerThread.Join ();
 			}
 		}

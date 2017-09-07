@@ -118,7 +118,6 @@ namespace lib60870
 			connectionsCounter++;
 			connectionID = connectionsCounter;
 
-			this.socket = socket;
 			this.parameters = parameters;
 			this.server = server;
             this.asduQueue = asduQueue;
@@ -132,6 +131,10 @@ namespace lib60870
 			//TODO only needed when connection is activated
 			receivedASDUs = new Queue<ASDU> ();
 			waitingASDUsHighPrio = new Queue<BufferFrame> ();
+
+			socketStream = new NetworkStream (socket);
+			socketStream.ReadTimeout = 50;
+			this.socket = socket;
 
 			Thread workerThread = new Thread(HandleConnection);
 
@@ -179,42 +182,46 @@ namespace lib60870
 		}
 
 		private Socket socket;
+		private NetworkStream socketStream;
 
 		private bool running = false;
 
 		private bool debugOutput = true;
 
-		private int receiveMessage(Socket socket, byte[] buffer) 
+		private int receiveMessage(byte[] buffer) 
 		{
-			if (socket.Poll (50, SelectMode.SelectRead)) {
+			
+			int readLength = 0;
 
-				if (socket.Available == 0)
-					throw new SocketException ();
+
+			if (socket.Poll (50, SelectMode.SelectRead)) {
+				// maybe use socketStream.DataAvailable
 
 				// wait for first byte
-				if (socket.Receive (buffer, 0, 1, SocketFlags.None) != 1)
-					return 0;
+				if (socketStream.Read (buffer, 0, 1) != 1)
+					return -1;
 
 				if (buffer [0] != 0x68) {
 					DebugLog("Missing SOF indicator!");
-					return 0;
+					return -1;
 				}
 
 				// read length byte
-				if (socket.Receive (buffer, 1, 1, SocketFlags.None) != 1)
-					return 0;
+				if (socketStream.Read (buffer, 1, 1) != 1)
+					return -1;
 
 				int length = buffer [1];
 
 				// read remaining frame
-				if (socket.Receive (buffer, 2, length, SocketFlags.None) != length) {
+				if (socketStream.Read (buffer, 2, length) != length) {
 					DebugLog("Failed to read complete frame!");
-					return 0;
+					return -1;
 				}
 
-				return length + 2;
-			} else
-				return 0;
+				readLength = length + 2;
+			}
+
+			return readLength;
 		}
 			
 		private void SendSMessage() 
@@ -228,14 +235,14 @@ namespace lib60870
 			msg [2] = 0x01;
 			msg [3] = 0;
 
-			lock (socket) {
+			lock (socketStream) {
 				msg [4] = (byte)((receiveCount % 128) * 2);
 				msg [5] = (byte)(receiveCount / 128);
 
 				try {
-					socket.Send (msg);
+					socketStream.Write(msg, 0, msg.Length);
 				}
-				catch (SocketException) {
+				catch (System.IO.IOException) {
 					// socket error --> close connection
 					running = false;
 				}
@@ -261,14 +268,14 @@ namespace lib60870
 			buffer [5] = (byte) (receiveCount / 128);
 
 			try {
-				lock (socket) {
-					socket.Send (buffer, msgSize, SocketFlags.None);
+				lock (socketStream) {
+					socketStream.Write (buffer, 0, msgSize);
 					DebugLog("SEND I (size = " + msgSize + ") : " +	BitConverter.ToString(buffer, 0, msgSize));
 					sendCount = (sendCount + 1) % 32768;
 					unconfirmedReceivedIMessages = 0;
 				}
 			}
-			catch (SocketException) {
+			catch (System.IO.IOException) {
 				// socket error --> close connection
 				running = false;
 			}
@@ -699,7 +706,7 @@ namespace lib60870
 			return true;
 		}
 
-		private bool HandleMessage(Socket socket, byte[] buffer, int msgSize)
+		private bool HandleMessage(byte[] buffer, int msgSize)
 		{
 			long currentTime = SystemUtils.currentTimeMillis ();
 
@@ -758,7 +765,7 @@ namespace lib60870
 
 				DebugLog ("Send TESTFR_CON");
 
-				socket.Send (TESTFR_CON_MSG);
+				socketStream.Write(TESTFR_CON_MSG, 0, TESTFR_CON_MSG.Length);
 			} 
 
 			// Check for STARTDT_ACT message
@@ -768,7 +775,7 @@ namespace lib60870
 
 				this.isActive = true;
 
-				socket.Send (STARTDT_CON_MSG);
+				socketStream.Write (STARTDT_CON_MSG, 0, TESTFR_CON_MSG.Length);
 			}
 
 			// Check for STOPDT_ACT message
@@ -778,7 +785,7 @@ namespace lib60870
 
 				this.isActive = false;
 
-				socket.Send (STOPDT_CON_MSG);
+				socketStream.Write (STOPDT_CON_MSG, 0, TESTFR_CON_MSG.Length);
 			} 
 
 			// Check for TESTFR_CON message
@@ -820,13 +827,13 @@ namespace lib60870
 					return false;
 				} else {
 					try  {
-						socket.Send (TESTFR_ACT_MSG);
+						socketStream.Write(TESTFR_ACT_MSG, 0, TESTFR_ACT_MSG.Length);
 
 						DebugLog("U message T3 timeout");
 						outStandingTestFRConMessages++;
 						ResetT3Timeout ();
 					}
-					catch (SocketException) {
+					catch (System.IO.IOException) {
 						running = false;
 					}
 				}
@@ -859,7 +866,10 @@ namespace lib60870
 			return true;
 		}
 
-		private void HandleConnection() {
+		private void HandleConnection()
+		{
+			
+
 
 			byte[] bytes = new byte[300];
 
@@ -878,13 +888,13 @@ namespace lib60870
 
 						try {
 							// Receive the response from the remote device.
-							int bytesRec = receiveMessage(socket, bytes);
+							int bytesRec = receiveMessage(bytes);
 							
-							if (bytesRec != 0) {
+							if (bytesRec > 0) {
 							
 								DebugLog("RCVD: " +	BitConverter.ToString(bytes, 0, bytesRec));
 							
-								if (HandleMessage(socket, bytes, bytesRec) == false) {
+								if (HandleMessage(bytes, bytesRec) == false) {
 									/* close connection on error */
 									running = false;
 								}
@@ -896,8 +906,11 @@ namespace lib60870
 									SendSMessage ();
 								}	
 							}
-
-						} catch (SocketException) {
+							else if (bytesRec == -1) {
+								running = false;	
+							}
+						}
+						catch (System.IO.IOException) {
 							running = false;
 						}
 
@@ -917,8 +930,12 @@ namespace lib60870
 					DebugLog("CLOSE CONNECTION!");
 
 					// Release the socket.
+
 					socket.Shutdown(SocketShutdown.Both);
 					socket.Close();
+
+					socketStream.Dispose();
+					socket.Dispose();
 
 					DebugLog("CONNECTION CLOSED!");
 

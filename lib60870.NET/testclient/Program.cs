@@ -154,6 +154,9 @@ namespace testclient
 
 			Thread.Sleep (5000);
 
+
+			Console.WriteLine ("CLOSE 2");
+
 			con.Close ();
 
 			Console.WriteLine("Press any key to terminate...");
