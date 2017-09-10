@@ -26,6 +26,9 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Collections.Generic;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+using System.IO;
 
 namespace lib60870
 {
@@ -63,6 +66,7 @@ namespace lib60870
 		private UInt64 nextT3Timeout;
 		private int outStandingTestFRConMessages = 0;
 
+		private TlsSecurityInformation tlsSecInfo = null;
 		private ConnectionParameters parameters;
 		private Server server;
 
@@ -113,7 +117,7 @@ namespace lib60870
 			DebugLog ("ProcessASDUs exit thread");
 		}
 
-		internal ServerConnection(Socket socket, ConnectionParameters parameters, Server server, ASDUQueue asduQueue, bool debugOutput) 
+		internal ServerConnection(Socket socket, TlsSecurityInformation tlsSecInfo, ConnectionParameters parameters, Server server, ASDUQueue asduQueue, bool debugOutput) 
 		{
 			connectionsCounter++;
 			connectionID = connectionsCounter;
@@ -133,8 +137,8 @@ namespace lib60870
 			waitingASDUsHighPrio = new Queue<BufferFrame> ();
 
 			socketStream = new NetworkStream (socket);
-			socketStream.ReadTimeout = 50;
 			this.socket = socket;
+			this.tlsSecInfo = tlsSecInfo;
 
 			Thread workerThread = new Thread(HandleConnection);
 
@@ -182,7 +186,8 @@ namespace lib60870
 		}
 
 		private Socket socket;
-		private NetworkStream socketStream;
+		//private NetworkStream socketStream;
+		private Stream socketStream;
 
 		private bool running = false;
 
@@ -435,6 +440,11 @@ namespace lib60870
 			} 
 		}
 
+		/// <summary>
+		/// Send a response ASDU over this connection
+		/// </summary>
+		/// <exception cref="ConnectionException">Throws an exception if the connection is no longer active (e.g. because it has been closed by the other side).</exception>
+		/// <param name="asdu">The ASDU to send</param>
 		public void SendASDU(ASDU asdu) 
 		{
 			if (isActive)
@@ -775,6 +785,8 @@ namespace lib60870
 
 				this.isActive = true;
 
+				this.server.Activated (this);
+
 				socketStream.Write (STARTDT_CON_MSG, 0, TESTFR_CON_MSG.Length);
 			}
 
@@ -866,10 +878,63 @@ namespace lib60870
 			return true;
 		}
 
+
+		private bool AreByteArraysEqual(byte[] array1, byte[] array2)
+		{
+			if (array1.Length == array2.Length) {
+
+				for (int i = 0; i < array1.Length; i++) {
+					if (array1 [i] != array2 [i])
+						return false;
+				}
+
+				return true;
+			} else
+				return false;
+		}
+
+		public bool RemoteCertificateValidationCallback (object sender, X509Certificate cert, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+		{
+			if (sslPolicyErrors == SslPolicyErrors.None || sslPolicyErrors == SslPolicyErrors.RemoteCertificateChainErrors) {
+
+				if (tlsSecInfo.ChainValidation) {
+
+					X509Chain newChain = new X509Chain ();
+
+					newChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+					newChain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
+					newChain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+					newChain.ChainPolicy.VerificationTime = DateTime.Now;
+					newChain.ChainPolicy.UrlRetrievalTimeout = new TimeSpan(0, 0, 0);
+
+					foreach (X509Certificate2 caCert in tlsSecInfo.CaCertificates)
+						newChain.ChainPolicy.ExtraStore.Add(caCert);
+					
+					bool certificateStatus =  newChain.Build(new X509Certificate2(cert.GetRawCertData()));
+
+					if (certificateStatus == false)
+						return false;
+				}
+
+				if (tlsSecInfo.AllowOnlySpecificCertificates) {
+					
+					foreach (X509Certificate2 allowedCert in tlsSecInfo.AllowedCertificates) {
+						if (AreByteArraysEqual (allowedCert.GetCertHash (), cert.GetCertHash ())) {
+							return true;
+						}
+					}
+
+					return false;
+				}
+
+				return true;
+			}
+			else 
+				return false;
+		}
+
 		private void HandleConnection()
 		{
-			
-
 
 			byte[] bytes = new byte[300];
 
@@ -879,10 +944,51 @@ namespace lib60870
 
 					running = true;
 
-					callbackThread = new Thread (ProcessASDUs);
-					callbackThread.Start ();
+					if (tlsSecInfo != null) {
 
-					ResetT3Timeout();
+						DebugLog("Setup TLS");
+
+						SslStream sslStream = new SslStream (socketStream, true, RemoteCertificateValidationCallback);
+
+						bool authenticationSuccess = false;
+
+						try {
+							sslStream.AuthenticateAsServer (tlsSecInfo.OwnCertificate, true, System.Security.Authentication.SslProtocols.Tls, false);
+						
+							if (sslStream.IsAuthenticated == true) {
+								socketStream = sslStream;
+								authenticationSuccess = true;
+							}
+							
+						}
+						catch (IOException e) {
+
+							if (e.GetBaseException() != null) {
+								DebugLog("TLS authentication error: " + e.GetBaseException().Message);
+							}
+							else {
+								DebugLog("TLS authentication error: " + e.Message);
+							}
+
+						}
+							
+						if (authenticationSuccess == true)
+							socketStream = sslStream;
+						else {
+							DebugLog("TLS authentication failed");
+							running = false;
+						}
+					}
+
+					if (running) {
+
+						socketStream.ReadTimeout = 50;
+
+						callbackThread = new Thread (ProcessASDUs);
+						callbackThread.Start ();
+
+						ResetT3Timeout();
+					}
 
 					while (running) {
 

@@ -30,9 +30,6 @@
     <Externalconsole>true</Externalconsole>
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
-  <PropertyGroup>
-    <SignAssembly>false</SignAssembly>
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
   </ItemGroup>
@@ -78,6 +75,7 @@
     <Compile Include="PackedOutputCircuitInfo.cs" />
     <Compile Include="LibraryCommon.cs" />
     <Compile Include="BufferFrame.cs" />
+    <Compile Include="TlsSecurityInformation.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -21,6 +21,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "multi-client-server", "mult
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testclient3", "testclient3\testclient3.csproj", "{05875DE2-6036-46E9-A656-BACB47D6E5F5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tlsserver", "tlsserver\tlsserver.csproj", "{CB566E9F-4814-40AD-ACA2-BDB598D7C174}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tlsclient", "tlsclient\tlsclient.csproj", "{D770BDE6-5A88-4F22-9698-011356C4D505}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -51,6 +55,14 @@ Global
 		{C48F029B-D26C-47E9-9958-994543664DB7}.Debug|x86.Build.0 = Debug|x86
 		{C48F029B-D26C-47E9-9958-994543664DB7}.Release|x86.ActiveCfg = Release|x86
 		{C48F029B-D26C-47E9-9958-994543664DB7}.Release|x86.Build.0 = Release|x86
+		{CB566E9F-4814-40AD-ACA2-BDB598D7C174}.Debug|x86.ActiveCfg = Debug|x86
+		{CB566E9F-4814-40AD-ACA2-BDB598D7C174}.Debug|x86.Build.0 = Debug|x86
+		{CB566E9F-4814-40AD-ACA2-BDB598D7C174}.Release|x86.ActiveCfg = Release|x86
+		{CB566E9F-4814-40AD-ACA2-BDB598D7C174}.Release|x86.Build.0 = Release|x86
+		{D770BDE6-5A88-4F22-9698-011356C4D505}.Debug|x86.ActiveCfg = Debug|x86
+		{D770BDE6-5A88-4F22-9698-011356C4D505}.Debug|x86.Build.0 = Debug|x86
+		{D770BDE6-5A88-4F22-9698-011356C4D505}.Release|x86.ActiveCfg = Release|x86
+		{D770BDE6-5A88-4F22-9698-011356C4D505}.Release|x86.Build.0 = Release|x86
 		{DAEA188F-6E13-4161-82F2-3BDC19F3DAA0}.Debug|x86.ActiveCfg = Debug|x86
 		{DAEA188F-6E13-4161-82F2-3BDC19F3DAA0}.Debug|x86.Build.0 = Debug|x86
 		{DAEA188F-6E13-4161-82F2-3BDC19F3DAA0}.Release|x86.ActiveCfg = Release|x86
@@ -74,7 +86,7 @@ Global
 		$1.DirectoryNamespaceAssociation = None
 		$1.ResourceNamePolicy = FileFormatDefault
 		$0.StandardHeader = $2
-		$2.Text = 
+		$2.Text = @/*\n *  Copyright 2016, 2017 MZ Automation GmbH\n *\n *  This file is part of lib60870.NET\n *\n *  lib60870.NET is free software: you can redistribute it and/or modify\n *  it under the terms of the GNU General Public License as published by\n *  the Free Software Foundation, either version 3 of the License, or\n *  (at your option) any later version.\n *\n *  lib60870.NET is distributed in the hope that it will be useful,\n *  but WITHOUT ANY WARRANTY; without even the implied warranty of\n *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n *  GNU General Public License for more details.\n *\n *  You should have received a copy of the GNU General Public License\n *  along with lib60870.NET.  If not, see <http://www.gnu.org/licenses/>.\n *\n *  See COPYING file for the complete license text.\n */\n\n
 		$2.IncludeInNewFiles = True
 		$0.NameConventionPolicy = $3
 		$3.Rules = $4
