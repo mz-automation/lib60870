@@ -380,6 +380,8 @@ namespace lib60870
 
 		private ConnectionParameters parameters = null;
 
+		private TlsSecurityInformation securityInfo = null;
+
 		// List of all open connections
 		private List<ServerConnection> allOpenConnections = new List<ServerConnection>();
 
@@ -391,12 +393,31 @@ namespace lib60870
 			this.parameters = new ConnectionParameters ();
 		}
 
+
+		public Server (TlsSecurityInformation securityInfo)
+		{
+			this.parameters = new ConnectionParameters ();
+			this.securityInfo = securityInfo;
+
+			if (securityInfo != null)
+				this.localPort = 19998;
+		}
+
+
 		/// <summary>
 		/// Create a new server using the provided connection parameters.
 		/// </summary>
 		/// <param name="parameters">Connection parameters</param>
 		public Server(ConnectionParameters parameters) {
 			this.parameters = parameters;
+		}
+
+		public Server(ConnectionParameters parameters, TlsSecurityInformation securityInfo) {
+			this.parameters = parameters;
+			this.securityInfo = securityInfo;
+
+			if (securityInfo != null)
+				this.localPort = 19998;
 		}
 
 		public InterrogationHandler interrogationHandler = null;
@@ -552,9 +573,9 @@ namespace lib60870
 
 						if (acceptConnection) {
 	                        if (serverMode == ServerMode.SINGLE_REDUNDANCY_GROUP)
-								allOpenConnections.Add(new ServerConnection (newSocket, parameters, this, asduQueue, debugOutput));
+								allOpenConnections.Add(new ServerConnection (newSocket, securityInfo, parameters, this, asduQueue, debugOutput));
 	                        else
-	                            allOpenConnections.Add(new ServerConnection(newSocket, parameters, this,
+								allOpenConnections.Add(new ServerConnection(newSocket, securityInfo, parameters, this,
 									new ASDUQueue(maxQueueSize, parameters, DebugLog), debugOutput));
 
 							//TODO add ConnectionEstablishedHandler

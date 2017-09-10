@@ -4,6 +4,7 @@ using lib60870;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using System.Security.Cryptography.X509Certificates;
 
 namespace testserver
 {

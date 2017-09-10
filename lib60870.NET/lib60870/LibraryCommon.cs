@@ -6,7 +6,7 @@ namespace lib60870
 	{
 		public const int VERSION_MAJOR = 0;
 		public const int VERSION_MINOR = 9;
-		public const int VERSION_PATCH = 5;
+		public const int VERSION_PATCH = 6;
 
 		public static string GetLibraryVersionString()
 		{

@@ -28,6 +28,9 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography.X509Certificates;
+using System.Net.Security;
 
 namespace lib60870
 {
@@ -110,7 +113,9 @@ namespace lib60870
 		private long lastConfirmationTime; /* timestamp when the last confirmation message was sent */
 
 		private Socket socket;
-		private NetworkStream netStream = null;
+		//private NetworkStream netStream = null;
+		private Stream netStream = null;
+		private TlsSecurityInformation tlsSecInfo = null;
 
 		private bool autostart = true;
 
@@ -539,6 +544,14 @@ namespace lib60870
 			Setup (hostname, parameters.clone(), tcpPort);
 		}
 
+		public void SetTlsSecurity(TlsSecurityInformation securityInfo)
+		{
+			tlsSecInfo = securityInfo;
+
+			if (securityInfo != null)
+				this.tcpPort = 19998;
+		}
+
 		public ConnectionStatistics GetStatistics() {
 			return this.statistics;
 		}
@@ -846,8 +859,9 @@ namespace lib60870
 		{
 			int readLength = 0;
 
-			if (netStream.DataAvailable) {
+			//if (netStream.DataAvailable) {
 
+			if (socket.Poll (50, SelectMode.SelectRead)) {
 				// wait for first byte
 				if (netStream.Read (buffer, 0, 1) != 1)
 					return -1;
@@ -1108,6 +1122,66 @@ namespace lib60870
 			return true;
 		}
 
+		private bool AreByteArraysEqual(byte[] array1, byte[] array2)
+		{
+			if (array1.Length == array2.Length) {
+
+				for (int i = 0; i < array1.Length; i++) {
+					if (array1 [i] != array2 [i])
+						return false;
+				}
+
+				return true;
+			} else
+				return false;
+		}
+
+		private bool CertificateValidation(Object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) 
+		{
+			if (certificate != null) {
+
+				if (tlsSecInfo.ChainValidation) {
+
+					X509Chain newChain = new X509Chain ();
+
+					newChain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
+					newChain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
+					newChain.ChainPolicy.VerificationFlags = X509VerificationFlags.AllowUnknownCertificateAuthority;
+					newChain.ChainPolicy.VerificationTime = DateTime.Now;
+					newChain.ChainPolicy.UrlRetrievalTimeout = new TimeSpan(0, 0, 0);
+
+					foreach (X509Certificate2 caCert in tlsSecInfo.CaCertificates)
+						newChain.ChainPolicy.ExtraStore.Add(caCert);
+
+					bool certificateStatus =  newChain.Build(new X509Certificate2(certificate.GetRawCertData()));
+
+					if (certificateStatus == false)
+						return false;
+				}
+
+				if (tlsSecInfo.AllowOnlySpecificCertificates) {
+
+					foreach (X509Certificate2 allowedCert in tlsSecInfo.AllowedCertificates) {
+						if (AreByteArraysEqual (allowedCert.GetCertHash (), certificate.GetCertHash ())) {
+							return true;
+						}
+					}
+
+					return false;
+				}
+
+				return true;
+			}
+			else 
+				return false;
+		}
+
+		public X509Certificate LocalCertificateSelectionCallback (object sender, string targetHost, X509CertificateCollection localCertificates, X509Certificate remoteCertificate, string[] acceptableIssuers)
+		{
+			return localCertificates [0];
+		}
+			
+
 		private void HandleConnection() {
 
 			byte[] bytes = new byte[300];
@@ -1124,12 +1198,48 @@ namespace lib60870
 
 						DebugLog("Socket connected to " + socket.RemoteEndPoint.ToString());
 
+						if (tlsSecInfo != null) {
+
+							DebugLog("Setup TLS");
+
+							SslStream sslStream = new SslStream(netStream, true, CertificateValidation, LocalCertificateSelectionCallback);
+
+							var clientCertificateCollection = new X509Certificate2Collection(tlsSecInfo.OwnCertificate);
+
+							try {
+								sslStream.AuthenticateAsClient(tlsSecInfo.TargetHostName, clientCertificateCollection, System.Security.Authentication.SslProtocols.Tls, false);
+							}
+							catch (IOException e) {
+
+								string message;
+
+								if (e.GetBaseException() != null) {
+									message = e.GetBaseException().Message;
+								}
+								else {
+									message = e.Message;
+								}
+
+								DebugLog("TLS authentication error: " + message);
+
+								throw new SocketException();
+							}
+
+							if (sslStream.IsAuthenticated) {
+								netStream = sslStream;
+							}
+							else {
+								throw new SocketException();
+							}
+
+						}
+							
 						if (autostart) {
 							netStream.Write(STARTDT_ACT_MSG, 0, STARTDT_ACT_MSG.Length);
 
 							statistics.SentMsgCounter++;
 						}
-
+							
 						running = true;
 						socketError = false;
                         connecting = false;

@@ -1,0 +1,39 @@
+README
+------
+
+1. What do you find here?
+
+This folder contains test certificates for TLS client/server testing that can be used for the tlsclient and tlsserver examples
+
+WARNING: These certificates are for test and development purposes only. Do not use in production environment!
+
+The openssl folder contains certificates that were created with openssl.
+
+The makecert folder contains certificates that were create with Visual Studio makecert
+
+Both types of certificates can be used with Mono as well.
+
+
+
+2. Create certificates on windows
+
+a) Create the CA root signing key (root.pvk) and the CA certificate (root.cer):
+
+  makecert -n "CN=test root ca" -cy authority -r -sv root.pvk root.cer
+
+b) Create a test server private key (server.pvk) and certificate (server.cer):
+
+  makecert -r -pe -n "CN=test server" -b 01/01/2017 -e 01/01/2037 -sky exchange server.cer -sv server.pvk
+
+c) Sign the server certificate with the CA key:
+
+  makecert -ic root.cer -iv root.pvk -n "CN=test-server" -sv server.pvk -pe -sky exchange server.cer
+
+d) Create a PKCS12 file (server.pfx) to store the certificate together with the private key:
+
+   pvk2pfx.exe -pvk server.pvk -spc server.cer -pfx server.pfx
+
+e) Repeat steps b) to d) for the clients respectively
+
+
+
