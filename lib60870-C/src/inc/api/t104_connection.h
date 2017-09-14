@@ -139,7 +139,7 @@ T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTrans
  * \return true if message was sent, false otherwise
  */
 bool
-T104Connection_sendReadCommend(T104Connection self, int ca, int ioa);
+T104Connection_sendReadCommand(T104Connection self, int ca, int ioa);
 
 /**
  * \brief Sends a clock synchronization command (C_CS_NA_1 typeID: 103)

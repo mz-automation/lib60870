@@ -782,13 +782,13 @@ T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTrans
 }
 
 bool
-T104Connection_sendReadCommend(T104Connection self, int ca, int ioa)
+T104Connection_sendReadCommand(T104Connection self, int ca, int ioa)
 {
     Frame frame = (Frame) T104Frame_create();
 
     encodeIdentificationField(self, frame, C_RD_NA_1, 1, REQUEST, ca);
 
-    encodeIOA(self, frame, 0);
+    encodeIOA(self, frame, ioa);
 
     return sendASDUInternal(self, frame);
 }
