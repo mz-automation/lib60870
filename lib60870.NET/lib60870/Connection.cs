@@ -1055,8 +1055,6 @@ namespace lib60870
 				socket.NoDelay = true;
 
 				netStream = new NetworkStream (socket);
-				netStream.ReadTimeout = 50;
-
 			}
 			else
 			{
@@ -1233,7 +1231,9 @@ namespace lib60870
 							}
 
 						}
-							
+
+						netStream.ReadTimeout = 50;
+
 						if (autostart) {
 							netStream.Write(STARTDT_ACT_MSG, 0, STARTDT_ACT_MSG.Length);
 
