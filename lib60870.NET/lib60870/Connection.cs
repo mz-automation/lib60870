@@ -1205,7 +1205,12 @@ namespace lib60870
 							var clientCertificateCollection = new X509Certificate2Collection(tlsSecInfo.OwnCertificate);
 
 							try {
-								sslStream.AuthenticateAsClient(tlsSecInfo.TargetHostName, clientCertificateCollection, System.Security.Authentication.SslProtocols.Tls, false);
+								string targetHostName = tlsSecInfo.TargetHostName;
+
+								if (targetHostName == null)
+									targetHostName = "*";
+
+								sslStream.AuthenticateAsClient(targetHostName, clientCertificateCollection, System.Security.Authentication.SslProtocols.Tls, false);
 							}
 							catch (IOException e) {
 
