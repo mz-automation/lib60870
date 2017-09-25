@@ -323,7 +323,7 @@ ASDU_setCA(ASDU self, int ca)
 {
     int caIndex = 2 + self->parameters->sizeOfCOT;
 
-    int setCa;
+    int setCa = ca;
 
     /* Check if CA is in range and adjust if not */
     if (ca < 0)
