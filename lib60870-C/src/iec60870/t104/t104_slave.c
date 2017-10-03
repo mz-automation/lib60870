@@ -770,7 +770,19 @@ T104Slave_setLocalPort(Slave self, int tcpPort)
 int
 T104Slave_getOpenConnections(Slave self)
 {
-    return self->openConnections;
+    int openConnections;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_wait(self->openConnectionsLock);
+#endif
+
+    openConnections = self->openConnections;
+
+#if (CONFIG_SLAVE_USING_THREADS == 1)
+    Semaphore_post(self->openConnectionsLock);
+#endif
+
+    return openConnections;
 }
 
 void
@@ -1661,11 +1673,13 @@ T104Slave_removeConnection(Slave self, MasterConnection connection)
     self->openConnections--;
     LinkedList_remove(self->masterConnections, (void*) connection);
 
+    MasterConnection_destroy(connection);
+
 #if (CONFIG_SLAVE_USING_THREADS)
     Semaphore_post(self->openConnectionsLock);
 #endif
 
-    MasterConnection_destroy(connection);
+
 }
 
 static void*
