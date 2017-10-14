@@ -21,11 +21,20 @@ LIB_SOURCE_DIRS += src/hal/thread/bsd
 LIB_SOURCE_DIRS += src/hal/time/unix
 endif
 
+ifdef WITH_MBEDTLS
+LIB_SOURCE_DIRS += dependencies/mbedtls-2.6.0/library
+LIB_SOURCE_DIRS += src/tls/mbedtls
+LIB_INCLUDE_DIRS += dependencies/mbedtls-2.6.0/include
+MBEDTLS_CONFIG_FILE = "mbedtls_config.h"
+endif
+
 LIB_INCLUDE_DIRS += config
 LIB_INCLUDE_DIRS += src/inc/api
 LIB_INCLUDE_DIRS += src/inc/internal
 LIB_INCLUDE_DIRS += src/hal/inc
+LIB_INCLUDE_DIRS += src/tls
 LIB_INCLUDE_DIRS += src/common/inc
+
 
 LIB_INCLUDES = $(addprefix -I,$(LIB_INCLUDE_DIRS))
 
@@ -41,7 +50,7 @@ LIB_API_HEADER_FILES += src/inc/api/iec60870_server.h
 LIB_API_HEADER_FILES += src/inc/api/iec60870_common.h
 LIB_API_HEADER_FILES += src/inc/api/information_objects.h
 LIB_API_HEADER_FILES += src/inc/api/t104_connection.h
-
+LIB_API_HEADER_FILES += src/tls/tls_api.h
 
 LIB_TEST_SOURCES = tests/all_tests.c
 LIB_TEST_SOURCES += tests/unity/unity.c
@@ -57,9 +66,7 @@ src_to = $(addprefix $(LIB_OBJS_DIR)/,$(subst .c,$1,$2))
 LIB_SOURCES = $(call get_sources,$(LIB_SOURCE_DIRS))
 
 LIB_OBJS = $(call src_to,.o,$(LIB_SOURCES))
-
 TEST_OBJS = $(call src_to,.o,$(LIB_TEST_SOURCES))
-
 CFLAGS += -std=gnu99
 #CFLAGS += -Wno-error=format 
 CFLAGS += -Wstrict-prototypes

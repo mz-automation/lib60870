@@ -12,7 +12,7 @@ ENABLE_TESTING()
 
 set(LIB_VERSION_MAJOR "0")
 set(LIB_VERSION_MINOR "9")
-set(LIB_VERSION_PATCH "5")
+set(LIB_VERSION_PATCH "7")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/third_party/cmake/modules/")
 
@@ -24,6 +24,9 @@ check_library_exists(rt clock_gettime "time.h" CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
 include (TestBigEndian)
 test_big_endian(PLATFORM_IS_BIGENDIAN)
 
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.6.0)
+set(WITH_MBEDTLS 1)
+endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.6.0)
 
 option(BUILD_EXAMPLES "Build the examples" ON)
 option(BUILD_TESTS "Build the tests" ON)
@@ -34,7 +37,19 @@ include_directories(
     src/inc/internal
     src/common/inc
     src/hal/inc
+    src/tls
 )
+
+if(WITH_MBEDTLS)
+include_directories(
+    src/tls/mbedtls
+    dependencies/mbedtls-2.6.0/include
+)
+
+file(GLOB tls_SRCS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.6.0/library/*.c)
+
+endif(WITH_MBEDTLS)
+
 
 set(API_HEADERS 
 	src/hal/inc/hal_time.h 
@@ -45,6 +60,7 @@ set(API_HEADERS
 	src/inc/api/iec60870_common.h
 	src/inc/api/information_objects.h
 	src/inc/api/t104_connection.h
+	src/tls/tls_api.h
 )
 
 

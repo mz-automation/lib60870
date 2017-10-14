@@ -24,6 +24,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "tls_api.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,6 +34,9 @@ typedef struct sT104Connection* T104Connection;
 
 T104Connection
 T104Connection_create(const char* hostname, int tcpPort);
+
+T104Connection
+T104Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguration tlsConfig);
 
 /**
  * \brief Set connection parameters.

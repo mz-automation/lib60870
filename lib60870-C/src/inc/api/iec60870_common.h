@@ -30,10 +30,11 @@ extern "C" {
 #endif
 
 #define IEC_60870_5_104_DEFAULT_PORT 2404
+#define IEC_60870_5_104_DEFAULT_TLS_PORT 19998
 
 #define LIB60870_VERSION_MAJOR 0
 #define LIB60870_VERSION_MINOR 9
-#define LIB60870_VERSION_PATCH 5
+#define LIB60870_VERSION_PATCH 7
 
 typedef struct {
     int major;

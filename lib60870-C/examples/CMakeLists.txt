@@ -1,3 +1,5 @@
 add_subdirectory(simple_client)
 add_subdirectory(simple_server)
 add_subdirectory(multi_client_server)
+add_subdirectory(tls_client)
+add_subdirectory(tls_server)

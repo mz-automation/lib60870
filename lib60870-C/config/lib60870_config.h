@@ -90,6 +90,7 @@
 /* number of not missing keepalive responses until socket is considered dead */
 #define CONFIG_TCP_KEEPALIVE_CNT 2
 
-
+/* disable/enable support of TLS */
+#define CONFIG_CS104_SUPPORT_TLS 1
 
 #endif /* CONFIG_LIB60870_CONFIG_H_ */
