@@ -34,8 +34,11 @@ dependencies/mbedtls-2.6.0
 
 exists.
 
-The make and cmake build system will automatically detect the mbedtls source and build the library with TLS support and mbedtls included
+The cmake build system will automatically detect the mbedtls source and build the library with TLS support and mbedtls included
 
+When using make you have to call make with WITH_MBEDTLS=1
+
+make WITH_MBEDTLS=1
 
 ## Contact:
 
