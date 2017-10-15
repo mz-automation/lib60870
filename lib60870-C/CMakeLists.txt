@@ -16,6 +16,10 @@ set(LIB_VERSION_PATCH "7")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/third_party/cmake/modules/")
 
+macro(ADD_C_FLAGS flags)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${flags}")
+endmacro()
+
 # feature checks
 include(CheckLibraryExists)
 check_library_exists(rt clock_gettime "time.h" CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
@@ -47,7 +51,7 @@ include_directories(
 )
 
 file(GLOB tls_SRCS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.6.0/library/*.c)
-
+ADD_C_FLAGS("-D'CONFIG_CS104_SUPPORT_TLS=1'")
 endif(WITH_MBEDTLS)
 
 

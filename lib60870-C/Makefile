@@ -26,6 +26,7 @@ LIB_SOURCE_DIRS += dependencies/mbedtls-2.6.0/library
 LIB_SOURCE_DIRS += src/tls/mbedtls
 LIB_INCLUDE_DIRS += dependencies/mbedtls-2.6.0/include
 MBEDTLS_CONFIG_FILE = "mbedtls_config.h"
+CFLAGS += -D'CONFIG_CS104_SUPPORT_TLS=1'
 endif
 
 LIB_INCLUDE_DIRS += config
