@@ -51,7 +51,9 @@ include_directories(
 )
 
 file(GLOB tls_SRCS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.6.0/library/*.c)
-ADD_C_FLAGS("-D'CONFIG_CS104_SUPPORT_TLS=1'")
+
+add_definitions(-DCONFIG_CS104_SUPPORT_TLS=1)
+
 endif(WITH_MBEDTLS)
 
 
