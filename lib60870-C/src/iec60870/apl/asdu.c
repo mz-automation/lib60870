@@ -1086,6 +1086,42 @@ ASDU_getElement(ASDU self, int index)
         retVal = (InformationObject) ParameterActivation_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
 
         break;
+
+    case F_FR_NA_1: /* 120 - File ready */
+
+        retVal = (InformationObject) FileReady_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_SR_NA_1: /* 121 - Section ready */
+
+        retVal = (InformationObject) SectionReady_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_SC_NA_1: /* 122 - Call/Select directory/file/section */
+
+        retVal = (InformationObject) FileCallOrSelect_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_LS_NA_1: /* 123 - Last segment/section */
+
+        retVal = (InformationObject) FileLastSegmentOrSection_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_AF_NA_1: /* 124 -  ACK file/section */
+
+        retVal = (InformationObject) FileACK_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_SG_NA_1: /* 125 - Fiel segment */
+
+        retVal = (InformationObject) FileSegment_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
     }
 
     return retVal;

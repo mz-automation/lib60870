@@ -248,4 +248,28 @@ DelayAcquisitionCommand
 DelayAcquisitionCommand_getFromBuffer(DelayAcquisitionCommand self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+FileReady
+FileReady_getFromBuffer(FileReady self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+SectionReady
+SectionReady_getFromBuffer(SectionReady self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+FileCallOrSelect
+FileCallOrSelect_getFromBuffer(FileCallOrSelect self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+FileLastSegmentOrSection
+FileLastSegmentOrSection_getFromBuffer(FileLastSegmentOrSection self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+FileACK
+FileACK_getFromBuffer(FileACK self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
+FileSegment
+FileSegment_getFromBuffer(FileSegment self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
 #endif /* SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_ */

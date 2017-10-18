@@ -1436,6 +1436,275 @@ EndOfInitialization_destroy(EndOfInitialization self);
 uint8_t
 EndOfInitialization_getCOI(EndOfInitialization self);
 
+/*******************************************
+ * FileReady : InformationObject
+ *******************************************/
+
+/**
+ * \name CS101_NOF
+ *
+ * \brief NOF (Name of file) values
+ *
+ * @{
+ */
+
+#define CS101_NOF_TRANSPARENT_FILE 1
+#define CS101_NOF_DISTURBANCE_DATA 2
+#define CS101_NOF_SEQUENCES_OF_EVENTS 3
+#define CS101_NOF_SEQUENCES_OF_ANALOGUE_VALUES 4
+
+/** @} */
+
+/**
+ * \name CS101_SCQ
+ *
+ * \brief SCQ (select and call qualifier) values
+ *
+ * @{
+ */
+
+#define CS101_SCQ_DEFAULT 0
+#define CS101_SCQ_SELECT_FILE 1
+#define CS101_SCQ_REQUEST_FILE 2
+#define CS101_SCQ_DEACTIVATE_FILE 3
+#define CS101_SCQ_DELETE_FILE 4
+#define CS101_SCQ_SELECT_SECTION 5
+#define CS101_SCQ_REQUEST_SECTION 6
+#define CS101_SCQ_DEACTIVATE_SECTION 7
+
+/** @} */
+
+/**
+ * \name CS101_LSQ
+ *
+ * \brief LSQ (last section or segment qualifier) values
+ *
+ * @{
+ */
+
+#define CS101_LSQ_NOT_USED 0,
+#define CS101_LSQ_FILE_TRANSFER_WITHOUT_DEACT 1
+#define CS101_LSQ_FILE_TRANSFER_WITH_DEACT 2
+#define CS101_LSQ_SECTION_TRANSFER_WITHOUT_DEACT 3
+#define CS101_LSQ_SECTION_TRANSFER_WITH_DEACT 4
+
+/** @} */
+
+/**
+ * \name CS101_AFQ
+ *
+ * \brief AFQ (Acknowledge file or section qualifier) values
+ *
+ * @{
+ */
+
+/** \brief AFQ not used */
+#define CS101_AFQ_NOT_USED 0
+
+/** \brief acknowledge file positively */
+#define CS101_AFQ_POS_ACK_FILE 1
+
+/** \brief acknowledge file negatively */
+#define CS101_AFQ_NEG_ACK_FILE 2
+
+/** \brief acknowledge section positively */
+#define CS101_AFQ_POS_ACK_SECTION 3
+
+/** \brief acknowledge section negatively */
+#define CS101_AFQ_NEG_ACK_SECTION 4
+
+/** @} */
+
+/**
+ * \name CS101_FILE_ERROR
+ *
+ * \brief Error code values used by FileACK
+ *
+ * @{
+ */
+
+/** \brief no error */
+#define CS101_FILE_ERROR_DEFAULT 0
+
+/** \brief requested memory not available (not enough memory) */
+#define CS101_FILE_ERROR_REQ_MEMORY_NOT_AVAILABLE 1
+
+/** \brief checksum test failed */
+#define CS101_FILE_ERROR_CHECKSUM_FAILED 2
+
+/** \brief unexpected communication service */
+#define CS101_FILE_ERROR_UNEXPECTED_COMM_SERVICE 3
+
+/** \brief unexpected name of file */
+#define CS101_FILE_ERROR_UNEXPECTED_NAME_OF_FILE 4
+
+/** \brief unexpected name of section */
+#define CS101_FILE_ERROR_UNEXPECTED_NAME_OF_SECTION 5
+
+/** @} */
+
+typedef struct sFileReady* FileReady;
+
+/**
+ * \brief Create a new instance of FileReady information object
+ *
+ * For message type: F_FR_NA_1 (120)
+ *
+ * \param self
+ * \param ioa
+ * \param nof name of file (1 for transparent file)
+ * \param lengthOfFile
+ * \param positive when true file is ready to transmit
+ */
+FileReady
+FileReady_create(FileReady self, int ioa, uint16_t nof, uint32_t lengthOfFile, bool positive);
+
+void
+FileReady_destroy(FileReady self);
+
+uint8_t
+FileReady_getFRQ(FileReady self);
+
+void
+FileReady_setFRQ(FileReady self, uint8_t frq);
+
+bool
+FileReady_isPositive(FileReady self);
+
+uint16_t
+FileReady_getNOF(FileReady self);
+
+uint32_t
+FileReady_getLengthOfFile(FileReady self);
+
+void
+FileReady_destroy(FileReady self);
+
+/*******************************************
+ * SectionReady : InformationObject
+ *******************************************/
+
+typedef struct sSectionReady* SectionReady;
+
+SectionReady
+SectionReady_create(SectionReady self, int ioa, uint16_t nof, uint8_t nos, uint32_t lengthOfSection, bool notReady);
+
+
+bool
+SectionReady_isNotReady(SectionReady self);
+
+uint8_t
+SectionReady_getSRQ(SectionReady self);
+
+void
+SectionReady_setSRQ(SectionReady self, uint8_t srq);
+
+uint16_t
+SectionReady_getNOF(SectionReady self);
+
+uint8_t
+SectionReady_getNameOfSection(SectionReady self);
+
+uint32_t
+SectionReady_getLengthOfSection(SectionReady self);
+
+void
+SectionReady_destroy(SectionReady self);
+
+/*******************************************
+ * FileCallOrSelect : InformationObject
+ *******************************************/
+
+
+typedef struct sFileCallOrSelect* FileCallOrSelect;
+
+FileCallOrSelect
+FileCallOrSelect_create(FileCallOrSelect self, int ioa, uint16_t nof, uint8_t nos, uint8_t scq);
+
+uint16_t
+FileCallOrSelect_getNOF(FileCallOrSelect self);
+
+uint8_t
+FileCallOrSelect_getNameOfSection(FileCallOrSelect self);
+
+uint8_t
+FileCallOrSelect_getSCQ(FileCallOrSelect self);
+
+void
+FileCallOrSelect_destroy(FileCallOrSelect self);
+
+/*************************************************
+ * FileLastSegmentOrSection : InformationObject
+ *************************************************/
+
+typedef struct sFileLastSegmentOrSection* FileLastSegmentOrSection;
+
+FileLastSegmentOrSection
+FileLastSegmentOrSection_create(FileLastSegmentOrSection self, int ioa, uint16_t nof, uint8_t nos, uint8_t lsq, uint8_t chs);
+
+uint16_t
+FileLastSegmentOrSection_getNOF(FileLastSegmentOrSection self);
+
+uint8_t
+FileLastSegmentOrSection_getNameOfSection(FileLastSegmentOrSection self);
+
+uint8_t
+FileLastSegmentOrSection_getLSQ(FileLastSegmentOrSection self);
+
+uint8_t
+FileLastSegmentOrSection_getCHS(FileLastSegmentOrSection self);
+
+void
+FileLastSegmentOrSection_destroy(FileLastSegmentOrSection self);
+
+/*************************************************
+ * FileACK : InformationObject
+ *************************************************/
+
+typedef struct sFileACK* FileACK;
+
+FileACK
+FileACK_create(FileACK self, int ioa, uint16_t nof, uint8_t nos, uint8_t afq);
+
+uint16_t
+FileACK_getNOF(FileACK self);
+
+uint8_t
+FileACK_getNameOfSection(FileACK self);
+
+uint8_t
+FileACK_getAFQ(FileACK self);
+
+void
+FileACK_destroy(FileACK self);
+
+/*************************************************
+ * FileSegment : InformationObject
+ *************************************************/
+
+typedef struct sFileSegment* FileSegment;
+
+FileSegment
+FileSegment_create(FileSegment self, int ioa, uint16_t nof, uint8_t nos, uint8_t* data, uint8_t los);
+
+uint16_t
+FileSegment_getNOF(FileSegment self);
+
+uint8_t
+FileSegment_getNameOfSection(FileSegment self);
+
+uint8_t
+FileSegment_getLengthOfSegment(FileSegment self);
+
+uint8_t*
+FileSegment_getSegmentData(FileSegment self);
+
+int
+FileSegment_GetMaxDataSize(ConnectionParameters parameters);
+
+void
+FileSegment_destroy(FileSegment self);
+
 #ifdef __cplusplus
 }
 #endif
