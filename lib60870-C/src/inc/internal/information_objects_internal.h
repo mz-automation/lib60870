@@ -272,4 +272,8 @@ FileSegment
 FileSegment_getFromBuffer(FileSegment self, ConnectionParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+FileDirectory
+FileDirectory_getFromBuffer(FileDirectory self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+
 #endif /* SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_ */

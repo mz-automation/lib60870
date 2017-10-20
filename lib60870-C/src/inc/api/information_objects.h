@@ -1543,6 +1543,28 @@ EndOfInitialization_getCOI(EndOfInitialization self);
 
 /** @} */
 
+/**
+ * \name CS101_SOF
+ *
+ * \brief Status of file (SOF) definitions - IEC 60870-5-101:2003 7.2.6.38
+ *
+ * @{
+ */
+
+/** \brief bit mask value for STATUS part of SOF */
+#define CS101_SOF_STATUS 0x1f
+
+/** \brief bit mask value for LFD (last file of the directory) flag */
+#define CS101_SOF_LFD 0x20
+
+/** \brief bit mask value for FOR (name defines subdirectory) flag */
+#define CS101_SOF_FOR 0x40
+
+/** \brief bit mask value for FA (file transfer of this file is active) flag */
+#define CS101_SOF_FA 0x80
+
+/** @} */
+
 typedef struct sFileReady* FileReady;
 
 /**
@@ -1704,6 +1726,43 @@ FileSegment_GetMaxDataSize(ConnectionParameters parameters);
 
 void
 FileSegment_destroy(FileSegment self);
+
+/*************************************************
+ * FileDirectory: InformationObject
+ *************************************************/
+
+typedef struct sFileDirectory* FileDirectory;
+
+FileDirectory
+FileDirectory_create(FileDirectory self, int ioa, uint16_t nof, int lengthOfFile, uint8_t sof, CP56Time2a creationTime);
+
+uint16_t
+FileDirectory_getNOF(FileDirectory self);
+
+uint8_t
+FileDirectory_getSOF(FileDirectory self);
+
+int
+FileDirectory_getSTATUS(FileDirectory self);
+
+bool
+FileDirectory_getLFD(FileDirectory self);
+
+bool
+FileDirectory_getFOR(FileDirectory self);
+
+bool
+FileDirectory_getFA(FileDirectory self);
+
+uint8_t
+FileDirectory_getLengthOfFile(FileDirectory self);
+
+CP56Time2a
+FileDirectory_getCreationTime(FileDirectory self);
+
+void
+FileDirectory_destroy(FileDirectory self);
+
 
 #ifdef __cplusplus
 }

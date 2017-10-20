@@ -7788,6 +7788,173 @@ FileSegment_getFromBuffer(FileSegment self, ConnectionParameters parameters,
     return self;
 };
 
+/*************************************************
+ * FileDirectory: InformationObject
+ *************************************************/
+
+struct sFileDirectory {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint16_t nof; /* name of file */
+
+    int lengthOfFile; /* LOF */
+
+    uint8_t sof; /* state of file */
+
+    struct sCP56Time2a creationTime;
+};
+
+static bool
+FileDirectory_encode(FileDirectory self, Frame frame, ConnectionParameters parameters, bool isSequence)
+{
+    int size = isSequence ? 13 : (parameters->sizeOfIOA + 13);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+
+    Frame_setNextByte (frame, (uint8_t)(self->lengthOfFile % 0x100));
+    Frame_setNextByte (frame, (uint8_t)((self->lengthOfFile / 0x100) % 0x100));
+    Frame_setNextByte (frame, (uint8_t)((self->lengthOfFile / 0x10000) % 0x100));
+
+    Frame_setNextByte (frame, self->sof);
+
+    Frame_appendBytes(frame, self->creationTime.encodedValue, 7);
+
+    return true;
+}
+
+struct sInformationObjectVFT FileDirectoryVFT = {
+        (EncodeFunction) FileDirectory_encode,
+        (DestroyFunction) FileDirectory_destroy
+};
+
+static void
+FileDirectory_initialize(FileDirectory self)
+{
+    self->virtualFunctionTable = &(FileDirectoryVFT);
+    self->type = F_DR_TA_1;
+}
+
+FileDirectory
+FileDirectory_create(FileDirectory self, int ioa, uint16_t nof, int lengthOfFile, uint8_t sof, CP56Time2a creationTime)
+{
+    if (self == NULL) {
+       self = (FileDirectory) GLOBAL_MALLOC(sizeof(struct sFileDirectory));
+
+        if (self == NULL)
+            return NULL;
+        else
+            FileDirectory_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+    self->nof = nof;
+    self->sof = sof;
+    self->creationTime = *creationTime;
+
+    return self;
+}
+
+uint16_t
+FileDirectory_getNOF(FileDirectory self)
+{
+    return self->nof;
+}
+
+uint8_t
+FileDirectory_getSOF(FileDirectory self)
+{
+    return self->sof;
+}
+
+int
+FileDirectory_getSTATUS(FileDirectory self)
+{
+    return (int) (self->sof & CS101_SOF_STATUS);
+}
+
+bool
+FileDirectory_getLFD(FileDirectory self)
+{
+    return ((self->sof & CS101_SOF_LFD) == CS101_SOF_LFD);
+}
+
+bool
+FileDirectory_getFOR(FileDirectory self)
+{
+    return ((self->sof & CS101_SOF_FOR) == CS101_SOF_FOR);
+}
+
+bool
+FileDirectory_getFA(FileDirectory self)
+{
+    return ((self->sof & CS101_SOF_FA) == CS101_SOF_FA);
+}
+
+
+uint8_t
+FileDirectory_getLengthOfFile(FileDirectory self)
+{
+    return self->lengthOfFile;
+}
+
+CP56Time2a
+FileDirectory_getCreationTime(FileDirectory self)
+{
+    return &(self->creationTime);
+}
+
+void
+FileDirectory_destroy(FileDirectory self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+FileDirectory
+FileDirectory_getFromBuffer(FileDirectory self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+{
+
+    if (self == NULL) {
+       self = (FileDirectory) GLOBAL_MALLOC(sizeof(struct sFileDirectory));
+
+        if (self != NULL)
+            FileDirectory_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
+
+        self->nof = msg[startIndex++];
+        self->nof += (msg[startIndex++] * 0x100);
+
+        self->lengthOfFile = msg [startIndex++];
+        self->lengthOfFile += (msg [startIndex++] * 0x100);
+        self->lengthOfFile += (msg [startIndex++] * 0x10000);
+
+
+        self->sof = msg[startIndex++];
+
+        CP56Time2a_getFromBuffer(&(self->creationTime), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
 
 
 union uInformationObject {

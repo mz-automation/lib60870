@@ -334,8 +334,8 @@ ASDU_setCA(ASDU self, int ca)
                 setCa = 255;
         }
         else if (self->parameters->sizeOfCA > 1) {
-            if (ca > 65536)
-                setCa = 65536;
+            if (ca > 65535)
+                setCa = 65535;
         }
     }
 
@@ -1117,9 +1117,25 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
-    case F_SG_NA_1: /* 125 - Fiel segment */
+    case F_SG_NA_1: /* 125 - File segment */
 
         retVal = (InformationObject) FileSegment_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_DR_TA_1: /* 126 - File directory */
+
+        elementSize = 13;
+
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) FileDirectory_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) FileDirectory_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
     }
