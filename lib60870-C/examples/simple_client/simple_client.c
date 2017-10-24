@@ -4,6 +4,7 @@
 #include "hal_thread.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 
 static void
 connectionHandler (void* parameter, T104Connection connection, IEC60870ConnectionEvent event)
@@ -74,17 +75,23 @@ asduReceivedHandler (void* parameter, ASDU asdu)
 }
 
 static const char* default_ip = "localhost";
+
 int
 main(int argc, char** argv)
 {
     const char* ip = default_ip;
+    uint16_t port = IEC_60870_5_104_DEFAULT_PORT;
 
     if (argc > 1)
     {
         ip = argv[1];
     }
-    printf("Connecting to: %s\n", ip);
-    T104Connection con = T104Connection_create(ip, IEC_60870_5_104_DEFAULT_PORT);
+    if (argc > 2)
+    {
+        port = strtol(argv[2], NULL, 10);
+    }
+    printf("Connecting to: %s:%i\n", ip, port);
+    T104Connection con = T104Connection_create(ip, port);
 
     T104Connection_setConnectionHandler(con, connectionHandler, NULL);
     T104Connection_setASDUReceivedHandler(con, asduReceivedHandler, NULL);
