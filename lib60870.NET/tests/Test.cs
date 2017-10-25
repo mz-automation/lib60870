@@ -301,7 +301,7 @@ namespace tests
 				addedCounter++;
 			}
 
-			Assert.AreEqual (240, addedCounter); 
+			Assert.AreEqual (127, addedCounter); 
 
 			asdu = new ASDU (cp, CauseOfTransmission.PERIODIC, false, false, 0, 1, false);
 
@@ -750,7 +750,7 @@ namespace tests
 				addedCounter++;
 			}
 
-			Assert.AreEqual (240, addedCounter);
+			Assert.AreEqual (127, addedCounter);
 			Assert.NotNull (asdu.AsByteArray ());
 
 
@@ -763,7 +763,7 @@ namespace tests
 				addedCounter++;
 			}
 
-			Assert.AreEqual (240, addedCounter);
+			Assert.AreEqual (127, addedCounter);
 			Assert.NotNull (asdu.AsByteArray ());
 
 

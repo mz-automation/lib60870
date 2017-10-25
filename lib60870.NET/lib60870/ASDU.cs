@@ -124,6 +124,9 @@ namespace lib60870
 				hasTypeId = true;
 			}
 
+			if (informationObjects.Count >= 0x7f)
+				return false;
+
 			int objectSize = io.GetEncodedSize ();
 
 			if (IsSequence == false)
