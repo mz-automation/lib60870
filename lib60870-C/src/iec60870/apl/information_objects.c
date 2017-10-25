@@ -1524,7 +1524,7 @@ Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, Connecti
     //TODO check message size
 
     if (self == NULL) {
-		self = (Bitstring32WithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sBitString32));
+		self = (Bitstring32WithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32WithCP24Time2a));
 
         if (self != NULL)
             Bitstring32WithCP24Time2a_initialize(self);
@@ -1647,7 +1647,7 @@ Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, Connecti
     //TODO check message size
 
     if (self == NULL) {
-		self = (Bitstring32WithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitString32));
+		self = (Bitstring32WithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32WithCP56Time2a));
 
         if (self != NULL)
             Bitstring32WithCP56Time2a_initialize(self);
