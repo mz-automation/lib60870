@@ -1425,6 +1425,7 @@ BitString32_getFromBuffer(BitString32 self, ConnectionParameters parameters,
         value += ((uint32_t)msg [startIndex++] * 0x100);
         value += ((uint32_t)msg [startIndex++] * 0x10000);
         value += ((uint32_t)msg [startIndex++] * 0x1000000);
+        self->value = value;
 
         /* quality */
         self->quality = (QualityDescriptor) msg [startIndex++];
