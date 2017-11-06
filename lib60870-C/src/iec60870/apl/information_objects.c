@@ -5211,7 +5211,7 @@ SetpointCommandNormalized_getValue(SetpointCommandNormalized self)
 }
 
 int
-SetPointCommandNormalized_getQL(SetpointCommandNormalized self)
+SetpointCommandNormalized_getQL(SetpointCommandNormalized self)
 {
     return (int) (self->qos & 0x7f);
 }
@@ -5342,7 +5342,7 @@ SetpointCommandNormalizedWithCP56Time2a_getValue(SetpointCommandNormalizedWithCP
 int
 SetpointCommandNormalizedWithCP56Time2a_getQL(SetpointCommandNormalizedWithCP56Time2a self)
 {
-    return SetPointCommandNormalized_getQL((SetpointCommandNormalized) self);
+    return SetpointCommandNormalized_getQL((SetpointCommandNormalized) self);
 }
 
 bool
