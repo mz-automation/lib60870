@@ -76,6 +76,23 @@ CP16Time2a_getEncodedValue(CP16Time2a self)
  ************************************/
 
 static int
+getMillisecond(uint8_t* encodedValue)
+{
+    return (encodedValue[0] + (encodedValue[1] * 0x100)) % 1000;
+}
+
+static void
+setMillisecond(uint8_t* encodedValue, int value)
+{
+    int millies = encodedValue[0] + (encodedValue[1] * 0x100);
+    millies = (millies / 1000) * 1000;
+    millies = millies + value;
+
+    encodedValue[0] = (uint8_t) (millies & 0xff);
+    encodedValue[1] = (uint8_t) ((millies / 0x100) & 0xff);
+}
+
+static int
 getSecond(uint8_t* encodedValue)
 {
     return  (encodedValue[0] + (encodedValue[1] * 0x100)) / 1000;
@@ -152,6 +169,18 @@ CP24Time2a_getFromBuffer (CP24Time2a self, uint8_t* msg, int msgSize, int startI
         self->encodedValue[i] = msg[startIndex + i];
 
     return true;
+}
+
+int
+CP24Time2a_getMillisecond(CP24Time2a self)
+{
+    return getMillisecond(self->encodedValue);
+}
+
+void
+CP24Time2a_setMillisecond(CP24Time2a self, int value)
+{
+    setMillisecond(self->encodedValue, value);
 }
 
 int
@@ -308,9 +337,9 @@ CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
     gmtime_r(&timeVal, &tmTime);
 #endif
 
-    CP56Time2a_setSecond(self, tmTime.tm_sec);
-
     CP56Time2a_setMillisecond(self, msPart);
+
+    CP56Time2a_setSecond(self, tmTime.tm_sec);
 
     CP56Time2a_setMinute(self, tmTime.tm_min);
 
@@ -381,16 +410,13 @@ CP56Time2a_createFromBuffer(uint8_t* msg, int msgSize, int startIndex)
 int
 CP56Time2a_getMillisecond(CP56Time2a self)
 {
-    return (self->encodedValue[0] + (self->encodedValue[1] * 0x100)) % 1000;
+    return getMillisecond(self->encodedValue);
 }
 
 void
 CP56Time2a_setMillisecond(CP56Time2a self, int value)
 {
-    int millies = (CP56Time2a_getSecond(self) * 1000) + value;
-
-    self->encodedValue[0] = (uint8_t) (millies & 0xff);
-    self->encodedValue[1] = (uint8_t) ((millies / 0x100) & 0xff);
+    setMillisecond(self->encodedValue, value);
 }
 
 int

@@ -309,6 +309,11 @@ CP16Time2a_getEplapsedTimeInMs(CP16Time2a self);
 void
 CP16Time2a_setEplapsedTimeInMs(CP16Time2a self, int value);
 
+int
+CP24Time2a_getMillisecond(CP24Time2a self);
+
+void
+CP24Time2a_setMillisecond(CP24Time2a self, int value);
 
 int
 CP24Time2a_getSecond(CP24Time2a self);
