@@ -352,7 +352,7 @@ CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
 
     CP56Time2a_setMonth(self, tmTime.tm_mon + 1);
 
-    CP56Time2a_setYear(self, tmTime.tm_year - 100);
+    CP56Time2a_setYear(self, tmTime.tm_year % 100);
 }
 
 
