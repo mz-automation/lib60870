@@ -350,7 +350,7 @@ isSentBufferFull(T104Connection self)
         return false;
 }
 
-static void
+void
 T104Connection_close(T104Connection self)
 {
     if (self->running) {

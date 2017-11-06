@@ -209,6 +209,12 @@ void
 T104Connection_setConnectionHandler(T104Connection self, ConnectionHandler handler, void* parameter);
 
 /**
+ * \brief Close the connection
+ */
+void
+T104Connection_close(T104Connection self);
+
+/**
  * \brief Close the connection and free all related resources
  */
 void
