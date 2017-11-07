@@ -707,7 +707,7 @@ handleConnection(void* parameter)
 
             /* Call connection handler */
             if (self->connectionHandler != NULL)
-            self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_CLOSED);
+                self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_CLOSED);
 
         }
     }
