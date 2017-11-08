@@ -1,9 +1,9 @@
 import logging
 from lib60870 import lib60870
 from lib60870.common import *
-from lib60870.CP16Time2a import CP16Time2a
-from lib60870.CP24Time2a import CP24Time2a
-from lib60870.CP56Time2a import CP56Time2a
+from lib60870.CP16Time2a import CP16Time2a, pCP16Time2a
+from lib60870.CP24Time2a import CP24Time2a, pCP24Time2a
+from lib60870.CP56Time2a import CP56Time2a, pCP56Time2a
 
 import ctypes
 from ctypes import c_int, c_uint16, c_uint32, c_uint64, c_void_p, c_bool, c_uint8, c_void_p, c_float
@@ -35,7 +35,7 @@ class IOBase():
 
     def __repr__(self):
         output = "{}(".format(type(self).__name__)
-        output += ", ".join(["{}={}".format(field[0],  getattr(self, field[0])) for field in self._fields_])
+        output += ", ".join(["{}={}".format(field[0],  repr(getattr(self, field[0]))) for field in self._fields_])
         return output + ")"
 
     def __del__(self):
@@ -49,27 +49,6 @@ class IOBase():
 
     def get_pointer_type(self):
         return ctypes.POINTER(type(self))
-
-class SingleEvent(ctypes.c_uint8):
-    def set_event_state(self, eventState):
-        lib.SingleEvent_setEventState(
-            pSingleEvent(self),
-            pEventState(eventState))
-
-    def get_event_state(self):
-        lib.SingleEvent_getEventState.restype = pEventState
-        return lib.SingleEvent_getEventState(pSingleEvent(self))
-
-    def set_qdp(self, qdp):
-        lib.SingleEvent_setQDP(
-            pSingleEvent(self),
-            QualityDescriptorP(qdp))
-
-    def get_qdp(self):
-        lib.SingleEvent_getQDP.restype = QualityDescriptorP
-        return lib.SingleEvent_getQDP(pSingleEvent(self))
-
-pSingleEvent = ctypes.POINTER(SingleEvent)
 
 
 class StatusAndStatusChangeDetection(ctypes.Structure):
@@ -105,12 +84,39 @@ class StatusAndStatusChangeDetection(ctypes.Structure):
 pStatusAndStatusChangeDetection = ctypes.POINTER(StatusAndStatusChangeDetection)
 
 
+class SingleEvent(ctypes.c_uint8):
+    def set_event_state(self, eventState):
+        lib.SingleEvent_setEventState(
+            pSingleEvent(self),
+            pEventState(eventState))
+
+    def get_event_state(self):
+        lib.SingleEvent_getEventState.restype = pEventState
+        return lib.SingleEvent_getEventState(pSingleEvent(self))
+
+    def set_qdp(self, qdp):
+        lib.SingleEvent_setQDP(
+            pSingleEvent(self),
+            QualityDescriptorP(qdp))
+
+    def get_qdp(self):
+        lib.SingleEvent_getQDP.restype = QualityDescriptorP
+        return lib.SingleEvent_getQDP(pSingleEvent(self))
+
+pSingleEvent = ctypes.POINTER(SingleEvent)
+
+
 class InformationObject(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
         ('type', TypeID),
         ('virtualFunctionTable', pInformationObjectVFT)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = c_void_p
+        self.type = lib60870.TypeID.INVALID.c_enum
 
     def get_object_address(self):
         lib.InformationObject_getObjectAddress.restype = c_int
@@ -138,11 +144,6 @@ class InformationObject(ctypes.Structure, IOBase):
 pInformationObject = ctypes.POINTER(InformationObject)
 
 
-def get_max_size_in_memory():
-    lib.InformationObject_getMaxSizeInMemory.restype = c_int
-    return lib.InformationObject_getMaxSizeInMemory()
-
-
 class SinglePointInformation(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -151,6 +152,11 @@ class SinglePointInformation(ctypes.Structure, IOBase):
         ('value', c_bool),
         ('quality', QualityDescriptor)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.singlePointInformationVFT, c_void_p)
+        self.type = lib60870.TypeID.M_SP_NA_1.c_enum
 
     def get_value(self):
         lib.SinglePointInformation_getValue.restype = c_bool
@@ -163,66 +169,26 @@ class SinglePointInformation(ctypes.Structure, IOBase):
 pSinglePointInformation = ctypes.POINTER(SinglePointInformation)
 
 
-class StepPositionInformation(ctypes.Structure, IOBase):
+class SinglePointWithCP24Time2a(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
         ('type', TypeID),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('vti', c_uint8),
-        ('quality', QualityDescriptor)
-        ]
-
-    def get_object_address(self):
-        lib.StepPositionInformation_getObjectAddress.restype = c_int
-        return lib.StepPositionInformation_getObjectAddress(pStepPositionInformation(self))
-
-    def get_value(self):
-        lib.StepPositionInformation_getValue.restype = c_int
-        return lib.StepPositionInformation_getValue(pStepPositionInformation(self))
-
-    def is_transient(self):
-        lib.StepPositionInformation_isTransient.restype = c_bool
-        return lib.StepPositionInformation_isTransient(pStepPositionInformation(self))
-
-    def get_quality(self):
-        lib.StepPositionInformation_getQuality.restype = QualityDescriptor
-        return lib.StepPositionInformation_getQuality(pStepPositionInformation(self))
-
-pStepPositionInformation = ctypes.POINTER(StepPositionInformation)
-
-
-class StepPositionWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('vti', c_uint8),
-        ('quality', QualityDescriptor),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_timestamp(self):
-        lib.StepPositionWithCP56Time2a_getTimestamp.restype = pCP56Time2a
-        return lib.StepPositionWithCP56Time2a_getTimestamp(pStepPositionWithCP56Time2a(self))
-
-pStepPositionWithCP56Time2a = ctypes.POINTER(StepPositionWithCP56Time2a)
-
-
-class StepPositionWithCP24Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('vti', c_uint8),
+        ('value', c_bool),
         ('quality', QualityDescriptor),
         ('timestamp', CP24Time2a)
         ]
 
-    def get_timestamp(self):
-        lib.StepPositionWithCP24Time2a_getTimestamp.restype = pCP24Time2a
-        return lib.StepPositionWithCP24Time2a_getTimestamp(pStepPositionWithCP24Time2a(self))
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.singlePointWithCP24Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_SP_TA_1.c_enum
 
-pStepPositionWithCP24Time2a = ctypes.POINTER(StepPositionWithCP24Time2a)
+    def get_timestamp(self):
+        lib.SinglePointWithCP24Time2a_getTimestamp.restype = pCP24Time2a
+        return lib.SinglePointWithCP24Time2a_getTimestamp(pSinglePointWithCP24Time2a(self))
+
+pSinglePointWithCP24Time2a = ctypes.POINTER(SinglePointWithCP24Time2a)
 
 
 class DoublePointInformation(ctypes.Structure, IOBase):
@@ -233,6 +199,11 @@ class DoublePointInformation(ctypes.Structure, IOBase):
         ('value', DoublePointValue),
         ('quality', QualityDescriptor)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.doublePointInformationVFT, c_void_p)
+        self.type = lib60870.TypeID.M_DP_NA_1.c_enum
 
     def get_value(self):
         lib.DoublePointInformation_getValue.restype = DoublePointValue
@@ -255,6 +226,11 @@ class DoublePointWithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.doublePointWithCP24Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_DP_TA_1.c_enum
+
     def get_timestamp(self):
         lib.DoublePointWithCP24Time2a_getTimestamp.restype = pCP24Time2a
         return lib.DoublePointWithCP24Time2a_getTimestamp(pDoublePointWithCP24Time2a(self))
@@ -262,55 +238,59 @@ class DoublePointWithCP24Time2a(ctypes.Structure, IOBase):
 pDoublePointWithCP24Time2a = ctypes.POINTER(DoublePointWithCP24Time2a)
 
 
-class DoublePointWithCP56Time2a(ctypes.Structure, IOBase):
+class StepPositionInformation(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
         ('type', TypeID),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('value', DoublePointValue),
-        ('quality', QualityDescriptor),
-        ('timestamp', CP56Time2a)
+        ('vti', c_uint8),
+        ('quality', QualityDescriptor)
         ]
 
-    def get_timestamp(self):
-        lib.DoublePointWithCP56Time2a_getTimestamp.restype = pCP56Time2a
-        return lib.DoublePointWithCP56Time2a_getTimestamp(pDoublePointWithCP56Time2a(self))
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.stepPositionInformationVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ST_NA_1.c_enum
 
-pDoublePointWithCP56Time2a = ctypes.POINTER(DoublePointWithCP56Time2a)
+    def get_object_address(self):
+        lib.StepPositionInformation_getObjectAddress.restype = c_int
+        return lib.StepPositionInformation_getObjectAddress(pStepPositionInformation(self))
+
+    def get_value(self):
+        lib.StepPositionInformation_getValue.restype = c_int
+        return lib.StepPositionInformation_getValue(pStepPositionInformation(self))
+
+    def is_transient(self):
+        lib.StepPositionInformation_isTransient.restype = c_bool
+        return lib.StepPositionInformation_isTransient(pStepPositionInformation(self))
+
+    def get_quality(self):
+        lib.StepPositionInformation_getQuality.restype = QualityDescriptor
+        return lib.StepPositionInformation_getQuality(pStepPositionInformation(self))
+
+pStepPositionInformation = ctypes.POINTER(StepPositionInformation)
 
 
-class SinglePointWithCP24Time2a(ctypes.Structure, IOBase):
+class StepPositionWithCP24Time2a(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
         ('type', TypeID),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('value', c_bool),
+        ('vti', c_uint8),
         ('quality', QualityDescriptor),
         ('timestamp', CP24Time2a)
         ]
 
-    def get_timestamp(self):
-        lib.SinglePointWithCP24Time2a_getTimestamp.restype = pCP24Time2a
-        return lib.SinglePointWithCP24Time2a_getTimestamp(pSinglePointWithCP24Time2a(self))
-
-pSinglePointWithCP24Time2a = ctypes.POINTER(SinglePointWithCP24Time2a)
-
-
-class SinglePointWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('value', c_bool),
-        ('quality', QualityDescriptor),
-        ('timestamp', CP56Time2a)
-        ]
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.stepPositionWithCP24Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ST_TA_1.c_enum
 
     def get_timestamp(self):
-        lib.SinglePointWithCP56Time2a_getTimestamp.restype = pCP56Time2a
-        return lib.SinglePointWithCP56Time2a_getTimestamp(pSinglePointWithCP56Time2a(self))
+        lib.StepPositionWithCP24Time2a_getTimestamp.restype = pCP24Time2a
+        return lib.StepPositionWithCP24Time2a_getTimestamp(pStepPositionWithCP24Time2a(self))
 
-pSinglePointWithCP56Time2a = ctypes.POINTER(SinglePointWithCP56Time2a)
+pStepPositionWithCP24Time2a = ctypes.POINTER(StepPositionWithCP24Time2a)
 
 
 class BitString32(ctypes.Structure, IOBase):
@@ -321,6 +301,11 @@ class BitString32(ctypes.Structure, IOBase):
         ('value', c_uint32),
         ('quality', QualityDescriptor)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.bitString32VFT, c_void_p)
+        self.type = lib60870.TypeID.M_BO_NA_1.c_enum
 
     def get_value(self):
         lib.BitString32_getValue.restype = c_uint32
@@ -343,28 +328,16 @@ class Bitstring32WithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.bitstring32WithCP24Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_BO_TA_1.c_enum
+
     def get_timestamp(self):
         lib.Bitstring32WithCP24Time2a_getTimestamp.restype = pCP24Time2a
         return lib.Bitstring32WithCP24Time2a_getTimestamp(pBitstring32WithCP24Time2a(self))
 
 pBitstring32WithCP24Time2a = ctypes.POINTER(Bitstring32WithCP24Time2a)
-
-
-class Bitstring32WithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('value', c_uint32),
-        ('quality', QualityDescriptor),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_timestamp(self):
-        lib.Bitstring32WithCP56Time2a_getTimestamp.restype = pCP56Time2a
-        return lib.Bitstring32WithCP56Time2a_getTimestamp(pBitstring32WithCP56Time2a(self))
-
-pBitstring32WithCP56Time2a = ctypes.POINTER(Bitstring32WithCP56Time2a)
 
 
 class MeasuredValueNormalized(ctypes.Structure, IOBase):
@@ -375,6 +348,11 @@ class MeasuredValueNormalized(ctypes.Structure, IOBase):
         ('encodedValue', ctypes.c_uint8 * 2),
         ('quality', QualityDescriptor)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.measuredValueNormalizedVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ME_NA_1.c_enum
 
     def get_value(self):
         lib.MeasuredValueNormalized_getValue.restype = c_float
@@ -392,26 +370,6 @@ class MeasuredValueNormalized(ctypes.Structure, IOBase):
 pMeasuredValueNormalized = ctypes.POINTER(MeasuredValueNormalized)
 
 
-class MeasuredValueNormalizedWithoutQuality(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2)
-        ]
-
-    def get_value(self):
-        lib.MeasuredValueNormalizedWithoutQuality_getValue.restype = c_float
-        return lib.MeasuredValueNormalizedWithoutQuality_getValue(pMeasuredValueNormalizedWithoutQuality(self))
-
-    def set_value(self, value):
-        lib.MeasuredValueNormalizedWithoutQuality_setValue(
-            pMeasuredValueNormalizedWithoutQuality(self),
-            c_float(value))
-
-pMeasuredValueNormalizedWithoutQuality = ctypes.POINTER(MeasuredValueNormalizedWithoutQuality)
-
-
 class MeasuredValueNormalizedWithCP24Time2a(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -421,6 +379,11 @@ class MeasuredValueNormalizedWithCP24Time2a(ctypes.Structure, IOBase):
         ('quality', QualityDescriptor),
         ('timestamp', CP24Time2a)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.measuredValueNormalizedWithCP24Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ME_TA_1.c_enum
 
     def get_timestamp(self):
         lib.MeasuredValueNormalizedWithCP24Time2a_getTimestamp.restype = pCP24Time2a
@@ -434,28 +397,6 @@ class MeasuredValueNormalizedWithCP24Time2a(ctypes.Structure, IOBase):
 pMeasuredValueNormalizedWithCP24Time2a = ctypes.POINTER(MeasuredValueNormalizedWithCP24Time2a)
 
 
-class MeasuredValueNormalizedWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
-        ('quality', QualityDescriptor),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_timestamp(self):
-        lib.MeasuredValueNormalizedWithCP56Time2a_getTimestamp.restype = pCP56Time2a
-        return lib.MeasuredValueNormalizedWithCP56Time2a_getTimestamp(pMeasuredValueNormalizedWithCP56Time2a(self))
-
-    def set_timestamp(self, value):
-        lib.MeasuredValueNormalizedWithCP56Time2a_setTimestamp(
-            pMeasuredValueNormalizedWithCP56Time2a(self),
-            pCP56Time2a(value))
-
-pMeasuredValueNormalizedWithCP56Time2a = ctypes.POINTER(MeasuredValueNormalizedWithCP56Time2a)
-
-
 class MeasuredValueScaled(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -464,6 +405,11 @@ class MeasuredValueScaled(ctypes.Structure, IOBase):
         ('encodedValue', ctypes.c_uint8 * 2),
         ('quality', QualityDescriptor)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.measuredValueScaledVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ME_NB_1.c_enum
 
     def get_value(self):
         lib.MeasuredValueScaled_getValue.restype = c_int
@@ -496,6 +442,11 @@ class MeasuredValueScaledWithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.measuredValueScaledWithCP24Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ME_TB_1.c_enum
+
     def get_timestamp(self):
         lib.MeasuredValueScaledWithCP24Time2a_getTimestamp.restype = pCP24Time2a
         return lib.MeasuredValueScaledWithCP24Time2a_getTimestamp(pMeasuredValueScaledWithCP24Time2a(self))
@@ -508,28 +459,6 @@ class MeasuredValueScaledWithCP24Time2a(ctypes.Structure, IOBase):
 pMeasuredValueScaledWithCP24Time2a = ctypes.POINTER(MeasuredValueScaledWithCP24Time2a)
 
 
-class MeasuredValueScaledWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
-        ('quality', QualityDescriptor),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_timestamp(self):
-        lib.MeasuredValueScaledWithCP56Time2a_getTimestamp.restype = pCP56Time2a
-        return lib.MeasuredValueScaledWithCP56Time2a_getTimestamp(pMeasuredValueScaledWithCP56Time2a(self))
-
-    def set_timestamp(self, value):
-        lib.MeasuredValueScaledWithCP56Time2a_setTimestamp(
-            pMeasuredValueScaledWithCP56Time2a(self),
-            pCP56Time2a(value))
-
-pMeasuredValueScaledWithCP56Time2a = ctypes.POINTER(MeasuredValueScaledWithCP56Time2a)
-
-
 class MeasuredValueShort(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -538,6 +467,11 @@ class MeasuredValueShort(ctypes.Structure, IOBase):
         ('value', c_float),
         ('quality', QualityDescriptor)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.measuredValueShortVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ME_NC_1.c_enum
 
     def get_value(self):
         lib.MeasuredValueShort_getValue.restype = c_float
@@ -565,6 +499,11 @@ class MeasuredValueShortWithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.measuredValueShortWithCP24Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ME_TC_1.c_enum
+
     def get_timestamp(self):
         lib.MeasuredValueShortWithCP24Time2a_getTimestamp.restype = pCP24Time2a
         return lib.MeasuredValueShortWithCP24Time2a_getTimestamp(pMeasuredValueShortWithCP24Time2a(self))
@@ -577,28 +516,6 @@ class MeasuredValueShortWithCP24Time2a(ctypes.Structure, IOBase):
 pMeasuredValueShortWithCP24Time2a = ctypes.POINTER(MeasuredValueShortWithCP24Time2a)
 
 
-class MeasuredValueShortWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('value', c_float),
-        ('quality', QualityDescriptor),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_timestamp(self):
-        lib.MeasuredValueShortWithCP56Time2a_getTimestamp.restype = pCP56Time2a
-        return lib.MeasuredValueShortWithCP56Time2a_getTimestamp(pMeasuredValueShortWithCP56Time2a(self))
-
-    def set_timestamp(self, value):
-        lib.MeasuredValueShortWithCP56Time2a_setTimestamp(
-            pMeasuredValueShortWithCP56Time2a(self),
-            pCP56Time2a(value))
-
-pMeasuredValueShortWithCP56Time2a = ctypes.POINTER(MeasuredValueShortWithCP56Time2a)
-
-
 class IntegratedTotals(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -606,6 +523,11 @@ class IntegratedTotals(ctypes.Structure, IOBase):
         ('virtualFunctionTable', pInformationObjectVFT),
         ('totals', BinaryCounterReading)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.integratedTotalsVFT, c_void_p)
+        self.type = lib60870.TypeID.M_IT_NA_1.c_enum
 
     def get_bcr(self):
         lib.IntegratedTotals_getBCR.restype = pBinaryCounterReading
@@ -628,6 +550,11 @@ class IntegratedTotalsWithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.integratedTotalsWithCP24Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_IT_TA_1.c_enum
+
     def get_timestamp(self):
         lib.IntegratedTotalsWithCP24Time2a_getTimestamp.restype = pCP24Time2a
         return lib.IntegratedTotalsWithCP24Time2a_getTimestamp(pIntegratedTotalsWithCP24Time2a(self))
@@ -640,27 +567,6 @@ class IntegratedTotalsWithCP24Time2a(ctypes.Structure, IOBase):
 pIntegratedTotalsWithCP24Time2a = ctypes.POINTER(IntegratedTotalsWithCP24Time2a)
 
 
-class IntegratedTotalsWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('totals', BinaryCounterReading),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_timestamp(self):
-        lib.IntegratedTotalsWithCP56Time2a_getTimestamp.restype = pCP56Time2a
-        return lib.IntegratedTotalsWithCP56Time2a_getTimestamp(pIntegratedTotalsWithCP56Time2a(self))
-
-    def set_timestamp(self, value):
-        lib.IntegratedTotalsWithCP56Time2a_setTimestamp(
-            pIntegratedTotalsWithCP56Time2a(self),
-            pCP56Time2a(value))
-
-pIntegratedTotalsWithCP56Time2a = ctypes.POINTER(IntegratedTotalsWithCP56Time2a)
-
-
 class EventOfProtectionEquipment(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -670,6 +576,11 @@ class EventOfProtectionEquipment(ctypes.Structure, IOBase):
         ('elapsedTime', CP16Time2a),
         ('timestamp', CP24Time2a)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.eventOfProtectionEquipmentVFT, c_void_p)
+        self.type = lib60870.TypeID.M_EP_TA_1.c_enum
 
     def get_event(self):
         lib.EventOfProtectionEquipment_getEvent.restype = pSingleEvent
@@ -686,31 +597,6 @@ class EventOfProtectionEquipment(ctypes.Structure, IOBase):
 pEventOfProtectionEquipment = ctypes.POINTER(EventOfProtectionEquipment)
 
 
-class EventOfProtectionEquipmentWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('event', SingleEvent),
-        ('elapsedTime', CP16Time2a),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_event(self):
-        lib.EventOfProtectionEquipmentWithCP56Time2a_getEvent.restype = pSingleEvent
-        return lib.EventOfProtectionEquipmentWithCP56Time2a_getEvent(pEventOfProtectionEquipmentWithCP56Time2a(self))
-
-    def get_elapsed_time(self):
-        lib.EventOfProtectionEquipmentWithCP56Time2a_getElapsedTime.restype = pCP16Time2a
-        return lib.EventOfProtectionEquipmentWithCP56Time2a_getElapsedTime(pEventOfProtectionEquipmentWithCP56Time2a(self))
-
-    def get_timestamp(self):
-        lib.EventOfProtectionEquipmentWithCP56Time2a_getTimestamp.restype = pCP56Time2a
-        return lib.EventOfProtectionEquipmentWithCP56Time2a_getTimestamp(pEventOfProtectionEquipmentWithCP56Time2a(self))
-
-pEventOfProtectionEquipmentWithCP56Time2a = ctypes.POINTER(EventOfProtectionEquipmentWithCP56Time2a)
-
-
 class PackedStartEventsOfProtectionEquipment(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -721,6 +607,11 @@ class PackedStartEventsOfProtectionEquipment(ctypes.Structure, IOBase):
         ('elapsedTime', CP16Time2a),
         ('timestamp', CP24Time2a)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.packedStartEventsOfProtectionEquipmentVFT, c_void_p)
+        self.type = lib60870.TypeID.M_EP_TB_1.c_enum
 
     def get_event(self):
         lib.PackedStartEventsOfProtectionEquipment_getEvent.restype = StartEvent
@@ -741,36 +632,6 @@ class PackedStartEventsOfProtectionEquipment(ctypes.Structure, IOBase):
 pPackedStartEventsOfProtectionEquipment = ctypes.POINTER(PackedStartEventsOfProtectionEquipment)
 
 
-class PackedStartEventsOfProtectionEquipmentWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('event', StartEvent),
-        ('qdp', QualityDescriptorP),
-        ('elapsedTime', CP16Time2a),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_event(self):
-        lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getEvent.restype = StartEvent
-        return lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getEvent(pPackedStartEventsOfProtectionEquipmentWithCP56Time2a(self))
-
-    def get_quality(self):
-        lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getQuality.restype = QualityDescriptorP
-        return lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getQuality(pPackedStartEventsOfProtectionEquipmentWithCP56Time2a(self))
-
-    def get_elapsed_time(self):
-        lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getElapsedTime.restype = pCP16Time2a
-        return lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getElapsedTime(pPackedStartEventsOfProtectionEquipmentWithCP56Time2a(self))
-
-    def get_timestamp(self):
-        lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getTimestamp.restype = pCP56Time2a
-        return lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getTimestamp(pPackedStartEventsOfProtectionEquipmentWithCP56Time2a(self))
-
-pPackedStartEventsOfProtectionEquipmentWithCP56Time2a = ctypes.POINTER(PackedStartEventsOfProtectionEquipmentWithCP56Time2a)
-
-
 class PackedOutputCircuitInfo(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -781,6 +642,11 @@ class PackedOutputCircuitInfo(ctypes.Structure, IOBase):
         ('operatingTime', CP16Time2a),
         ('timestamp', CP24Time2a)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.packedOutputCircuitInfoVFT, c_void_p)
+        self.type = lib60870.TypeID.M_EP_TC_1.c_enum
 
     def get_oci(self):
         lib.PackedOutputCircuitInfo_getOCI.restype = OutputCircuitInfo
@@ -801,6 +667,316 @@ class PackedOutputCircuitInfo(ctypes.Structure, IOBase):
 pPackedOutputCircuitInfo = ctypes.POINTER(PackedOutputCircuitInfo)
 
 
+class PackedSinglePointWithSCD(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('scd', StatusAndStatusChangeDetection),
+        ('qds', QualityDescriptor)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.packedSinglePointWithSCDVFT, c_void_p)
+        self.type = lib60870.TypeID.M_PS_NA_1.c_enum
+
+    def get_quality(self):
+        lib.PackedSinglePointWithSCD_getQuality.restype = QualityDescriptor
+        return lib.PackedSinglePointWithSCD_getQuality(pPackedSinglePointWithSCD(self))
+
+    def get_scd(self):
+        lib.PackedSinglePointWithSCD_getSCD.restype = pStatusAndStatusChangeDetection
+        return lib.PackedSinglePointWithSCD_getSCD(pPackedSinglePointWithSCD(self))
+
+pPackedSinglePointWithSCD = ctypes.POINTER(PackedSinglePointWithSCD)
+
+
+class MeasuredValueNormalizedWithoutQuality(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('encodedValue', ctypes.c_uint8 * 2)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.measuredValueNormalizedWithoutQualityVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ME_ND_1.c_enum
+
+    def get_value(self):
+        lib.MeasuredValueNormalizedWithoutQuality_getValue.restype = c_float
+        return lib.MeasuredValueNormalizedWithoutQuality_getValue(pMeasuredValueNormalizedWithoutQuality(self))
+
+    def set_value(self, value):
+        lib.MeasuredValueNormalizedWithoutQuality_setValue(
+            pMeasuredValueNormalizedWithoutQuality(self),
+            c_float(value))
+
+pMeasuredValueNormalizedWithoutQuality = ctypes.POINTER(MeasuredValueNormalizedWithoutQuality)
+
+
+class SinglePointWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('value', c_bool),
+        ('quality', QualityDescriptor),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.singlePointWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_SP_TB_1.c_enum
+
+    def get_timestamp(self):
+        lib.SinglePointWithCP56Time2a_getTimestamp.restype = pCP56Time2a
+        return lib.SinglePointWithCP56Time2a_getTimestamp(pSinglePointWithCP56Time2a(self))
+
+pSinglePointWithCP56Time2a = ctypes.POINTER(SinglePointWithCP56Time2a)
+
+
+class DoublePointWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('value', DoublePointValue),
+        ('quality', QualityDescriptor),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.doublePointWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_DP_TB_1.c_enum
+
+    def get_timestamp(self):
+        lib.DoublePointWithCP56Time2a_getTimestamp.restype = pCP56Time2a
+        return lib.DoublePointWithCP56Time2a_getTimestamp(pDoublePointWithCP56Time2a(self))
+
+pDoublePointWithCP56Time2a = ctypes.POINTER(DoublePointWithCP56Time2a)
+
+
+class StepPositionWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('vti', c_uint8),
+        ('quality', QualityDescriptor),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.stepPositionWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ST_TB_1.c_enum
+
+    def get_timestamp(self):
+        lib.StepPositionWithCP56Time2a_getTimestamp.restype = pCP56Time2a
+        return lib.StepPositionWithCP56Time2a_getTimestamp(pStepPositionWithCP56Time2a(self))
+
+pStepPositionWithCP56Time2a = ctypes.POINTER(StepPositionWithCP56Time2a)
+
+
+class Bitstring32WithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('value', c_uint32),
+        ('quality', QualityDescriptor),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.bitstring32WithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_BO_TB_1.c_enum
+
+    def get_timestamp(self):
+        lib.Bitstring32WithCP56Time2a_getTimestamp.restype = pCP56Time2a
+        return lib.Bitstring32WithCP56Time2a_getTimestamp(pBitstring32WithCP56Time2a(self))
+
+pBitstring32WithCP56Time2a = ctypes.POINTER(Bitstring32WithCP56Time2a)
+
+
+class MeasuredValueNormalizedWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('encodedValue', ctypes.c_uint8 * 2),
+        ('quality', QualityDescriptor),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.measuredValueNormalizedWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ME_TD_1.c_enum
+
+    def get_timestamp(self):
+        lib.MeasuredValueNormalizedWithCP56Time2a_getTimestamp.restype = pCP56Time2a
+        return lib.MeasuredValueNormalizedWithCP56Time2a_getTimestamp(pMeasuredValueNormalizedWithCP56Time2a(self))
+
+    def set_timestamp(self, value):
+        lib.MeasuredValueNormalizedWithCP56Time2a_setTimestamp(
+            pMeasuredValueNormalizedWithCP56Time2a(self),
+            pCP56Time2a(value))
+
+pMeasuredValueNormalizedWithCP56Time2a = ctypes.POINTER(MeasuredValueNormalizedWithCP56Time2a)
+
+
+class MeasuredValueScaledWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('encodedValue', ctypes.c_uint8 * 2),
+        ('quality', QualityDescriptor),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.measuredValueScaledWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ME_TE_1.c_enum
+
+    def get_timestamp(self):
+        lib.MeasuredValueScaledWithCP56Time2a_getTimestamp.restype = pCP56Time2a
+        return lib.MeasuredValueScaledWithCP56Time2a_getTimestamp(pMeasuredValueScaledWithCP56Time2a(self))
+
+    def set_timestamp(self, value):
+        lib.MeasuredValueScaledWithCP56Time2a_setTimestamp(
+            pMeasuredValueScaledWithCP56Time2a(self),
+            pCP56Time2a(value))
+
+pMeasuredValueScaledWithCP56Time2a = ctypes.POINTER(MeasuredValueScaledWithCP56Time2a)
+
+
+class MeasuredValueShortWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('value', c_float),
+        ('quality', QualityDescriptor),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.measuredValueShortWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_ME_TF_1.c_enum
+
+    def get_timestamp(self):
+        lib.MeasuredValueShortWithCP56Time2a_getTimestamp.restype = pCP56Time2a
+        return lib.MeasuredValueShortWithCP56Time2a_getTimestamp(pMeasuredValueShortWithCP56Time2a(self))
+
+    def set_timestamp(self, value):
+        lib.MeasuredValueShortWithCP56Time2a_setTimestamp(
+            pMeasuredValueShortWithCP56Time2a(self),
+            pCP56Time2a(value))
+
+pMeasuredValueShortWithCP56Time2a = ctypes.POINTER(MeasuredValueShortWithCP56Time2a)
+
+
+class IntegratedTotalsWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('totals', BinaryCounterReading),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.integratedTotalsWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_IT_TB_1.c_enum
+
+    def get_timestamp(self):
+        lib.IntegratedTotalsWithCP56Time2a_getTimestamp.restype = pCP56Time2a
+        return lib.IntegratedTotalsWithCP56Time2a_getTimestamp(pIntegratedTotalsWithCP56Time2a(self))
+
+    def set_timestamp(self, value):
+        lib.IntegratedTotalsWithCP56Time2a_setTimestamp(
+            pIntegratedTotalsWithCP56Time2a(self),
+            pCP56Time2a(value))
+
+pIntegratedTotalsWithCP56Time2a = ctypes.POINTER(IntegratedTotalsWithCP56Time2a)
+
+
+class EventOfProtectionEquipmentWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('event', SingleEvent),
+        ('elapsedTime', CP16Time2a),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.eventOfProtectionEquipmentWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_EP_TD_1.c_enum
+
+    def get_event(self):
+        lib.EventOfProtectionEquipmentWithCP56Time2a_getEvent.restype = pSingleEvent
+        return lib.EventOfProtectionEquipmentWithCP56Time2a_getEvent(pEventOfProtectionEquipmentWithCP56Time2a(self))
+
+    def get_elapsed_time(self):
+        lib.EventOfProtectionEquipmentWithCP56Time2a_getElapsedTime.restype = pCP16Time2a
+        return lib.EventOfProtectionEquipmentWithCP56Time2a_getElapsedTime(pEventOfProtectionEquipmentWithCP56Time2a(self))
+
+    def get_timestamp(self):
+        lib.EventOfProtectionEquipmentWithCP56Time2a_getTimestamp.restype = pCP56Time2a
+        return lib.EventOfProtectionEquipmentWithCP56Time2a_getTimestamp(pEventOfProtectionEquipmentWithCP56Time2a(self))
+
+pEventOfProtectionEquipmentWithCP56Time2a = ctypes.POINTER(EventOfProtectionEquipmentWithCP56Time2a)
+
+
+class PackedStartEventsOfProtectionEquipmentWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('event', StartEvent),
+        ('qdp', QualityDescriptorP),
+        ('elapsedTime', CP16Time2a),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.packedStartEventsOfProtectionEquipmentWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_EP_TE_1.c_enum
+
+    def get_event(self):
+        lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getEvent.restype = StartEvent
+        return lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getEvent(pPackedStartEventsOfProtectionEquipmentWithCP56Time2a(self))
+
+    def get_quality(self):
+        lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getQuality.restype = QualityDescriptorP
+        return lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getQuality(pPackedStartEventsOfProtectionEquipmentWithCP56Time2a(self))
+
+    def get_elapsed_time(self):
+        lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getElapsedTime.restype = pCP16Time2a
+        return lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getElapsedTime(pPackedStartEventsOfProtectionEquipmentWithCP56Time2a(self))
+
+    def get_timestamp(self):
+        lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getTimestamp.restype = pCP56Time2a
+        return lib.PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getTimestamp(pPackedStartEventsOfProtectionEquipmentWithCP56Time2a(self))
+
+pPackedStartEventsOfProtectionEquipmentWithCP56Time2a = ctypes.POINTER(PackedStartEventsOfProtectionEquipmentWithCP56Time2a)
+
+
 class PackedOutputCircuitInfoWithCP56Time2a(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -811,6 +987,11 @@ class PackedOutputCircuitInfoWithCP56Time2a(ctypes.Structure, IOBase):
         ('operatingTime', CP16Time2a),
         ('timestamp', CP56Time2a)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.packedOutputCircuitInfoWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.M_EP_TF_1.c_enum
 
     def get_oci(self):
         lib.PackedOutputCircuitInfoWithCP56Time2a_getOCI.restype = OutputCircuitInfo
@@ -831,26 +1012,6 @@ class PackedOutputCircuitInfoWithCP56Time2a(ctypes.Structure, IOBase):
 pPackedOutputCircuitInfoWithCP56Time2a = ctypes.POINTER(PackedOutputCircuitInfoWithCP56Time2a)
 
 
-class PackedSinglePointWithSCD(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('scd', StatusAndStatusChangeDetection),
-        ('qds', QualityDescriptor)
-        ]
-
-    def get_quality(self):
-        lib.PackedSinglePointWithSCD_getQuality.restype = QualityDescriptor
-        return lib.PackedSinglePointWithSCD_getQuality(pPackedSinglePointWithSCD(self))
-
-    def get_scd(self):
-        lib.PackedSinglePointWithSCD_getSCD.restype = pStatusAndStatusChangeDetection
-        return lib.PackedSinglePointWithSCD_getSCD(pPackedSinglePointWithSCD(self))
-
-pPackedSinglePointWithSCD = ctypes.POINTER(PackedSinglePointWithSCD)
-
-
 class SingleCommand(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -858,6 +1019,12 @@ class SingleCommand(ctypes.Structure, IOBase):
         ('virtualFunctionTable', pInformationObjectVFT),
         ('sco', c_uint8)
         ]
+
+    def __init__(self, oa, command, select_command, qu):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.singleCommandVFT, c_void_p)
+        self.type = lib60870.TypeID.C_SC_NA_1.c_enum
+        self.set_sco(command, select_command, qu)
 
     def get_qu(self):
         lib.SingleCommand_getQU.restype = c_int
@@ -871,23 +1038,15 @@ class SingleCommand(ctypes.Structure, IOBase):
         lib.SingleCommand_isSelect.restype = c_bool
         return lib.SingleCommand_isSelect(pSingleCommand(self))
 
+    def set_sco(self, command, select_command, qu):
+        self.sco = ((qu & 0x1f) << 2)
+        if command:
+            self.sco |= 0x01
+        if select_command:
+            self.sco |= 0x80
+
+
 pSingleCommand = ctypes.POINTER(SingleCommand)
-
-
-class SingleCommandWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('sco', c_uint8),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_timestamp(self):
-        lib.SingleCommandWithCP56Time2a_getTimestamp.restype = pCP56Time2a
-        return lib.SingleCommandWithCP56Time2a_getTimestamp(pSingleCommandWithCP56Time2a(self))
-
-pSingleCommandWithCP56Time2a = ctypes.POINTER(SingleCommandWithCP56Time2a)
 
 
 class DoubleCommand(ctypes.Structure, IOBase):
@@ -897,6 +1056,11 @@ class DoubleCommand(ctypes.Structure, IOBase):
         ('virtualFunctionTable', pInformationObjectVFT),
         ('dcq', c_uint8)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.doubleCommandVFT, c_void_p)
+        self.type = lib60870.TypeID.C_DC_NA_1.c_enum
 
     def get_qu(self):
         lib.DoubleCommand_getQU.restype = c_int
@@ -913,30 +1077,6 @@ class DoubleCommand(ctypes.Structure, IOBase):
 pDoubleCommand = ctypes.POINTER(DoubleCommand)
 
 
-class DoubleCommandWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('dcq', c_uint8),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_qu(self):
-        lib.DoubleCommandWithCP56Time2a_getQU.restype = c_int
-        return lib.DoubleCommandWithCP56Time2a_getQU(pDoubleCommandWithCP56Time2a(self))
-
-    def get_state(self):
-        lib.DoubleCommandWithCP56Time2a_getState.restype = c_int
-        return lib.DoubleCommandWithCP56Time2a_getState(pDoubleCommandWithCP56Time2a(self))
-
-    def is_select(self):
-        lib.DoubleCommandWithCP56Time2a_isSelect.restype = c_bool
-        return lib.DoubleCommandWithCP56Time2a_isSelect(pDoubleCommandWithCP56Time2a(self))
-
-pDoubleCommandWithCP56Time2a = ctypes.POINTER(DoubleCommandWithCP56Time2a)
-
-
 class StepCommand(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -944,6 +1084,11 @@ class StepCommand(ctypes.Structure, IOBase):
         ('virtualFunctionTable', pInformationObjectVFT),
         ('dcq', c_uint8)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.stepCommandVFT, c_void_p)
+        self.type = lib60870.TypeID.C_RC_NA_1.c_enum
 
     def get_qu(self):
         lib.StepCommand_getQU.restype = c_int
@@ -960,30 +1105,6 @@ class StepCommand(ctypes.Structure, IOBase):
 pStepCommand = ctypes.POINTER(StepCommand)
 
 
-class StepCommandWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('dcq', c_uint8),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_qu(self):
-        lib.StepCommandWithCP56Time2a_getQU.restype = c_int
-        return lib.StepCommandWithCP56Time2a_getQU(pStepCommandWithCP56Time2a(self))
-
-    def get_state(self):
-        lib.StepCommandWithCP56Time2a_getState.restype = pStepCommandValue
-        return lib.StepCommandWithCP56Time2a_getState(pStepCommandWithCP56Time2a(self))
-
-    def is_select(self):
-        lib.StepCommandWithCP56Time2a_isSelect.restype = c_bool
-        return lib.StepCommandWithCP56Time2a_isSelect(pStepCommandWithCP56Time2a(self))
-
-pStepCommandWithCP56Time2a = ctypes.POINTER(StepCommandWithCP56Time2a)
-
-
 class SetpointCommandNormalized(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -992,6 +1113,11 @@ class SetpointCommandNormalized(ctypes.Structure, IOBase):
         ('encodedValue', ctypes.c_uint8 * 2),
         ('qos', c_uint8)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.setpointCommandNormalizedVFT, c_void_p)
+        self.type = lib60870.TypeID.C_SE_NA_1.c_enum
 
     def get_value(self):
         lib.SetpointCommandNormalized_getValue.restype = c_float
@@ -1008,31 +1134,6 @@ class SetpointCommandNormalized(ctypes.Structure, IOBase):
 pSetpointCommandNormalized = ctypes.POINTER(SetpointCommandNormalized)
 
 
-class SetpointCommandNormalizedWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
-        ('qos', c_uint8),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_value(self):
-        lib.SetpointCommandNormalizedWithCP56Time2a_getValue.restype = c_float
-        return lib.SetpointCommandNormalizedWithCP56Time2a_getValue(pSetpointCommandNormalizedWithCP56Time2a(self))
-
-    def get_ql(self):
-        lib.SetpointCommandNormalizedWithCP56Time2a_getQL.restype = c_int
-        return lib.SetpointCommandNormalizedWithCP56Time2a_getQL(pSetpointCommandNormalizedWithCP56Time2a(self))
-
-    def is_select(self):
-        lib.SetpointCommandNormalizedWithCP56Time2a_isSelect.restype = c_bool
-        return lib.SetpointCommandNormalizedWithCP56Time2a_isSelect(pSetpointCommandNormalizedWithCP56Time2a(self))
-
-pSetpointCommandNormalizedWithCP56Time2a = ctypes.POINTER(SetpointCommandNormalizedWithCP56Time2a)
-
-
 class SetpointCommandScaled(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -1041,6 +1142,11 @@ class SetpointCommandScaled(ctypes.Structure, IOBase):
         ('encodedValue', ctypes.c_uint8 * 2),
         ('qos', c_uint8)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.setpointCommandScaledVFT, c_void_p)
+        self.type = lib60870.TypeID.C_SE_NB_1.c_enum
 
     def get_value(self):
         lib.SetpointCommandScaled_getValue.restype = c_int
@@ -1057,31 +1163,6 @@ class SetpointCommandScaled(ctypes.Structure, IOBase):
 pSetpointCommandScaled = ctypes.POINTER(SetpointCommandScaled)
 
 
-class SetpointCommandScaledWithCP56Time2a(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
-        ('qos', c_uint8),
-        ('timestamp', CP56Time2a)
-        ]
-
-    def get_value(self):
-        lib.SetpointCommandScaledWithCP56Time2a_getValue.restype = c_int
-        return lib.SetpointCommandScaledWithCP56Time2a_getValue(pSetpointCommandScaledWithCP56Time2a(self))
-
-    def get_ql(self):
-        lib.SetpointCommandScaledWithCP56Time2a_getQL.restype = c_int
-        return lib.SetpointCommandScaledWithCP56Time2a_getQL(pSetpointCommandScaledWithCP56Time2a(self))
-
-    def is_select(self):
-        lib.SetpointCommandScaledWithCP56Time2a_isSelect.restype = c_bool
-        return lib.SetpointCommandScaledWithCP56Time2a_isSelect(pSetpointCommandScaledWithCP56Time2a(self))
-
-pSetpointCommandScaledWithCP56Time2a = ctypes.POINTER(SetpointCommandScaledWithCP56Time2a)
-
-
 class SetpointCommandShort(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -1090,6 +1171,11 @@ class SetpointCommandShort(ctypes.Structure, IOBase):
         ('value', c_float),
         ('qos', c_uint8)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.setpointCommandShortVFT, c_void_p)
+        self.type = lib60870.TypeID.C_SE_NC_1.c_enum
 
     def get_value(self):
         lib.SetpointCommandShort_getValue.restype = c_float
@@ -1106,6 +1192,165 @@ class SetpointCommandShort(ctypes.Structure, IOBase):
 pSetpointCommandShort = ctypes.POINTER(SetpointCommandShort)
 
 
+class Bitstring32Command(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('value', c_uint32)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.bitstring32CommandVFT, c_void_p)
+        self.type = lib60870.TypeID.C_BO_NA_1.c_enum
+
+    def get_value(self):
+        lib.Bitstring32Command_getValue.restype = c_uint32
+        return lib.Bitstring32Command_getValue(pBitstring32Command(self))
+
+pBitstring32Command = ctypes.POINTER(Bitstring32Command)
+
+
+class SingleCommandWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('sco', c_uint8),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.singleCommandWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.C_SC_TA_1.c_enum
+
+    def get_timestamp(self):
+        lib.SingleCommandWithCP56Time2a_getTimestamp.restype = pCP56Time2a
+        return lib.SingleCommandWithCP56Time2a_getTimestamp(pSingleCommandWithCP56Time2a(self))
+
+pSingleCommandWithCP56Time2a = ctypes.POINTER(SingleCommandWithCP56Time2a)
+
+
+class DoubleCommandWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('dcq', c_uint8),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.doubleCommandWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.C_DC_TA_1.c_enum
+
+    def get_qu(self):
+        lib.DoubleCommandWithCP56Time2a_getQU.restype = c_int
+        return lib.DoubleCommandWithCP56Time2a_getQU(pDoubleCommandWithCP56Time2a(self))
+
+    def get_state(self):
+        lib.DoubleCommandWithCP56Time2a_getState.restype = c_int
+        return lib.DoubleCommandWithCP56Time2a_getState(pDoubleCommandWithCP56Time2a(self))
+
+    def is_select(self):
+        lib.DoubleCommandWithCP56Time2a_isSelect.restype = c_bool
+        return lib.DoubleCommandWithCP56Time2a_isSelect(pDoubleCommandWithCP56Time2a(self))
+
+pDoubleCommandWithCP56Time2a = ctypes.POINTER(DoubleCommandWithCP56Time2a)
+
+
+class StepCommandWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('dcq', c_uint8),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.stepCommandWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.C_RC_TA_1.c_enum
+
+    def get_qu(self):
+        lib.StepCommandWithCP56Time2a_getQU.restype = c_int
+        return lib.StepCommandWithCP56Time2a_getQU(pStepCommandWithCP56Time2a(self))
+
+    def get_state(self):
+        lib.StepCommandWithCP56Time2a_getState.restype = pStepCommandValue
+        return lib.StepCommandWithCP56Time2a_getState(pStepCommandWithCP56Time2a(self))
+
+    def is_select(self):
+        lib.StepCommandWithCP56Time2a_isSelect.restype = c_bool
+        return lib.StepCommandWithCP56Time2a_isSelect(pStepCommandWithCP56Time2a(self))
+
+pStepCommandWithCP56Time2a = ctypes.POINTER(StepCommandWithCP56Time2a)
+
+
+class SetpointCommandNormalizedWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('encodedValue', ctypes.c_uint8 * 2),
+        ('qos', c_uint8),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.setpointCommandNormalizedWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.C_SE_TA_1.c_enum
+
+    def get_value(self):
+        lib.SetpointCommandNormalizedWithCP56Time2a_getValue.restype = c_float
+        return lib.SetpointCommandNormalizedWithCP56Time2a_getValue(pSetpointCommandNormalizedWithCP56Time2a(self))
+
+    def get_ql(self):
+        lib.SetpointCommandNormalizedWithCP56Time2a_getQL.restype = c_int
+        return lib.SetpointCommandNormalizedWithCP56Time2a_getQL(pSetpointCommandNormalizedWithCP56Time2a(self))
+
+    def is_select(self):
+        lib.SetpointCommandNormalizedWithCP56Time2a_isSelect.restype = c_bool
+        return lib.SetpointCommandNormalizedWithCP56Time2a_isSelect(pSetpointCommandNormalizedWithCP56Time2a(self))
+
+pSetpointCommandNormalizedWithCP56Time2a = ctypes.POINTER(SetpointCommandNormalizedWithCP56Time2a)
+
+
+class SetpointCommandScaledWithCP56Time2a(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('encodedValue', ctypes.c_uint8 * 2),
+        ('qos', c_uint8),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.setpointCommandScaledWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.C_SE_TB_1.c_enum
+
+    def get_value(self):
+        lib.SetpointCommandScaledWithCP56Time2a_getValue.restype = c_int
+        return lib.SetpointCommandScaledWithCP56Time2a_getValue(pSetpointCommandScaledWithCP56Time2a(self))
+
+    def get_ql(self):
+        lib.SetpointCommandScaledWithCP56Time2a_getQL.restype = c_int
+        return lib.SetpointCommandScaledWithCP56Time2a_getQL(pSetpointCommandScaledWithCP56Time2a(self))
+
+    def is_select(self):
+        lib.SetpointCommandScaledWithCP56Time2a_isSelect.restype = c_bool
+        return lib.SetpointCommandScaledWithCP56Time2a_isSelect(pSetpointCommandScaledWithCP56Time2a(self))
+
+pSetpointCommandScaledWithCP56Time2a = ctypes.POINTER(SetpointCommandScaledWithCP56Time2a)
+
+
 class SetpointCommandShortWithCP56Time2a(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -1115,6 +1360,11 @@ class SetpointCommandShortWithCP56Time2a(ctypes.Structure, IOBase):
         ('qos', c_uint8),
         ('timestamp', CP56Time2a)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.setpointCommandShortWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.C_SE_TC_1.c_enum
 
     def get_value(self):
         lib.SetpointCommandShortWithCP56Time2a_getValue.restype = c_float
@@ -1131,21 +1381,6 @@ class SetpointCommandShortWithCP56Time2a(ctypes.Structure, IOBase):
 pSetpointCommandShortWithCP56Time2a = ctypes.POINTER(SetpointCommandShortWithCP56Time2a)
 
 
-class Bitstring32Command(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('value', c_uint32)
-        ]
-
-    def get_value(self):
-        lib.Bitstring32Command_getValue.restype = c_uint32
-        return lib.Bitstring32Command_getValue(pBitstring32Command(self))
-
-pBitstring32Command = ctypes.POINTER(Bitstring32Command)
-
-
 class Bitstring32CommandWithCP56Time2a(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
@@ -1154,6 +1389,11 @@ class Bitstring32CommandWithCP56Time2a(ctypes.Structure, IOBase):
         ('value', c_uint32),
         ('timestamp', CP56Time2a)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.bitstring32CommandWithCP56Time2aVFT, c_void_p)
+        self.type = lib60870.TypeID.C_BO_TA_1.c_enum
 
     def get_value(self):
         lib.Bitstring32CommandWithCP56Time2a_getValue.restype = c_uint32
@@ -1166,19 +1406,24 @@ class Bitstring32CommandWithCP56Time2a(ctypes.Structure, IOBase):
 pBitstring32CommandWithCP56Time2a = ctypes.POINTER(Bitstring32CommandWithCP56Time2a)
 
 
-class ClockSynchronizationCommand(ctypes.Structure, IOBase):
+class EndOfInitialization(ctypes.Structure, IOBase):
     _fields_ = [
         ('objectAddress', c_int),
         ('type', TypeID),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('timestamp', CP56Time2a)
+        ('coi', c_uint8)
         ]
 
-    def get_time(self):
-        lib.ClockSynchronizationCommand_getTime.restype = pCP56Time2a
-        return lib.ClockSynchronizationCommand_getTime(pClockSynchronizationCommand(self))
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.endOfInitializationVFT, c_void_p)
+        self.type = lib60870.TypeID.M_EI_NA_1.c_enum
 
-pClockSynchronizationCommand = ctypes.POINTER(ClockSynchronizationCommand)
+    def get_coi(self):
+        lib.EndOfInitialization_getCOI.restype = c_uint8
+        return lib.EndOfInitialization_getCOI(pEndOfInitialization(self))
+
+pEndOfInitialization = ctypes.POINTER(EndOfInitialization)
 
 
 class InterrogationCommand(ctypes.Structure, IOBase):
@@ -1188,6 +1433,11 @@ class InterrogationCommand(ctypes.Structure, IOBase):
         ('virtualFunctionTable', pInformationObjectVFT),
         ('qoi', c_uint8)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.interrogationCommandVFT, c_void_p)
+        self.type = lib60870.TypeID.C_IC_NA_1.c_enum
 
     def get_qoi(self):
         lib.InterrogationCommand_getQOI.restype = c_uint8
@@ -1204,11 +1454,51 @@ class CounterInterrogationCommand(ctypes.Structure, IOBase):
         ('qcc', c_uint8)
         ]
 
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.counterInterrogationCommandVFT, c_void_p)
+        self.type = lib60870.TypeID.C_CI_NA_1.c_enum
+
     def get_qcc(self):
         lib.CounterInterrogationCommand_getQCC.restype = pQualifierOfCIC
         return lib.CounterInterrogationCommand_getQCC(pCounterInterrogationCommand(self))
 
 pCounterInterrogationCommand = ctypes.POINTER(CounterInterrogationCommand)
+
+
+class ReadCommand(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.readCommandVFT, c_void_p)
+        self.type = lib60870.TypeID.C_RD_NA_1.c_enum
+
+pReadCommand = ctypes.POINTER(ReadCommand)
+
+
+class ClockSynchronizationCommand(ctypes.Structure, IOBase):
+    _fields_ = [
+        ('objectAddress', c_int),
+        ('type', TypeID),
+        ('virtualFunctionTable', pInformationObjectVFT),
+        ('timestamp', CP56Time2a)
+        ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.clockSynchronizationCommandVFT, c_void_p)
+        self.type = lib60870.TypeID.C_CS_NA_1.c_enum
+
+    def get_time(self):
+        lib.ClockSynchronizationCommand_getTime.restype = pCP56Time2a
+        return lib.ClockSynchronizationCommand_getTime(pClockSynchronizationCommand(self)).contents
+
+pClockSynchronizationCommand = ctypes.POINTER(ClockSynchronizationCommand)
 
 
 class ResetProcessCommand(ctypes.Structure, IOBase):
@@ -1218,6 +1508,11 @@ class ResetProcessCommand(ctypes.Structure, IOBase):
         ('virtualFunctionTable', pInformationObjectVFT),
         ('qrp', QualifierOfRPC)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.resetProcessCommandVFT, c_void_p)
+        self.type = lib60870.TypeID.C_RP_NA_1.c_enum
 
     def get_qrp(self):
         lib.ResetProcessCommand_getQRP.restype = QualifierOfRPC
@@ -1234,11 +1529,68 @@ class DelayAcquisitionCommand(ctypes.Structure, IOBase):
         ('delay', CP16Time2a)
         ]
 
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.delayAcquisitionCommandVFT, c_void_p)
+        self.type = lib60870.TypeID.C_CD_NA_1.c_enum
+
     def get_delay(self):
         lib.DelayAcquisitionCommand_getDelay.restype = pCP16Time2a
         return lib.DelayAcquisitionCommand_getDelay(pDelayAcquisitionCommand(self))
 
 pDelayAcquisitionCommand = ctypes.POINTER(DelayAcquisitionCommand)
+
+
+class ParameterNormalizedValue(MeasuredValueNormalized):
+
+    def get_value(self):
+        lib.ParameterNormalizedValue_getValue.restype = c_float
+        return lib.ParameterNormalizedValue_getValue(pParameterNormalizedValue(self))
+
+    def set_value(self, value):
+        lib.ParameterNormalizedValue_setValue(
+            pParameterNormalizedValue(self),
+            c_float(value))
+
+    def get_qpm(self):
+        lib.ParameterNormalizedValue_getQPM.restype = pQualifierOfParameterMV
+        return lib.ParameterNormalizedValue_getQPM(pParameterNormalizedValue(self))
+
+pParameterNormalizedValue = ctypes.POINTER(ParameterNormalizedValue)
+
+
+class ParameterScaledValue(MeasuredValueScaled):
+    def get_value(self):
+        lib.ParameterScaledValue_getValue.restype = c_int
+        return lib.ParameterScaledValue_getValue(pParameterScaledValue(self))
+
+    def set_value(self, value):
+        lib.ParameterScaledValue_setValue(
+            pParameterScaledValue(self),
+            c_int(value))
+
+    def get_qpm(self):
+        lib.ParameterScaledValue_getQPM.restype = pQualifierOfParameterMV
+        return lib.ParameterScaledValue_getQPM(pParameterScaledValue(self))
+
+pParameterScaledValue = ctypes.POINTER(ParameterScaledValue)
+
+
+class ParameterFloatValue(MeasuredValueShort):
+    def get_value(self):
+        lib.ParameterFloatValue_getValue.restype = c_float
+        return lib.ParameterFloatValue_getValue(pParameterFloatValue(self))
+
+    def set_value(self, value):
+        lib.ParameterFloatValue_setValue(
+            pParameterFloatValue(self),
+            c_float(value))
+
+    def get_qpm(self):
+        lib.ParameterFloatValue_getQPM.restype = pQualifierOfParameterMV
+        return lib.ParameterFloatValue_getQPM(pParameterFloatValue(self))
+
+pParameterFloatValue = ctypes.POINTER(ParameterFloatValue)
 
 
 class ParameterActivation(ctypes.Structure, IOBase):
@@ -1249,26 +1601,16 @@ class ParameterActivation(ctypes.Structure, IOBase):
         ('qpa', QualifierOfParameterActivation)
         ]
 
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.parameterActivationVFT, c_void_p)
+        self.type = lib60870.TypeID.P_AC_NA_1.c_enum
+
     def get_quality(self):
         lib.ParameterActivation_getQuality.restype = QualifierOfParameterActivation
         return lib.ParameterActivation_getQuality(pParameterActivation(self))
 
 pParameterActivation = ctypes.POINTER(ParameterActivation)
-
-
-class EndOfInitialization(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT),
-        ('coi', c_uint8)
-        ]
-
-    def get_coi(self):
-        lib.EndOfInitialization_getCOI.restype = c_uint8
-        return lib.EndOfInitialization_getCOI(pEndOfInitialization(self))
-
-pEndOfInitialization = ctypes.POINTER(EndOfInitialization)
 
 
 class FileReady(ctypes.Structure, IOBase):
@@ -1280,6 +1622,11 @@ class FileReady(ctypes.Structure, IOBase):
         ('lengthOfFile', c_uint32),
         ('frq', c_uint8)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.fileReadyVFT, c_void_p)
+        self.type = lib60870.TypeID.F_FR_NA_1.c_enum
 
     def get_frq(self):
         lib.FileReady_getFRQ.restype = c_uint8
@@ -1315,6 +1662,11 @@ class SectionReady(ctypes.Structure, IOBase):
         ('lengthOfSection', c_uint32),
         ('srq', c_uint8)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.sectionReadyVFT, c_void_p)
+        self.type = lib60870.TypeID.F_SR_NA_1.c_enum
 
     def is_not_ready(self):
         lib.SectionReady_isNotReady.restype = c_bool
@@ -1354,6 +1706,11 @@ class FileCallOrSelect(ctypes.Structure, IOBase):
         ('scq', c_uint8)
         ]
 
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.fileCallOrSelectVFT, c_void_p)
+        self.type = lib60870.TypeID.F_SC_NA_1.c_enum
+
     def get_nof(self):
         lib.FileCallOrSelect_getNOF.restype = c_uint16
         return lib.FileCallOrSelect_getNOF(pFileCallOrSelect(self))
@@ -1379,6 +1736,11 @@ class FileLastSegmentOrSection(ctypes.Structure, IOBase):
         ('lsq', c_uint8),
         ('chs', c_uint8)
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.fileLastSegmentOrSectionVFT, c_void_p)
+        self.type = lib60870.TypeID.F_LS_NA_1.c_enum
 
     def get_nof(self):
         lib.FileLastSegmentOrSection_getNOF.restype = c_uint16
@@ -1409,6 +1771,11 @@ class FileACK(ctypes.Structure, IOBase):
         ('afq', c_uint8)
         ]
 
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.fileACKVFT, c_void_p)
+        self.type = lib60870.TypeID.F_AF_NA_1.c_enum
+
     def get_nof(self):
         lib.FileACK_getNOF.restype = c_uint16
         return lib.FileACK_getNOF(pFileACK(self))
@@ -1434,6 +1801,11 @@ class FileSegment(ctypes.Structure, IOBase):
         ('los', c_uint8),
         ('data', ctypes.POINTER(c_uint8))
         ]
+
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.fileSegmentVFT, c_void_p)
+        self.type = lib60870.TypeID.F_SG_NA_1.c_enum
 
     def get_nof(self):
         lib.FileSegment_getNOF.restype = c_uint16
@@ -1469,6 +1841,11 @@ class FileDirectory(ctypes.Structure, IOBase):
         ('creationTime', CP56Time2a)
         ]
 
+    def __init__(self, oa):
+        self.objectAddress = oa
+        self.virtualFunctionTable = ctypes.cast(lib.fileDirectoryVFT, c_void_p)
+        self.type = lib60870.TypeID.F_DR_TA_1.c_enum
+
     def get_nof(self):
         lib.FileDirectory_getNOF.restype = c_uint16
         return lib.FileDirectory_getNOF(pFileDirectory(self))
@@ -1502,74 +1879,6 @@ class FileDirectory(ctypes.Structure, IOBase):
         return lib.FileDirectory_getCreationTime(pFileDirectory(self))
 
 pFileDirectory = ctypes.POINTER(FileDirectory)
-
-
-class ReadCommand(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('objectAddress', c_int),
-        ('type', TypeID),
-        ('virtualFunctionTable', pInformationObjectVFT)
-        ]
-
-pReadCommand = ctypes.POINTER(ReadCommand)
-
-
-class ParameterNormalizedValue(MeasuredValueNormalized):
-
-    def get_value(self):
-        lib.ParameterNormalizedValue_getValue.restype = c_float
-        return lib.ParameterNormalizedValue_getValue(pParameterNormalizedValue(self))
-
-    def set_value(self, value):
-        lib.ParameterNormalizedValue_setValue(
-            pParameterNormalizedValue(self),
-            c_float(value))
-
-    def get_qpm(self):
-        lib.ParameterNormalizedValue_getQPM.restype = pQualifierOfParameterMV
-        return lib.ParameterNormalizedValue_getQPM(pParameterNormalizedValue(self))
-
-pParameterNormalizedValue = ctypes.POINTER(ParameterNormalizedValue)
-
-
-class ParameterFloatValue(MeasuredValueShort):
-    def get_value(self):
-        lib.ParameterFloatValue_getValue.restype = c_float
-        return lib.ParameterFloatValue_getValue(pParameterFloatValue(self))
-
-    def set_value(self, value):
-        lib.ParameterFloatValue_setValue(
-            pParameterFloatValue(self),
-            c_float(value))
-
-    def get_qpm(self):
-        lib.ParameterFloatValue_getQPM.restype = pQualifierOfParameterMV
-        return lib.ParameterFloatValue_getQPM(pParameterFloatValue(self))
-
-pParameterFloatValue = ctypes.POINTER(ParameterFloatValue)
-
-
-class ParameterScaledValue(MeasuredValueScaled):
-    def get_value(self):
-        lib.ParameterScaledValue_getValue.restype = c_int
-        return lib.ParameterScaledValue_getValue(pParameterScaledValue(self))
-
-    def set_value(self, value):
-        lib.ParameterScaledValue_setValue(
-            pParameterScaledValue(self),
-            c_int(value))
-
-    def get_qpm(self):
-        lib.ParameterScaledValue_getQPM.restype = pQualifierOfParameterMV
-        return lib.ParameterScaledValue_getQPM(pParameterScaledValue(self))
-
-pParameterScaledValue = ctypes.POINTER(ParameterScaledValue)
-
-
-class StatusAndStatusChangeDetection(ctypes.Structure, IOBase):
-    _fields_ = [
-        ('encodedValue', ctypes.c_uint8 * 4),
-        ]
 
 
 def GetIoTypeFromTypeId(type_id):
