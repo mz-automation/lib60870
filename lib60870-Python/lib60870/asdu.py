@@ -63,7 +63,7 @@ class ASDU(ctypes.Structure):
         return lib60870.CauseOfTransmission(value)
 
     def set_cot(self, cot):
-        lib.ASDU_setCOT(pASDU(self), c_int(cot.value))
+        lib.ASDU_setCOT(pASDU(self), cot.c_enum)
 
     def get_ca(self):
         lib.ASDU_getCA.restype = c_int
@@ -131,9 +131,9 @@ def ASDU_create(parameters, type_id, is_sequence, cot, oa, ca, is_test, is_negat
     lib.ASDU_createASDU.restype = pASDU
     p_asdu = lib.ASDU_create(
         pConnectionParameters(parameters),
-        c_int(type_id.value),
+        type_id.c_enum,
         c_bool(is_sequence),
-        c_int(cot.value),
+        cot.c_enum,
         c_int(oa),
         c_int(ca),
         c_bool(is_test),

@@ -11,7 +11,6 @@ from lib60870.asdu import ASDU, ASDU_create_from_buffer
 from lib60870.common import ConnectionParameters, pConnectionParameters
 from lib60870.lib60870 import CauseOfTransmission, TypeID
 from lib60870.information_object import pMeasuredValueScaled
-import ctypes
 
 
 class ASDUTest(unittest.TestCase):

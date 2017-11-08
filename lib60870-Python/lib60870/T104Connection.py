@@ -66,18 +66,18 @@ class T104Connection():
         lib.T104Connection_sendInterrogationCommand.restype = c_bool
         return lib.T104Connection_sendInterrogationCommand(
             self.con,
-            c_int(cot.value),
+            cot.c_enum,
             c_int(ca),
-            c_int(qoi.value))
+            qoi.c_enum)
 
     def send_counter_interrogation_command(self, cot, ca, qcc):
         logger.debug("calling T104Connection_sendCounterInterrogationCommand()")
         lib.T104Connection_sendCounterInterrogationCommand.restype = c_bool
         return lib.T104Connection_sendCounterInterrogationCommand(
             self.con,
-            c_int(cot.value),
+            cot.c_enum,
             c_int(ca),
-            c_int(qcc.value))
+            c_int(qcc))
 
     def send_read_command(self, ca, ioa):
         logger.debug("calling T104Connection_sendReadCommand()")
@@ -99,7 +99,7 @@ class T104Connection():
         return lib.T104Connection_sendControlCommand(
             self.con,
             type_id,
-            c_enum(cot.value),
+            cot.c_enum,
             c_int(ca),
             pInformationObject(command))
 

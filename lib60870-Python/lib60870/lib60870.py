@@ -99,6 +99,10 @@ class IEC60870_5_TypeID(enum.Enum):
     F_DR_TA_1 = 126
     F_SC_NB_1 = 127
 
+    @property
+    def c_enum(self):
+        return ctypes.c_int(self.value)
+
 TypeID = IEC60870_5_TypeID
 
 
@@ -107,6 +111,10 @@ class IEC60870ConnectionEvent(enum.Enum):
     IEC60870_CONNECTION_CLOSED = 1
     IEC60870_CONNECTION_STARTDT_CON_RECEIVED = 2
     IEC60870_CONNECTION_STOPDT_CON_RECEIVED = 3
+
+    @property
+    def c_enum(self):
+        return ctypes.c_int(self.value)
 
 
 class CauseOfTransmission(enum.Enum):
@@ -153,6 +161,10 @@ class CauseOfTransmission(enum.Enum):
     UNKNOWN_COMMON_ADDRESS_OF_ASDU = 46
     UNKNOWN_INFORMATION_OBJECT_ADDRESS = 47
 
+    @property
+    def c_enum(self):
+        return ctypes.c_int(self.value)
+
 
 class QualifierOfInterrogation(enum.Enum):
     "brief Qualifier of interrogation (QUI) according to IEC 60870-5-101:2003 7.2.6.22"
@@ -174,6 +186,11 @@ class QualifierOfInterrogation(enum.Enum):
     IEC60870_QOI_GROUP_14 = 34
     IEC60870_QOI_GROUP_15 = 35
     IEC60870_QOI_GROUP_16 = 36
+
+    @property
+    def c_enum(self):
+        return ctypes.c_int(self.value)
+
 
 
 def get_library():
