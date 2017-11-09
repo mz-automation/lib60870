@@ -165,6 +165,11 @@ InformationObject_setObjectAddress(InformationObject self, int ioa)
     self->objectAddress = ioa;
 }
 
+TypeID
+InformationObject_getType(InformationObject self)
+{
+    return self->type;
+}
 
 static void
 InformationObject_encodeBase(InformationObject self, Frame frame, ConnectionParameters parameters, bool isSequence)

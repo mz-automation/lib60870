@@ -17,6 +17,9 @@ InformationObject_encode(InformationObject self, Frame frame, ConnectionParamete
 void
 InformationObject_setObjectAddress(InformationObject self, int ioa);
 
+TypeID
+InformationObject_getType(InformationObject self);
+
 int
 InformationObject_ParseObjectAddress(ConnectionParameters parameters, uint8_t* msg, int startIndex);
 
