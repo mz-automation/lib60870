@@ -65,6 +65,12 @@ set (library_SRCS
 ENDIF(APPLE)
 ENDIF(WIN32)
 
+IF(WITH_MBEDTLS)
+
+list (APPEND library_SRCS ${tls_SRCS})
+list (APPEND library_SRCS ./tls/mbedtls/tls_mbedtls.c)
+
+ENDIF(WITH_MBEDTLS)
 
 include (GenerateExportHeader)
 

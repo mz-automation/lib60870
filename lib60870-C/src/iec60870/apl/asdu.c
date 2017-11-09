@@ -338,8 +338,8 @@ ASDU_setCA(ASDU self, int ca)
                 setCa = 255;
         }
         else if (self->parameters->sizeOfCA > 1) {
-            if (ca > 65536)
-                setCa = 65536;
+            if (ca > 65535)
+                setCa = 65535;
         }
     }
 
@@ -1088,6 +1088,58 @@ ASDU_getElement(ASDU self, int index)
         elementSize = self->parameters->sizeOfIOA + 1;
 
         retVal = (InformationObject) ParameterActivation_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  index * elementSize);
+
+        break;
+
+    case F_FR_NA_1: /* 120 - File ready */
+
+        retVal = (InformationObject) FileReady_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_SR_NA_1: /* 121 - Section ready */
+
+        retVal = (InformationObject) SectionReady_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_SC_NA_1: /* 122 - Call/Select directory/file/section */
+
+        retVal = (InformationObject) FileCallOrSelect_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_LS_NA_1: /* 123 - Last segment/section */
+
+        retVal = (InformationObject) FileLastSegmentOrSection_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_AF_NA_1: /* 124 -  ACK file/section */
+
+        retVal = (InformationObject) FileACK_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_SG_NA_1: /* 125 - File segment */
+
+        retVal = (InformationObject) FileSegment_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
+    case F_DR_TA_1: /* 126 - File directory */
+
+        elementSize = 13;
+
+        if (ASDU_isSequence(self)) {
+            retVal  = (InformationObject) FileDirectory_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
+
+            InformationObject_setObjectAddress(retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+        }
+        else
+            retVal  = (InformationObject) FileDirectory_getFromBuffer(NULL, self->parameters,
+                    self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
     }

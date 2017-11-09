@@ -122,7 +122,9 @@ else
 HAL_IMPL = POSIX
 endif
 
+
 LDLIBS = -lpthread
+
 
 ifeq ($(TARGET), LINUX-MIPSEL)
 LIB_OBJS_DIR = $(LIB60870_HOME)/build-mipsel

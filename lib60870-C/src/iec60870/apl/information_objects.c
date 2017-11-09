@@ -6919,7 +6919,7 @@ void
 EndOfInitialization_destroy(EndOfInitialization self)
 {
     GLOBAL_FREEMEM(self);
-};
+}
 
 uint8_t
 EndOfInitialization_getCOI(EndOfInitialization self)
@@ -6952,6 +6952,1015 @@ EndOfInitialization_getFromBuffer(EndOfInitialization self, ConnectionParameters
 
     return self;
 };
+
+/*******************************************
+ * FileReady : InformationObject
+ *******************************************/
+
+struct sFileReady {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint16_t nof; /* name of file */
+
+    uint32_t lengthOfFile;
+
+    uint8_t frq; /* file ready qualifier */
+};
+
+static bool
+FileReady_encode(FileReady self, Frame frame, ConnectionParameters parameters, bool isSequence)
+{
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+
+    Frame_setNextByte (frame, (uint8_t)(self->lengthOfFile % 0x100));
+    Frame_setNextByte (frame, (uint8_t)((self->lengthOfFile / 0x100) % 0x100));
+    Frame_setNextByte (frame, (uint8_t)((self->lengthOfFile / 0x10000) % 0x100));
+
+    Frame_setNextByte (frame, self->frq);
+
+    return true;
+}
+
+struct sInformationObjectVFT FileReadyVFT = {
+        (EncodeFunction) FileReady_encode,
+        (DestroyFunction) FileReady_destroy
+};
+
+static void
+FileReady_initialize(FileReady self)
+{
+    self->virtualFunctionTable = &(FileReadyVFT);
+    self->type = F_FR_NA_1;
+}
+
+FileReady
+FileReady_create(FileReady self, int ioa, uint16_t nof, uint32_t lengthOfFile, bool positive)
+{
+    if (self == NULL) {
+       self = (FileReady) GLOBAL_MALLOC(sizeof(struct sFileReady));
+
+        if (self == NULL)
+            return NULL;
+        else
+            FileReady_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+    self->nof = nof;
+    self->lengthOfFile = lengthOfFile;
+
+    if (positive)
+        self->frq = 0x80;
+    else
+        self->frq = 0;
+
+    return self;
+}
+
+uint8_t
+FileReady_getFRQ(FileReady self)
+{
+    return self->frq;
+}
+
+void
+FileReady_setFRQ(FileReady self, uint8_t frq)
+{
+    self->frq = frq;
+}
+
+bool
+FileReady_isPositive(FileReady self)
+{
+    return ((self->frq & 0x80) == 0x80);
+}
+
+uint16_t
+FileReady_getNOF(FileReady self)
+{
+    return self->nof;
+}
+
+uint32_t
+FileReady_getLengthOfFile(FileReady self)
+{
+    return self->lengthOfFile;
+}
+
+void
+FileReady_destroy(FileReady self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+FileReady
+FileReady_getFromBuffer(FileReady self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 6)
+        return NULL;
+
+    if (self == NULL) {
+       self = (FileReady) GLOBAL_MALLOC(sizeof(struct sFileReady));
+
+        if (self != NULL)
+            FileReady_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->nof = msg[startIndex++];
+        self->nof += (msg[startIndex++] * 0x100);
+
+        self->lengthOfFile = msg [startIndex++];
+        self->lengthOfFile += (msg [startIndex++] * 0x100);
+        self->lengthOfFile += (msg [startIndex++] * 0x10000);
+
+        /* FRQ */
+        self->frq = msg[startIndex];
+    }
+
+    return self;
+};
+
+/*******************************************
+ * SectionReady : InformationObject
+ *******************************************/
+
+struct sSectionReady {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint16_t nof; /* name of file */
+
+    uint8_t nameOfSection;
+
+    uint32_t lengthOfSection;
+
+    uint8_t srq; /* section ready qualifier */
+};
+
+static bool
+SectionReady_encode(SectionReady self, Frame frame, ConnectionParameters parameters, bool isSequence)
+{
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+
+    Frame_setNextByte (frame, self->nameOfSection);
+
+    Frame_setNextByte (frame, (uint8_t)(self->lengthOfSection % 0x100));
+    Frame_setNextByte (frame, (uint8_t)((self->lengthOfSection / 0x100) % 0x100));
+    Frame_setNextByte (frame, (uint8_t)((self->lengthOfSection / 0x10000) % 0x100));
+
+    Frame_setNextByte (frame, self->srq);
+
+    return true;
+}
+
+struct sInformationObjectVFT SectionReadyVFT = {
+        (EncodeFunction) SectionReady_encode,
+        (DestroyFunction) SectionReady_destroy
+};
+
+static void
+SectionReady_initialize(SectionReady self)
+{
+    self->virtualFunctionTable = &(SectionReadyVFT);
+    self->type = F_SR_NA_1;
+}
+
+SectionReady
+SectionReady_create(SectionReady self, int ioa, uint16_t nof, uint8_t nos, uint32_t lengthOfSection, bool notReady)
+{
+    if (self == NULL) {
+       self = (SectionReady) GLOBAL_MALLOC(sizeof(struct sSectionReady));
+
+        if (self == NULL)
+            return NULL;
+        else
+            SectionReady_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+    self->nof = nof;
+    self->nameOfSection = nos;
+    self->lengthOfSection = lengthOfSection;
+
+    if (notReady)
+        self->srq = 0x80;
+    else
+        self->srq = 0;
+
+    return self;
+}
+
+
+bool
+SectionReady_isNotReady(SectionReady self)
+{
+    return ((self->srq & 0x80) == 0x80);
+}
+
+uint8_t
+SectionReady_getSRQ(SectionReady self)
+{
+    return self->srq;
+}
+
+void
+SectionReady_setSRQ(SectionReady self, uint8_t srq)
+{
+    self->srq = srq;
+}
+
+uint16_t
+SectionReady_getNOF(SectionReady self)
+{
+    return self->nof;
+}
+
+uint8_t
+SectionReady_getNameOfSection(SectionReady self)
+{
+    return self->nameOfSection;
+}
+
+uint32_t
+SectionReady_getLengthOfSection(SectionReady self)
+{
+    return self->lengthOfSection;
+}
+
+void
+SectionReady_destroy(SectionReady self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+
+SectionReady
+SectionReady_getFromBuffer(SectionReady self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 7)
+        return NULL;
+
+    if (self == NULL) {
+       self = (SectionReady) GLOBAL_MALLOC(sizeof(struct sSectionReady));
+
+        if (self != NULL)
+            SectionReady_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->nof = msg[startIndex++];
+        self->nof += (msg[startIndex++] * 0x100);
+
+        self->nameOfSection = msg[startIndex++];
+
+        self->lengthOfSection = msg [startIndex++];
+        self->lengthOfSection += (msg [startIndex++] * 0x100);
+        self->lengthOfSection += (msg [startIndex++] * 0x10000);
+
+        self->srq = msg[startIndex];
+    }
+
+    return self;
+};
+
+
+/*******************************************
+ * FileCallOrSelect : InformationObject
+ *******************************************/
+
+struct sFileCallOrSelect {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint16_t nof; /* name of file */
+
+    uint8_t nameOfSection;
+
+    uint8_t scq; /* select and call qualifier */
+};
+
+static bool
+FileCallOrSelect_encode(FileCallOrSelect self, Frame frame, ConnectionParameters parameters, bool isSequence)
+{
+    int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+
+    Frame_setNextByte (frame, self->nameOfSection);
+
+    Frame_setNextByte (frame, self->scq);
+
+    return true;
+}
+
+struct sInformationObjectVFT FileCallOrSelectVFT = {
+        (EncodeFunction) FileCallOrSelect_encode,
+        (DestroyFunction) FileCallOrSelect_destroy
+};
+
+static void
+FileCallOrSelect_initialize(FileCallOrSelect self)
+{
+    self->virtualFunctionTable = &(FileCallOrSelectVFT);
+    self->type = F_SC_NA_1;
+}
+
+FileCallOrSelect
+FileCallOrSelect_create(FileCallOrSelect self, int ioa, uint16_t nof, uint8_t nos, uint8_t scq)
+{
+    if (self == NULL) {
+       self = (FileCallOrSelect) GLOBAL_MALLOC(sizeof(struct sFileCallOrSelect));
+
+        if (self == NULL)
+            return NULL;
+        else
+            FileCallOrSelect_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+    self->nof = nof;
+    self->nameOfSection = nos;
+    self->scq = scq;
+
+    return self;
+}
+
+uint16_t
+FileCallOrSelect_getNOF(FileCallOrSelect self)
+{
+    return self->nof;
+}
+
+uint8_t
+FileCallOrSelect_getNameOfSection(FileCallOrSelect self)
+{
+    return self->nameOfSection;
+}
+
+uint8_t
+FileCallOrSelect_getSCQ(FileCallOrSelect self)
+{
+    return self->scq;
+}
+
+
+void
+FileCallOrSelect_destroy(FileCallOrSelect self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+
+FileCallOrSelect
+FileCallOrSelect_getFromBuffer(FileCallOrSelect self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 4)
+        return NULL;
+
+    if (self == NULL) {
+       self = (FileCallOrSelect) GLOBAL_MALLOC(sizeof(struct sFileCallOrSelect));
+
+        if (self != NULL)
+            FileCallOrSelect_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->nof = msg[startIndex++];
+        self->nof += (msg[startIndex++] * 0x100);
+
+        self->nameOfSection = msg[startIndex++];
+
+        self->scq = msg[startIndex];
+    }
+
+    return self;
+};
+
+/*************************************************
+ * FileLastSegmentOrSection : InformationObject
+ *************************************************/
+
+struct sFileLastSegmentOrSection {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint16_t nof; /* name of file */
+
+    uint8_t nameOfSection;
+
+    uint8_t lsq; /* last section or segment qualifier */
+
+    uint8_t chs; /* checksum of section or segment */
+};
+
+static bool
+FileLastSegmentOrSection_encode(FileLastSegmentOrSection self, Frame frame, ConnectionParameters parameters, bool isSequence)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+
+    Frame_setNextByte (frame, self->nameOfSection);
+
+    Frame_setNextByte (frame, self->lsq);
+
+    Frame_setNextByte (frame, self->chs);
+
+    return true;
+}
+
+struct sInformationObjectVFT FileLastSegmentOrSectionVFT = {
+        (EncodeFunction) FileLastSegmentOrSection_encode,
+        (DestroyFunction) FileLastSegmentOrSection_destroy
+};
+
+static void
+FileLastSegmentOrSection_initialize(FileLastSegmentOrSection self)
+{
+    self->virtualFunctionTable = &(FileLastSegmentOrSectionVFT);
+    self->type = F_LS_NA_1;
+}
+
+FileLastSegmentOrSection
+FileLastSegmentOrSection_create(FileLastSegmentOrSection self, int ioa, uint16_t nof, uint8_t nos, uint8_t lsq, uint8_t chs)
+{
+    if (self == NULL) {
+       self = (FileLastSegmentOrSection) GLOBAL_MALLOC(sizeof(struct sFileLastSegmentOrSection));
+
+        if (self == NULL)
+            return NULL;
+        else
+            FileLastSegmentOrSection_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+    self->nof = nof;
+    self->nameOfSection = nos;
+    self->lsq = lsq;
+    self->chs = chs;
+
+    return self;
+}
+
+uint16_t
+FileLastSegmentOrSection_getNOF(FileLastSegmentOrSection self)
+{
+    return self->nof;
+}
+
+uint8_t
+FileLastSegmentOrSection_getNameOfSection(FileLastSegmentOrSection self)
+{
+    return self->nameOfSection;
+}
+
+uint8_t
+FileLastSegmentOrSection_getLSQ(FileLastSegmentOrSection self)
+{
+    return self->lsq;
+}
+
+uint8_t
+FileLastSegmentOrSection_getCHS(FileLastSegmentOrSection self)
+{
+    return self->chs;
+}
+
+void
+FileLastSegmentOrSection_destroy(FileLastSegmentOrSection self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+FileLastSegmentOrSection
+FileLastSegmentOrSection_getFromBuffer(FileLastSegmentOrSection self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 5)
+        return NULL;
+
+    if (self == NULL) {
+       self = (FileLastSegmentOrSection) GLOBAL_MALLOC(sizeof(struct sFileLastSegmentOrSection));
+
+        if (self != NULL)
+            FileLastSegmentOrSection_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->nof = msg[startIndex++];
+        self->nof += (msg[startIndex++] * 0x100);
+
+        self->nameOfSection = msg[startIndex++];
+
+        self->lsq = msg[startIndex];
+
+        self->chs = msg[startIndex];
+    }
+
+    return self;
+};
+
+/*************************************************
+ * FileACK : InformationObject
+ *************************************************/
+
+struct sFileACK {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint16_t nof; /* name of file */
+
+    uint8_t nameOfSection;
+
+    uint8_t afq; /* AFQ (acknowledge file or section qualifier) */
+};
+
+static bool
+FileACK_encode(FileACK self, Frame frame, ConnectionParameters parameters, bool isSequence)
+{
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+
+    Frame_setNextByte (frame, self->nameOfSection);
+
+    Frame_setNextByte (frame, self->afq);
+
+    return true;
+}
+
+struct sInformationObjectVFT FileACKVFT = {
+        (EncodeFunction) FileACK_encode,
+        (DestroyFunction) FileACK_destroy
+};
+
+static void
+FileACK_initialize(FileACK self)
+{
+    self->virtualFunctionTable = &(FileACKVFT);
+    self->type = F_AF_NA_1;
+}
+
+
+FileACK
+FileACK_create(FileACK self, int ioa, uint16_t nof, uint8_t nos, uint8_t afq)
+{
+    if (self == NULL) {
+       self = (FileACK) GLOBAL_MALLOC(sizeof(struct sFileACK));
+
+        if (self == NULL)
+            return NULL;
+        else
+            FileACK_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+    self->nof = nof;
+    self->nameOfSection = nos;
+    self->afq = afq;
+
+    return self;
+}
+
+uint16_t
+FileACK_getNOF(FileACK self)
+{
+    return self->nof;
+}
+
+uint8_t
+FileACK_getNameOfSection(FileACK self)
+{
+    return self->nameOfSection;
+}
+
+uint8_t
+FileACK_getAFQ(FileACK self)
+{
+    return self->afq;
+}
+
+void
+FileACK_destroy(FileACK self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+FileACK
+FileACK_getFromBuffer(FileACK self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 4)
+        return NULL;
+
+    if (self == NULL) {
+       self = (FileACK) GLOBAL_MALLOC(sizeof(struct sFileACK));
+
+        if (self != NULL)
+            FileACK_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->nof = msg[startIndex++];
+        self->nof += (msg[startIndex++] * 0x100);
+
+        self->nameOfSection = msg[startIndex++];
+
+        self->afq = msg[startIndex];
+    }
+
+    return self;
+};
+
+
+/*************************************************
+ * FileSegment : InformationObject
+ *************************************************/
+
+struct sFileSegment {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint16_t nof; /* name of file */
+
+    uint8_t nameOfSection;
+
+    uint8_t los; /* length of segment */
+
+    uint8_t* data; /* user data buffer - file payload */
+};
+
+static bool
+FileSegment_encode(FileSegment self, Frame frame, ConnectionParameters parameters, bool isSequence)
+{
+    if (self->los > FileSegment_GetMaxDataSize(parameters))
+        return false;
+
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+
+    Frame_setNextByte (frame, self->nameOfSection);
+
+    Frame_setNextByte (frame, self->los);
+
+    Frame_appendBytes (frame, self->data, self->los);
+
+    return true;
+}
+
+struct sInformationObjectVFT FileSegmentVFT = {
+        (EncodeFunction) FileSegment_encode,
+        (DestroyFunction) FileSegment_destroy
+};
+
+static void
+FileSegment_initialize(FileSegment self)
+{
+    self->virtualFunctionTable = &(FileSegmentVFT);
+    self->type = F_SG_NA_1;
+}
+
+FileSegment
+FileSegment_create(FileSegment self, int ioa, uint16_t nof, uint8_t nos, uint8_t* data, uint8_t los)
+{
+    if (self == NULL) {
+       self = (FileSegment) GLOBAL_MALLOC(sizeof(struct sFileSegment));
+
+        if (self == NULL)
+            return NULL;
+        else
+            FileSegment_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+    self->nof = nof;
+    self->nameOfSection = nos;
+    self->data = data;
+    self->los = los;
+
+    return self;
+}
+
+uint16_t
+FileSegment_getNOF(FileSegment self)
+{
+    return self->nof;
+}
+
+uint8_t
+FileSegment_getNameOfSection(FileSegment self)
+{
+    return self->nameOfSection;
+}
+
+uint8_t
+FileSegment_getLengthOfSegment(FileSegment self)
+{
+    return self->los;
+}
+
+uint8_t*
+FileSegment_getSegmentData(FileSegment self)
+{
+    return self->data;
+}
+
+
+int
+FileSegment_GetMaxDataSize(ConnectionParameters parameters)
+{
+    int maxSize = 249 -
+        parameters->sizeOfTypeId - parameters->sizeOfVSQ - parameters->sizeOfCA - parameters->sizeOfCOT;
+
+    return maxSize;
+}
+
+void
+FileSegment_destroy(FileSegment self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+FileSegment
+FileSegment_getFromBuffer(FileSegment self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 4)
+        return NULL;
+
+    uint8_t los = msg[startIndex + 3 + parameters->sizeOfIOA];
+
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA) + 4 + los)
+        return NULL;
+
+    if (self == NULL) {
+       self = (FileSegment) GLOBAL_MALLOC(sizeof(struct sFileSegment));
+
+        if (self != NULL)
+            FileSegment_initialize(self);
+    }
+
+    if (self != NULL) {
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->nof = msg[startIndex++];
+        self->nof += (msg[startIndex++] * 0x100);
+
+        self->nameOfSection = msg[startIndex++];
+
+        self->los = msg[startIndex++];
+
+        self->data = msg + startIndex;
+    }
+
+    return self;
+};
+
+/*************************************************
+ * FileDirectory: InformationObject
+ *************************************************/
+
+struct sFileDirectory {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint16_t nof; /* name of file */
+
+    int lengthOfFile; /* LOF */
+
+    uint8_t sof; /* state of file */
+
+    struct sCP56Time2a creationTime;
+};
+
+static bool
+FileDirectory_encode(FileDirectory self, Frame frame, ConnectionParameters parameters, bool isSequence)
+{
+    int size = isSequence ? 13 : (parameters->sizeOfIOA + 13);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+
+    Frame_setNextByte (frame, (uint8_t)(self->lengthOfFile % 0x100));
+    Frame_setNextByte (frame, (uint8_t)((self->lengthOfFile / 0x100) % 0x100));
+    Frame_setNextByte (frame, (uint8_t)((self->lengthOfFile / 0x10000) % 0x100));
+
+    Frame_setNextByte (frame, self->sof);
+
+    Frame_appendBytes(frame, self->creationTime.encodedValue, 7);
+
+    return true;
+}
+
+struct sInformationObjectVFT FileDirectoryVFT = {
+        (EncodeFunction) FileDirectory_encode,
+        (DestroyFunction) FileDirectory_destroy
+};
+
+static void
+FileDirectory_initialize(FileDirectory self)
+{
+    self->virtualFunctionTable = &(FileDirectoryVFT);
+    self->type = F_DR_TA_1;
+}
+
+FileDirectory
+FileDirectory_create(FileDirectory self, int ioa, uint16_t nof, int lengthOfFile, uint8_t sof, CP56Time2a creationTime)
+{
+    if (self == NULL) {
+       self = (FileDirectory) GLOBAL_MALLOC(sizeof(struct sFileDirectory));
+
+        if (self == NULL)
+            return NULL;
+        else
+            FileDirectory_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+    self->nof = nof;
+    self->sof = sof;
+    self->creationTime = *creationTime;
+
+    return self;
+}
+
+uint16_t
+FileDirectory_getNOF(FileDirectory self)
+{
+    return self->nof;
+}
+
+uint8_t
+FileDirectory_getSOF(FileDirectory self)
+{
+    return self->sof;
+}
+
+int
+FileDirectory_getSTATUS(FileDirectory self)
+{
+    return (int) (self->sof & CS101_SOF_STATUS);
+}
+
+bool
+FileDirectory_getLFD(FileDirectory self)
+{
+    return ((self->sof & CS101_SOF_LFD) == CS101_SOF_LFD);
+}
+
+bool
+FileDirectory_getFOR(FileDirectory self)
+{
+    return ((self->sof & CS101_SOF_FOR) == CS101_SOF_FOR);
+}
+
+bool
+FileDirectory_getFA(FileDirectory self)
+{
+    return ((self->sof & CS101_SOF_FA) == CS101_SOF_FA);
+}
+
+
+uint8_t
+FileDirectory_getLengthOfFile(FileDirectory self)
+{
+    return self->lengthOfFile;
+}
+
+CP56Time2a
+FileDirectory_getCreationTime(FileDirectory self)
+{
+    return &(self->creationTime);
+}
+
+void
+FileDirectory_destroy(FileDirectory self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+FileDirectory
+FileDirectory_getFromBuffer(FileDirectory self, ConnectionParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+{
+
+    if (self == NULL) {
+       self = (FileDirectory) GLOBAL_MALLOC(sizeof(struct sFileDirectory));
+
+        if (self != NULL)
+            FileDirectory_initialize(self);
+    }
+
+    if (self != NULL) {
+
+        if (!isSequence) {
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
+
+        self->nof = msg[startIndex++];
+        self->nof += (msg[startIndex++] * 0x100);
+
+        self->lengthOfFile = msg [startIndex++];
+        self->lengthOfFile += (msg [startIndex++] * 0x100);
+        self->lengthOfFile += (msg [startIndex++] * 0x10000);
+
+
+        self->sof = msg[startIndex++];
+
+        CP56Time2a_getFromBuffer(&(self->creationTime), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
 
 union uInformationObject {
     struct sSinglePointInformation m1;

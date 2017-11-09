@@ -91,5 +91,4 @@
 #define CONFIG_TCP_KEEPALIVE_CNT 2
 
 
-
 #endif /* CONFIG_LIB60870_CONFIG_H_ */

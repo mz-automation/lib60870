@@ -36,6 +36,10 @@
 #include "information_objects_internal.h"
 #include "lib60870_internal.h"
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+#include "tls_api.h"
+#endif
+
 struct sT104ConnectionParameters defaultConnectionParameters = {
         /* .sizeOfTypeId =  */ 1,
         /* .sizeOfVSQ = */ 1,
@@ -96,6 +100,11 @@ struct sT104Connection {
     bool failure;
     bool close;
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+    TLSConfiguration tlsConfig;
+    TLSSocket tlsSocket;
+#endif
+
     ASDUReceivedHandler receivedHandler;
     void* receivedHandlerParameter;
 
@@ -119,7 +128,18 @@ static uint8_t STOPDT_ACT_MSG[] = { 0x68, 0x04, 0x13, 0x00, 0x00, 0x00 };
 static uint8_t STARTDT_CON_MSG[] = { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
 #define STARTDT_CON_MSG_SIZE 6
 
-
+static inline int
+writeToSocket(T104Connection self, uint8_t* buf, int size)
+{
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+    if (self->tlsSocket)
+        return TLSSocket_write(self->tlsSocket, buf, size);
+    else
+        return Socket_write(self->socket, buf, size);
+#else
+    return Socket_write(self->socket, buf, size);
+#endif
+}
 
 static void
 prepareSMessage(uint8_t* msg)
@@ -138,7 +158,7 @@ sendSMessage(T104Connection self)
     msg [4] = (uint8_t) ((self->receiveCount % 128) * 2);
     msg [5] = (uint8_t) (self->receiveCount / 128);
 
-    Socket_write(self->socket, msg, 6);
+    writeToSocket(self, msg, 6);
 }
 
 static int
@@ -146,15 +166,15 @@ sendIMessage(T104Connection self, Frame frame)
 {
     T104Frame_prepareToSend((T104Frame) frame, self->sendCount, self->receiveCount);
 
-    Socket_write(self->socket, T104Frame_getBuffer(frame), T104Frame_getMsgSize(frame));
+    writeToSocket(self, T104Frame_getBuffer(frame), T104Frame_getMsgSize(frame));
 
     self->sendCount = (self->sendCount + 1) % 32768;
 
     return self->sendCount;
 }
 
-T104Connection
-T104Connection_create(const char* hostname, int tcpPort)
+static T104Connection
+createConnection(const char* hostname, int tcpPort)
 {
     T104Connection self = (T104Connection) GLOBAL_MALLOC(sizeof(struct sT104Connection));
 
@@ -174,6 +194,11 @@ T104Connection_create(const char* hostname, int tcpPort)
         self->connectionHandlingThread = NULL;
 #endif
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+        self->tlsConfig = NULL;
+        self->tlsSocket = NULL;
+#endif
+
         self->sentASDUs = NULL;
 
         prepareSMessage(self->sMessage);
@@ -182,6 +207,26 @@ T104Connection_create(const char* hostname, int tcpPort)
     return self;
 }
 
+T104Connection
+T104Connection_create(const char* hostname, int tcpPort)
+{
+    return createConnection(hostname, tcpPort);
+}
+
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+T104Connection
+T104Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguration tlsConfig)
+{
+    T104Connection self = createConnection(hostname, tcpPort);
+
+    if (self != NULL) {
+        self->tlsConfig = tlsConfig;
+        TLSConfiguration_setClientMode(tlsConfig);
+    }
+
+    return self;
+}
+#endif /* (CONFIG_CS104_SUPPORT_TLS == 1) */
 
 static void
 resetConnection(T104Connection self)
@@ -357,8 +402,33 @@ T104Connection_getConnectionParameters(T104Connection self)
     return &(self->parameters);
 }
 
-static int
-receiveMessage(Socket socket, uint8_t* buffer)
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+static inline int
+receiveMessageTlsSocket(TLSSocket socket, uint8_t* buffer)
+{
+    int readFirst = TLSSocket_read(socket, buffer, 1);
+
+    if (readFirst < 1)
+        return readFirst;
+
+    if (buffer[0] != 0x68)
+        return -1; /* message error */
+
+    if (TLSSocket_read(socket, buffer + 1, 1) != 1)
+        return -1;
+
+    int length = buffer[1];
+
+    /* read remaining frame */
+    if (TLSSocket_read(socket, buffer + 2, length) != length)
+        return -1;
+
+    return length + 2;
+}
+#endif /*  (CONFIG_CS104_SUPPORT_TLS == 1) */
+
+static inline int
+receiveMessageSocket(Socket socket, uint8_t* buffer)
 {
     int readFirst = Socket_read(socket, buffer, 1);
 
@@ -379,6 +449,20 @@ receiveMessage(Socket socket, uint8_t* buffer)
 
     return length + 2;
 }
+
+static int
+receiveMessage(T104Connection self, uint8_t* buffer)
+{
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+    if (self->tlsSocket != NULL)
+        return receiveMessageTlsSocket(self->tlsSocket, buffer);
+    else
+        return receiveMessageSocket(self->socket, buffer);
+#else
+    return receiveMessageSocket(self->socket, buffer);
+#endif
+}
+
 
 static bool
 checkConfirmTimeout(T104Connection self, long currentTime)
@@ -441,7 +525,7 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
 
         if (buffer[2] == 0x43) { /* Check for TESTFR_ACT message */
             DEBUG_PRINT("Send TESTFR_CON\n");
-            Socket_write(self->socket, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
+            writeToSocket(self, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
         }
         else if (buffer[2] == 0x83) { /* TESTFR_CON */
             DEBUG_PRINT("Rcvd TESTFR_CON\n");
@@ -449,7 +533,7 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
         }
         else if (buffer[2] == 0x07) { /* STARTDT_ACT */
             DEBUG_PRINT("Send STARTDT_CON\n");
-            Socket_write(self->socket, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
+            writeToSocket(self, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
         }
         else if (buffer[2] == 0x0b) { /* STARTDT_CON */
             DEBUG_PRINT("Received STARTDT_CON\n");
@@ -499,7 +583,7 @@ handleTimeouts(T104Connection self)
         else {
             DEBUG_PRINT("U message T3 timeout\n");
 
-            Socket_write(self->socket, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE);
+            writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE);
             self->uMessageTimeout = currentTime + (self->parameters.t1 * 1000);
             self->outstandingTestFCConMessages++;
 
@@ -559,64 +643,86 @@ handleConnection(void* parameter)
 
     if (Socket_connect(self->socket, self->hostname, self->tcpPort)) {
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+        if (self->tlsConfig != NULL) {
+            self->tlsSocket = TLSSocket_create(self->socket, self->tlsConfig);
+
+            if (self->tlsSocket)
+                self->running = true;
+            else
+                self->failure = true;
+        }
+        else
+            self->running = true;
+#else
         self->running = true;
+#endif
 
-        /* Call connection handler */
-        if (self->connectionHandler != NULL)
-            self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_OPENED);
+        if (self->running) {
 
-        HandleSet handleSet = Handleset_new();
+            /* Call connection handler */
+            if (self->connectionHandler != NULL)
+                self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_OPENED);
 
-        bool loopRunning = true;
+            HandleSet handleSet = Handleset_new();
 
-        while (loopRunning) {
+            bool loopRunning = true;
 
-            uint8_t buffer[300];
+            while (loopRunning) {
 
-            Handleset_reset(handleSet);
-            Handleset_addSocket(handleSet, self->socket);
+                uint8_t buffer[300];
 
-            if (Handleset_waitReady(handleSet, 100)) {
-                int bytesRec = receiveMessage(self->socket, buffer);
+                Handleset_reset(handleSet);
+                Handleset_addSocket(handleSet, self->socket);
 
-                if (bytesRec == -1) {
-                    loopRunning = false;
-                    self->failure = true;
-                }
+                if (Handleset_waitReady(handleSet, 100)) {
+                    int bytesRec = receiveMessage(self, buffer);
 
-                if (bytesRec > 0) {
-                    //TODO call raw message handler if available
-
-                    if (checkMessage(self, buffer, bytesRec) == false) {
-                        /* close connection on error */
-                        loopRunning= false;
+                    if (bytesRec == -1) {
+                        loopRunning = false;
                         self->failure = true;
+                    }
+
+                    if (bytesRec > 0) {
+                        //TODO call raw message handler if available
+
+                        if (checkMessage(self, buffer, bytesRec) == false) {
+                            /* close connection on error */
+                            loopRunning= false;
+                            self->failure = true;
+                        }
+                    }
+
+                    if (self->unconfirmedReceivedIMessages >= self->parameters.w) {
+                        self->lastConfirmationTime = Hal_getTimeInMs();
+                        self->unconfirmedReceivedIMessages = 0;
+                        sendSMessage(self);
                     }
                 }
 
-                if (self->unconfirmedReceivedIMessages >= self->parameters.w) {
-                    self->lastConfirmationTime = Hal_getTimeInMs();
-                    self->unconfirmedReceivedIMessages = 0;
-                    sendSMessage(self);
-                }
+                if (handleTimeouts(self) == false)
+                    loopRunning = false;
+
+                if (self->close)
+                    loopRunning = false;
             }
 
-            if (handleTimeouts(self) == false)
-                loopRunning = false;
+            Handleset_destroy(handleSet);
 
-            if (self->close)
-                loopRunning = false;
-        }
-
-        Handleset_destroy(handleSet);
-
-        /* Call connection handler */
-        if (self->connectionHandler != NULL)
+            /* Call connection handler */
+            if (self->connectionHandler != NULL)
             self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_CLOSED);
+
+        }
     }
     else {
         self->failure = true;
     }
+
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+    if (self->tlsSocket)
+        TLSSocket_close(self->tlsSocket);
+#endif
 
     Socket_destroy(self->socket);
 
@@ -698,13 +804,13 @@ encodeIOA(T104Connection self, Frame frame, int ioa)
 void
 T104Connection_sendStartDT(T104Connection self)
 {
-    Socket_write(self->socket, STARTDT_ACT_MSG, STARTDT_ACT_MSG_SIZE);
+    writeToSocket(self, STARTDT_ACT_MSG, STARTDT_ACT_MSG_SIZE);
 }
 
 void
 T104Connection_sendStopDT(T104Connection self)
 {
-    Socket_write(self->socket, STOPDT_ACT_MSG, STOPDT_ACT_MSG_SIZE);
+    writeToSocket(self, STOPDT_ACT_MSG, STOPDT_ACT_MSG_SIZE);
 }
 
 static void

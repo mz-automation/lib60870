@@ -39,6 +39,10 @@
 
 #include "apl_types_internal.h"
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+#include "tls_api.h"
+#endif
+
 #if ((CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP != 1) && (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP != 1))
 #error Illegal configuration: Define either CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP or CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP
 #endif
@@ -599,6 +603,10 @@ struct sSlave {
     ConnectionRequestHandler connectionRequestHandler;
     void* connectionRequestHandlerParameter;
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+    TLSConfiguration tlsConfig;
+#endif
+
 #if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP)
     MessageQueue asduQueue; /**< low priority ASDU queue and buffer */
     HighPriorityASDUQueue connectionAsduQueue; /**< high priority ASDU queue */
@@ -686,8 +694,9 @@ initializeMessageQueues(Slave self, int lowPrioMaxQueueSize, int highPrioMaxQueu
 }
 #endif /* (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
-Slave
-T104Slave_create(ConnectionParameters parameters, int maxLowPrioQueueSize, int maxHighPrioQueueSize)
+
+static Slave
+createSlave(ConnectionParameters parameters, int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 {
 #if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
     Slave self = &(singleStaticSlaveInstance);
@@ -730,6 +739,10 @@ T104Slave_create(ConnectionParameters parameters, int maxLowPrioQueueSize, int m
         self->openConnections = 0;
         self->listeningThread = NULL;
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+        self->tlsConfig = NULL;
+#endif
+
 #if (CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
         self->serverMode = SINGLE_REDUNDANCY_GROUP;
 #else
@@ -737,11 +750,31 @@ T104Slave_create(ConnectionParameters parameters, int maxLowPrioQueueSize, int m
         self->serverMode = CONNECTION_IS_REDUNDANCY_GROUP;
 #endif
 #endif
-
     }
 
     return self;
 }
+
+Slave
+T104Slave_create(ConnectionParameters parameters, int maxLowPrioQueueSize, int maxHighPrioQueueSize)
+{
+    return createSlave(parameters, maxLowPrioQueueSize, maxHighPrioQueueSize);
+}
+
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+Slave
+T104Slave_createSecure(ConnectionParameters parameters, int maxLowPrioQueueSize, int maxHighPrioQueueSize, TLSConfiguration tlsConfig)
+{
+    Slave self = createSlave(parameters, maxLowPrioQueueSize, maxHighPrioQueueSize);
+
+    if (self != NULL) {
+        self->tcpPort = 19998;
+        self->tlsConfig = tlsConfig;
+    }
+
+    return self;
+}
+#endif /* (CONFIG_CS104_SUPPORT_TLS == 1) */
 
 void
 T104Slave_setServerMode(Slave self, ServerMode serverMode)
@@ -896,7 +929,13 @@ typedef struct {
 } SentASDUSlave;
 
 struct sMasterConnection {
+
     Socket socket;
+
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+    TLSSocket tlsSocket;
+#endif
+
     Slave slave;
     bool isActive;
     bool isRunning;
@@ -954,9 +993,33 @@ printSendBuffer(MasterConnection self)
         DEBUG_PRINT("k-buffer is empty\n");
 }
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+static inline int
+receiveMessageTlsSocket(TLSSocket socket, uint8_t* buffer)
+{
+    int readFirst = TLSSocket_read(socket, buffer, 1);
 
-static int
-receiveMessage(Socket socket, uint8_t* buffer)
+    if (readFirst < 1)
+        return readFirst;
+
+    if (buffer[0] != 0x68)
+        return -1; /* message error */
+
+    if (TLSSocket_read(socket, buffer + 1, 1) != 1)
+        return -1;
+
+    int length = buffer[1];
+
+    /* read remaining frame */
+    if (TLSSocket_read(socket, buffer + 2, length) != length)
+        return -1;
+
+    return length + 2;
+}
+#endif /*  (CONFIG_CS104_SUPPORT_TLS == 1) */
+
+static inline int
+receiveMessageSocket(Socket socket, uint8_t* buffer)
 {
     int readFirst = Socket_read(socket, buffer, 1);
 
@@ -979,6 +1042,32 @@ receiveMessage(Socket socket, uint8_t* buffer)
 }
 
 static int
+receiveMessage(MasterConnection self, uint8_t* buffer)
+{
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+    if (self->tlsSocket != NULL)
+        return receiveMessageTlsSocket(self->tlsSocket, buffer);
+    else
+        return receiveMessageSocket(self->socket, buffer);
+#else
+    return receiveMessageSocket(self->socket, buffer);
+#endif
+}
+
+static inline int
+writeToSocket(MasterConnection self, uint8_t* buf, int size)
+{
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+    if (self->tlsSocket)
+        return TLSSocket_write(self->tlsSocket, buf, size);
+    else
+        return Socket_write(self->socket, buf, size);
+#else
+    return Socket_write(self->socket, buf, size);
+#endif
+}
+
+static int
 sendIMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 {
     //TODO lock socket?
@@ -992,7 +1081,7 @@ sendIMessage(MasterConnection self, uint8_t* buffer, int msgSize)
     buffer[4] = (uint8_t) ((self->receiveCount % 128) * 2);
     buffer[5] = (uint8_t) (self->receiveCount / 128);
 
-    if (Socket_write(self->socket, buffer, msgSize) != -1) {
+    if (writeToSocket(self, buffer, msgSize) != -1) {
         DEBUG_PRINT("SEND I (size = %i) N(S) = %i N(R) = %i\n", msgSize, self->sendCount, self->receiveCount);
         self->sendCount = (self->sendCount + 1) % 32768;
         self->unconfirmedReceivedIMessages = 0;
@@ -1434,7 +1523,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
     else if ((buffer[2] & 0x43) == 0x43) {
         DEBUG_PRINT("Send TESTFR_CON\n");
 
-        Socket_write(self->socket, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
+        writeToSocket(self, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
     }
 
     /* Check for STARTDT_ACT message */
@@ -1447,7 +1536,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
         HighPriorityASDUQueue_resetConnectionQueue(self->highPrioQueue);
 
-        Socket_write(self->socket, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
+        writeToSocket(self, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
     }
 
     /* Check for STOPDT_ACT message */
@@ -1456,7 +1545,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
         self->isActive = false;
 
-        Socket_write(self->socket, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE);
+        writeToSocket(self, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE);
     }
 
     /* Check for TESTFR_CON message */
@@ -1499,13 +1588,19 @@ sendSMessage(MasterConnection self)
     msg[4] = (uint8_t) ((self->receiveCount % 128) * 2);
     msg[5] = (uint8_t) (self->receiveCount / 128);
 
-    Socket_write(self->socket, msg, 6);
+    writeToSocket(self, msg, 6);
 }
 
 static void
 MasterConnection_destroy(MasterConnection self)
 {
     if (self) {
+
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+      if (self->tlsSocket != NULL)
+          TLSSocket_close(self->tlsSocket);
+#endif
+
         Socket_destroy(self->socket);
 
         GLOBAL_FREEMEM(self->sentASDUs);
@@ -1623,7 +1718,7 @@ handleTimeouts(MasterConnection self)
             timeoutsOk = false;
         }
         else {
-            if (Socket_write(self->socket, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE) == -1)
+            if (writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE) == -1)
                 self->isRunning = false;
 
             self->outstandingTestFRConMessages++;
@@ -1715,7 +1810,7 @@ connectionHandlingThread(void* parameter)
 
         if (Handleset_waitReady(handleSet, socketTimeout)) {
 
-            int bytesRec = receiveMessage(self->socket, buffer);
+            int bytesRec = receiveMessage(self, buffer);
 
             if (bytesRec == -1) {
                 DEBUG_PRINT("Error reading from socket\n");
@@ -1791,6 +1886,21 @@ MasterConnection_create(Slave slave, Socket socket, MessageQueue lowPrioQueue, H
 
 #if (CONFIG_SLAVE_USING_THREADS == 1)
         self->sentASDUsLock = Semaphore_create(1);
+#endif
+
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+        if (slave->tlsConfig != NULL) {
+            self->tlsSocket = TLSSocket_create(socket, slave->tlsConfig);
+
+            if (self->tlsSocket == NULL) {
+                printf("Close connection\n");
+
+                MasterConnection_destroy(self);
+                return NULL;
+            }
+        }
+        else
+            self->tlsSocket = NULL;
 #endif
 
         self->lowPrioQueue = lowPrioQueue;
@@ -1922,16 +2032,21 @@ serverThread (void* parameter)
                 MasterConnection connection =
                         MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
 
-#if (CONFIG_SLAVE_USING_THREADS)
-                Semaphore_wait(self->openConnectionsLock);
-#endif
-
-                self->openConnections++;
-                LinkedList_add(self->masterConnections, connection);
+                if (connection) {
 
 #if (CONFIG_SLAVE_USING_THREADS)
-                Semaphore_post(self->openConnectionsLock);
+                    Semaphore_wait(self->openConnectionsLock);
 #endif
+
+                    self->openConnections++;
+                    LinkedList_add(self->masterConnections, connection);
+
+#if (CONFIG_SLAVE_USING_THREADS)
+                    Semaphore_post(self->openConnectionsLock);
+#endif
+                }
+                else
+                    DEBUG_PRINT("Connection attempt failed!");
 
             }
             else {

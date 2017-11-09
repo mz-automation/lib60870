@@ -25,9 +25,10 @@
 #include "frame.h"
 #include "t104_frame.h"
 #include "lib60870_internal.h"
+#include "lib_memory.h"
 
 #ifndef CONFIG_LIB60870_STATIC_FRAMES
-#define CONFIG_LIB60870_STATIC_FRAMES 1
+#define CONFIG_LIB60870_STATIC_FRAMES 0
 #endif
 
 
@@ -109,9 +110,14 @@ T104Frame_create()
     T104Frame self = getNextFreeFrame();
 
 #else
-    T104Frame self = malloc(sizeof(struct sT104Frame));
+    T104Frame self = (T104Frame) GLOBAL_MALLOC(sizeof(struct sT104Frame));
 
     if (self != NULL) {
+
+        int i;
+        for (i = 0; i < 256; i++)
+            self->buffer[i] = 0;
+
         self->virtualFunctionTable = &t104FrameVFT;
         self->buffer[0] = 0x68;
         self->msgSize = 6;
