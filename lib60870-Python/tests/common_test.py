@@ -91,6 +91,38 @@ class CP16Time2aTest(unittest.TestCase):
         self.assertEqual(50000, sut.get_millisecond())
 
 
+class CPxxTime2aCompare(unittest.TestCase):
+    def test_compare_56_to_56(self):
+        a = CP56Time2a()
+        b = CP56Time2a()
+        self.assertTrue(a == b)
+
+    def test_compare_24_to_24(self):
+        a = CP24Time2a()
+        b = CP24Time2a()
+        self.assertTrue(a == b)
+
+    def test_compare_16_to_16(self):
+        a = CP16Time2a()
+        b = CP16Time2a()
+        self.assertTrue(a == b)
+
+    def test_compare_16_to_24(self):
+        a = CP16Time2a()
+        b = CP24Time2a()
+        self.assertFalse(a == b)
+
+    def test_compare_56_to_24(self):
+        a = CP56Time2a()
+        b = CP24Time2a()
+        self.assertFalse(a == b)
+
+    def test_compare_56_to_16(self):
+        a = CP56Time2a()
+        b = CP16Time2a()
+        self.assertFalse(a == b)
+
+
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(name)s:%(levelname)s:%(message)s', level=logging.DEBUG)
     unittest.main()

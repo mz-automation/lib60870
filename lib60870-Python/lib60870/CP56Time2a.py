@@ -16,6 +16,11 @@ class CP56Time2a(ctypes.Structure):
         if ms_timestamp is not None:
             self.from_timestamp(ms_timestamp)
 
+    def __eq__(self, other):
+        a = self.encodedValue
+        b = other.encodedValue
+        return len(a) == len(b) and all(x == y for x, y in zip(a,b))
+
     def from_timestamp(self, ms_timestamp):
         lib.CP56Time2a_setFromMsTimestamp(pCP56Time2a(self), c_uint64(ms_timestamp))
 

@@ -14,6 +14,11 @@ class CP24Time2a(ctypes.Structure):
     def __init__(self):
         self.encodedValue = (c_uint8 * 3)()
 
+    def __eq__(self, other):
+        a = self.encodedValue
+        b = other.encodedValue
+        return len(a) == len(b) and all(x == y for x, y in zip(a,b))
+
     def __repr__(self):
         return "CP24Time2a({})".format(self.to_ms_timestamp())
 
