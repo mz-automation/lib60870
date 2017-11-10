@@ -80,13 +80,13 @@ main(int argc, char** argv)
     TLSConfiguration tlsConfig = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig, true);
-    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, false);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
 
     TLSConfiguration_setOwnKeyFromFile(tlsConfig, "client1-key.pem", NULL);
     TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "client1.cer");
     TLSConfiguration_addCACertificateFromFile(tlsConfig, "root.cer");
 
- //   TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "client1.cer");
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "client1.cer");
 
     T104Connection con = T104Connection_createSecure("127.0.0.1", IEC_60870_5_104_DEFAULT_TLS_PORT, tlsConfig);
 

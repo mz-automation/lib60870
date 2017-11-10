@@ -220,11 +220,19 @@ ASDU_addInformationObject(ASDU self, InformationObject io)
             self
     };
 
-    bool encoded;
+    bool encoded = false;
 
-    if (ASDU_getNumberOfElements(self) == 0)
+
+    int numberOfElements = ASDU_getNumberOfElements(self);
+
+    if (numberOfElements == 0) {
+        if (self->stackCreated == false) {
+            ((StaticASDU)self)->encodedData[0] = (uint8_t) InformationObject_getType(io);
+        }
+
         encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);
-    else {
+    }
+    else if (numberOfElements < 0x7f) {
 
         if (ASDU_isSequence(self)) {
 

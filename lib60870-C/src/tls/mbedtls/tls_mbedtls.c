@@ -16,7 +16,6 @@
 #include "lib_memory.h"
 #include "linked_list.h"
 
-#include "mbedtls/config.h"
 #include "mbedtls/platform.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
