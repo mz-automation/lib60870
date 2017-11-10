@@ -15,9 +15,7 @@ from lib60870.CP16Time2a import CP16Time2a
 class CP56Time2aTest(unittest.TestCase):
     def test_creation_from_0(self):
         ts_ms = 0  # 1970-01-01 00:00:00.000
-        sut = CP56Time2a()
-        sut.from_timestamp(0)
-        # self.assertEqual(sut.to_ms_timestamp(), ts_ms)
+        sut = CP56Time2a(0)
         self.assertEqual(sut.get_year(), 70)
         self.assertEqual(sut.get_month(), 1)
         self.assertEqual(sut.get_day_of_month(), 1)

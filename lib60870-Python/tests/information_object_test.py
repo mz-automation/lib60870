@@ -8,7 +8,22 @@ import time
 
 sys.path.insert(1, '../')
 from lib60870.information_object import *
-from lib60870.CP24Time2a import *
+from lib60870.CP16Time2a import CP16Time2a, pCP16Time2a
+from lib60870.CP24Time2a import CP24Time2a, pCP24Time2a
+from lib60870.CP56Time2a import CP56Time2a, pCP56Time2a
+from lib60870.lib60870 import TypeID
+
+class InformationObjectTest(unittest.TestCase):
+    def setUp(self):
+        ioa = 0
+        self.sut = InformationObject(ioa)
+
+    def test_init(self):
+        pass
+
+    def test_initial_values(self):
+        self.assertEqual(self.sut.get_type_id(), TypeID.INVALID)
+        self.assertEqual(self.sut.get_object_address(), 0)
 
 
 class SinglePointInformationTest(unittest.TestCase):
@@ -22,6 +37,7 @@ class SinglePointInformationTest(unittest.TestCase):
         pass
 
     def test_initial_values(self):
+        self.assertEqual(self.sut.get_type_id(), TypeID.M_SP_NA_1)
         self.assertEqual(self.sut.get_object_address(), 400)
         self.assertEqual(self.sut.get_value(), 0)
         self.assertEqual(self.sut.get_quality(), 2)
@@ -39,6 +55,7 @@ class SinglePointWithCP24Time2aTest(unittest.TestCase):
         pass
 
     def test_initial_values(self):
+        self.assertEqual(self.sut.get_type_id(), TypeID.M_SP_TA_1)
         self.assertEqual(self.sut.get_object_address(), 400)
         self.assertEqual(self.sut.get_value(), 0)
         self.assertEqual(self.sut.get_quality(), 2)
@@ -56,6 +73,7 @@ class DoublePointInformationTest(unittest.TestCase):
         pass
 
     def test_initial_values(self):
+        self.assertEqual(self.sut.get_type_id(), TypeID.M_DP_NA_1)
         self.assertEqual(self.sut.get_object_address(), 400)
         self.assertEqual(self.sut.get_value(), 0)
         self.assertEqual(self.sut.get_quality(), 2)
@@ -73,6 +91,7 @@ class DoublePointWithCP24Time2aTest(unittest.TestCase):
         pass
 
     def test_initial_values(self):
+        self.assertEqual(self.sut.get_type_id(), TypeID.M_DP_TA_1)
         self.assertEqual(self.sut.get_object_address(), 400)
         self.assertEqual(self.sut.get_value(), 0)
         self.assertEqual(self.sut.get_quality(), 2)
@@ -91,6 +110,7 @@ class StepPositionInformationTest(unittest.TestCase):
         pass
 
     def test_initial_values(self):
+        self.assertEqual(self.sut.get_type_id(), TypeID.M_ST_NA_1)
         self.assertEqual(self.sut.get_object_address(), 400)
         self.assertEqual(self.sut.get_value(), 0)
         self.assertEqual(self.sut.get_quality(), 2)
@@ -110,6 +130,7 @@ class StepPositionWithCP24Time2aTest(unittest.TestCase):
         pass
 
     def test_initial_values(self):
+        self.assertEqual(self.sut.get_type_id(), TypeID.M_ST_TA_1)
         self.assertEqual(self.sut.get_object_address(), 400)
         self.assertEqual(self.sut.get_value(), 0)
         self.assertEqual(self.sut.get_quality(), 2)
@@ -129,6 +150,7 @@ class SinglePointWithCP56Time2aTest(unittest.TestCase):
         pass
 
     def test_initial_values(self):
+        self.assertEqual(self.sut.get_type_id(), TypeID.M_SP_TB_1)
         self.assertEqual(self.sut.get_object_address(), 400)
         self.assertEqual(self.sut.get_value(), 0)
         self.assertEqual(self.sut.get_quality(), 2)
