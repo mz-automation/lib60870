@@ -30,11 +30,11 @@ class T104Connection():
         self.destroy()
 
     def destroy(self):
-        logger.debug("calling T104Connection_destroy({})".format(self.con))
+        logger.debug("calling T104Connection_destroy()")
         lib.T104Connection_destroy(self.con)
 
     def connect(self):
-        logger.debug("calling T104Connection_connect({})".format(self.con))
+        logger.debug("calling T104Connection_connect()")
         lib.T104Connection_connect.restype = c_bool
         return lib.T104Connection_connect(self.con)
 
