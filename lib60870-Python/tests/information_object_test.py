@@ -24,6 +24,8 @@ class InformationObjectTest(unittest.TestCase):
     def test_initial_values(self):
         self.assertEqual(self.sut.get_type_id(), TypeID.INVALID)
         self.assertEqual(self.sut.get_object_address(), 0)
+        self.assertEqual(self.sut.get_value(), None)
+        self.assertEqual(self.sut.get_timestamp(), None)
 
 
 class SinglePointInformationTest(unittest.TestCase):
@@ -41,6 +43,7 @@ class SinglePointInformationTest(unittest.TestCase):
         self.assertEqual(self.sut.get_object_address(), 400)
         self.assertEqual(self.sut.get_value(), 0)
         self.assertEqual(self.sut.get_quality(), 2)
+        self.assertEqual(self.sut.get_timestamp(), None)
 
 
 class SinglePointWithCP24Time2aTest(unittest.TestCase):

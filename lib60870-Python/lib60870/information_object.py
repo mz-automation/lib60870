@@ -50,6 +50,11 @@ class IOBase():
     def get_pointer_type(self):
         return ctypes.POINTER(type(self))
 
+    def get_value(self):
+        return None
+
+    def get_timestamp(self):
+        return None
 
 class StatusAndStatusChangeDetection(ctypes.Structure):
     _fields_ = [
