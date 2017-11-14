@@ -14,20 +14,54 @@ logger = logging.getLogger(__name__)
 class ASDU(ctypes.Structure):
     _fields_ = [
         ("stackCreated", c_bool),
-        ("parameters", pConnectionParameters),
+        ("parameters", ctypes.POINTER(ConnectionParameters)),
         ("asdu", ctypes.POINTER(c_uint8)),
         ("asduHeaderLength", c_int),
         ("payload", ctypes.POINTER(c_uint8)),
         ("payloadSize", c_int),
+        ("encodedData", c_uint8 * 256)
         ]
 
-    def __init__(self):
-        self.stackCreated = c_bool(True)
-        self.parameters = pConnectionParameters(ConnectionParameters())
-        self.asdu = ctypes.POINTER(c_uint8)(ctypes.create_string_buffer(256))
+    def __init__(self,
+                 parameters=None,
+                 type_id=lib60870.TypeID.INVALID,
+                 is_sequence=False,
+                 cot=lib60870.CauseOfTransmission.INVALID,
+                 oa=0,
+                 ca=1,
+                 is_test=False,
+                 is_negative=False):
+        assert isinstance(cot, lib60870.CauseOfTransmission)
+        assert isinstance(type_id, TypeID)
+        if not parameters:
+            parameters = default_connection_parameters
+        assert isinstance(parameters, ConnectionParameters)
+
+        self.stackCreated = c_bool(True)  # Prevent library from calling ASDU_destroy()
+        self.parameters = parameters.pointer
+        self.asdu = ctypes.POINTER(c_uint8)(self.encodedData)
         self.asduHeaderLength = c_int(0)
         self.payload = self.asdu
-        self.payloadSize = 0
+        self.payloadSize = c_int(0)
+
+        asduHeaderLength = 2 + parameters.sizeOfCOT + parameters.sizeOfCA
+        self.encodedData[0] = c_uint8(type_id.value)
+        self.encodedData[1] = c_uint8(0x80) if (is_sequence) else c_uint8(0)
+        self.encodedData[2] = c_uint8(cot.value & 0x3f)
+        if (is_test):
+            self.encodedData[2] |= c_uint8(0x80)
+        if (is_negative):
+            self.encodedData[2] |= c_uint8(0x40)
+        if (parameters.sizeOfCOT > 1):
+            self.encodedData[3] = c_uint8(oa)
+            caIndex = 4
+        else:
+            caIndex = 3
+        self.encodedData[caIndex] = c_uint8(ca & 0xFF)
+        if parameters.sizeOfCA > 1:
+            self.encodedData[caIndex + 1] = c_uint8(ca >> 8)
+        self.asduHeaderLength = c_int(asduHeaderLength)
+        self.payload = ctypes.cast(ctypes.byref(self.encodedData, asduHeaderLength), ctypes.POINTER(c_uint8))
 
     def __del__(self):
         pass
