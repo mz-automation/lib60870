@@ -100,7 +100,7 @@ class IEC60870_5_TypeID(enum.Enum):
     F_SC_NB_1 = 127
 
     @property
-    def c_enum(self):
+    def c_value(self):
         return ctypes.c_int(self.value)
 
 TypeID = IEC60870_5_TypeID
@@ -113,11 +113,12 @@ class IEC60870ConnectionEvent(enum.Enum):
     IEC60870_CONNECTION_STOPDT_CON_RECEIVED = 3
 
     @property
-    def c_enum(self):
+    def c_value(self):
         return ctypes.c_int(self.value)
 
 
 class CauseOfTransmission(enum.Enum):
+    INVALID = 0
     PERIODIC = 1
     BACKGROUND_SCAN = 2
     SPONTANEOUS = 3
@@ -162,7 +163,7 @@ class CauseOfTransmission(enum.Enum):
     UNKNOWN_INFORMATION_OBJECT_ADDRESS = 47
 
     @property
-    def c_enum(self):
+    def c_value(self):
         return ctypes.c_int(self.value)
 
 
@@ -188,10 +189,29 @@ class QualifierOfInterrogation(enum.Enum):
     IEC60870_QOI_GROUP_16 = 36
 
     @property
-    def c_enum(self):
+    def c_value(self):
         return ctypes.c_int(self.value)
 
 
+class QualityDescriptor(enum.Flag):
+    IEC60870_QUALITY_GOOD = 0  #
+    IEC60870_QUALITY_OVERFLOW = 0x01  # QualityDescriptor
+    IEC60870_QUALITY_RESERVED = 0x04  # QualityDescriptorP
+    IEC60870_QUALITY_ELAPSED_TIME_INVALID = 0x08  # QualityDescriptorP
+    IEC60870_QUALITY_BLOCKED = 0x10  # QualityDescriptor QualityDescriptorP
+    IEC60870_QUALITY_SUBSTITUTED = 0x20  # QualityDescriptor QualityDescriptorP
+    IEC60870_QUALITY_NON_TOPICAL = 0x40  # QualityDescriptor QualityDescriptorP
+    IEC60870_QUALITY_INVALID = 0x80  # QualityDescriptor, QualityDescriptorP
+
+    @property
+    def c_value(self):
+        return ctypes.c_uint8(self.value)
+
+    @classmethod
+    def from_c(cls, value):
+        return cls(int(value.value))
+
+QualityDescriptorP = QualityDescriptor
 
 def get_library():
     return lib

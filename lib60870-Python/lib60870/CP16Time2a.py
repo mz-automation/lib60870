@@ -37,4 +37,9 @@ class CP16Time2a(ctypes.Structure):
     def set_millisecond(self, value):
         assert(0 <= value < 60000)
         lib.CP16Time2a_setEplapsedTimeInMs(pCP16Time2a(self), c_int(value))
+
+    @property
+    def pointer(self):
+        return pCP16Time2a(self)
+
 pCP16Time2a = ctypes.POINTER(CP16Time2a)

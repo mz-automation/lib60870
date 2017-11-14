@@ -131,4 +131,9 @@ class CP56Time2a(ctypes.Structure):
 
     def set_substituted(self):
         lib.CP56Time2a_setSubstituted(pCP56Time2a(self), c_bool(value))
+
+    @property
+    def pointer(self):
+        return pCP56Time2a(self)
+
 pCP56Time2a = ctypes.POINTER(CP56Time2a)

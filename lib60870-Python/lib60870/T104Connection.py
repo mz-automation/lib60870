@@ -4,8 +4,8 @@ import time
 from ctypes import *
 
 from lib60870.common import *
-from lib60870.CP56Time2a import CP56Time2a, pCP56Time2a
-from lib60870.asdu import pConnectionParameters, pASDU
+from lib60870.CP56Time2a import CP56Time2a
+from lib60870.asdu import ASDU, pASDU
 from lib60870.information_object import pInformationObject
 from lib60870 import lib60870
 
@@ -66,16 +66,16 @@ class T104Connection():
         lib.T104Connection_sendInterrogationCommand.restype = c_bool
         return lib.T104Connection_sendInterrogationCommand(
             self.con,
-            cot.c_enum,
+            cot.c_value,
             c_int(ca),
-            qoi.c_enum)
+            qoi.c_value)
 
     def send_counter_interrogation_command(self, cot, ca, qcc):
         logger.debug("calling T104Connection_sendCounterInterrogationCommand()")
         lib.T104Connection_sendCounterInterrogationCommand.restype = c_bool
         return lib.T104Connection_sendCounterInterrogationCommand(
             self.con,
-            cot.c_enum,
+            cot.c_value,
             c_int(ca),
             c_int(qcc))
 
@@ -91,7 +91,7 @@ class T104Connection():
         lib.T104Connection_sendClockSyncCommand(
             self.con,
             c_int(ca),
-            pCP56Time2a(cp56time2a))
+            cp56time2a.pointer)
 
     def send_control_command(self, cot, ca, command):
         lib.T104Connection_sendControlCommand.restype = c_bool
@@ -99,13 +99,13 @@ class T104Connection():
         return lib.T104Connection_sendControlCommand(
             self.con,
             type_id,
-            cot.c_enum,
+            cot.c_value,
             c_int(ca),
             pInformationObject(command))
 
     def send_asdu(self, asdu):
         lib.T104Connection_sendASDU.restype = c_bool
-        return lib.T104Connection_sendASDU(self.con, pASDU(asdu))
+        return lib.T104Connection_sendASDU(self.con, asdu.pointer)
 
     def set_connection_handler(self, callback, parameter=None):
         logger.debug("setting connection callback")

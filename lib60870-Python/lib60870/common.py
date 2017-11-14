@@ -7,6 +7,7 @@ lib = lib60870.get_library()
 
 logger = logging.getLogger(__name__)
 
+
 class BinaryCounterReading(ctypes.Structure):
     _fields_ = [("encodedValue", c_uint8 * 5)]
 pBinaryCounterReading = ctypes.POINTER(BinaryCounterReading)
@@ -26,4 +27,18 @@ class ConnectionParameters(ctypes.Structure):
         output = "{}(".format(type(self).__name__)
         output += ", ".join(["{}={}".format(field[0],  getattr(self, field[0])) for field in self._fields_])
         return output + ")"
+
+    @property
+    def pointer(self):
+        return pConnectionParameters(self)
+
 pConnectionParameters = ctypes.POINTER(ConnectionParameters)
+
+
+default_connection_parameters = ConnectionParameters(
+    sizeOfTypeId=1,
+    sizeOfVSQ=1,
+    sizeOfCOT=2,
+    originatorAddress=0,
+    sizeOfCA=2,
+    sizeOfIOA=3)
