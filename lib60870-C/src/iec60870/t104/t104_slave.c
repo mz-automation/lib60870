@@ -2104,7 +2104,8 @@ Slave_enqueueASDU(Slave self, ASDU asdu)
     }
 #endif /* (CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1) */
 
-    ASDU_destroy(asdu);
+    if (ASDU_isStackCreated(asdu) == false)
+        ASDU_destroy(asdu);
 
     //TODO trigger active connection(s) to send message?
 }
