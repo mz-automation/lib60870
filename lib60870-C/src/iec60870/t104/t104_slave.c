@@ -2148,7 +2148,9 @@ Slave_stop(Slave self)
             Thread_sleep(1);
     }
 
-    Thread_destroy(self->listeningThread);
+    if (self->listeningThread) {
+        Thread_destroy(self->listeningThread);
+    }
 
     self->listeningThread = NULL;
 }
