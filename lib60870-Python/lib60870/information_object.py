@@ -2678,7 +2678,7 @@ def GetIoTypeFromTypeId(type_id):
     Look-up function used for setting the return type of ASDU.get_upcasted_element(i)
     """
     type_id_to_struct = {
-        lib60870.TypeID.INVALID: None,
+        lib60870.TypeID.INVALID: InformationObject,
         lib60870.TypeID.M_SP_NA_1: SinglePointInformation,  # 1
         lib60870.TypeID.M_SP_TA_1: SinglePointWithCP24Time2a,  # 2
         lib60870.TypeID.M_DP_NA_1: DoublePointInformation,  # 3
@@ -2735,6 +2735,7 @@ def GetIoTypeFromTypeId(type_id):
         lib60870.TypeID.C_CI_NA_1: CounterInterrogationCommand,  # 101 - Counter interrogation command
         lib60870.TypeID.C_RD_NA_1: ReadCommand,  # 102 - Read command
         lib60870.TypeID.C_CS_NA_1: ClockSynchronizationCommand,  # 103 - Clock synchronization command
+        #lib60870.TypeID.C_TS_NA_1: TestCommand #104
         lib60870.TypeID.C_RP_NA_1: ResetProcessCommand,  # 105 - Reset process command
         lib60870.TypeID.C_CD_NA_1: DelayAcquisitionCommand,  # 106 - Delay acquisition command
         lib60870.TypeID.P_ME_NA_1: ParameterNormalizedValue,  # 110 - Parameter of measured values, normalized value
@@ -2750,4 +2751,4 @@ def GetIoTypeFromTypeId(type_id):
         lib60870.TypeID.F_SG_NA_1: FileSegment,  # 125 - File segment
         lib60870.TypeID.F_DR_TA_1: FileDirectory,  # 126 - File directory
     }
-    return type_id_to_struct[type_id]
+    return type_id_to_struct.get(type_id, InformationObject)
