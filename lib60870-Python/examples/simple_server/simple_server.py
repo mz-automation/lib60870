@@ -84,8 +84,7 @@ if __name__ == "__main__":
     t104slave.set_interrogation_handler(interrogation_callback)
     t104slave.set_asdu_handler(asdu_callback)
 
-    t104slave.start()
-    if not t104slave.is_running():
+    if not t104slave.start():
         raise RuntimeError("Server not started")
 
     try:

@@ -99,6 +99,7 @@ class T104Slave():
     def start(self):
         logger.debug("calling Slave_start()")
         lib.Slave_start(self.con)
+        return self.is_running()
 
     def stop(self):
         logger.debug("calling Slave_stop()")
