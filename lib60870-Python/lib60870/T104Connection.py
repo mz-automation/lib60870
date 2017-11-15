@@ -93,6 +93,10 @@ class T104Connection():
             c_int(ca),
             cp56time2a.pointer)
 
+    def send_test_command(self, ca=1):
+        lib.T104Connection_sendTestCommand.restype = c_bool
+        return lib.T104Connection_sendTestCommand(self.con, c_int(ca))
+
     def send_control_command(self, cot, ca, command):
         lib.T104Connection_sendControlCommand.restype = c_bool
         type_id = command.type
