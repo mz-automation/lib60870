@@ -130,7 +130,8 @@ class ASDU(ctypes.Structure):
         io_type = information_object.GetIoTypeFromTypeId(self.get_type_id())
         lib.ASDU_getElement.restype = ctypes.POINTER(io_type)
         io = lib.ASDU_getElement(self.pointer, c_int(index))
-        return io.contents
+        if io:
+            return io.contents
 
     def add_information_object(self, io):
         if(self.get_type_id() != io.get_type_id()):
