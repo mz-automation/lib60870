@@ -74,22 +74,18 @@ asduReceivedHandler (void* parameter, ASDU asdu)
     return true;
 }
 
-static const char* default_ip = "localhost";
-
 int
 main(int argc, char** argv)
 {
-    const char* ip = default_ip;
+    const char* ip = "localhost";
     uint16_t port = IEC_60870_5_104_DEFAULT_PORT;
 
     if (argc > 1)
-    {
         ip = argv[1];
-    }
+
     if (argc > 2)
-    {
-        port = strtol(argv[2], NULL, 10);
-    }
+        port = atoi(argv[2]);
+
     printf("Connecting to: %s:%i\n", ip, port);
     T104Connection con = T104Connection_create(ip, port);
 
