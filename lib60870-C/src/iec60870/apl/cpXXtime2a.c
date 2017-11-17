@@ -352,7 +352,7 @@ CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
 
     CP56Time2a_setMonth(self, tmTime.tm_mon + 1);
 
-    CP56Time2a_setYear(self, tmTime.tm_year % 100);
+    CP56Time2a_setYear(self, tmTime.tm_year);
 }
 
 
@@ -388,24 +388,6 @@ CP56Time2a_getFromBuffer(CP56Time2a self, uint8_t* msg, int msgSize, int startIn
 
     return true;
 }
-
-#if 0
-CP56Time2a
-CP56Time2a_createFromBuffer(uint8_t* msg, int msgSize, int startIndex)
-{
-    if (msgSize < startIndex + 7)
-        return NULL;
-
-    CP56Time2a self = GLOBAL_MALLOC(sizeof(struct sCP56Time2a));
-
-    if (self != NULL) {
-        for (int i = 0; i < 7; i++)
-            self->encodedValue[i] = msg[startIndex + i];
-    }
-
-    return self;
-}
-#endif
 
 int
 CP56Time2a_getMillisecond(CP56Time2a self)
@@ -500,6 +482,8 @@ CP56Time2a_getYear(CP56Time2a self)
 void
 CP56Time2a_setYear(CP56Time2a self, int value)
 {
+    value = value % 100;
+
     self->encodedValue[6] = (uint8_t) ((self->encodedValue[6] & 0x80) + (value & 0x7f));
 }
 
