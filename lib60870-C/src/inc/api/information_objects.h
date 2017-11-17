@@ -998,7 +998,7 @@ float
 SetpointCommandNormalized_getValue(SetpointCommandNormalized self);
 
 int
-SetPointCommandNormalized_getQL(SetpointCommandNormalized self);
+SetpointCommandNormalized_getQL(SetpointCommandNormalized self);
 
 bool
 SetpointCommandNormalized_isSelect(SetpointCommandNormalized self);

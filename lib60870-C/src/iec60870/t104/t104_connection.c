@@ -350,20 +350,16 @@ isSentBufferFull(T104Connection self)
         return false;
 }
 
-static void
+void
 T104Connection_close(T104Connection self)
 {
-    if (self->running) {
-
-        self->close = true;
-
-        /* wait unit connection thread terminates */
-        while (self->running)
-            Thread_sleep(1);
-    }
-
+    self->close = true;
 #if (CONFIG_MASTER_USING_THREADS == 1)
-    Thread_destroy(self->connectionHandlingThread);
+    if (self->connectionHandlingThread)
+    {
+        Thread_destroy(self->connectionHandlingThread);
+        self->connectionHandlingThread = NULL;
+    }
 #endif
 }
 
@@ -711,7 +707,7 @@ handleConnection(void* parameter)
 
             /* Call connection handler */
             if (self->connectionHandler != NULL)
-            self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_CLOSED);
+                self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_CLOSED);
 
         }
     }
