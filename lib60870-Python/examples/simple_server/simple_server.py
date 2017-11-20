@@ -73,7 +73,7 @@ def asdu_callback(parameter, connection, asdu):
         return False
 
 
-def main()
+def main():
     t104slave = T104Slave()
     t104slave.set_local_address(ip=b"localhost")
     connectionParameters = t104slave.get_connection_parameters()
