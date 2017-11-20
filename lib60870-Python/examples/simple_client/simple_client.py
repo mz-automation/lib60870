@@ -33,20 +33,24 @@ def asdu_received_handler(asdu):
     return True
 
 
-client = T104Connection(ip)
-client.set_connection_handler(connection_handler)
-client.set_asdu_received_handler(asdu_received_handler)
+def main():
+    client = T104Connection(ip)
+    client.set_connection_handler(connection_handler)
+    client.set_asdu_received_handler(asdu_received_handler)
 
 
-if client.connect():
-    client.send_start_dt()
-    time.sleep(5)
-    client.send_interrogation_command(ca=1)
-    time.sleep(5)
-    command = SingleCommand(5000, True, False, 0)
-    client.send_control_command(cot=CauseOfTransmission.ACTIVATION, ca=1, command=command)
-    client.send_clock_sync_command(ca=1)
-    time.sleep(1)
-    client.disconnect()
-else:
-    logging.info("Not connected")
+    if client.connect():
+        client.send_start_dt()
+        time.sleep(5)
+        client.send_interrogation_command(ca=1)
+        time.sleep(5)
+        command = SingleCommand(5000, True, False, 0)
+        client.send_control_command(cot=CauseOfTransmission.ACTIVATION, ca=1, command=command)
+        client.send_clock_sync_command(ca=1)
+        time.sleep(1)
+        client.disconnect()
+    else:
+        logging.info("Not connected")
+
+if __name__ == "__main__":
+    main()

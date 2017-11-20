@@ -73,7 +73,7 @@ def asdu_callback(parameter, connection, asdu):
         return False
 
 
-if __name__ == "__main__":
+def main()
     t104slave = T104Slave()
     t104slave.set_local_address(ip=b"localhost")
     connectionParameters = t104slave.get_connection_parameters()
@@ -99,3 +99,6 @@ if __name__ == "__main__":
         pass
     finally:
         t104slave.stop()
+
+if __name__ == "__main__":
+    main()
