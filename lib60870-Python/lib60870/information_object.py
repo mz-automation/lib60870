@@ -39,7 +39,7 @@ class IOBase():
 
     def __eq__(self, other):
         for field in (self._fields_):
-            if not field in other._fields_:
+            if field not in other._fields_:
                 return False
             if not getattr(self, field[0]) == getattr(other, field[0]):
                 return False
@@ -466,7 +466,6 @@ class Bitstring32WithCP24Time2a(ctypes.Structure, IOBase):
         lib.BitString32_getQuality.restype = c_uint8
         value = lib.BitString32_getQuality(pBitString32(self))
         return QualityDescriptor(value)
-
 
     def get_timestamp(self):
         lib.Bitstring32WithCP24Time2a_getTimestamp.restype = pCP24Time2a
@@ -2673,82 +2672,92 @@ class FileDirectory(ctypes.Structure, IOBase):
 pFileDirectory = ctypes.POINTER(FileDirectory)
 
 
-def GetIoTypeFromTypeId(type_id):
+_type_id_type_lookup = [
+    ((lib60870.TypeID.INVALID), (InformationObject)),
+    ((lib60870.TypeID.M_SP_NA_1), (SinglePointInformation)),  # 1
+    ((lib60870.TypeID.M_SP_TA_1), (SinglePointWithCP24Time2a)),  # 2
+    ((lib60870.TypeID.M_DP_NA_1), (DoublePointInformation)),  # 3
+    ((lib60870.TypeID.M_DP_TA_1), (DoublePointWithCP24Time2a)),  # 4
+    ((lib60870.TypeID.M_ST_NA_1), (StepPositionInformation)),  # 5
+    ((lib60870.TypeID.M_ST_TA_1), (StepPositionWithCP24Time2a)),  # 6
+    ((lib60870.TypeID.M_BO_NA_1), (BitString32)),  # 7
+    ((lib60870.TypeID.M_BO_TA_1), (Bitstring32WithCP24Time2a)),  # 8
+    ((lib60870.TypeID.M_ME_NA_1), (MeasuredValueNormalized)),  # 9
+    ((lib60870.TypeID.M_ME_TA_1), (MeasuredValueNormalizedWithCP24Time2a)),  # 10
+    ((lib60870.TypeID.M_ME_NB_1), (MeasuredValueScaled)),  # 11
+    ((lib60870.TypeID.M_ME_TB_1), (MeasuredValueScaledWithCP24Time2a)),  # 12
+    ((lib60870.TypeID.M_ME_NC_1), (MeasuredValueShort)),  # 13
+    ((lib60870.TypeID.M_ME_TC_1), (MeasuredValueShortWithCP24Time2a)),  # 14
+    ((lib60870.TypeID.M_IT_NA_1), (IntegratedTotals)),  # 15
+    ((lib60870.TypeID.M_IT_TA_1), (IntegratedTotalsWithCP24Time2a)),  # 16
+    ((lib60870.TypeID.M_EP_TA_1), (EventOfProtectionEquipment)),  # 17
+    ((lib60870.TypeID.M_EP_TB_1), (PackedStartEventsOfProtectionEquipment)),  # 18
+    ((lib60870.TypeID.M_EP_TC_1), (PackedOutputCircuitInfo)),  # 19
+    ((lib60870.TypeID.M_PS_NA_1), (PackedSinglePointWithSCD)),  # 20
+    ((lib60870.TypeID.M_ME_ND_1), (MeasuredValueNormalizedWithoutQuality)),  # 21
+    ((lib60870.TypeID.M_SP_TB_1), (SinglePointWithCP56Time2a)),  # 30
+    ((lib60870.TypeID.M_DP_TB_1), (DoublePointWithCP56Time2a)),  # 31
+    ((lib60870.TypeID.M_ST_TB_1), (StepPositionWithCP56Time2a)),  # 32
+    ((lib60870.TypeID.M_BO_TB_1), (Bitstring32WithCP56Time2a)),  # 33
+    ((lib60870.TypeID.M_ME_TD_1), (MeasuredValueNormalizedWithCP56Time2a)),  # 34
+    ((lib60870.TypeID.M_ME_TE_1), (MeasuredValueScaledWithCP56Time2a)),  # 35
+    ((lib60870.TypeID.M_ME_TF_1), (MeasuredValueShortWithCP56Time2a)),  # 36
+    ((lib60870.TypeID.M_IT_TB_1), (IntegratedTotalsWithCP56Time2a)),  # 37
+    ((lib60870.TypeID.M_EP_TD_1), (EventOfProtectionEquipmentWithCP56Time2a)),  # 38
+    ((lib60870.TypeID.M_EP_TE_1), (PackedStartEventsOfProtectionEquipmentWithCP56Time2a)),  # 39
+    ((lib60870.TypeID.M_EP_TF_1), (PackedOutputCircuitInfoWithCP56Time2a)),  # 40
+    # 41 - 44 reserved
+    ((lib60870.TypeID.C_SC_NA_1), (SingleCommand)),  # 45
+    ((lib60870.TypeID.C_DC_NA_1), (DoubleCommand)),  # 46
+    ((lib60870.TypeID.C_RC_NA_1), (StepCommand)),  # 47
+    ((lib60870.TypeID.C_SE_NA_1), (SetpointCommandNormalized)),  # 48 - Set-point command, normalized value
+    ((lib60870.TypeID.C_SE_NB_1), (SetpointCommandScaled)),  # 49 - Set-point command, scaled value
+    ((lib60870.TypeID.C_SE_NC_1), (SetpointCommandShort)),  # 50 - Set-point command, short floating point number
+    ((lib60870.TypeID.C_BO_NA_1), (Bitstring32Command)),  # 51 - Bitstring command
+    # 52 - 57 reserved
+    ((lib60870.TypeID.C_SC_TA_1), (SingleCommandWithCP56Time2a)),  # 58 - Single command with CP56Time2a
+    ((lib60870.TypeID.C_DC_TA_1), (DoubleCommandWithCP56Time2a)),  # 59 - Double command with CP56Time2a
+    ((lib60870.TypeID.C_RC_TA_1), (StepCommandWithCP56Time2a)),  # 60 - Step command with CP56Time2a
+    ((lib60870.TypeID.C_SE_TA_1), (SetpointCommandNormalizedWithCP56Time2a)),
+    # 61 - Setpoint command, normalized value with CP56Time2a
+    ((lib60870.TypeID.C_SE_TB_1), (SetpointCommandScaledWithCP56Time2a)),
+    # 62 - Setpoint command, scaled value with CP56Time2a
+    ((lib60870.TypeID.C_SE_TC_1), (SetpointCommandShortWithCP56Time2a)),
+    # 63 - Setpoint command, short value with CP56Time2a
+    ((lib60870.TypeID.C_BO_TA_1), (Bitstring32CommandWithCP56Time2a)),  # 64 - Bitstring command with CP56Time2a
+    ((lib60870.TypeID.M_EI_NA_1), (EndOfInitialization)),  # 70 - End of Initialization
+    ((lib60870.TypeID.C_IC_NA_1), (InterrogationCommand)),  # 100 - Interrogation command
+    ((lib60870.TypeID.C_CI_NA_1), (CounterInterrogationCommand)),  # 101 - Counter interrogation command
+    ((lib60870.TypeID.C_RD_NA_1), (ReadCommand)),  # 102 - Read command
+    ((lib60870.TypeID.C_CS_NA_1), (ClockSynchronizationCommand)),  # 103 - Clock synchronization command
+    # ((lib60870.TypeID.C_TS_NA_1), (TestCommand)), #104
+    ((lib60870.TypeID.C_RP_NA_1), (ResetProcessCommand)),  # 105 - Reset process command
+    ((lib60870.TypeID.C_CD_NA_1), (DelayAcquisitionCommand)),  # 106 - Delay acquisition command
+    ((lib60870.TypeID.P_ME_NA_1), (ParameterNormalizedValue)),  # 110 - Parameter of measured values, normalized value
+    ((lib60870.TypeID.P_ME_NB_1), (ParameterScaledValue)),  # 111 - Parameter of measured values, scaled value
+    ((lib60870.TypeID.P_ME_NC_1), (ParameterFloatValue)),
+    # 112 - Parameter of measured values, short floating point number
+    ((lib60870.TypeID.P_AC_NA_1), (ParameterActivation)),  # 113 - Parameter for activation
+    ((lib60870.TypeID.F_FR_NA_1), (FileReady)),  # 120 - File ready
+    ((lib60870.TypeID.F_SR_NA_1), (SectionReady)),  # 121 - Section ready
+    ((lib60870.TypeID.F_SC_NA_1), (FileCallOrSelect)),  # 122 - Call/Select directory/file/section
+    ((lib60870.TypeID.F_LS_NA_1), (FileLastSegmentOrSection)),  # 123 - Last segment/section
+    ((lib60870.TypeID.F_AF_NA_1), (FileACK)),  # 124 -  ACK file/section
+    ((lib60870.TypeID.F_SG_NA_1), (FileSegment)),  # 125 - File segment
+    ((lib60870.TypeID.F_DR_TA_1), (FileDirectory)),  # 126 - File directory
+]
+
+
+def get_io_type_from_type_id(type_id):
     """
-    Look-up function used for setting the return type of ASDU.get_upcasted_element(i)
+    Look-up function to get the (python)type for a given TypeID
     """
-    type_id_to_struct = {
-        lib60870.TypeID.INVALID: InformationObject,
-        lib60870.TypeID.M_SP_NA_1: SinglePointInformation,  # 1
-        lib60870.TypeID.M_SP_TA_1: SinglePointWithCP24Time2a,  # 2
-        lib60870.TypeID.M_DP_NA_1: DoublePointInformation,  # 3
-        lib60870.TypeID.M_DP_TA_1: DoublePointWithCP24Time2a,  # 4
-        lib60870.TypeID.M_ST_NA_1: StepPositionInformation,  # 5
-        lib60870.TypeID.M_ST_TA_1: StepPositionWithCP24Time2a,  # 6
-        lib60870.TypeID.M_BO_NA_1: BitString32,  # 7
-        lib60870.TypeID.M_BO_TA_1: Bitstring32WithCP24Time2a,  # 8
-        lib60870.TypeID.M_ME_NA_1: MeasuredValueNormalized,  # 9
-        lib60870.TypeID.M_ME_TA_1: MeasuredValueNormalizedWithCP24Time2a,  # 10
-        lib60870.TypeID.M_ME_NB_1: MeasuredValueScaled,  # 11
-        lib60870.TypeID.M_ME_TB_1: MeasuredValueScaledWithCP24Time2a,  # 12
-        lib60870.TypeID.M_ME_NC_1: MeasuredValueShort,  # 13
-        lib60870.TypeID.M_ME_TC_1: MeasuredValueShortWithCP24Time2a,  # 14
-        lib60870.TypeID.M_IT_NA_1: IntegratedTotals,  # 15
-        lib60870.TypeID.M_IT_TA_1: IntegratedTotalsWithCP24Time2a,  # 16
-        lib60870.TypeID.M_EP_TA_1: EventOfProtectionEquipment,  # 17
-        lib60870.TypeID.M_EP_TB_1: PackedStartEventsOfProtectionEquipment,  # 18
-        lib60870.TypeID.M_EP_TC_1: PackedOutputCircuitInfo,  # 19
-        lib60870.TypeID.M_PS_NA_1: PackedSinglePointWithSCD,  # 20
-        lib60870.TypeID.M_ME_ND_1: MeasuredValueNormalizedWithoutQuality,  # 21
-        lib60870.TypeID.M_SP_TB_1: SinglePointWithCP56Time2a,  # 30
-        lib60870.TypeID.M_DP_TB_1: DoublePointWithCP56Time2a,  # 31
-        lib60870.TypeID.M_ST_TB_1: StepPositionWithCP56Time2a,  # 32
-        lib60870.TypeID.M_BO_TB_1: Bitstring32WithCP56Time2a,  # 33
-        lib60870.TypeID.M_ME_TD_1: MeasuredValueNormalizedWithCP56Time2a,  # 34
-        lib60870.TypeID.M_ME_TE_1: MeasuredValueScaledWithCP56Time2a,  # 35
-        lib60870.TypeID.M_ME_TF_1: MeasuredValueShortWithCP56Time2a,  # 36
-        lib60870.TypeID.M_IT_TB_1: IntegratedTotalsWithCP56Time2a,  # 37
-        lib60870.TypeID.M_EP_TD_1: EventOfProtectionEquipmentWithCP56Time2a,  # 38
-        lib60870.TypeID.M_EP_TE_1: PackedStartEventsOfProtectionEquipmentWithCP56Time2a,  # 39
-        lib60870.TypeID.M_EP_TF_1: PackedOutputCircuitInfoWithCP56Time2a,  # 40
-        # 41 - 44 reserved
-        lib60870.TypeID.C_SC_NA_1: SingleCommand,  # 45
-        lib60870.TypeID.C_DC_NA_1: DoubleCommand,  # 46
-        lib60870.TypeID.C_RC_NA_1: StepCommand,  # 47
-        lib60870.TypeID.C_SE_NA_1: SetpointCommandNormalized,  # 48 - Set-point command, normalized value
-        lib60870.TypeID.C_SE_NB_1: SetpointCommandScaled,  # 49 - Set-point command, scaled value
-        lib60870.TypeID.C_SE_NC_1: SetpointCommandShort,  # 50 - Set-point command, short floating point number
-        lib60870.TypeID.C_BO_NA_1: Bitstring32Command,  # 51 - Bitstring command
-        # 52 - 57 reserved
-        lib60870.TypeID.C_SC_TA_1: SingleCommandWithCP56Time2a,  # 58 - Single command with CP56Time2a
-        lib60870.TypeID.C_DC_TA_1: DoubleCommandWithCP56Time2a,  # 59 - Double command with CP56Time2a
-        lib60870.TypeID.C_RC_TA_1: StepCommandWithCP56Time2a,  # 60 - Step command with CP56Time2a
-        lib60870.TypeID.C_SE_TA_1: SetpointCommandNormalizedWithCP56Time2a,
-        # 61 - Setpoint command, normalized value with CP56Time2a
-        lib60870.TypeID.C_SE_TB_1: SetpointCommandScaledWithCP56Time2a,
-        # 62 - Setpoint command, scaled value with CP56Time2a
-        lib60870.TypeID.C_SE_TC_1: SetpointCommandShortWithCP56Time2a,
-        # 63 - Setpoint command, short value with CP56Time2a
-        lib60870.TypeID.C_BO_TA_1: Bitstring32CommandWithCP56Time2a,  # 64 - Bitstring command with CP56Time2a
-        lib60870.TypeID.M_EI_NA_1: EndOfInitialization,  # 70 - End of Initialization
-        lib60870.TypeID.C_IC_NA_1: InterrogationCommand,  # 100 - Interrogation command
-        lib60870.TypeID.C_CI_NA_1: CounterInterrogationCommand,  # 101 - Counter interrogation command
-        lib60870.TypeID.C_RD_NA_1: ReadCommand,  # 102 - Read command
-        lib60870.TypeID.C_CS_NA_1: ClockSynchronizationCommand,  # 103 - Clock synchronization command
-        #lib60870.TypeID.C_TS_NA_1: TestCommand #104
-        lib60870.TypeID.C_RP_NA_1: ResetProcessCommand,  # 105 - Reset process command
-        lib60870.TypeID.C_CD_NA_1: DelayAcquisitionCommand,  # 106 - Delay acquisition command
-        lib60870.TypeID.P_ME_NA_1: ParameterNormalizedValue,  # 110 - Parameter of measured values, normalized value
-        lib60870.TypeID.P_ME_NB_1: ParameterScaledValue,  # 111 - Parameter of measured values, scaled value
-        lib60870.TypeID.P_ME_NC_1: ParameterFloatValue,
-        # 112 - Parameter of measured values, short floating point number
-        lib60870.TypeID.P_AC_NA_1: ParameterActivation,  # 113 - Parameter for activation
-        lib60870.TypeID.F_FR_NA_1: FileReady,  # 120 - File ready
-        lib60870.TypeID.F_SR_NA_1: SectionReady,  # 121 - Section ready
-        lib60870.TypeID.F_SC_NA_1: FileCallOrSelect,  # 122 - Call/Select directory/file/section
-        lib60870.TypeID.F_LS_NA_1: FileLastSegmentOrSection,  # 123 - Last segment/section
-        lib60870.TypeID.F_AF_NA_1: FileACK,  # 124 -  ACK file/section
-        lib60870.TypeID.F_SG_NA_1: FileSegment,  # 125 - File segment
-        lib60870.TypeID.F_DR_TA_1: FileDirectory,  # 126 - File directory
-    }
-    return type_id_to_struct.get(type_id, InformationObject)
+    return dict(_type_id_type_lookup).get(type_id, InformationObject)
+
+
+def get_type_id_from_name(type_name):
+    """
+    Look-up function to get a TypeID for a given type name
+    """
+    lookup = dict([(item[1].__name__, item[0]) for item in _type_id_type_lookup])
+    return lookup.get(type_name)

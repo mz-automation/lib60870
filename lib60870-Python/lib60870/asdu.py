@@ -127,7 +127,7 @@ class ASDU(ctypes.Structure):
             return p_element.contents
 
     def get_upcasted_element(self, index):
-        io_type = information_object.GetIoTypeFromTypeId(self.get_type_id())
+        io_type = information_object.get_io_type_from_type_id(self.get_type_id())
         lib.ASDU_getElement.restype = ctypes.POINTER(io_type)
         io = lib.ASDU_getElement(self.pointer, c_int(index))
         if io:
@@ -137,7 +137,7 @@ class ASDU(ctypes.Structure):
         if(self.get_type_id() != io.get_type_id()):
             raise ValueError("Cannot add InformationObject of type ({}) to ASDU of type({})"
                              "".format(io.get_type_id(), self.get_type_id()))
-        io_type = information_object.GetIoTypeFromTypeId(io.get_type_id())
+        io_type = information_object.get_io_type_from_type_id(io.get_type_id())
         lib.ASDU_addInformationObject.restype = c_bool
         return lib.ASDU_addInformationObject(self.pointer, ctypes.POINTER(io_type)(io))
 

@@ -181,6 +181,16 @@ class SinglePointWithCP56Time2aTest(unittest.TestCase):
         self.assertEqual(self.sut.get_quality(), QualityDescriptor.IEC60870_QUALITY_GOOD)
         self.assertEqual(self.sut.get_timestamp(), CP56Time2a())
 
+class LookupTests(unittest.TestCase):
+    def test_lookup_io_type(self):
+        type_id = TypeID.M_SP_TB_1
+        io_type = get_io_type_from_type_id(type_id)
+        self.assertEqual(io_type, SinglePointWithCP56Time2a)
+
+    def test_lookup_type_id(self):
+        name = "SinglePointWithCP56Time2a"
+        type_id = get_type_id_from_name(name)
+        self.assertEqual(type_id, TypeID.M_SP_TB_1)
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(name)s:%(levelname)s:%(message)s', level=logging.DEBUG)
