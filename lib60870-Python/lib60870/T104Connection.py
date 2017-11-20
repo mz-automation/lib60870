@@ -21,6 +21,8 @@ class T104Connection():
     def __init__(self, ip, port=lib60870.IEC_60870_5_104_DEFAULT_PORT):
         logger.debug("calling T104Connection()")
         lib.T104Connection_create.restype = pT104Connection
+        if not isinstance(ip, bytes):
+            ip = ip.encode('ascii')
         self.con = pT104Connection(lib.T104Connection_create(c_char_p(ip), c_uint16(port)))
 
     def __del__(self):
