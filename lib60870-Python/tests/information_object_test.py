@@ -181,6 +181,22 @@ class SinglePointWithCP56Time2aTest(unittest.TestCase):
         self.assertEqual(self.sut.get_quality(), QualityDescriptor.IEC60870_QUALITY_GOOD)
         self.assertEqual(self.sut.get_timestamp(), CP56Time2a())
 
+class SetpointCommandScaledTest(unittest.TestCase):
+    def setUp(self):
+        ioa = 400
+        value = -100
+        quality = QualityDescriptor.IEC60870_QUALITY_GOOD
+        self.sut = SetpointCommandScaled(ioa, value, quality, ql=0)
+
+    def test_init(self):
+        pass
+
+    def test_get_value(self):
+        self.assertEqual(self.sut.get_value(), -100)
+        self.assertEqual(self.sut.get_ql(), 0)
+        self.assertEqual(self.sut.is_select(), False)
+
+
 class LookupTests(unittest.TestCase):
     def test_lookup_io_type(self):
         type_id = TypeID.M_SP_TB_1

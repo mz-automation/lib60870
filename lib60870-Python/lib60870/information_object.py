@@ -1679,7 +1679,7 @@ class SetpointCommandScaled(ctypes.Structure, IOBase):
         return lib.SetpointCommandScaled_create(
             pSetpointCommandScaled(self),
             c_int(ioa),
-            c_float(value),
+            c_int(value),
             c_bool(selectCommand),
             c_int(ql)).contents
 
