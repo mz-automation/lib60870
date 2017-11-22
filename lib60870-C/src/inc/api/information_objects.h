@@ -1013,7 +1013,7 @@ void
 SetpointCommandScaled_destroy(SetpointCommandScaled self);
 
 SetpointCommandScaled
-SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, float value, bool selectCommand, int ql);
+SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, int value, bool selectCommand, int ql);
 
 int
 SetpointCommandScaled_getValue(SetpointCommandScaled self);

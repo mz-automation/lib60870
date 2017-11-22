@@ -5442,7 +5442,7 @@ SetpointCommandScaled_destroy(SetpointCommandScaled self)
 }
 
 SetpointCommandScaled
-SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, float value, bool selectCommand, int ql)
+SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, int value, bool selectCommand, int ql)
 {
     if (self == NULL) {
 		self = (SetpointCommandScaled) GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaled));
@@ -5455,9 +5455,8 @@ SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, float value, b
 
     self->objectAddress = ioa;
 
-    int scaledValue = (int)(value * 32767.f);
 
-    setScaledValue(self->encodedValue, scaledValue);
+    setScaledValue(self->encodedValue, value);
 
     uint8_t qos = ql;
 
