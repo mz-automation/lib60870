@@ -5455,7 +5455,6 @@ SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, int value, boo
 
     self->objectAddress = ioa;
 
-
     setScaledValue(self->encodedValue, value);
 
     uint8_t qos = ql;
