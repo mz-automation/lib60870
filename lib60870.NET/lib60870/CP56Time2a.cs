@@ -20,6 +20,7 @@
  *
  *  See COPYING file for the complete license text.
  */
+
 using System;
 
 namespace lib60870
@@ -193,6 +194,9 @@ namespace lib60870
 			}
 
 			set {
+				/* limit value to range 0 - 99 */
+				value = value % 100;
+
 				encodedValue [6] = (byte)((encodedValue [6] & 0x80) + (value & 0x7f));
 			}
 		}
