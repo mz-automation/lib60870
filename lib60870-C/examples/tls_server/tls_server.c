@@ -11,7 +11,7 @@
 
 static bool running = true;
 
-static ConnectionParameters connectionParameters;
+static CS101_AppLayerParameters appLayerParameters;
 
 void
 sigint_handler(int signalId)
@@ -31,7 +31,7 @@ printCP56Time2a(CP56Time2a time)
 }
 
 static bool
-clockSyncHandler (void* parameter, MasterConnection connection, ASDU asdu, CP56Time2a newTime)
+clockSyncHandler (void* parameter, MasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
 {
     printf("Process time sync command with time "); printCP56Time2a(newTime); printf("\n");
 
@@ -39,7 +39,7 @@ clockSyncHandler (void* parameter, MasterConnection connection, ASDU asdu, CP56T
 }
 
 static bool
-interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, uint8_t qoi)
+interrogationHandler(void* parameter, MasterConnection connection, CS101_ASDU asdu, uint8_t qoi)
 {
     printf("Received interrogation for group %i\n", qoi);
 
@@ -49,48 +49,48 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
 
         /* The CS101 specification only allows information objects without timestamp in GI responses */
 
-        ASDU newAsdu = ASDU_create(connectionParameters, M_ME_NB_1, false, INTERROGATED_BY_STATION,
+        CS101_ASDU newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_INTERROGATED_BY_STATION,
                 0, 1, false, false);
 
         InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 100, -1, IEC60870_QUALITY_GOOD);
 
-        ASDU_addInformationObject(newAsdu, io);
+        CS101_ASDU_addInformationObject(newAsdu, io);
 
-        ASDU_addInformationObject(newAsdu, (InformationObject)
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject)
             MeasuredValueScaled_create((MeasuredValueScaled) io, 101, 23, IEC60870_QUALITY_GOOD));
 
-        ASDU_addInformationObject(newAsdu, (InformationObject)
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject)
             MeasuredValueScaled_create((MeasuredValueScaled) io, 102, 2300, IEC60870_QUALITY_GOOD));
 
         InformationObject_destroy(io);
 
         MasterConnection_sendASDU(connection, newAsdu);
 
-        newAsdu = ASDU_create(connectionParameters, M_SP_NA_1, false, INTERROGATED_BY_STATION,
+        newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_INTERROGATED_BY_STATION,
                     0, 1, false, false);
 
         io = (InformationObject) SinglePointInformation_create(NULL, 104, true, IEC60870_QUALITY_GOOD);
 
-        ASDU_addInformationObject(newAsdu, io);
+        CS101_ASDU_addInformationObject(newAsdu, io);
 
-        ASDU_addInformationObject(newAsdu, (InformationObject)
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject)
             SinglePointInformation_create((SinglePointInformation) io, 105, false, IEC60870_QUALITY_GOOD));
 
         InformationObject_destroy(io);
 
         MasterConnection_sendASDU(connection, newAsdu);
 
-        newAsdu = ASDU_create(connectionParameters, M_SP_NA_1, true, INTERROGATED_BY_STATION,
+        newAsdu = CS101_ASDU_create(appLayerParameters, true, CS101_COT_INTERROGATED_BY_STATION,
                 0, 1, false, false);
 
-        ASDU_addInformationObject(newAsdu, io = (InformationObject) SinglePointInformation_create(NULL, 300, true, IEC60870_QUALITY_GOOD));
-        ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 301, false, IEC60870_QUALITY_GOOD));
-        ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 302, true, IEC60870_QUALITY_GOOD));
-        ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 303, false, IEC60870_QUALITY_GOOD));
-        ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 304, true, IEC60870_QUALITY_GOOD));
-        ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 305, false, IEC60870_QUALITY_GOOD));
-        ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 306, true, IEC60870_QUALITY_GOOD));
-        ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 307, false, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, io = (InformationObject) SinglePointInformation_create(NULL, 300, true, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 301, false, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 302, true, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 303, false, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 304, true, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 305, false, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 306, true, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 307, false, IEC60870_QUALITY_GOOD));
 
         InformationObject_destroy(io);
 
@@ -106,13 +106,13 @@ interrogationHandler(void* parameter, MasterConnection connection, ASDU asdu, ui
 }
 
 static bool
-asduHandler(void* parameter, MasterConnection connection, ASDU asdu)
+asduHandler(void* parameter, MasterConnection connection, CS101_ASDU asdu)
 {
-    if (ASDU_getTypeID(asdu) == C_SC_NA_1) {
+    if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1) {
         printf("received single command\n");
 
-        if  (ASDU_getCOT(asdu) == ACTIVATION) {
-            InformationObject io = ASDU_getElement(asdu, 0);
+        if  (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION) {
+            InformationObject io = CS101_ASDU_getElement(asdu, 0);
 
             if (InformationObject_getObjectAddress(io) == 5000) {
                 SingleCommand sc = (SingleCommand) io;
@@ -120,15 +120,15 @@ asduHandler(void* parameter, MasterConnection connection, ASDU asdu)
                 printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
                         SingleCommand_getState(sc));
 
-                ASDU_setCOT(asdu, ACTIVATION_CON);
+                CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
             }
             else
-                ASDU_setCOT(asdu, UNKNOWN_INFORMATION_OBJECT_ADDRESS);
+                CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
 
             InformationObject_destroy(io);
         }
         else
-            ASDU_setCOT(asdu, UNKNOWN_CAUSE_OF_TRANSMISSION);
+            CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
 
         MasterConnection_sendASDU(connection, asdu);
 
@@ -177,27 +177,27 @@ main(int argc, char** argv)
 
     /* create a new slave/server instance with default connection parameters and
      * default message queue size */
-    Slave slave = T104Slave_createSecure(NULL, 100, 100, tlsConfig);
+    CS104_Slave slave = CS104_Slave_createSecure(NULL, 100, 100, tlsConfig);
 
-    T104Slave_setLocalAddress(slave, "0.0.0.0");
+    CS104_Slave_setLocalAddress(slave, "0.0.0.0");
 
     /* get the connection parameters - we need them to create correct ASDUs */
-    connectionParameters = Slave_getConnectionParameters(slave);
+    appLayerParameters = CS104_Slave_getAppLayerParameters(slave);
 
     /* set the callback handler for the clock synchronization command */
-    Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);
+    CS104_Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);
 
     /* set the callback handler for the interrogation command */
-    Slave_setInterrogationHandler(slave, interrogationHandler, NULL);
+    CS104_Slave_setInterrogationHandler(slave, interrogationHandler, NULL);
 
     /* set handler for other message types */
-    Slave_setASDUHandler(slave, asduHandler, NULL);
+    CS104_Slave_setASDUHandler(slave, asduHandler, NULL);
 
-    T104Slave_setConnectionRequestHandler(slave, connectionRequestHandler, NULL);
+    CS104_Slave_setConnectionRequestHandler(slave, connectionRequestHandler, NULL);
 
-    Slave_start(slave);
+    CS104_Slave_start(slave);
 
-    if (Slave_isRunning(slave) == false) {
+    if (CS104_Slave_isRunning(slave) == false) {
         printf("Starting server failed!\n");
         goto exit_program;
     }
@@ -208,13 +208,13 @@ main(int argc, char** argv)
 
         Thread_sleep(1000);
 
-        ASDU newAsdu = ASDU_create(connectionParameters, M_ME_NB_1, false, PERIODIC, 0, 1, false, false);
+        CS101_ASDU newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
         InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
 
         scaledValue++;
 
-        ASDU_addInformationObject(newAsdu, io);
+        CS101_ASDU_addInformationObject(newAsdu, io);
 
         InformationObject_destroy(io);
 
@@ -222,13 +222,13 @@ main(int argc, char** argv)
          * The ASDU will be released by the Slave instance when the ASDU
          * has been sent.
          */
-        Slave_enqueueASDU(slave, newAsdu);
+        CS104_Slave_enqueueASDU(slave, newAsdu);
     }
 
-    Slave_stop(slave);
+    CS104_Slave_stop(slave);
 
 exit_program:
-    Slave_destroy(slave);
+    CS104_Slave_destroy(slave);
 
     TLSConfiguration_destroy(tlsConfig);
 

@@ -1392,6 +1392,21 @@ QualifierOfCIC
 CounterInterrogationCommand_getQCC(CounterInterrogationCommand self);
 
 /*************************************************
+ * TestCommand : InformationObject
+ ************************************************/
+
+typedef struct sTestCommand* TestCommand;
+
+TestCommand
+TestCommand_create(TestCommand self);
+
+void
+TestCommand_destroy(TestCommand self);
+
+bool
+TestCommand_isValid(TestCommand self);
+
+/*************************************************
  * ResetProcessCommand : InformationObject
  ************************************************/
 
@@ -1722,7 +1737,7 @@ uint8_t*
 FileSegment_getSegmentData(FileSegment self);
 
 int
-FileSegment_GetMaxDataSize(ConnectionParameters parameters);
+FileSegment_GetMaxDataSize(CS101_AppLayerParameters parameters);
 
 void
 FileSegment_destroy(FileSegment self);

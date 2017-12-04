@@ -7,42 +7,42 @@
 #include <stdlib.h>
 
 static void
-connectionHandler (void* parameter, T104Connection connection, IEC60870ConnectionEvent event)
+connectionHandler (void* parameter, CS104_Connection connection, CS104_ConnectionEvent event)
 {
     switch (event) {
-    case IEC60870_CONNECTION_OPENED:
+    case CS104_CONNECTION_OPENED:
         printf("Connection established\n");
         break;
-    case IEC60870_CONNECTION_CLOSED:
+    case CS104_CONNECTION_CLOSED:
         printf("Connection closed\n");
         break;
-    case IEC60870_CONNECTION_STARTDT_CON_RECEIVED:
+    case CS104_CONNECTION_STARTDT_CON_RECEIVED:
         printf("Received STARTDT_CON\n");
         break;
-    case IEC60870_CONNECTION_STOPDT_CON_RECEIVED:
+    case CS104_CONNECTION_STOPDT_CON_RECEIVED:
         printf("Received STOPDT_CON\n");
         break;
     }
 }
 
 static bool
-asduReceivedHandler (void* parameter, ASDU asdu)
+asduReceivedHandler (void* parameter, CS101_ASDU asdu)
 {
     printf("RECVD ASDU type: %s(%i) elements: %i\n",
-            TypeID_toString(ASDU_getTypeID(asdu)),
-            ASDU_getTypeID(asdu),
-            ASDU_getNumberOfElements(asdu));
+            TypeID_toString(CS101_ASDU_getTypeID(asdu)),
+            CS101_ASDU_getTypeID(asdu),
+            CS101_ASDU_getNumberOfElements(asdu));
 
-    if (ASDU_getTypeID(asdu) == M_ME_TE_1) {
+    if (CS101_ASDU_getTypeID(asdu) == M_ME_TE_1) {
 
         printf("  measured scaled values with CP56Time2a timestamp:\n");
 
         int i;
 
-        for (i = 0; i < ASDU_getNumberOfElements(asdu); i++) {
+        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
 
             MeasuredValueScaledWithCP56Time2a io =
-                    (MeasuredValueScaledWithCP56Time2a) ASDU_getElement(asdu, i);
+                    (MeasuredValueScaledWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
 
             printf("    IOA: %i value: %i\n",
                     InformationObject_getObjectAddress((InformationObject) io),
@@ -52,15 +52,15 @@ asduReceivedHandler (void* parameter, ASDU asdu)
             MeasuredValueScaledWithCP56Time2a_destroy(io);
         }
     }
-    else if (ASDU_getTypeID(asdu) == M_SP_NA_1) {
+    else if (CS101_ASDU_getTypeID(asdu) == M_SP_NA_1) {
         printf("  single point information:\n");
 
         int i;
 
-        for (i = 0; i < ASDU_getNumberOfElements(asdu); i++) {
+        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
 
             SinglePointInformation io =
-                    (SinglePointInformation) ASDU_getElement(asdu, i);
+                    (SinglePointInformation) CS101_ASDU_getElement(asdu, i);
 
             printf("    IOA: %i value: %i\n",
                     InformationObject_getObjectAddress((InformationObject) io),
@@ -87,19 +87,19 @@ main(int argc, char** argv)
         port = atoi(argv[2]);
 
     printf("Connecting to: %s:%i\n", ip, port);
-    T104Connection con = T104Connection_create(ip, port);
+    CS104_Connection con = CS104_Connection_create(ip, port);
 
-    T104Connection_setConnectionHandler(con, connectionHandler, NULL);
-    T104Connection_setASDUReceivedHandler(con, asduReceivedHandler, NULL);
+    CS104_Connection_setConnectionHandler(con, connectionHandler, NULL);
+    CS104_Connection_setASDUReceivedHandler(con, asduReceivedHandler, NULL);
 
-    if (T104Connection_connect(con)) {
+    if (CS104_Connection_connect(con)) {
         printf("Connected!\n");
 
-        T104Connection_sendStartDT(con);
+        CS104_Connection_sendStartDT(con);
 
         Thread_sleep(5000);
 
-        T104Connection_sendInterrogationCommand(con, ACTIVATION, 1, IEC60870_QOI_STATION);
+        CS104_Connection_sendInterrogationCommand(con, CS101_COT_ACTIVATION, 1, IEC60870_QOI_STATION);
 
         Thread_sleep(5000);
 
@@ -107,7 +107,7 @@ main(int argc, char** argv)
                 SingleCommand_create(NULL, 5000, true, false, 0);
 
         printf("Send control command C_SC_NA_1\n");
-        T104Connection_sendControlCommand(con, C_SC_NA_1, ACTIVATION, 1, sc);
+        CS104_Connection_sendControlCommand(con, C_SC_NA_1, CS101_COT_ACTIVATION, 1, sc);
 
         InformationObject_destroy(sc);
 
@@ -117,7 +117,7 @@ main(int argc, char** argv)
         CP56Time2a_createFromMsTimestamp(&newTime, Hal_getTimeInMs());
 
         printf("Send time sync command\n");
-        T104Connection_sendClockSyncCommand(con, 1, &newTime);
+        CS104_Connection_sendClockSyncCommand(con, 1, &newTime);
 
         Thread_sleep(1000);
     }
@@ -126,7 +126,7 @@ main(int argc, char** argv)
 
     Thread_sleep(1000);
 
-    T104Connection_destroy(con);
+    CS104_Connection_destroy(con);
 
     printf("exit\n");
 }

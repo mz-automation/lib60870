@@ -25,32 +25,50 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "tls_api.h"
+#include "iec60870_common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct sT104Connection* T104Connection;
+typedef struct sCS104_Connection* CS104_Connection;
 
-T104Connection
-T104Connection_create(const char* hostname, int tcpPort);
+CS104_Connection
+CS104_Connection_create(const char* hostname, int tcpPort);
 
-T104Connection
-T104Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguration tlsConfig);
+CS104_Connection
+CS104_Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguration tlsConfig);
 
 /**
- * \brief Set connection parameters.
+ * \brief Set the CS104 specific connection parameters.
  *
  * If not set the default parameters are used. This function must be called before the
- * T104Connection_connect function is called! If the function is called after the connect
+ * CS104_Connection_connect function is called! If the function is called after the connect
  * the behavior is undefined.
  *
+ * \param self CS104_Connection instance
  */
 void
-T104Connection_setConnectionParameters(T104Connection self, T104ConnectionParameters parameters);
+CS104_Connection_setConnectionParameters(CS104_Connection self, CS104_ConnectionParameters parameters);
 
-T104ConnectionParameters
-T104Connection_getConnectionParameters(T104Connection self);
+CS104_ConnectionParameters
+CS104_Connection_getConnectionParameters(CS104_Connection self);
+
+/**
+ * \brief Set the CS101 application layer parameters
+ *
+ * If not set the default parameters are used. This function must be called before the
+ * CS104_Connection_connect function is called! If the function is called after the connect
+ * the behavior is undefined.
+ *
+ * \param self CS104_Connection instance
+ * \param parameters the application layer parameters
+ */
+void
+CS104_Connection_setAppLayerParameters(CS104_Connection self, CS101_AppLayerParameters parameters);
+
+CS101_AppLayerParameters
+CS104_Connection_getAppLayerParameters(CS104_Connection self);
 
 /**
  * \brief Sets the timeout for connecting to the server (in ms)
@@ -59,17 +77,17 @@ T104Connection_getConnectionParameters(T104Connection self);
  * \param millies timeout value in ms
  */
 void
-T104Connection_setConnectTimeout(T104Connection self, int millies);
+CS104_Connection_setConnectTimeout(CS104_Connection self, int millies);
 
 /**
  * \brief non-blocking connect.
  *
  * Invokes a connection establishment to the server and returns immediately.
  *
- * \param self
+ * \param self CS104_Connection instance
  */
 void
-T104Connection_connectAsync(T104Connection self);
+CS104_Connection_connectAsync(CS104_Connection self);
 
 /**
  * \brief blocking connect
@@ -77,10 +95,11 @@ T104Connection_connectAsync(T104Connection self);
  * Establishes a connection to a server. This function is blocking and will return
  * after the connection is established or the connect timeout elapsed.
  *
+ * \param self CS104_Connection instance
  * \return true when connected, false otherwise
  */
 bool
-T104Connection_connect(T104Connection self);
+CS104_Connection_connect(CS104_Connection self);
 
 /**
  * \brief start data transmission on this connection
@@ -89,13 +108,13 @@ T104Connection_connect(T104Connection self);
  * (unsolicited) messages from the server (slave).
  */
 void
-T104Connection_sendStartDT(T104Connection self);
+CS104_Connection_sendStartDT(CS104_Connection self);
 
 /**
  * \brief stop data transmission on this connection
  */
 void
-T104Connection_sendStopDT(T104Connection self);
+CS104_Connection_sendStopDT(CS104_Connection self);
 
 /**
  * \brief Check if the transmit (send) buffer is full. If true the next send command will fail.
@@ -105,7 +124,7 @@ T104Connection_sendStopDT(T104Connection self);
  * that frees part of the sent messages buffer.
  */
 bool
-T104Connection_isTransmitBufferFull(T104Connection self);
+CS104_Connection_isTransmitBufferFull(CS104_Connection self);
 
 /**
  * \brief send an interrogation command
@@ -117,7 +136,7 @@ T104Connection_isTransmitBufferFull(T104Connection self);
  * \return true if message was sent, false otherwise
  */
 bool
-T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, QualifierOfInterrogation qoi);
+CS104_Connection_sendInterrogationCommand(CS104_Connection self, CS101_CauseOfTransmission cot, int ca, QualifierOfInterrogation qoi);
 
 /**
  * \brief send a counter interrogation command
@@ -129,7 +148,7 @@ T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission
  * \return true if message was sent, false otherwise
  */
 bool
-T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, uint8_t qcc);
+CS104_Connection_sendCounterInterrogationCommand(CS104_Connection self, CS101_CauseOfTransmission cot, int ca, uint8_t qcc);
 
 /**
  * \brief  Sends a read command (C_RD_NA_1 typeID: 102)
@@ -143,7 +162,7 @@ T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTrans
  * \return true if message was sent, false otherwise
  */
 bool
-T104Connection_sendReadCommand(T104Connection self, int ca, int ioa);
+CS104_Connection_sendReadCommand(CS104_Connection self, int ca, int ioa);
 
 /**
  * \brief Sends a clock synchronization command (C_CS_NA_1 typeID: 103)
@@ -154,7 +173,7 @@ T104Connection_sendReadCommand(T104Connection self, int ca, int ioa);
  * \return true if message was sent, false otherwise
  */
 bool
-T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time);
+CS104_Connection_sendClockSyncCommand(CS104_Connection self, int ca, CP56Time2a time);
 
 /**
  * \brief Send a test command (C_TS_NA_1 typeID: 104)
@@ -166,10 +185,10 @@ T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time
  * \return true if message was sent, false otherwise
  */
 bool
-T104Connection_sendTestCommand(T104Connection self, int ca);
+CS104_Connection_sendTestCommand(CS104_Connection self, int ca);
 
 bool
-T104Connection_sendControlCommand(T104Connection self, TypeID typeId, CauseOfTransmission cot,
+CS104_Connection_sendControlCommand(CS104_Connection self, TypeID typeId, CS101_CauseOfTransmission cot,
         int ca, InformationObject command);
 
 
@@ -181,20 +200,20 @@ T104Connection_sendControlCommand(T104Connection self, TypeID typeId, CauseOfTra
  * \return true if message was sent, false otherwise
  */
 bool
-T104Connection_sendASDU(T104Connection self, ASDU asdu);
+CS104_Connection_sendASDU(CS104_Connection self, CS101_ASDU asdu);
 
-typedef bool (*ASDUReceivedHandler) (void* parameter, ASDU asdu);
+typedef bool (*ASDUReceivedHandler) (void* parameter, CS101_ASDU asdu);
 
 void
-T104Connection_setASDUReceivedHandler(T104Connection self, ASDUReceivedHandler handler, void* parameter);
+CS104_Connection_setASDUReceivedHandler(CS104_Connection self, ASDUReceivedHandler handler, void* parameter);
 
 
 typedef enum {
-    IEC60870_CONNECTION_OPENED = 0,
-    IEC60870_CONNECTION_CLOSED = 1,
-    IEC60870_CONNECTION_STARTDT_CON_RECEIVED = 2,
-    IEC60870_CONNECTION_STOPDT_CON_RECEIVED = 3
-} IEC60870ConnectionEvent;
+    CS104_CONNECTION_OPENED = 0,
+    CS104_CONNECTION_CLOSED = 1,
+    CS104_CONNECTION_STARTDT_CON_RECEIVED = 2,
+    CS104_CONNECTION_STOPDT_CON_RECEIVED = 3
+} CS104_ConnectionEvent;
 
 /**
  * \brief Handler that is called when the connection is established or closed
@@ -203,22 +222,22 @@ typedef enum {
  * \param connection the connection object
  * \param event event type
  */
-typedef void (*ConnectionHandler) (void* parameter, T104Connection connection, IEC60870ConnectionEvent event);
+typedef void (*CS104_ConnectionHandler) (void* parameter, CS104_Connection connection, CS104_ConnectionEvent event);
 
 void
-T104Connection_setConnectionHandler(T104Connection self, ConnectionHandler handler, void* parameter);
+CS104_Connection_setConnectionHandler(CS104_Connection self, CS104_ConnectionHandler handler, void* parameter);
 
 /**
  * \brief Close the connection
  */
 void
-T104Connection_close(T104Connection self);
+CS104_Connection_close(CS104_Connection self);
 
 /**
  * \brief Close the connection and free all related resources
  */
 void
-T104Connection_destroy(T104Connection self);
+CS104_Connection_destroy(CS104_Connection self);
 
 #ifdef __cplusplus
 }

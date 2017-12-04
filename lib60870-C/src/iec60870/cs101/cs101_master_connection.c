@@ -1,5 +1,7 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  cs101_master_connection.c
+ *
+ *  Copyright 2017 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -19,13 +21,28 @@
  *  See COPYING file for the complete license text.
  */
 
-#ifndef SRC_IEC60870_MASTER_H_
-#define SRC_IEC60870_MASTER_H_
+#include "iec60870_slave.h"
 
-#include <stdint.h>
-#include <stdbool.h>
+void
+IMasterConnection_sendASDU(IMasterConnection self, CS101_ASDU asdu)
+{
+    self->sendASDU(self, asdu);
+}
 
-#include "cs104_connection.h"
-#include "iec60870_common.h"
+void
+IMasterConnection_sendACT_CON(IMasterConnection self, CS101_ASDU asdu, bool negative)
+{
+    self->sendACT_CON(self, asdu, negative);
+}
 
-#endif /* SRC_IEC60870_MASTER_H_ */
+void
+IMasterConnection_sendACT_TERM(IMasterConnection self, CS101_ASDU asdu)
+{
+    self->sendACT_TERM(self, asdu);
+}
+
+CS101_AppLayerParameters
+IMasterConnection_getApplicationLayerParameters(IMasterConnection self)
+{
+    return self->getApplicationLayerParameters(self);
+}

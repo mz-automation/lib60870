@@ -19,41 +19,45 @@
  *  See COPYING file for the complete license text.
  */
 
+#include "../../inc/api/cs104_connection.h"
+
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
+#include "../../inc/internal/cs104_frame.h"
 #include "iec60870_common.h"
-#include "t104_frame.h"
 #include "hal_thread.h"
 #include "hal_socket.h"
 #include "hal_time.h"
 #include "lib_memory.h"
 
-#include "t104_connection.h"
 #include "apl_types_internal.h"
 #include "information_objects_internal.h"
 #include "lib60870_internal.h"
+#include "cs101_asdu_internal.h"
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
 #include "tls_api.h"
 #endif
 
-struct sT104ConnectionParameters defaultConnectionParameters = {
-        /* .sizeOfTypeId =  */ 1,
-        /* .sizeOfVSQ = */ 1,
-        /* .sizeOfCOT = */ 2,
-		/* .originatorAddress = */ 0,
-		/* .sizeOfCA = */ 2,
-		/* .sizeOfIOA = */ 3,
-
+struct sCS104_ConnectionParameters defaultConnectionParameters = {
 		/* .k = */ 12,
 		/* .w = */ 8,
 		/* .t0 = */ 10,
 		/* .t1 = */ 15,
 		/* .t2 = */ 10,
 		/* .t3 = */ 20
+};
+
+static struct sCS101_AppLayerParameters defaultAppLayerParameters = {
+    /* .sizeOfTypeId =  */ 1,
+    /* .sizeOfVSQ = */ 1,
+    /* .sizeOfCOT = */ 2,
+    /* .originatorAddress = */ 0,
+    /* .sizeOfCA = */ 2,
+    /* .sizeOfIOA = */ 3,
 };
 
 #ifndef HOST_NAME_MAX
@@ -66,10 +70,13 @@ typedef struct {
 } SentASDU;
 
 
-struct sT104Connection {
+struct sCS104_Connection {
     char hostname[HOST_NAME_MAX + 1];
     int tcpPort;
-    struct sT104ConnectionParameters parameters;
+
+    struct sCS104_ConnectionParameters parameters;
+    struct sCS101_AppLayerParameters alParameters;
+
     int connectTimeoutInMs;
     uint8_t sMessage[6];
 
@@ -77,7 +84,7 @@ struct sT104Connection {
     int maxSentASDUs;    /* maximum number of ASDU to be sent without confirmation - parameter k */
     int oldestSentASDU;  /* index of oldest entry in k-buffer */
     int newestSentASDU;  /* index of newest entry in k-buffer */
-#if (CONFIG_MASTER_USING_THREADS == 1)
+#if (CONFIG_USE_THREADS == 1)
     Semaphore sentASDUsLock;
     Thread connectionHandlingThread;
 #endif
@@ -108,7 +115,7 @@ struct sT104Connection {
     ASDUReceivedHandler receivedHandler;
     void* receivedHandlerParameter;
 
-    ConnectionHandler connectionHandler;
+    CS104_ConnectionHandler connectionHandler;
     void* connectionHandlerParameter;
 };
 
@@ -129,7 +136,7 @@ static uint8_t STARTDT_CON_MSG[] = { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
 #define STARTDT_CON_MSG_SIZE 6
 
 static inline int
-writeToSocket(T104Connection self, uint8_t* buf, int size)
+writeToSocket(CS104_Connection self, uint8_t* buf, int size)
 {
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     if (self->tlsSocket)
@@ -151,7 +158,7 @@ prepareSMessage(uint8_t* msg)
 }
 
 static void
-sendSMessage(T104Connection self)
+sendSMessage(CS104_Connection self)
 {
     uint8_t* msg = self->sMessage;
 
@@ -162,7 +169,7 @@ sendSMessage(T104Connection self)
 }
 
 static int
-sendIMessage(T104Connection self, Frame frame)
+sendIMessage(CS104_Connection self, Frame frame)
 {
     T104Frame_prepareToSend((T104Frame) frame, self->sendCount, self->receiveCount);
 
@@ -173,15 +180,16 @@ sendIMessage(T104Connection self, Frame frame)
     return self->sendCount;
 }
 
-static T104Connection
+static CS104_Connection
 createConnection(const char* hostname, int tcpPort)
 {
-    T104Connection self = (T104Connection) GLOBAL_MALLOC(sizeof(struct sT104Connection));
+    CS104_Connection self = (CS104_Connection) GLOBAL_MALLOC(sizeof(struct sCS104_Connection));
 
     if (self != NULL) {
         strncpy(self->hostname, hostname, HOST_NAME_MAX);
         self->tcpPort = tcpPort;
         self->parameters = defaultConnectionParameters;
+        self->alParameters = defaultAppLayerParameters;
 
         self->receivedHandler = NULL;
         self->receivedHandlerParameter = NULL;
@@ -189,7 +197,7 @@ createConnection(const char* hostname, int tcpPort)
         self->connectionHandler = NULL;
         self->connectionHandlerParameter = NULL;
 
-#if (CONFIG_MASTER_USING_THREADS == 1)
+#if (CONFIG_USE_THREADS == 1)
         self->sentASDUsLock = Semaphore_create(1);
         self->connectionHandlingThread = NULL;
 #endif
@@ -207,17 +215,17 @@ createConnection(const char* hostname, int tcpPort)
     return self;
 }
 
-T104Connection
-T104Connection_create(const char* hostname, int tcpPort)
+CS104_Connection
+CS104_Connection_create(const char* hostname, int tcpPort)
 {
     return createConnection(hostname, tcpPort);
 }
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
-T104Connection
-T104Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguration tlsConfig)
+CS104_Connection
+CS104_Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguration tlsConfig)
 {
-    T104Connection self = createConnection(hostname, tcpPort);
+    CS104_Connection self = createConnection(hostname, tcpPort);
 
     if (self != NULL) {
         self->tlsConfig = tlsConfig;
@@ -229,7 +237,7 @@ T104Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguration 
 #endif /* (CONFIG_CS104_SUPPORT_TLS == 1) */
 
 static void
-resetConnection(T104Connection self)
+resetConnection(CS104_Connection self)
 {
     self->connectTimeoutInMs = self->parameters.t0 * 1000;
 
@@ -257,14 +265,14 @@ resetConnection(T104Connection self)
 }
 
 static void
-resetT3Timeout(T104Connection self) {
+resetT3Timeout(CS104_Connection self) {
     self->nextT3Timeout = Hal_getTimeInMs() + (self->parameters.t3 * 1000);
 }
 
 static bool
-checkSequenceNumber(T104Connection self, int seqNo)
+checkSequenceNumber(CS104_Connection self, int seqNo)
 {
-#if (CONFIG_MASTER_USING_THREADS == 1)
+#if (CONFIG_USE_THREADS == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
@@ -328,7 +336,7 @@ checkSequenceNumber(T104Connection self, int seqNo)
         }
     }
 
-#if (CONFIG_MASTER_USING_THREADS == 1)
+#if (CONFIG_USE_THREADS == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 
@@ -337,7 +345,7 @@ checkSequenceNumber(T104Connection self, int seqNo)
 
 
 static bool
-isSentBufferFull(T104Connection self)
+isSentBufferFull(CS104_Connection self)
 {
     if (self->oldestSentASDU == -1)
         return false;
@@ -351,10 +359,10 @@ isSentBufferFull(T104Connection self)
 }
 
 void
-T104Connection_close(T104Connection self)
+CS104_Connection_close(CS104_Connection self)
 {
     self->close = true;
-#if (CONFIG_MASTER_USING_THREADS == 1)
+#if (CONFIG_USE_THREADS == 1)
     if (self->connectionHandlingThread)
     {
         Thread_destroy(self->connectionHandlingThread);
@@ -364,14 +372,14 @@ T104Connection_close(T104Connection self)
 }
 
 void
-T104Connection_destroy(T104Connection self)
+CS104_Connection_destroy(CS104_Connection self)
 {
-    T104Connection_close(self);
+    CS104_Connection_close(self);
 
     if (self->sentASDUs != NULL)
         GLOBAL_FREEMEM(self->sentASDUs);
 
-#if (CONFIG_MASTER_USING_THREADS == 1)
+#if (CONFIG_USE_THREADS == 1)
     Semaphore_destroy(self->sentASDUsLock);
 #endif
 
@@ -379,7 +387,7 @@ T104Connection_destroy(T104Connection self)
 }
 
 void
-T104Connection_setConnectionParameters(T104Connection self, T104ConnectionParameters parameters)
+CS104_Connection_setConnectionParameters(CS104_Connection self, CS104_ConnectionParameters parameters)
 {
     self->parameters = *parameters;
 
@@ -387,13 +395,25 @@ T104Connection_setConnectionParameters(T104Connection self, T104ConnectionParame
 }
 
 void
-T104Connection_setConnectTimeout(T104Connection self, int millies)
+CS104_Connection_setAppLayerParameters(CS104_Connection self, CS101_AppLayerParameters parameters)
+{
+    self->alParameters = *parameters;
+}
+
+CS101_AppLayerParameters
+CS104_Connection_getAppLayerParameters(CS104_Connection self)
+{
+    return &(self->alParameters);
+}
+
+void
+CS104_Connection_setConnectTimeout(CS104_Connection self, int millies)
 {
     self->connectTimeoutInMs = millies;
 }
 
-T104ConnectionParameters
-T104Connection_getConnectionParameters(T104Connection self)
+CS104_ConnectionParameters
+CS104_Connection_getConnectionParameters(CS104_Connection self)
 {
     return &(self->parameters);
 }
@@ -447,7 +467,7 @@ receiveMessageSocket(Socket socket, uint8_t* buffer)
 }
 
 static int
-receiveMessage(T104Connection self, uint8_t* buffer)
+receiveMessage(CS104_Connection self, uint8_t* buffer)
 {
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     if (self->tlsSocket != NULL)
@@ -461,7 +481,7 @@ receiveMessage(T104Connection self, uint8_t* buffer)
 
 
 static bool
-checkConfirmTimeout(T104Connection self, long currentTime)
+checkConfirmTimeout(CS104_Connection self, long currentTime)
 {
     if ((currentTime - self->lastConfirmationTime) >= (uint32_t) (self->parameters.t2 * 1000))
         return true;
@@ -470,7 +490,7 @@ checkConfirmTimeout(T104Connection self, long currentTime)
 }
 
 static bool
-checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
+checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
 {
     if ((buffer[2] & 1) == 0) { /* I format frame */
 
@@ -501,13 +521,13 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
         self->receiveCount = (self->receiveCount + 1) % 32768;
         self->unconfirmedReceivedIMessages++;
 
-        ASDU asdu = ASDU_createFromBuffer((ConnectionParameters)&(self->parameters), buffer + 6, msgSize - 6);
+        CS101_ASDU asdu = CS101_ASDU_createFromBuffer((CS101_AppLayerParameters)&(self->alParameters), buffer + 6, msgSize - 6);
 
         if (asdu != NULL) {
             if (self->receivedHandler != NULL)
                 self->receivedHandler(self->receivedHandlerParameter, asdu);
 
-            ASDU_destroy(asdu);
+            CS101_ASDU_destroy(asdu);
         }
         else
             return false;
@@ -535,13 +555,13 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
             DEBUG_PRINT("Received STARTDT_CON\n");
 
             if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_STARTDT_CON_RECEIVED);
+                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STARTDT_CON_RECEIVED);
         }
         else if (buffer[2] == 0x23) { /* STOPDT_CON */
             DEBUG_PRINT("Received STOPDT_CON\n");
 
             if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_STOPDT_CON_RECEIVED);
+                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STOPDT_CON_RECEIVED);
         }
 
     }
@@ -561,7 +581,7 @@ checkMessage(T104Connection self, uint8_t* buffer, int msgSize)
 }
 
 static bool
-handleTimeouts(T104Connection self)
+handleTimeouts(CS104_Connection self)
 {
     bool retVal = true;
 
@@ -607,7 +627,7 @@ handleTimeouts(T104Connection self)
     }
 
     /* check if counterpart confirmed I messages */
-#if (CONFIG_MASTER_USING_THREADS == 1)
+#if (CONFIG_USE_THREADS == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
     if (self->oldestSentASDU != -1) {
@@ -616,7 +636,7 @@ handleTimeouts(T104Connection self)
             retVal = false;
         }
     }
-#if (CONFIG_MASTER_USING_THREADS == 1)
+#if (CONFIG_USE_THREADS == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 
@@ -629,7 +649,7 @@ exit_function:
 static void*
 handleConnection(void* parameter)
 {
-    T104Connection self = (T104Connection) parameter;
+    CS104_Connection self = (CS104_Connection) parameter;
 
     resetConnection(self);
 
@@ -658,7 +678,7 @@ handleConnection(void* parameter)
 
             /* Call connection handler */
             if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_OPENED);
+                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_OPENED);
 
             HandleSet handleSet = Handleset_new();
 
@@ -680,7 +700,6 @@ handleConnection(void* parameter)
                     }
 
                     if (bytesRec > 0) {
-                        //TODO call raw message handler if available
 
                         if (checkMessage(self, buffer, bytesRec) == false) {
                             /* close connection on error */
@@ -707,7 +726,7 @@ handleConnection(void* parameter)
 
             /* Call connection handler */
             if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, IEC60870_CONNECTION_CLOSED);
+                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_CLOSED);
 
         }
     }
@@ -730,7 +749,7 @@ handleConnection(void* parameter)
 }
 
 void
-T104Connection_connectAsync(T104Connection self)
+CS104_Connection_connectAsync(CS104_Connection self)
 {
     resetConnection(self);
 
@@ -743,9 +762,9 @@ T104Connection_connectAsync(T104Connection self)
 }
 
 bool
-T104Connection_connect(T104Connection self)
+CS104_Connection_connect(CS104_Connection self)
 {
-    T104Connection_connectAsync(self);
+    CS104_Connection_connectAsync(self);
 
     while ((self->running == false) && (self->failure == false))
         Thread_sleep(1);
@@ -754,65 +773,65 @@ T104Connection_connect(T104Connection self)
 }
 
 void
-T104Connection_setASDUReceivedHandler(T104Connection self, ASDUReceivedHandler handler, void* parameter)
+CS104_Connection_setASDUReceivedHandler(CS104_Connection self, ASDUReceivedHandler handler, void* parameter)
 {
     self->receivedHandler = handler;
     self->receivedHandlerParameter = parameter;
 }
 
 void
-T104Connection_setConnectionHandler(T104Connection self, ConnectionHandler handler, void* parameter)
+CS104_Connection_setConnectionHandler(CS104_Connection self, CS104_ConnectionHandler handler, void* parameter)
 {
     self->connectionHandler = handler;
     self->connectionHandlerParameter = parameter;
 }
 
 static void
-encodeIdentificationField(T104Connection self, Frame frame, TypeID typeId,
-        int vsq, CauseOfTransmission cot, int ca)
+encodeIdentificationField(CS104_Connection self, Frame frame, TypeID typeId,
+        int vsq, CS101_CauseOfTransmission cot, int ca)
 {
     T104Frame_setNextByte(frame, typeId);
     T104Frame_setNextByte(frame, (uint8_t) vsq);
 
     /* encode COT */
     T104Frame_setNextByte(frame, (uint8_t) cot);
-    if (self->parameters.sizeOfCOT == 2)
-        T104Frame_setNextByte(frame, (uint8_t) self->parameters.originatorAddress);
+    if (self->alParameters.sizeOfCOT == 2)
+        T104Frame_setNextByte(frame, (uint8_t) self->alParameters.originatorAddress);
 
     /* encode CA */
     T104Frame_setNextByte(frame, (uint8_t)(ca & 0xff));
-    if (self->parameters.sizeOfCA == 2)
+    if (self->alParameters.sizeOfCA == 2)
         T104Frame_setNextByte(frame, (uint8_t) ((ca & 0xff00) >> 8));
 }
 
 static void
-encodeIOA(T104Connection self, Frame frame, int ioa)
+encodeIOA(CS104_Connection self, Frame frame, int ioa)
 {
     T104Frame_setNextByte(frame, (uint8_t) (ioa & 0xff));
 
-    if (self->parameters.sizeOfIOA > 1)
+    if (self->alParameters.sizeOfIOA > 1)
         T104Frame_setNextByte(frame, (uint8_t) ((ioa / 0x100) & 0xff));
 
-    if (self->parameters.sizeOfIOA > 1)
+    if (self->alParameters.sizeOfIOA > 1)
         T104Frame_setNextByte(frame, (uint8_t) ((ioa / 0x10000) & 0xff));
 }
 
 void
-T104Connection_sendStartDT(T104Connection self)
+CS104_Connection_sendStartDT(CS104_Connection self)
 {
     writeToSocket(self, STARTDT_ACT_MSG, STARTDT_ACT_MSG_SIZE);
 }
 
 void
-T104Connection_sendStopDT(T104Connection self)
+CS104_Connection_sendStopDT(CS104_Connection self)
 {
     writeToSocket(self, STOPDT_ACT_MSG, STOPDT_ACT_MSG_SIZE);
 }
 
 static void
-sendIMessageAndUpdateSentASDUs(T104Connection self, Frame frame)
+sendIMessageAndUpdateSentASDUs(CS104_Connection self, Frame frame)
 {
-#if (CONFIG_MASTER_USING_THREADS == 1)
+#if (CONFIG_USE_THREADS == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
@@ -831,13 +850,13 @@ sendIMessageAndUpdateSentASDUs(T104Connection self, Frame frame)
 
     self->newestSentASDU = currentIndex;
 
-#if (CONFIG_MASTER_USING_THREADS == 1)
+#if (CONFIG_USE_THREADS == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 }
 
 static bool
-sendASDUInternal(T104Connection self, Frame frame)
+sendASDUInternal(CS104_Connection self, Frame frame)
 {
     bool retVal = false;
 
@@ -854,7 +873,7 @@ sendASDUInternal(T104Connection self, Frame frame)
 }
 
 bool
-T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, QualifierOfInterrogation qoi)
+CS104_Connection_sendInterrogationCommand(CS104_Connection self, CS101_CauseOfTransmission cot, int ca, QualifierOfInterrogation qoi)
 {
     Frame frame = (Frame) T104Frame_create();
 
@@ -869,7 +888,7 @@ T104Connection_sendInterrogationCommand(T104Connection self, CauseOfTransmission
 }
 
 bool
-T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTransmission cot, int ca, uint8_t qcc)
+CS104_Connection_sendCounterInterrogationCommand(CS104_Connection self, CS101_CauseOfTransmission cot, int ca, uint8_t qcc)
 {
     Frame frame = (Frame) T104Frame_create();
 
@@ -884,11 +903,11 @@ T104Connection_sendCounterInterrogationCommand(T104Connection self, CauseOfTrans
 }
 
 bool
-T104Connection_sendReadCommand(T104Connection self, int ca, int ioa)
+CS104_Connection_sendReadCommand(CS104_Connection self, int ca, int ioa)
 {
     Frame frame = (Frame) T104Frame_create();
 
-    encodeIdentificationField(self, frame, C_RD_NA_1, 1, REQUEST, ca);
+    encodeIdentificationField(self, frame, C_RD_NA_1, 1, CS101_COT_REQUEST, ca);
 
     encodeIOA(self, frame, ioa);
 
@@ -896,11 +915,11 @@ T104Connection_sendReadCommand(T104Connection self, int ca, int ioa)
 }
 
 bool
-T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time)
+CS104_Connection_sendClockSyncCommand(CS104_Connection self, int ca, CP56Time2a time)
 {
     Frame frame = (Frame) T104Frame_create();
 
-    encodeIdentificationField(self, frame, C_CS_NA_1, 1, ACTIVATION, ca);
+    encodeIdentificationField(self, frame, C_CS_NA_1, 1, CS101_COT_ACTIVATION, ca);
 
     encodeIOA(self, frame, 0);
 
@@ -910,11 +929,11 @@ T104Connection_sendClockSyncCommand(T104Connection self, int ca, CP56Time2a time
 }
 
 bool
-T104Connection_sendTestCommand(T104Connection self, int ca)
+CS104_Connection_sendTestCommand(CS104_Connection self, int ca)
 {
     Frame frame = (Frame) T104Frame_create();
 
-    encodeIdentificationField(self, frame, C_TS_NA_1, 1, ACTIVATION, ca);
+    encodeIdentificationField(self, frame, C_TS_NA_1, 1, CS101_COT_ACTIVATION, ca);
 
     encodeIOA(self, frame, 0);
 
@@ -925,29 +944,29 @@ T104Connection_sendTestCommand(T104Connection self, int ca)
 }
 
 bool
-T104Connection_sendControlCommand(T104Connection self, TypeID typeId, CauseOfTransmission cot, int ca, InformationObject sc)
+CS104_Connection_sendControlCommand(CS104_Connection self, TypeID typeId, CS101_CauseOfTransmission cot, int ca, InformationObject sc)
 {
     Frame frame = (Frame) T104Frame_create();
 
     encodeIdentificationField (self, frame, typeId, 1 /* SQ:false; NumIX:1 */, cot, ca);
 
-    InformationObject_encode(sc, frame, (ConnectionParameters) &(self->parameters), false);
+    InformationObject_encode(sc, frame, (CS101_AppLayerParameters) &(self->alParameters), false);
 
     return sendASDUInternal(self, frame);
 }
 
 bool
-T104Connection_sendASDU(T104Connection self, ASDU asdu)
+CS104_Connection_sendASDU(CS104_Connection self, CS101_ASDU asdu)
 {
     Frame frame = (Frame) T104Frame_create();
 
-    ASDU_encode(asdu, frame);
+    CS101_ASDU_encode(asdu, frame);
 
     return sendASDUInternal(self, frame);
 }
 
 bool
-T104Connection_isTransmitBufferFull(T104Connection self)
+CS104_Connection_isTransmitBufferFull(CS104_Connection self)
 {
     return isSentBufferFull(self);
 }

@@ -28,13 +28,14 @@
 #include <stdbool.h>
 
 #include "frame.h"
+#include "iec60870_common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 void
-ASDU_encode(ASDU self, Frame frame);
+CS101_ASDU_encode(CS101_ASDU self, Frame frame);
 
 bool
 CP16Time2a_getFromBuffer (CP16Time2a self, uint8_t* msg, int msgSize, int startIndex);

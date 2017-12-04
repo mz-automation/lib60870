@@ -4,7 +4,9 @@ include make/target_system.mk
 
 LIB_SOURCE_DIRS = src/common
 LIB_SOURCE_DIRS += src/iec60870
-LIB_SOURCE_DIRS += src/iec60870/t104
+LIB_SOURCE_DIRS += src/iec60870/cs101
+LIB_SOURCE_DIRS += src/iec60870/cs104
+LIB_SOURCE_DIRS += src/iec60870/link_layer
 LIB_SOURCE_DIRS += src/iec60870/apl
 
 ifeq ($(HAL_IMPL), WIN32)
@@ -15,6 +17,7 @@ else ifeq ($(HAL_IMPL), POSIX)
 LIB_SOURCE_DIRS += src/hal/socket/linux
 LIB_SOURCE_DIRS += src/hal/thread/linux
 LIB_SOURCE_DIRS += src/hal/time/unix
+LIB_SOURCE_DIRS += src/hal/serial/linux
 else ifeq ($(HAL_IMPL), BSD)
 LIB_SOURCE_DIRS += src/hal/socket/bsd
 LIB_SOURCE_DIRS += src/hal/thread/bsd

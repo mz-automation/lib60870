@@ -20,18 +20,11 @@
 #define CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE 0
 
 /**
- * Compile the slave/server stack using threads. This will require semaphores also
+ * Compile the library to use threads. This will require semaphore support
  *
- * CONFIG_SLAVE_USING_THREADS = 0 not yet supported
+ * CONFIG_USE_THREADS = 0 not yet supported
  */
-#define CONFIG_SLAVE_USING_THREADS 1
-
-/**
- * Compile the master/client stack using threads. This will require semaphores also
- *
- * CONFIG_MASTER_USING_THREADS = 0 not yet supported
- */
-#define CONFIG_MASTER_USING_THREADS 1
+#define CONFIG_USE_THREADS 1
 
 /**
  * Use a separate thread to call the callback functions. This allows the user
@@ -66,12 +59,12 @@
 /**
  * Compile library with support for SINGLE_REDUNDANCY_GROUP server mode (only CS104 server)
  */
-#define CONFIG_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP 0
+#define CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP 1
 
 /**
  * Compile library with support for CONNECTION_IS_REDUNDANCY_GROUP server mode (only CS104 server)
  */
-#define CONFIG_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP 1
+#define CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP 1
 
 /**
  * Set the maximum number of client connections or 0 for no restriction

@@ -7,12 +7,12 @@ if(DEFINED ENV{TOOLCHAIN})
 	set(CMAKE_AR	"$ENV{TOOLCHAIN}ar" CACHE FILEPATH "CW archiver" FORCE)
 endif()
 
-project(lib60870)
+project(lib60870-C)
 ENABLE_TESTING()
 
-set(LIB_VERSION_MAJOR "0")
-set(LIB_VERSION_MINOR "9")
-set(LIB_VERSION_PATCH "7")
+set(LIB_VERSION_MAJOR "2")
+set(LIB_VERSION_MINOR "0")
+set(LIB_VERSION_PATCH "0")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/third_party/cmake/modules/")
 
@@ -62,11 +62,15 @@ set(API_HEADERS
 	src/hal/inc/hal_time.h 
 	src/hal/inc/hal_thread.h
 	src/hal/inc/hal_filesystem.h 
+	src/inc/api/cs101_master.h
+	src/inc/api/cs101_slave.h
+	src/inc/api/cs104_slave.h
 	src/inc/api/iec60870_master.h
 	src/inc/api/iec60870_slave.h
 	src/inc/api/iec60870_common.h
-	src/inc/api/information_objects.h
-	src/inc/api/t104_connection.h
+	src/inc/api/information_objects
+	src/inc/api/cs104_connection.h
+	src/inc/api/link_layer_parameters.h
 	src/tls/tls_api.h
 )
 
@@ -89,8 +93,8 @@ INSTALL(FILES ${API_HEADERS} DESTINATION include/lib60870 COMPONENT Development)
 IF(EXISTS "${CMAKE_ROOT}/Modules/CPack.cmake")
 INCLUDE(InstallRequiredSystemLibraries)
  
-SET(CPACK_PACKAGE_DESCRIPTION "IEC 60870-5-104 client and server library")
-SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "IEC 60870-5-104 client and server library")
+SET(CPACK_PACKAGE_DESCRIPTION "IEC 60870-5-101/104 master/slave library")
+SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY "IEC 60870-5-101/104 master/slave library")
 SET(CPACK_PACKAGE_VENDOR "MZ Automation GmbH")
 SET(CPACK_PACKAGE_CONTACT "info@mz-automation.de")
 SET(CPACK_PACKAGE_VERSION_MAJOR "${LIB_VERSION_MAJOR}")

@@ -1,18 +1,23 @@
+/*
+ * slave_example.c
+ *
+ * Example CS101 slave
+ *
+ */
+
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
 
-#include "iec60870_slave.h"
-#include "cs104_slave.h"
+#include "cs101_slave.h"
 
+#include "hal_serial.h"
 #include "hal_thread.h"
 #include "hal_time.h"
 
 static bool running = true;
-
-static CS101_AppLayerParameters appLayerParameters;
 
 void
 sigint_handler(int signalId)
@@ -27,7 +32,7 @@ printCP56Time2a(CP56Time2a time)
                              CP56Time2a_getMinute(time),
                              CP56Time2a_getSecond(time),
                              CP56Time2a_getDayOfMonth(time),
-                             CP56Time2a_getMonth(time) + 1,
+                             CP56Time2a_getMonth(time),
                              CP56Time2a_getYear(time) + 2000);
 }
 
@@ -46,11 +51,13 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 
     if (qoi == 20) { /* only handle station interrogation */
 
+        CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
+
         IMasterConnection_sendACT_CON(connection, asdu, false);
 
         /* The CS101 specification only allows information objects without timestamp in GI responses */
 
-        CS101_ASDU newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_INTERROGATED_BY_STATION,
+        CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION,
                 0, 1, false, false);
 
         InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 100, -1, IEC60870_QUALITY_GOOD);
@@ -67,7 +74,9 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 
         IMasterConnection_sendASDU(connection, newAsdu);
 
-        newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_INTERROGATED_BY_STATION,
+        CS101_ASDU_destroy(newAsdu);
+
+        newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION,
                     0, 1, false, false);
 
         io = (InformationObject) SinglePointInformation_create(NULL, 104, true, IEC60870_QUALITY_GOOD);
@@ -81,7 +90,9 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 
         IMasterConnection_sendASDU(connection, newAsdu);
 
-        newAsdu = CS101_ASDU_create(appLayerParameters, true, CS101_COT_INTERROGATED_BY_STATION,
+        CS101_ASDU_destroy(newAsdu);
+
+        newAsdu = CS101_ASDU_create(alParams, true, CS101_COT_INTERROGATED_BY_STATION,
                 0, 1, false, false);
 
         CS101_ASDU_addInformationObject(newAsdu, io = (InformationObject) SinglePointInformation_create(NULL, 300, true, IEC60870_QUALITY_GOOD));
@@ -96,6 +107,8 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
         InformationObject_destroy(io);
 
         IMasterConnection_sendASDU(connection, newAsdu);
+
+        CS101_ASDU_destroy(newAsdu);
 
         IMasterConnection_sendACT_TERM(connection, asdu);
     }
@@ -139,95 +152,114 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
     return false;
 }
 
-static bool
-connectionRequestHandler(void* parameter, const char* ipAddress)
+static void
+resetCUHandler(void* parameter)
 {
-    printf("New connection from %s\n", ipAddress);
+    printf("Received reset CU\n");
 
-#if 0
-    if (strcmp(ipAddress, "127.0.0.1") == 0) {
-        printf("Accept connection\n");
-        return true;
+    CS101_Slave_flushQueues((CS101_Slave) parameter);
+}
+
+static void
+linkLayerStateChanged(void* parameter, LinkLayerState state)
+{
+    printf("Link layer state: ");
+
+    switch (state) {
+    case LL_STATE_IDLE:
+        printf("IDLE\n");
+        break;
+    case LL_STATE_ERROR:
+        printf("ERROR\n");
+        break;
+    case LL_STATE_BUSY:
+        printf("BUSY\n");
+        break;
+    case LL_STATE_AVAILABLE:
+        printf("AVAILABLE\n");
+        break;
     }
-    else {
-        printf("Deny connection\n");
-        return false;
-    }
-#else
-    return true;
-#endif
 }
 
 int
 main(int argc, char** argv)
 {
-    int openConnections = 0;
-
     /* Add Ctrl-C handler */
     signal(SIGINT, sigint_handler);
 
-    /* create a new slave/server instance with default connection parameters and
-     * default message queue size */
-    CS104_Slave slave = CS104_Slave_create(100, 100);
+    const char* serialPort = "/dev/ttyUSB1";
 
-    CS104_Slave_setLocalAddress(slave, "0.0.0.0");
+    if (argc > 1)
+        serialPort = argv[1];
+
+    SerialPort port = SerialPort_create(serialPort, 9600, 8, 'E', 1);
+
+    /* create a new slave/server instance with default link layer and application layer parameters */
+    CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_UNBALANCED);
+    //CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_BALANCED);
+
+    CS101_Slave_setLinkLayerAddress(slave, 1);
 
     /* get the connection parameters - we need them to create correct ASDUs */
-    appLayerParameters = CS104_Slave_getAppLayerParameters(slave);
+    CS101_AppLayerParameters alParameters = CS101_Slave_getAppLayerParameters(slave);
 
     /* set the callback handler for the clock synchronization command */
-    CS104_Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);
+    CS101_Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);
 
     /* set the callback handler for the interrogation command */
-    CS104_Slave_setInterrogationHandler(slave, interrogationHandler, NULL);
+    CS101_Slave_setInterrogationHandler(slave, interrogationHandler, NULL);
 
     /* set handler for other message types */
-    CS104_Slave_setASDUHandler(slave, asduHandler, NULL);
+    CS101_Slave_setASDUHandler(slave, asduHandler, NULL);
 
-    CS104_Slave_setConnectionRequestHandler(slave, connectionRequestHandler, NULL);
+    /* set handler for reset CU (reset communication unit) message */
+    CS101_Slave_setResetCUHandler(slave, resetCUHandler, (void*) slave);
 
-    /* Set server mode to allow multiple clients using the application layer */
-    CS104_Slave_setServerMode(slave, CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP);
-
-    CS104_Slave_start(slave);
-
-    if (CS104_Slave_isRunning(slave) == false) {
-        printf("Starting server failed!\n");
-        goto exit_program;
-    }
+    /* set handler for link layer state changes */
+    CS101_Slave_setLinkLayerStateChanged(slave, linkLayerStateChanged, NULL);
 
     int16_t scaledValue = 0;
 
+    uint64_t lastMessageSent = 0;
+
+    SerialPort_open(port);
+
     while (running) {
-        int connectionsCount = CS104_Slave_getOpenConnections(slave);
 
-        if (connectionsCount != openConnections) {
-            openConnections = connectionsCount;
+        /* has to be called periodically */
+        CS101_Slave_run(slave);
 
-            printf("Connected clients: %i\n", openConnections);
+        /* Enqueue a measurement every second */
+        if (Hal_getTimeInMs() > (lastMessageSent + 1000)) {
+
+            CS101_ASDU newAsdu = CS101_ASDU_create(alParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+            InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
+
+            scaledValue++;
+
+            CS101_ASDU_addInformationObject(newAsdu, io);
+
+            InformationObject_destroy(io);
+
+            CS101_Slave_enqueueUserDataClass2(slave, newAsdu);
+
+            CS101_ASDU_destroy(newAsdu);
+
+            lastMessageSent = Hal_getTimeInMs();
         }
 
-        Thread_sleep(1000);
-
-        CS101_ASDU newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
-
-        InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
-
-        scaledValue++;
-
-        CS101_ASDU_addInformationObject(newAsdu, io);
-
-        InformationObject_destroy(io);
-
-        /* Add ASDU to slave event queue - don't release the ASDU afterwards!
-         * The ASDU will be released by the Slave instance when the ASDU
-         * has been sent.
-         */
-        CS104_Slave_enqueueASDU(slave, newAsdu);
+        Thread_sleep(1);
     }
 
-    CS104_Slave_stop(slave);
 
 exit_program:
-    CS104_Slave_destroy(slave);
+    CS101_Slave_destroy(slave);
+
+    SerialPort_close(port);
+    SerialPort_destroy(port);
 }
+
+
+
+

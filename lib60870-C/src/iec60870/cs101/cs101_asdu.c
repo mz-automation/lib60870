@@ -27,33 +27,13 @@
 #include "apl_types_internal.h"
 #include "lib_memory.h"
 #include "lib60870_internal.h"
-
-struct sASDU {
-    bool stackCreated;
-    ConnectionParameters parameters;
-    uint8_t* asdu;
-    int asduHeaderLength;
-    uint8_t* payload;
-    int payloadSize;
-};
-
-typedef struct sStaticASDU* StaticASDU;
-
-struct sStaticASDU {
-    bool stackCreated;
-    ConnectionParameters parameters;
-    uint8_t* asdu;
-    int asduHeaderLength;
-    uint8_t* payload;
-    int payloadSize;
-    uint8_t encodedData[256];
-};
+#include "cs101_asdu_internal.h"
 
 typedef struct sASDUFrame* ASDUFrame;
 
 struct sASDUFrame {
     FrameVFT virtualFunctionTable;
-    ASDU asdu;
+    CS101_ASDU asdu;
 };
 
 static void
@@ -101,84 +81,92 @@ struct sFrameVFT asduFrameVFT = {
         asduFrame_getSpaceLeft
 };
 
-ASDU
-ASDU_create(ConnectionParameters parameters, IEC60870_5_TypeID typeId, bool isSequence, CauseOfTransmission cot, int oa, int ca,
+CS101_ASDU
+CS101_ASDU_create(CS101_AppLayerParameters parameters, bool isSequence, CS101_CauseOfTransmission cot, int oa, int ca,
         bool isTest, bool isNegative)
 {
-    StaticASDU self = (StaticASDU) GLOBAL_MALLOC(sizeof(struct sStaticASDU));
+    CS101_StaticASDU self = (CS101_StaticASDU) GLOBAL_MALLOC(sizeof(struct sCS101_StaticASDU));
     //TODO support allocation from static pool
 
-    if (self != NULL) {
-        self->stackCreated = false;
+    if (self != NULL)
+        CS101_ASDU_initializeStatic(self, parameters, isSequence, cot, oa, ca, isTest, isNegative);
 
-        int asduHeaderLength = 2 + parameters->sizeOfCOT + parameters->sizeOfCA;
+    return (CS101_ASDU) self;
+}
 
-        self->encodedData[0] = (uint8_t) typeId;
+CS101_ASDU
+CS101_ASDU_initializeStatic(CS101_StaticASDU self, CS101_AppLayerParameters parameters, bool isSequence, CS101_CauseOfTransmission cot, int oa, int ca,
+        bool isTest, bool isNegative)
+{
+    self->stackCreated = false;
 
-        if (isSequence)
-            self->encodedData[1] = 0x80;
-        else
-            self->encodedData[1] = 0;
+    int asduHeaderLength = 2 + parameters->sizeOfCOT + parameters->sizeOfCA;
 
-        self->encodedData[2] = (uint8_t) (cot & 0x3f);
+    self->encodedData[0] = (uint8_t) 0;
 
-        if (isTest)
-            self->encodedData[2] |= 0x80;
+    if (isSequence)
+        self->encodedData[1] = 0x80;
+    else
+        self->encodedData[1] = 0;
 
-        if (isNegative)
-            self->encodedData[2] |= 0x40;
+    self->encodedData[2] = (uint8_t) (cot & 0x3f);
 
-        int caIndex;
+    if (isTest)
+        self->encodedData[2] |= 0x80;
 
-        if (parameters->sizeOfCOT > 1) {
-            self->encodedData[3] = (uint8_t) oa;
-            caIndex = 4;
-        }
-        else
-            caIndex = 3;
+    if (isNegative)
+        self->encodedData[2] |= 0x40;
 
-        self->encodedData[caIndex] = ca % 0x100;
+    int caIndex;
 
-        if (parameters->sizeOfCA > 1)
-            self->encodedData[caIndex + 1] = ca / 0x100;
-
-        self->asdu = self->encodedData;
-        self->asduHeaderLength = asduHeaderLength;
-        self->payload = self->encodedData + asduHeaderLength;
-        self->payloadSize = 0;
-        self->parameters = parameters;
+    if (parameters->sizeOfCOT > 1) {
+        self->encodedData[3] = (uint8_t) oa;
+        caIndex = 4;
     }
+    else
+        caIndex = 3;
 
-    return (ASDU) self;
+    self->encodedData[caIndex] = ca % 0x100;
+
+    if (parameters->sizeOfCA > 1)
+        self->encodedData[caIndex + 1] = ca / 0x100;
+
+    self->asdu = self->encodedData;
+    self->asduHeaderLength = asduHeaderLength;
+    self->payload = self->encodedData + asduHeaderLength;
+    self->payloadSize = 0;
+    self->parameters = parameters;
+
+    return (CS101_ASDU) self;
 }
 
 void
-ASDU_destroy(ASDU self)
+CS101_ASDU_destroy(CS101_ASDU self)
 {
     GLOBAL_FREEMEM(self);
 }
 
 bool
-ASDU_isStackCreated(ASDU self)
+CS101_ASDU_isStackCreated(CS101_ASDU self)
 {
     return self->stackCreated;
 }
 
 void
-ASDU_encode(ASDU self, Frame frame)
+CS101_ASDU_encode(CS101_ASDU self, Frame frame)
 {
     Frame_appendBytes(frame, self->asdu, self->asduHeaderLength + self->payloadSize);
 }
 
-ASDU
-ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLength)
+CS101_ASDU
+CS101_ASDU_createFromBuffer(CS101_AppLayerParameters parameters, uint8_t* msg, int msgLength)
 {
     int asduHeaderLength = 2 + parameters->sizeOfCOT + parameters->sizeOfCA;
 
     if (msgLength < asduHeaderLength)
         return NULL;
 
-    ASDU self = (ASDU) GLOBAL_MALLOC(sizeof(struct sASDU));
+    CS101_ASDU self = (CS101_ASDU) GLOBAL_MALLOC(sizeof(struct sCS101_ASDU));
     //TODO support allocation from static pool
 
     if (self != NULL) {
@@ -197,7 +185,7 @@ ASDU_createFromBuffer(ConnectionParameters parameters, uint8_t* msg, int msgLeng
 }
 
 static inline int
-getFirstIOA(ASDU self)
+getFirstIOA(CS101_ASDU self)
 {
     int startIndex = self->asduHeaderLength;
 
@@ -213,7 +201,7 @@ getFirstIOA(ASDU self)
 }
 
 bool
-ASDU_addInformationObject(ASDU self, InformationObject io)
+CS101_ASDU_addInformationObject(CS101_ASDU self, InformationObject io)
 {
     struct sASDUFrame asduFrame = {
             &asduFrameVFT,
@@ -223,21 +211,21 @@ ASDU_addInformationObject(ASDU self, InformationObject io)
     bool encoded = false;
 
 
-    int numberOfElements = ASDU_getNumberOfElements(self);
+    int numberOfElements = CS101_ASDU_getNumberOfElements(self);
 
     if (numberOfElements == 0) {
         if (self->stackCreated == false) {
-            ((StaticASDU)self)->encodedData[0] = (uint8_t) InformationObject_getType(io);
+            ((CS101_StaticASDU)self)->encodedData[0] = (uint8_t) InformationObject_getType(io);
         }
 
         encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);
     }
     else if (numberOfElements < 0x7f) {
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
 
             /* check that new information object has correct IOA */
-            if (InformationObject_getObjectAddress(io) == (getFirstIOA(self) + ASDU_getNumberOfElements(self)))
+            if (InformationObject_getObjectAddress(io) == (getFirstIOA(self) + CS101_ASDU_getNumberOfElements(self)))
                 encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, true);
             else
                 encoded = false;
@@ -254,7 +242,7 @@ ASDU_addInformationObject(ASDU self, InformationObject io)
 }
 
 bool
-ASDU_isTest(ASDU self)
+CS101_ASDU_isTest(CS101_ASDU self)
 {
     if ((self->asdu[2] & 0x80) == 0x80)
         return true;
@@ -263,7 +251,7 @@ ASDU_isTest(ASDU self)
 }
 
 void
-ASDU_setTest(ASDU self, bool value)
+CS101_ASDU_setTest(CS101_ASDU self, bool value)
 {
     if (value)
         self->asdu[2] |= 0x80;
@@ -272,7 +260,7 @@ ASDU_setTest(ASDU self, bool value)
 }
 
 bool
-ASDU_isNegative(ASDU self)
+CS101_ASDU_isNegative(CS101_ASDU self)
 {
     if ((self->asdu[2] & 0x40) == 0x40)
         return true;
@@ -281,7 +269,7 @@ ASDU_isNegative(ASDU self)
 }
 
 void
-ASDU_setNegative(ASDU self, bool value)
+CS101_ASDU_setNegative(CS101_ASDU self, bool value)
 {
     if (value)
         self->asdu[2] |= 0x40;
@@ -290,7 +278,7 @@ ASDU_setNegative(ASDU self, bool value)
 }
 
 int
-ASDU_getOA(ASDU self)
+CS101_ASDU_getOA(CS101_ASDU self)
 {
     if (self->parameters->sizeOfCOT < 2)
         return -1;
@@ -298,14 +286,14 @@ ASDU_getOA(ASDU self)
         return (int) self->asdu[4];
 }
 
-CauseOfTransmission
-ASDU_getCOT(ASDU self)
+CS101_CauseOfTransmission
+CS101_ASDU_getCOT(CS101_ASDU self)
 {
-    return (CauseOfTransmission) (self->asdu[2] & 0x3f);
+    return (CS101_CauseOfTransmission) (self->asdu[2] & 0x3f);
 }
 
 void
-ASDU_setCOT(ASDU self, CauseOfTransmission value)
+CS101_ASDU_setCOT(CS101_ASDU self, CS101_CauseOfTransmission value)
 {
     uint8_t cot = self->asdu[2] & 0xc0;
     cot += ((int) value) & 0x3f;
@@ -314,7 +302,7 @@ ASDU_setCOT(ASDU self, CauseOfTransmission value)
 }
 
 int
-ASDU_getCA(ASDU self)
+CS101_ASDU_getCA(CS101_ASDU self)
 {
     int caIndex = 2 + self->parameters->sizeOfCOT;
 
@@ -327,7 +315,7 @@ ASDU_getCA(ASDU self)
 }
 
 void
-ASDU_setCA(ASDU self, int ca)
+CS101_ASDU_setCA(CS101_ASDU self, int ca)
 {
     int caIndex = 2 + self->parameters->sizeOfCOT;
 
@@ -357,13 +345,13 @@ ASDU_setCA(ASDU self, int ca)
 }
 
 IEC60870_5_TypeID
-ASDU_getTypeID(ASDU self)
+CS101_ASDU_getTypeID(CS101_ASDU self)
 {
     return (TypeID) (self->asdu[0]);
 }
 
 bool
-ASDU_isSequence(ASDU self)
+CS101_ASDU_isSequence(CS101_ASDU self)
 {
     if ((self->asdu[1] & 0x80) != 0)
         return true;
@@ -372,25 +360,25 @@ ASDU_isSequence(ASDU self)
 }
 
 int
-ASDU_getNumberOfElements(ASDU self)
+CS101_ASDU_getNumberOfElements(CS101_ASDU self)
 {
     return (self->asdu[1] & 0x7f);
 }
 
 InformationObject
-ASDU_getElement(ASDU self, int index)
+CS101_ASDU_getElement(CS101_ASDU self, int index)
 {
     InformationObject retVal = NULL;
 
     int elementSize;
 
-    switch (ASDU_getTypeID(self)) {
+    switch (CS101_ASDU_getTypeID(self)) {
 
     case M_SP_NA_1: /* 1 */
 
         elementSize = 1;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) SinglePointInformation_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -406,7 +394,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 4;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) SinglePointWithCP24Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -422,7 +410,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 1;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) DoublePointInformation_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -439,7 +427,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 4;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) DoublePointWithCP24Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -455,7 +443,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 2;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) StepPositionInformation_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -471,7 +459,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 5;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) StepPositionWithCP24Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -487,7 +475,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 5;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) BitString32_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -503,7 +491,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 8;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) Bitstring32WithCP24Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -519,7 +507,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 3;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) MeasuredValueNormalized_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -535,7 +523,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 6;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -551,7 +539,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 3;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) MeasuredValueScaled_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -567,7 +555,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 6;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) MeasuredValueScaledWithCP24Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -584,7 +572,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 5;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) MeasuredValueShort_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -601,7 +589,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 8;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) MeasuredValueShortWithCP24Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -617,7 +605,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 5;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) IntegratedTotals_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -633,7 +621,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 8;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) IntegratedTotalsWithCP24Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -649,7 +637,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 6;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) EventOfProtectionEquipment_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -665,7 +653,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 7;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) PackedStartEventsOfProtectionEquipment_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -681,7 +669,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 7;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) PackedOutputCircuitInfo_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -697,7 +685,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 5;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) PackedSinglePointWithSCD_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -713,7 +701,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 2;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) MeasuredValueNormalizedWithoutQuality_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -729,7 +717,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 8;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) SinglePointWithCP56Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -745,7 +733,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 8;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) DoublePointWithCP56Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -761,7 +749,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 9;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) StepPositionWithCP56Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -777,7 +765,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 12;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) Bitstring32WithCP56Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -793,7 +781,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 10;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -809,7 +797,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 10;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) MeasuredValueScaledWithCP56Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -825,7 +813,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 12;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) MeasuredValueShortWithCP56Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -841,7 +829,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 12;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) IntegratedTotalsWithCP56Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -857,7 +845,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 10;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -873,7 +861,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 11;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -889,7 +877,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 11;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -1051,6 +1039,12 @@ ASDU_getElement(ASDU self, int index)
 
         break;
 
+    case C_TS_NA_1: /* 104 - Test command */
+
+        retVal = (InformationObject) TestCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
     case C_RP_NA_1: /* 105 - Reset process command */
 
         retVal = (InformationObject) ResetProcessCommand_getFromBuffer(NULL, self->parameters, self->payload, self->payloadSize,  0);
@@ -1135,7 +1129,7 @@ ASDU_getElement(ASDU self, int index)
 
         elementSize = 13;
 
-        if (ASDU_isSequence(self)) {
+        if (CS101_ASDU_isSequence(self)) {
             retVal  = (InformationObject) FileDirectory_getFromBuffer(NULL, self->parameters,
                     self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
@@ -1363,93 +1357,93 @@ TypeID_toString(TypeID self)
 }
 
 const char*
-CauseOfTransmission_toString(CauseOfTransmission self)
+CauseOfTransmission_toString(CS101_CauseOfTransmission self)
 {
     switch (self) {
 
-    case PERIODIC:
+    case CS101_COT_PERIODIC:
         return "PERIODIC";
-    case BACKGROUND_SCAN:
+    case CS101_COT_BACKGROUND_SCAN:
         return "BACKGROUND_SCAN";
-    case SPONTANEOUS:
+    case CS101_COT_SPONTANEOUS:
         return "SPONTANEOUS";
-    case INITIALIZED:
+    case CS101_COT_INITIALIZED:
         return "INITIALIZED";
-    case REQUEST:
+    case CS101_COT_REQUEST:
         return "REQUEST";
-    case ACTIVATION:
+    case CS101_COT_ACTIVATION:
         return "ACTIVATION";
-    case ACTIVATION_CON:
+    case CS101_COT_ACTIVATION_CON:
         return "ACTIVATION_CON";
-    case DEACTIVATION:
+    case CS101_COT_DEACTIVATION:
         return "DEACTIVATION";
-    case DEACTIVATION_CON:
+    case CS101_COT_DEACTIVATION_CON:
         return "DEACTIVATION_CON";
-    case ACTIVATION_TERMINATION:
+    case CS101_COT_ACTIVATION_TERMINATION:
         return "ACTIVATION_TERMINATION";
-    case RETURN_INFO_REMOTE:
+    case CS101_COT_RETURN_INFO_REMOTE:
         return "RETURN_INFO_REMOTE";
-    case RETURN_INFO_LOCAL:
+    case CS101_COT_RETURN_INFO_LOCAL:
         return "RETURN_INFO_LOCAL";
-    case FILE_TRANSFER:
+    case CS101_COT_FILE_TRANSFER:
         return "FILE_TRANSFER";
-    case AUTHENTICATION:
+    case CS101_COT_AUTHENTICATION:
         return "AUTHENTICATION";
-    case MAINTENANCE_OF_AUTH_SESSION_KEY:
+    case CS101_COT_MAINTENANCE_OF_AUTH_SESSION_KEY:
         return "MAINTENANCE_OF_AUTH_SESSION_KEY";
-    case MAINTENANCE_OF_USER_ROLE_AND_UPDATE_KEY:
+    case CS101_COT_MAINTENANCE_OF_USER_ROLE_AND_UPDATE_KEY:
         return "MAINTENANCE_OF_USER_ROLE_AND_UPDATE_KEY";
-    case INTERROGATED_BY_STATION:
+    case CS101_COT_INTERROGATED_BY_STATION:
         return "INTERROGATED_BY_STATION";
-    case INTERROGATED_BY_GROUP_1:
+    case CS101_COT_INTERROGATED_BY_GROUP_1:
         return "INTERROGATED_BY_GROUP_1";
-    case INTERROGATED_BY_GROUP_2:
+    case CS101_COT_INTERROGATED_BY_GROUP_2:
         return "INTERROGATED_BY_GROUP_2";
-    case INTERROGATED_BY_GROUP_3:
+    case CS101_COT_INTERROGATED_BY_GROUP_3:
         return "INTERROGATED_BY_GROUP_3";
-    case INTERROGATED_BY_GROUP_4:
+    case CS101_COT_INTERROGATED_BY_GROUP_4:
         return "INTERROGATED_BY_GROUP_4";
-    case INTERROGATED_BY_GROUP_5:
+    case CS101_COT_INTERROGATED_BY_GROUP_5:
         return "INTERROGATED_BY_GROUP_5";
-    case INTERROGATED_BY_GROUP_6:
+    case CS101_COT_INTERROGATED_BY_GROUP_6:
         return "INTERROGATED_BY_GROUP_6";
-    case INTERROGATED_BY_GROUP_7:
+    case CS101_COT_INTERROGATED_BY_GROUP_7:
         return "INTERROGATED_BY_GROUP_7";
-    case INTERROGATED_BY_GROUP_8:
+    case CS101_COT_INTERROGATED_BY_GROUP_8:
         return "INTERROGATED_BY_GROUP_8";
-    case INTERROGATED_BY_GROUP_9:
+    case CS101_COT_INTERROGATED_BY_GROUP_9:
         return "INTERROGATED_BY_GROUP_9";
-    case INTERROGATED_BY_GROUP_10:
+    case CS101_COT_INTERROGATED_BY_GROUP_10:
         return "INTERROGATED_BY_GROUP_10";
-    case INTERROGATED_BY_GROUP_11:
+    case CS101_COT_INTERROGATED_BY_GROUP_11:
         return "INTERROGATED_BY_GROUP_11";
-    case INTERROGATED_BY_GROUP_12:
+    case CS101_COT_INTERROGATED_BY_GROUP_12:
         return "INTERROGATED_BY_GROUP_12";
-    case INTERROGATED_BY_GROUP_13:
+    case CS101_COT_INTERROGATED_BY_GROUP_13:
         return "INTERROGATED_BY_GROUP_13";
-    case INTERROGATED_BY_GROUP_14:
+    case CS101_COT_INTERROGATED_BY_GROUP_14:
         return "INTERROGATED_BY_GROUP_14";
-    case INTERROGATED_BY_GROUP_15:
+    case CS101_COT_INTERROGATED_BY_GROUP_15:
         return "INTERROGATED_BY_GROUP_15";
-    case INTERROGATED_BY_GROUP_16:
+    case CS101_COT_INTERROGATED_BY_GROUP_16:
         return "INTERROGATED_BY_GROUP_16";
-    case REQUESTED_BY_GENERAL_COUNTER:
+    case CS101_COT_REQUESTED_BY_GENERAL_COUNTER:
         return "REQUESTED_BY_GENERAL_COUNTER";
-    case REQUESTED_BY_GROUP_1_COUNTER:
+    case CS101_COT_REQUESTED_BY_GROUP_1_COUNTER:
         return "REQUESTED_BY_GROUP_1_COUNTER";
-    case REQUESTED_BY_GROUP_2_COUNTER:
+    case CS101_COT_REQUESTED_BY_GROUP_2_COUNTER:
         return "REQUESTED_BY_GROUP_2_COUNTER";
-    case REQUESTED_BY_GROUP_3_COUNTER:
+    case CS101_COT_REQUESTED_BY_GROUP_3_COUNTER:
         return "REQUESTED_BY_GROUP_3_COUNTER";
-    case REQUESTED_BY_GROUP_4_COUNTER:
+    case CS101_COT_REQUESTED_BY_GROUP_4_COUNTER:
         return "REQUESTED_BY_GROUP_4_COUNTER";
-    case UNKNOWN_TYPE_ID:
+    case CS101_COT_UNKNOWN_TYPE_ID:
         return "UNKNOWN_TYPE_ID";
-    case UNKNOWN_CAUSE_OF_TRANSMISSION:
+    case CS101_COT_UNKNOWN_COT:
         return "UNKNOWN_CAUSE_OF_TRANSMISSION";
-    case UNKNOWN_COMMON_ADDRESS_OF_ASDU:
+    case CS101_COT_UNKNOWN_CA:
         return "UNKNOWN_COMMON_ADDRESS_OF_ASDU";
-    case UNKNOWN_INFORMATION_OBJECT_ADDRESS:
+    case CS101_COT_UNKNOWN_IOA:
         return "UNKNOWN_INFORMATION_OBJECT_ADDRESS";
     default:
         return "UNKNOWN_COT";

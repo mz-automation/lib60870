@@ -4,15 +4,12 @@
 #include <string.h>
 #include <signal.h>
 
-#include "iec60870_slave.h"
 #include "cs104_slave.h"
 
 #include "hal_thread.h"
 #include "hal_time.h"
 
 static bool running = true;
-
-static CS101_AppLayerParameters appLayerParameters;
 
 void
 sigint_handler(int signalId)
@@ -27,7 +24,7 @@ printCP56Time2a(CP56Time2a time)
                              CP56Time2a_getMinute(time),
                              CP56Time2a_getSecond(time),
                              CP56Time2a_getDayOfMonth(time),
-                             CP56Time2a_getMonth(time) + 1,
+                             CP56Time2a_getMonth(time),
                              CP56Time2a_getYear(time) + 2000);
 }
 
@@ -46,11 +43,13 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 
     if (qoi == 20) { /* only handle station interrogation */
 
+        CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
+
         IMasterConnection_sendACT_CON(connection, asdu, false);
 
         /* The CS101 specification only allows information objects without timestamp in GI responses */
 
-        CS101_ASDU newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_INTERROGATED_BY_STATION,
+        CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION,
                 0, 1, false, false);
 
         InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 100, -1, IEC60870_QUALITY_GOOD);
@@ -67,7 +66,7 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 
         IMasterConnection_sendASDU(connection, newAsdu);
 
-        newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_INTERROGATED_BY_STATION,
+        newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION,
                     0, 1, false, false);
 
         io = (InformationObject) SinglePointInformation_create(NULL, 104, true, IEC60870_QUALITY_GOOD);
@@ -81,7 +80,7 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 
         IMasterConnection_sendASDU(connection, newAsdu);
 
-        newAsdu = CS101_ASDU_create(appLayerParameters, true, CS101_COT_INTERROGATED_BY_STATION,
+        newAsdu = CS101_ASDU_create(alParams, true, CS101_COT_INTERROGATED_BY_STATION,
                 0, 1, false, false);
 
         CS101_ASDU_addInformationObject(newAsdu, io = (InformationObject) SinglePointInformation_create(NULL, 300, true, IEC60870_QUALITY_GOOD));
@@ -161,8 +160,6 @@ connectionRequestHandler(void* parameter, const char* ipAddress)
 int
 main(int argc, char** argv)
 {
-    int openConnections = 0;
-
     /* Add Ctrl-C handler */
     signal(SIGINT, sigint_handler);
 
@@ -172,8 +169,10 @@ main(int argc, char** argv)
 
     CS104_Slave_setLocalAddress(slave, "0.0.0.0");
 
+    CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
+
     /* get the connection parameters - we need them to create correct ASDUs */
-    appLayerParameters = CS104_Slave_getAppLayerParameters(slave);
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
 
     /* set the callback handler for the clock synchronization command */
     CS104_Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);
@@ -186,9 +185,6 @@ main(int argc, char** argv)
 
     CS104_Slave_setConnectionRequestHandler(slave, connectionRequestHandler, NULL);
 
-    /* Set server mode to allow multiple clients using the application layer */
-    CS104_Slave_setServerMode(slave, CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP);
-
     CS104_Slave_start(slave);
 
     if (CS104_Slave_isRunning(slave) == false) {
@@ -199,17 +195,10 @@ main(int argc, char** argv)
     int16_t scaledValue = 0;
 
     while (running) {
-        int connectionsCount = CS104_Slave_getOpenConnections(slave);
-
-        if (connectionsCount != openConnections) {
-            openConnections = connectionsCount;
-
-            printf("Connected clients: %i\n", openConnections);
-        }
 
         Thread_sleep(1000);
 
-        CS101_ASDU newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+        CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
         InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
 
@@ -230,4 +219,6 @@ main(int argc, char** argv)
 
 exit_program:
     CS104_Slave_destroy(slave);
+
+    Thread_sleep(500);
 }

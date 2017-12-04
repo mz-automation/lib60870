@@ -19,11 +19,12 @@
  *  See COPYING file for the complete license text.
  */
 
+#include "../../inc/internal/cs104_frame.h"
+
 #include <stdlib.h>
 #include <stdint.h>
 
 #include "frame.h"
-#include "t104_frame.h"
 #include "lib60870_internal.h"
 #include "lib_memory.h"
 

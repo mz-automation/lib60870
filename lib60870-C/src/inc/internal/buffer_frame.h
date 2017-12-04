@@ -24,12 +24,15 @@
 
 #include "frame.h"
 
+#include <stdbool.h>
+
 struct sBufferFrame {
     FrameVFT virtualFunctionTable;
 
     uint8_t* buffer;
     int msgSize;
     int startSize;
+    bool isUsed;
 };
 
 typedef struct sBufferFrame* BufferFrame;
@@ -58,5 +61,10 @@ BufferFrame_getBuffer(Frame super);
 int
 BufferFrame_getSpaceLeft(Frame super);
 
+bool
+BufferFrame_isUsed(BufferFrame self);
+
+void
+BufferFrame_markAsUsed(BufferFrame self);
 
 #endif /* SRC_IEC60870_T104_BUFFER_FRAME_H_ */

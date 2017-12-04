@@ -2,19 +2,26 @@
 set (lib_common_SRCS
 ./common/lib_memory.c
 ./common/linked_list.c
-./iec60870/apl/asdu.c
-./iec60870/apl/bcr.c
 ./iec60870/apl/cpXXtime2a.c
-./iec60870/apl/information_objects.c
-./iec60870/t104/t104_connection.c
-./iec60870/t104/t104_frame.c
-./iec60870/t104/t104_slave.c
-./iec60870/t104/buffer_frame.c
+./iec60870/cs101/cs101_asdu.c
+./iec60870/cs101/cs101_bcr.c
+./iec60870/cs101/cs101_information_objects.c
+./iec60870/cs101/cs101_master_connection.c
+./iec60870/cs101/cs101_master.c
+./iec60870/cs101/cs101_queue.c
+./iec60870/cs101/cs101_slave.c
+./iec60870/cs104/cs104_connection.c
+./iec60870/cs104/cs104_frame.c
+./iec60870/cs104/cs104_slave.c
+./iec60870/link_layer/buffer_frame.c
+./iec60870/link_layer/link_layer.c
+./iec60870/link_layer/serial_transceiver_ft_1_2.c
 ./iec60870/frame.c
 ./iec60870/lib60870_common.c
 )
 
 set (lib_linux_SRCS
+./hal/serial/linux/serial_port_linux.c
 ./hal/socket/linux/socket_linux.c
 ./hal/thread/linux/thread_linux.c
 ./hal/time/unix/time.c

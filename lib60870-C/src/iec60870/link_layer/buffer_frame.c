@@ -24,7 +24,6 @@
 
 #include "frame.h"
 #include "buffer_frame.h"
-#include "lib60870_internal.h"
 
 static struct sFrameVFT bufferFrameVFT = {
         BufferFrame_destroy,
@@ -44,6 +43,7 @@ BufferFrame_initialize(BufferFrame self, uint8_t* buffer, int startSize)
 
     self->startSize = startSize;
     self->msgSize = startSize;
+    self->isUsed = false;
 
     return (Frame) self;
 }
@@ -51,6 +51,9 @@ BufferFrame_initialize(BufferFrame self, uint8_t* buffer, int startSize)
 void
 BufferFrame_destroy(Frame super)
 {
+    BufferFrame self = (BufferFrame) super;
+
+    self->isUsed = false;
 }
 
 void
@@ -105,5 +108,17 @@ BufferFrame_getSpaceLeft(Frame super)
 {
     BufferFrame self = (BufferFrame) super;
 
-    return ((IEC60870_5_104_MAX_ASDU_LENGTH + self->startSize) - self->msgSize);
+    return ((self->startSize) - self->msgSize);
+}
+
+bool
+BufferFrame_isUsed(BufferFrame self)
+{
+    return self->isUsed;
+}
+
+void
+BufferFrame_markAsUsed(BufferFrame self)
+{
+    self->isUsed = true;
 }
