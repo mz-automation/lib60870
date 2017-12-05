@@ -54,7 +54,14 @@ typedef enum {
     LL_STATE_AVAILABLE
 } LinkLayerState;
 
-typedef void (*IEC60870_LinkLayerStateChangedHandler) (void* parameter, LinkLayerState newState);
+/**
+ * \brief Callback handler for link layer state changes
+ *
+ * \param parameter user provided parameter that is passed to the handler
+ * \param address slave address used by the link layer state machine (only relevant for unbalanced master)
+ * \param newState the new link layer state
+ */
+typedef void (*IEC60870_LinkLayerStateChangedHandler) (void* parameter, int address, LinkLayerState newState);
 
 typedef struct sCS101_ASDU* CS101_ASDU;
 
@@ -88,8 +95,10 @@ typedef struct sCS104_ConnectionParameters* CS104_ConnectionParameters;
 
 #include "cs101_information_objects.h"
 
+/**
+ * \brief Connection parameters for CS104
+ */
 struct sCS104_ConnectionParameters {
-    /* data link layer/protocol specific parameters */
     int k;
     int w;
     int t0;
@@ -98,14 +107,16 @@ struct sCS104_ConnectionParameters {
     int t3;
 };
 
+/**
+ * \brief Application layer parameters (used by CS101 and CS104)
+ */
 struct sCS101_AppLayerParameters {
-    /* Application layer parameters */
-    int sizeOfTypeId;
-    int sizeOfVSQ;
-    int sizeOfCOT;
-    int originatorAddress;
-    int sizeOfCA;
-    int sizeOfIOA;
+    int sizeOfTypeId;      /* size of the type id (default = 1 - don't change) */
+    int sizeOfVSQ;         /* don't change */
+    int sizeOfCOT;         /* size of COT (1/2 - default = 2 -> COT includes OA) */
+    int originatorAddress; /* originator address (OA) to use (0-255) */
+    int sizeOfCA;          /* size of common address (CA) of ASDU (1/2 - default = 2) */
+    int sizeOfIOA;         /* size of information object address (IOA) (1/2/3 - default = 3) */
 };
 
 typedef enum {

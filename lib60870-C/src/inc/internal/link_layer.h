@@ -138,6 +138,13 @@ LinkLayerBalanced_create(
         );
 
 void
+LinkLayerBalanced_setStateChangeHandler(LinkLayerBalanced self,
+        IEC60870_LinkLayerStateChangedHandler handler, void* parameter);
+
+void
+LinkLayerBalanced_setIdleTimeout(LinkLayerBalanced self, int timeoutInMs);
+
+void
 LinkLayerBalanced_setDIR(LinkLayerBalanced self, bool dir);
 
 void

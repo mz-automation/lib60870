@@ -161,7 +161,7 @@ resetCUHandler(void* parameter)
 }
 
 static void
-linkLayerStateChanged(void* parameter, LinkLayerState state)
+linkLayerStateChanged(void* parameter, int address, LinkLayerState state)
 {
     printf("Link layer state: ");
 
@@ -195,12 +195,12 @@ main(int argc, char** argv)
     SerialPort port = SerialPort_create(serialPort, 9600, 8, 'E', 1);
 
     /* create a new slave/server instance with default link layer and application layer parameters */
-    CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_UNBALANCED);
-    //CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_BALANCED);
+    //CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_UNBALANCED);
+    CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_BALANCED);
 
     CS101_Slave_setLinkLayerAddress(slave, 1);
 
-    /* get the connection parameters - we need them to create correct ASDUs */
+    /* get the application layer parameters - we need them to create correct ASDUs */
     CS101_AppLayerParameters alParameters = CS101_Slave_getAppLayerParameters(slave);
 
     /* set the callback handler for the clock synchronization command */
@@ -214,6 +214,9 @@ main(int argc, char** argv)
 
     /* set handler for reset CU (reset communication unit) message */
     CS101_Slave_setResetCUHandler(slave, resetCUHandler, (void*) slave);
+
+    /* set timeout for detecting connection loss */
+    CS101_Slave_setIdleTimeout(slave, 1500);
 
     /* set handler for link layer state changes */
     CS101_Slave_setLinkLayerStateChanged(slave, linkLayerStateChanged, NULL);

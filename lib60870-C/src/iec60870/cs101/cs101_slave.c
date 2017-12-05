@@ -353,6 +353,8 @@ CS101_Slave_setIdleTimeout(CS101_Slave self, int timeoutInMs)
 {
     if (self->linkLayerMode == IEC60870_LINK_LAYER_UNBALANCED)
         LinkLayerSecondaryUnbalanced_setIdleTimeout(self->unbalancedLinkLayer, timeoutInMs);
+    else
+        LinkLayerBalanced_setIdleTimeout(self->balancedLinkLayer, timeoutInMs);
 }
 
 void
@@ -360,6 +362,9 @@ CS101_Slave_setLinkLayerStateChanged(CS101_Slave self, IEC60870_LinkLayerStateCh
 {
     if (self->linkLayerMode == IEC60870_LINK_LAYER_UNBALANCED) {
         LinkLayerSecondaryUnbalanced_setStateChangeHandler(self->unbalancedLinkLayer, handler, parameter);
+    }
+    else {
+        LinkLayerBalanced_setStateChangeHandler(self->balancedLinkLayer, handler, parameter);
     }
 }
 

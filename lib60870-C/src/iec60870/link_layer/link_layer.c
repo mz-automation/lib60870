@@ -51,6 +51,10 @@ void
 LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc, bool dir, bool dfc, int address, uint8_t* msg, int userDataStart, int userDataLength);
 
 void
+LinkLayerPrimaryBalanced_setStateChangeHandler(LinkLayerPrimaryBalanced self,
+        IEC60870_LinkLayerStateChangedHandler handler, void* parameter);
+
+void
 LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self);
 
 void
@@ -470,7 +474,7 @@ llsu_setState(LL_Sec_Unb self, LinkLayerState newState)
         self->state = newState;
 
         if (self->stateChangedHandler)
-            self->stateChangedHandler(self->stateChangedHandlerParameter, newState);
+            self->stateChangedHandler(self->stateChangedHandlerParameter, -1, newState);
     }
 }
 
@@ -879,6 +883,12 @@ struct sLinkLayerPrimaryBalanced {
     IBalancedApplicationLayer applicationLayer;
     void* applicationLayerParam;
 
+    uint64_t lastReceivedMsg;
+    int idleTimeout; /* connection timeout in ms */
+
+    IEC60870_LinkLayerStateChangedHandler stateChangedHandler;
+    void* stateChangedHandlerParameter;
+
     LinkLayer linkLayer;
 };
 
@@ -897,24 +907,40 @@ LinkLayerPrimaryBalanced_init(LinkLayerPrimaryBalanced self, LinkLayer linkLayer
     self->applicationLayer = applicationLayer;
     self->applicationLayerParam = appLayerParam;
 
+    self->stateChangedHandler = NULL;
+
+    self->idleTimeout = 1000;
+
     self->otherStationAddress = 0;
 }
 
 static void
-setNewState(LinkLayerPrimaryBalanced self, LinkLayerState newState)
+llpb_setNewState(LinkLayerPrimaryBalanced self, LinkLayerState newState)
 {
     if (newState != self->state) {
         self->state = newState;
 
-        //TODO call state changed handler
+        if (self->stateChangedHandler)
+            self->stateChangedHandler(self->stateChangedHandlerParameter, -1, newState);
     }
 }
+
+void
+LinkLayerPrimaryBalanced_setStateChangeHandler(LinkLayerPrimaryBalanced self,
+        IEC60870_LinkLayerStateChangedHandler handler, void* parameter)
+{
+    self->stateChangedHandler = handler;
+    self->stateChangedHandlerParameter = parameter;
+}
+
 
 void
 LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc, bool dir, bool dfc, int address, uint8_t* msg, int userDataStart, int userDataLength)
 {
     PrimaryLinkLayerState primaryState = self->primaryState;
     PrimaryLinkLayerState newState = primaryState;
+
+    self->lastReceivedMsg = Hal_getTimeInMs();
 
     if (dfc) {
 
@@ -933,7 +959,7 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
         }
 
-        setNewState(self, LL_STATE_BUSY);
+        llpb_setNewState(self, LL_STATE_BUSY);
         self->primaryState = newState;
         return;
     }
@@ -946,7 +972,7 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
         if (primaryState == PLL_EXECUTE_RESET_REMOTE_LINK) {
             newState = PLL_LINK_LAYERS_AVAILABLE;
-            setNewState(self, LL_STATE_AVAILABLE);
+            llpb_setNewState(self, LL_STATE_AVAILABLE);
         }
         else if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM) {
 
@@ -956,7 +982,7 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
             }
 
             newState = PLL_LINK_LAYERS_AVAILABLE;
-            setNewState(self, LL_STATE_AVAILABLE);
+            llpb_setNewState(self, LL_STATE_AVAILABLE);
         }
 
         self->waitingForResponse = false;
@@ -968,7 +994,7 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
         if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM) {
             newState = PLL_SECONDARY_LINK_LAYER_BUSY;
-            setNewState(self, LL_STATE_BUSY);
+            llpb_setNewState(self, LL_STATE_BUSY);
         }
 
         break;
@@ -976,14 +1002,14 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
     case LL_FC_08_RESP_USER_DATA:
 
         newState = PLL_IDLE;
-        setNewState(self, LL_STATE_ERROR);
+        llpb_setNewState(self, LL_STATE_ERROR);
 
         break;
 
     case LL_FC_09_RESP_NACK_NO_DATA:
 
         newState = PLL_IDLE;
-        setNewState(self, LL_STATE_ERROR);
+        llpb_setNewState(self, LL_STATE_ERROR);
 
         break;
 
@@ -999,11 +1025,11 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
             self->lastSendTime = Hal_getTimeInMs();
             self->waitingForResponse = true;
             newState = PLL_EXECUTE_RESET_REMOTE_LINK;
-            setNewState(self, LL_STATE_BUSY);
+            llpb_setNewState(self, LL_STATE_BUSY);
         }
         else { /* illegal message in this state */
             newState = PLL_IDLE;
-            setNewState(self, LL_STATE_ERROR);
+            llpb_setNewState(self, LL_STATE_ERROR);
         }
 
         break;
@@ -1015,7 +1041,7 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
         if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM) {
             newState = PLL_LINK_LAYERS_AVAILABLE;
-            setNewState(self, LL_STATE_AVAILABLE);
+            llpb_setNewState(self, LL_STATE_AVAILABLE);
         }
 
         break;
@@ -1084,17 +1110,22 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
             if (currentTime > (self->lastSendTime + self->linkLayer->linkLayerParameters->timeoutForAck)) {
                 self->waitingForResponse = false;
                 newState = PLL_IDLE;
-                setNewState(self, LL_STATE_ERROR);
+                llpb_setNewState(self, LL_STATE_ERROR);
             }
         }
         else {
             newState = PLL_LINK_LAYERS_AVAILABLE;
-            setNewState(self, LL_STATE_AVAILABLE);
+            llpb_setNewState(self, LL_STATE_AVAILABLE);
         }
 
         break;
 
     case PLL_LINK_LAYERS_AVAILABLE:
+
+        if ((currentTime - self->lastReceivedMsg) > (unsigned int) self->idleTimeout) {
+            DEBUG_PRINT ("PLL - Idle timeout detected. Send link layer test function\n");
+            self->sendLinkLayerTestFunction = true;
+        }
 
         if (self->sendLinkLayerTestFunction) {
             DEBUG_PRINT ("PLL - SEND TEST LINK\n");
@@ -1136,7 +1167,7 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
                 DEBUG_PRINT ("TIMEOUT: ASDU not confirmed after repeated transmission\n");
 
                 newState = PLL_IDLE;
-                setNewState(self, LL_STATE_ERROR);
+                llpb_setNewState(self, LL_STATE_ERROR);
             }
             else {
                 DEBUG_PRINT ("TIMEOUT: ASDU not confirmed\n");
@@ -1214,6 +1245,21 @@ LinkLayerBalanced_create(
 
     return self;
 }
+
+void
+LinkLayerBalanced_setStateChangeHandler(LinkLayerBalanced self,
+        IEC60870_LinkLayerStateChangedHandler handler, void* parameter)
+{
+    self->primaryLinkLayer.stateChangedHandler = handler;
+    self->primaryLinkLayer.stateChangedHandlerParameter = parameter;
+}
+
+void
+LinkLayerBalanced_setIdleTimeout(LinkLayerBalanced self, int timeoutInMs)
+{
+    self->primaryLinkLayer.idleTimeout = timeoutInMs;
+}
+
 
 void
 LinkLayerBalanced_setDIR(LinkLayerBalanced self, bool dir)
