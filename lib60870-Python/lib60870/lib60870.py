@@ -193,7 +193,7 @@ class QualifierOfInterrogation(enum.Enum):
         return ctypes.c_int(self.value)
 
 
-class QualityDescriptor(enum.Flag):
+class QualityDescriptor(int):
     IEC60870_QUALITY_GOOD = 0  #
     IEC60870_QUALITY_OVERFLOW = 0x01  # QualityDescriptor
     IEC60870_QUALITY_RESERVED = 0x04  # QualityDescriptorP
@@ -205,13 +205,14 @@ class QualityDescriptor(enum.Flag):
 
     @property
     def c_value(self):
-        return ctypes.c_uint8(self.value)
+        return ctypes.c_uint8(self)
 
     @classmethod
     def from_c(cls, value):
         return cls(int(value.value))
 
 QualityDescriptorP = QualityDescriptor
+
 
 def get_library():
     return lib

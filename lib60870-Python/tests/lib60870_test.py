@@ -26,7 +26,8 @@ class QualityDescriptorTest(unittest.TestCase):
     def test_instanciate_invalid_overflow(self):
         sut = QualityDescriptor(128 + 1)
         self.assertEqual(sut, QualityDescriptor.IEC60870_QUALITY_INVALID | QualityDescriptor.IEC60870_QUALITY_OVERFLOW)
-        self.assertEqual(str(sut), "QualityDescriptor.IEC60870_QUALITY_INVALID|IEC60870_QUALITY_OVERFLOW")
+        self.assertEqual(str(sut), "129")
+        #self.assertEqual(str(sut), "QualityDescriptor.IEC60870_QUALITY_INVALID|IEC60870_QUALITY_OVERFLOW")
 
     def test_convert_to_c_uint8(self):
         sut = QualityDescriptor(128)

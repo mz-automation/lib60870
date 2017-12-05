@@ -114,7 +114,7 @@ class SingleEvent(ctypes.c_uint8):
     def set_qdp(self, qdp):
         lib.SingleEvent_setQDP(
             pSingleEvent(self),
-            qdp.c_value)
+            c_int(qdp))
 
     def get_qdp(self):
         lib.SingleEvent_getQDP.restype = c_uint8
@@ -182,7 +182,7 @@ class SinglePointInformation(ctypes.Structure, IOBase):
             pSinglePointInformation(self),
             c_int(ioa),
             c_bool(value),
-            quality.c_value)
+            c_int(quality))
 
     def get_value(self):
         lib.SinglePointInformation_getValue.restype = c_bool
@@ -217,7 +217,7 @@ class SinglePointWithCP24Time2a(ctypes.Structure, IOBase):
             pSinglePointWithCP24Time2a(self),
             c_int(ioa),
             c_bool(value),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -256,7 +256,7 @@ class DoublePointInformation(ctypes.Structure, IOBase):
             pDoublePointInformation(self),
             c_int(ioa),
             DoublePointValue(value),
-            quality.c_value).contents
+            c_int(quality)).contents
 
     def get_value(self):
         lib.DoublePointInformation_getValue.restype = DoublePointValue
@@ -291,7 +291,7 @@ class DoublePointWithCP24Time2a(ctypes.Structure, IOBase):
             pDoublePointWithCP24Time2a(self),
             c_int(ioa),
             DoublePointValue(value),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -331,7 +331,7 @@ class StepPositionInformation(ctypes.Structure, IOBase):
             c_int(ioa),
             c_int(value),
             c_bool(isTransient),
-            quality.c_value).contents
+            c_int(quality)).contents
 
     def get_object_address(self):
         lib.StepPositionInformation_getObjectAddress.restype = c_int
@@ -375,7 +375,7 @@ class StepPositionWithCP24Time2a(ctypes.Structure, IOBase):
             c_int(ioa),
             c_int(value),
             c_bool(isTransient),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -494,7 +494,7 @@ class MeasuredValueNormalized(ctypes.Structure, IOBase):
             pMeasuredValueNormalized(self),
             c_int(ioa),
             c_float(value),
-            quality.c_value).contents
+            c_int(quality)).contents
 
     def get_value(self):
         lib.MeasuredValueNormalized_getValue.restype = c_float
@@ -534,7 +534,7 @@ class MeasuredValueNormalizedWithCP24Time2a(ctypes.Structure, IOBase):
             pMeasuredValueNormalizedWithCP24Time2a(self),
             c_int(ioa),
             c_float(value),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -583,7 +583,7 @@ class MeasuredValueScaled(ctypes.Structure, IOBase):
             pMeasuredValueScaled(self),
             c_int(ioa),
             c_int(value),
-            quality.c_value).contents
+            c_int(quality)).contents
 
     def get_value(self):
         lib.MeasuredValueScaled_getValue.restype = c_int
@@ -602,7 +602,7 @@ class MeasuredValueScaled(ctypes.Structure, IOBase):
     def set_quality(self, quality):
         lib.MeasuredValueScaled_setQuality(
             pMeasuredValueScaled(self),
-            quality.c_value)
+            c_int(quality))
 
 pMeasuredValueScaled = ctypes.POINTER(MeasuredValueScaled)
 
@@ -628,7 +628,7 @@ class MeasuredValueScaledWithCP24Time2a(ctypes.Structure, IOBase):
             pMeasuredValueScaledWithCP24Time2a(self),
             c_int(ioa),
             c_int(value),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -657,7 +657,7 @@ class MeasuredValueScaledWithCP24Time2a(ctypes.Structure, IOBase):
     def set_quality(self, quality):
         lib.MeasuredValueScaled_setQuality(
             pMeasuredValueScaled(self),
-            quality.c_value)
+            c_int(quality))
 
 pMeasuredValueScaledWithCP24Time2a = ctypes.POINTER(MeasuredValueScaledWithCP24Time2a)
 
@@ -682,7 +682,7 @@ class MeasuredValueShort(ctypes.Structure, IOBase):
             pMeasuredValueShort(self),
             c_int(ioa),
             c_float(value),
-            quality.c_value).contents
+            c_int(quality)).contents
 
     def get_value(self):
         lib.MeasuredValueShort_getValue.restype = c_float
@@ -722,7 +722,7 @@ class MeasuredValueShortWithCP24Time2a(ctypes.Structure, IOBase):
             pMeasuredValueShortWithCP24Time2a(self),
             c_int(ioa),
             c_float(value),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -887,7 +887,7 @@ class PackedStartEventsOfProtectionEquipment(ctypes.Structure, IOBase):
             pPackedStartEventsOfProtectionEquipment(self),
             c_int(ioa),
             StartEvent(event),
-            qdp.c_value,
+            c_int(qdp),
             pCP16Time2a(elapsedTime),
             timestamp.pointer).contents
 
@@ -933,7 +933,7 @@ class PackedOutputCircuitInfo(ctypes.Structure, IOBase):
             pPackedOutputCircuitInfo(self),
             c_int(ioa),
             OutputCircuitInfo(oci),
-            qdp.c_value,
+            c_int(qdp),
             pCP16Time2a(operatingTime),
             timestamp.pointer).contents
 
@@ -1044,7 +1044,7 @@ class SinglePointWithCP56Time2a(ctypes.Structure, IOBase):
             pSinglePointWithCP56Time2a(self),
             c_int(ioa),
             c_bool(value),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -1084,7 +1084,7 @@ class DoublePointWithCP56Time2a(ctypes.Structure, IOBase):
             pDoublePointWithCP56Time2a(self),
             c_int(ioa),
             DoublePointValue(value),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -1125,7 +1125,7 @@ class StepPositionWithCP56Time2a(ctypes.Structure, IOBase):
             c_int(ioa),
             c_int(value),
             c_bool(isTransient),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -1203,7 +1203,7 @@ class MeasuredValueNormalizedWithCP56Time2a(ctypes.Structure, IOBase):
             pMeasuredValueNormalizedWithCP56Time2a(self),
             c_int(ioa),
             c_float(value),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -1253,7 +1253,7 @@ class MeasuredValueScaledWithCP56Time2a(ctypes.Structure, IOBase):
             pMeasuredValueScaledWithCP56Time2a(self),
             c_int(ioa),
             c_int(value),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -1282,7 +1282,7 @@ class MeasuredValueScaledWithCP56Time2a(ctypes.Structure, IOBase):
     def set_quality(self, quality):
         lib.MeasuredValueScaled_setQuality(
             pMeasuredValueScaled(self),
-            quality.c_value)
+            c_int(quality))
 
 pMeasuredValueScaledWithCP56Time2a = ctypes.POINTER(MeasuredValueScaledWithCP56Time2a)
 
@@ -1308,7 +1308,7 @@ class MeasuredValueShortWithCP56Time2a(ctypes.Structure, IOBase):
             pMeasuredValueShortWithCP56Time2a(self),
             c_int(ioa),
             c_float(value),
-            quality.c_value,
+            c_int(quality),
             timestamp.pointer).contents
 
     def get_timestamp(self):
@@ -1441,7 +1441,7 @@ class PackedStartEventsOfProtectionEquipmentWithCP56Time2a(ctypes.Structure, IOB
             pPackedStartEventsOfProtectionEquipmentWithCP56Time2a(self),
             c_int(ioa),
             StartEvent(event),
-            qdp.c_value,
+            c_int(qdp),
             pCP16Time2a(elapsedTime),
             timestamp.pointer).contents
 
@@ -1487,7 +1487,7 @@ class PackedOutputCircuitInfoWithCP56Time2a(ctypes.Structure, IOBase):
             pPackedOutputCircuitInfoWithCP56Time2a(self),
             c_int(ioa),
             OutputCircuitInfo(oci),
-            qdp.c_value,
+            c_int(qdp),
             pCP16Time2a(operatingTime),
             timestamp.pointer).contents
 
