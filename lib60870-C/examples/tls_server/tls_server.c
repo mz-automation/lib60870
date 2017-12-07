@@ -168,11 +168,25 @@ main(int argc, char** argv)
     TLSConfiguration_setChainValidation(tlsConfig, false);
     TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
 
-    TLSConfiguration_setOwnKeyFromFile(tlsConfig, "server-key.pem", NULL);
-    TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "server.cer");
-    TLSConfiguration_addCACertificateFromFile(tlsConfig, "root.cer");
+    if (!TLSConfiguration_setOwnKeyFromFile(tlsConfig, "server-key.pem", NULL)) {
+        printf("Failed to load private key!\n");
+        return 0;
+    }
 
-    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "client1.cer");
+    if (!TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "server.cer")) {
+        printf("ERROR: Failed to load own certificate!\n");
+        return 0;
+    }
+
+    if (!TLSConfiguration_addCACertificateFromFile(tlsConfig, "root.cer")) {
+        printf("ERROR: Failed to load root certificate\n");
+        return 0;
+    }
+
+    if (!TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "client1.cer")) {
+        printf("ERROR: Failed to load allowed client certificate\n");
+        return 0;
+    }
 
 
     /* create a new slave/server instance with default connection parameters and

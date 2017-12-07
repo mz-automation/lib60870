@@ -1890,7 +1890,7 @@ MasterConnection_create(Slave slave, Socket socket, MessageQueue lowPrioQueue, H
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         if (slave->tlsConfig != NULL) {
-            self->tlsSocket = TLSSocket_create(socket, slave->tlsConfig);
+            self->tlsSocket = TLSSocket_create(socket, slave->tlsConfig, false);
 
             if (self->tlsSocket == NULL) {
                 printf("Close connection\n");

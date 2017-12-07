@@ -80,13 +80,22 @@ main(int argc, char** argv)
     TLSConfiguration tlsConfig = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig, true);
-    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, false);
 
-    TLSConfiguration_setOwnKeyFromFile(tlsConfig, "client1-key.pem", NULL);
-    TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "client1.cer");
-    TLSConfiguration_addCACertificateFromFile(tlsConfig, "root.cer");
+    if (!TLSConfiguration_setOwnKeyFromFile(tlsConfig, "client1-key.pem", NULL)) {
+        printf("ERROR: Failed to load private key!\n");
+        return 0;
+    }
 
-    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "client1.cer");
+    if (!TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "client1.cer")) {
+        printf("ERROR: Failed to load own certificate!\n");
+        return 0;
+    }
+
+    if (!TLSConfiguration_addCACertificateFromFile(tlsConfig, "root.cer")) {
+        printf("ERROR: Failed to load root certificate\n");
+        return 0;
+    }
 
     T104Connection con = T104Connection_createSecure("127.0.0.1", IEC_60870_5_104_DEFAULT_TLS_PORT, tlsConfig);
 
@@ -130,8 +139,6 @@ main(int argc, char** argv)
     T104Connection_destroy(con);
 
     TLSConfiguration_destroy(tlsConfig);
-
-    printf("exit\n");
 }
 
 

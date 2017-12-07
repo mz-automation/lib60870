@@ -16,6 +16,7 @@
 #include "lib_memory.h"
 #include "linked_list.h"
 
+//#include "mbedtls/config.h"
 #include "mbedtls/platform.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
@@ -26,10 +27,10 @@
 #include "mbedtls/error.h"
 #include "mbedtls/debug.h"
 
+#define CONFIG_DEBUG_TLS 0
+
 #if (CONFIG_DEBUG_TLS == 1)
-#define DEBUG_PRINT(appId, fmt, ...) fprintf(stderr, "%s: " fmt, \
-    appId, \
-    __VA_ARGS__)
+#define DEBUG_PRINT(appId, fmt, ...) fprintf(stderr, "%s: " fmt, appId, ## __VA_ARGS__)
 #else
 #define DEBUG_PRINT(fmt, ...) {do {} while(0);}
 #endif
@@ -54,6 +55,11 @@ struct sTLSConfiguration {
 struct sTLSSocket {
     mbedtls_ssl_context ssl;
     Socket socket;
+    mbedtls_ssl_config conf;
+    TLSConfiguration tlsConfig;
+    bool storePeerCert;
+    uint8_t* peerCert;
+    int peerCertLength;
 };
 
 static bool
@@ -74,7 +80,7 @@ compareCertificates(mbedtls_x509_crt *crt1, mbedtls_x509_crt *crt2)
 static int
 verifyCertificate (void* parameter, mbedtls_x509_crt *crt, int certificate_depth, uint32_t *flags)
 {
-    TLSConfiguration self = (TLSConfiguration) parameter;
+    TLSSocket self = (TLSSocket) parameter;
 
     DEBUG_PRINT("TLS", "Verify cert: depth %i\n", certificate_depth);
 
@@ -86,19 +92,19 @@ verifyCertificate (void* parameter, mbedtls_x509_crt *crt, int certificate_depth
 
     DEBUG_PRINT("TLS", "%s\n", buffer);
 
-    if (self->chainValidation == false) {
+    if (self->tlsConfig->chainValidation == false) {
         if (certificate_depth != 0)
             *flags = 0;
     }
 
     if (certificate_depth == 0) {
-        if (self->allowOnlyKnownCertificates) {
+        if (self->tlsConfig->allowOnlyKnownCertificates) {
 
             DEBUG_PRINT("TLS", "Check against list of allowed certs\n");
 
             bool certMatches = false;
 
-            LinkedList certList = LinkedList_getNext(self->allowedCertificates);
+            LinkedList certList = LinkedList_getNext(self->tlsConfig->allowedCertificates);
 
             while (certList) {
                 mbedtls_x509_crt* allowedCert = (mbedtls_x509_crt*) LinkedList_getData(certList);
@@ -119,6 +125,18 @@ verifyCertificate (void* parameter, mbedtls_x509_crt *crt, int certificate_depth
                 *flags = 0;
             else
                 return 1;
+        }
+
+        if (self->storePeerCert) {
+
+            if (*flags == 0) {
+
+                self->peerCertLength = crt->raw.len;
+                self->peerCert = (uint8_t*) GLOBAL_MALLOC(self->peerCertLength);
+                memcpy(self->peerCert, crt->raw.p, self->peerCertLength);
+
+            }
+
         }
     }
 
@@ -149,7 +167,6 @@ TLSConfiguration_create()
         mbedtls_ctr_drbg_seed( &(self->ctr_drbg), mbedtls_entropy_func, &(self->entropy), NULL, 0);
         mbedtls_ssl_conf_rng( &(self->conf), mbedtls_ctr_drbg_random, &(self->ctr_drbg) );
 
-        mbedtls_ssl_conf_verify(&(self->conf), verifyCertificate, (void*) self);
         mbedtls_ssl_conf_authmode(&(self->conf), MBEDTLS_SSL_VERIFY_REQUIRED);
 
         mbedtls_ssl_conf_renegotiation(&(self->conf), MBEDTLS_SSL_RENEGOTIATION_ENABLED);
@@ -323,30 +340,35 @@ readFunction(void* ctx, unsigned char* buf, size_t len)
 }
 
 TLSSocket
-TLSSocket_create(Socket socket, TLSConfiguration configuration)
+TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClientCert)
 {
     TLSSocket self = (TLSSocket) GLOBAL_CALLOC(1, sizeof(struct sTLSSocket));
 
     if (self != NULL) {
 
         self->socket = socket;
+        self->tlsConfig = configuration;
+        self->storePeerCert = storeClientCert;
+        self->peerCert = NULL;
+        self->peerCertLength = 0;
+
+        memcpy(&(self->conf), &(configuration->conf), sizeof(mbedtls_ssl_config));
+
+        mbedtls_ssl_conf_verify(&(self->conf), verifyCertificate, (void*) self);
 
         int ret;
 
-        mbedtls_ssl_conf_ca_chain( &(configuration->conf), &(configuration->cacerts), NULL );
+        mbedtls_ssl_conf_ca_chain( &(self->conf), &(configuration->cacerts), NULL );
 
-        ret = mbedtls_ssl_conf_own_cert( &(configuration->conf), &(configuration->ownCertificate), &(configuration->ownKey));
+        ret = mbedtls_ssl_conf_own_cert( &(self->conf), &(configuration->ownCertificate), &(configuration->ownKey));
 
         if (ret != 0)
             DEBUG_PRINT("TLS", "mbedtls_ssl_conf_own_cert returned %d\n", ret);
 
-        ret = mbedtls_ssl_setup( &(self->ssl), &(configuration->conf) );
+        ret = mbedtls_ssl_setup( &(self->ssl), &(self->conf) );
 
         if (ret != 0)
             DEBUG_PRINT("TLS", "mbedtls_ssl_setup returned %d\n", ret);
-
-      //  if (configuration->conf.endpoint == MBEDTLS_SSL_IS_CLIENT)
-         //   mbedtls_ssl_set_hostname(&(self->ssl), "*");
 
         mbedtls_ssl_set_bio(&(self->ssl), socket, (mbedtls_ssl_send_t*) Socket_write,
                 (mbedtls_ssl_recv_t*) readFunction, NULL);
@@ -367,6 +389,14 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration)
     return self;
 }
 
+uint8_t*
+TLSSocket_getPeerCertificate(TLSSocket self, int* certSize)
+{
+    if (certSize)
+        *certSize = self->peerCertLength;
+
+    return self->peerCert;
+}
 
 int
 TLSSocket_read(TLSSocket self, uint8_t* buf, int size)
@@ -460,6 +490,7 @@ TLSSocket_close(TLSSocket self)
 
     Thread_sleep(10);
 
+    mbedtls_ssl_config_free(&(self->conf));
     mbedtls_ssl_free(&(self->ssl));
 
     GLOBAL_FREEMEM(self);

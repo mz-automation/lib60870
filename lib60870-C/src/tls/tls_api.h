@@ -66,10 +66,13 @@ void
 TLSConfiguration_destroy(TLSConfiguration self);
 
 TLSSocket
-TLSSocket_create(Socket socket, TLSConfiguration configuration);
+TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClientCert);
 
 bool
 TLSSocket_performHandshake(TLSSocket self);
+
+uint8_t*
+TLSSocket_getPeerCertificate(TLSSocket self, int* certSize);
 
 /**
  * \brief read from socket to local buffer (non-blocking)
