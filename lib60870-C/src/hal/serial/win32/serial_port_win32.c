@@ -165,10 +165,10 @@ SerialPort_open(SerialPort self)
 
 	COMMTIMEOUTS timeouts = { 0 };
 
-	timeouts.ReadIntervalTimeout = 50;
+	timeouts.ReadIntervalTimeout = 100;
 	timeouts.ReadTotalTimeoutConstant = 50;
 	timeouts.ReadTotalTimeoutMultiplier = 10;
-	timeouts.WriteTotalTimeoutConstant = 50;
+	timeouts.WriteTotalTimeoutConstant = 100;
 	timeouts.WriteTotalTimeoutMultiplier = 10;
 
 	status = SetCommTimeouts(self->comPort, &timeouts);
@@ -267,6 +267,12 @@ SerialPort_write(SerialPort self, uint8_t* buffer, int startPos, int bufSize)
 
 	if (status == false)
 		return -1;
+
+	status = FlushFileBuffers(self->comPort);
+
+	if (status == false) {
+		printf("FlushFileBuffers failed!\n");
+	}
 
 	self->lastSentTime = Hal_getTimeInMs();
 
