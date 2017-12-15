@@ -415,3 +415,14 @@ CS101_Master_setASDUReceivedHandler(CS101_Master self, CS101_ASDUReceivedHandler
     self->asduReceivedHandler = handler;
     self->asduReceivedHandlerParameter = parameter;
 }
+
+void
+CS101_Master_setLinkLayerStateChanged(CS101_Master self, IEC60870_LinkLayerStateChangedHandler handler, void* parameter)
+{
+    if (self->linkLayerMode == IEC60870_LINK_LAYER_BALANCED) {
+        LinkLayerBalanced_setStateChangeHandler(self->balancedLinkLayer, handler, parameter);
+    }
+    else {
+        LinkLayerPrimaryUnbalanced_setStateChangeHandler(self->unbalancedLinkLayer, handler, parameter);
+    }
+}

@@ -71,6 +71,27 @@ asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
     return true;
 }
 
+static void
+linkLayerStateChanged(void* parameter, int address, LinkLayerState state)
+{
+    printf("Link layer state: ");
+
+    switch (state) {
+    case LL_STATE_IDLE:
+        printf("IDLE\n");
+        break;
+    case LL_STATE_ERROR:
+        printf("ERROR\n");
+        break;
+    case LL_STATE_BUSY:
+        printf("BUSY\n");
+        break;
+    case LL_STATE_AVAILABLE:
+        printf("AVAILABLE\n");
+        break;
+    }
+}
+
 int
 main(int argc, char** argv)
 {
@@ -85,7 +106,11 @@ main(int argc, char** argv)
 
     CS101_Master master = CS101_Master_create(port, NULL, NULL, IEC60870_LINK_LAYER_BALANCED);
 
+    /* set handler for received ASDUs (application layer data) */
     CS101_Master_setASDUReceivedHandler(master, asduReceivedHandler, NULL);
+
+    /* set handler for link layer state changes */
+    CS101_Master_setLinkLayerStateChanged(master, linkLayerStateChanged, NULL);
 
     SerialPort_open(port);
 

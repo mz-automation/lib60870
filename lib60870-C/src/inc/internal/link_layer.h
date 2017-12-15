@@ -77,6 +77,10 @@ void
 LinkLayerPrimaryUnbalanced_destroy(LinkLayerPrimaryUnbalanced self);
 
 void
+LinkLayerPrimaryUnbalanced_setStateChangeHandler(LinkLayerPrimaryUnbalanced self,
+        IEC60870_LinkLayerStateChangedHandler handler, void* parameter);
+
+void
 LinkLayerPrimaryUnbalanced_addSlaveConnection(LinkLayerPrimaryUnbalanced self, int slaveAddress);
 
 void

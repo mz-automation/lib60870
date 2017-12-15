@@ -230,4 +230,10 @@ typedef bool (*CS101_ASDUReceivedHandler) (void* parameter, int address, CS101_A
 void
 CS101_Master_setASDUReceivedHandler(CS101_Master self, CS101_ASDUReceivedHandler handler, void* parameter);
 
+/**
+ * \brief Set a callback handler for link layer state changes
+ */
+void
+CS101_Master_setLinkLayerStateChanged(CS101_Master self, IEC60870_LinkLayerStateChangedHandler handler, void* parameter);
+
 #endif /* SRC_INC_API_CS101_MASTER_H_ */

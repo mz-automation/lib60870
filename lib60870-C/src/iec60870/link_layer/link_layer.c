@@ -1346,6 +1346,9 @@ struct sLinkLayerPrimaryUnbalanced {
     struct sLinkLayerParameters linkLayerParameters;
 
     LinkedList slaveConnections;
+
+    IEC60870_LinkLayerStateChangedHandler stateChangedHandler;
+    void* stateChangedHandlerParameter;
 };
 
 
@@ -1376,9 +1379,19 @@ LinkLayerPrimaryUnbalanced_create(SerialTransceiverFT12 transceiver, LinkLayerPa
         BufferFrame_initialize(&(self->nextBroadcastMessage), self->buffer, 0);
 
         self->slaveConnections = LinkedList_create();
+
+        self->stateChangedHandler = NULL;
     }
 
     return self;
+}
+
+void
+LinkLayerPrimaryUnbalanced_setStateChangeHandler(LinkLayerPrimaryUnbalanced self,
+        IEC60870_LinkLayerStateChangedHandler handler, void* parameter)
+{
+    self->stateChangedHandler = handler;
+    self->stateChangedHandlerParameter = parameter;
 }
 
 void
@@ -1395,6 +1408,8 @@ LinkLayerPrimaryUnbalanced_destroy(LinkLayerPrimaryUnbalanced self)
 struct sLinkLayerSlaveConnection {
 
     LinkLayerPrimaryUnbalanced primaryLink;
+
+    LinkLayerState state; /* user visible state */
 
     int address;
     PrimaryLinkLayerState primaryState; /* internal PLL state machine state */
@@ -1429,6 +1444,8 @@ LinkLayerSlaveConnection_create(LinkLayerSlaveConnection self, LinkLayerPrimaryU
         self->primaryLink = primaryLink;
         self->address = slaveAddress;
 
+        self->state = LL_STATE_IDLE;
+
         self->lastSendTime = 0;
         self->originalSendTime = 0;
         self->nextFcb = true;
@@ -1447,6 +1464,18 @@ LinkLayerSlaveConnection_create(LinkLayerSlaveConnection self, LinkLayerPrimaryU
     }
 
     return self;
+}
+
+static void
+llsc_setState(LinkLayerSlaveConnection self, LinkLayerState newState)
+{
+    if (self->state != newState) {
+
+        self->state = newState;
+
+        if (self->primaryLink->stateChangedHandler)
+            self->primaryLink->stateChangedHandler(self->primaryLink->stateChangedHandlerParameter, self->address, newState);
+    }
 }
 
 static void
@@ -1476,8 +1505,9 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
 
         default:
             break;
-
         }
+
+        llsc_setState(self, LL_STATE_BUSY);
 
         self->primaryState = newState;
         return;
@@ -1495,6 +1525,8 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
 
         if (primaryState == PLL_EXECUTE_RESET_REMOTE_LINK) {
             newState = PLL_LINK_LAYERS_AVAILABLE;
+
+            llsc_setState(self, LL_STATE_AVAILABLE);
         }
         else if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM) {
 
@@ -1503,10 +1535,16 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
             else
                 self->hasMessageToSend = false;
 
+            llsc_setState(self, LL_STATE_AVAILABLE);
+
             newState = PLL_LINK_LAYERS_AVAILABLE;
         }
-        else if (primaryState == PLL_EXECUTE_SERVICE_REQUEST_RESPOND) /* single char ACK is interpreted as RESP NO DATA */
+        else if (primaryState == PLL_EXECUTE_SERVICE_REQUEST_RESPOND) {/* single char ACK is interpreted as RESP NO DATA */
+
+            llsc_setState(self, LL_STATE_AVAILABLE);
+
             newState = PLL_LINK_LAYERS_AVAILABLE;
+        }
 
         self->waitingForResponse = false;
         break;
@@ -1516,6 +1554,9 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
         DEBUG_PRINT ("PLL - received NACK\n");
 
         if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM) {
+
+            llsc_setState(self, LL_STATE_BUSY);
+
             newState = PLL_SECONDARY_LINK_LAYER_BUSY;
         }
 
@@ -1534,9 +1575,14 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
             self->lastSendTime = Hal_getTimeInMs();
             self->waitingForResponse = true;
             newState = PLL_EXECUTE_RESET_REMOTE_LINK;
+
+            llsc_setState(self, LL_STATE_BUSY);
         }
-        else /* illegal message */
+        else /* illegal message */ {
             newState = PLL_IDLE;
+
+            llsc_setState(self, LL_STATE_ERROR);
+        }
 
         break;
 
@@ -1553,9 +1599,14 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
             self->requestClass2Data = false;
 
             newState = PLL_LINK_LAYERS_AVAILABLE;
+
+            llsc_setState(self, LL_STATE_AVAILABLE);
         }
-        else /* illegal message */
+        else { /* illegal message */
             newState = PLL_IDLE;
+
+            llsc_setState(self, LL_STATE_ERROR);
+        }
 
         break;
 
@@ -1563,10 +1614,16 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
 
         DEBUG_PRINT ("PLL - received RESP NO DATA\n");
 
-        if (primaryState == PLL_EXECUTE_SERVICE_REQUEST_RESPOND)
+        if (primaryState == PLL_EXECUTE_SERVICE_REQUEST_RESPOND) {
             newState = PLL_LINK_LAYERS_AVAILABLE;
-        else /* illegal message */
+
+            llsc_setState(self, LL_STATE_AVAILABLE);
+        }
+        else { /* illegal message */
             newState = PLL_IDLE;
+
+            llsc_setState(self, LL_STATE_ERROR);
+        }
 
         break;
 
@@ -1575,8 +1632,11 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
 
         DEBUG_PRINT ("PLL - link layer service not functioning/not implemented in secondary station\n");
 
-        if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM)
+        if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM) {
             newState = PLL_LINK_LAYERS_AVAILABLE;
+
+            llsc_setState(self, LL_STATE_AVAILABLE);
+        }
 
         break;
 
@@ -1658,10 +1718,15 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
             if (currentTime > (self->lastSendTime + self->primaryLink->linkLayer->linkLayerParameters->timeoutForAck)) {
                 self->waitingForResponse = false;
                 newState = PLL_IDLE;
+
+                llsc_setState(self, LL_STATE_ERROR);
             }
         }
-        else
+        else {
             newState = PLL_LINK_LAYERS_AVAILABLE;
+
+            llsc_setState(self, LL_STATE_AVAILABLE);
+        }
 
         break;
 
@@ -1720,6 +1785,8 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
             if (currentTime > (self->originalSendTime + self->primaryLink->linkLayer->linkLayerParameters->timeoutRepeat)) {
                 DEBUG_PRINT ("TIMEOUT: ASDU not confirmed after repeated transmission\n");
                 newState = PLL_IDLE;
+
+                llsc_setState(self, LL_STATE_ERROR);
             }
             else {
                 DEBUG_PRINT ("TIMEOUT: ASDU not confirmed\n");
@@ -1756,6 +1823,8 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
                 newState = PLL_IDLE;
                 self->requestClass1Data = false;
                 self->requestClass2Data = false;
+
+                llsc_setState(self, LL_STATE_ERROR);
             }
             else {
                 DEBUG_PRINT ("TIMEOUT: ASDU not confirmed\n");
