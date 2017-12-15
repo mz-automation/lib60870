@@ -188,13 +188,13 @@
 #endif
 typedef UNITY_FLOAT_TYPE _UF;
 
-#ifndef isinf
-#define isinf(n) (((1.0f / f_zero) == n) ? 1 : 0) || (((-1.0f / f_zero) == n) ? 1 : 0)
-#define UNITY_FLOAT_NEEDS_ZERO
-#endif
-
 #ifndef isnan
 #define isnan(n) ((n != n) ? 1 : 0)
+#endif
+
+#ifndef isinf
+#define isinf(n) (!isnan(n) && isnan(n - n))
+#define UNITY_FLOAT_NEEDS_ZERO
 #endif
 
 #ifndef isneg
