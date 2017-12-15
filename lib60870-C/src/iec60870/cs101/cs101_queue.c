@@ -156,13 +156,13 @@ CS101_Queue_dequeue(CS101_Queue self, Frame resultStorage)
     return frame;
 }
 
-inline bool
+bool
 CS101_Queue_isFull(CS101_Queue self)
 {
    return (self->entryCounter == self->size);
 }
 
-inline bool
+bool
 CS101_Queue_isEmpty(CS101_Queue self)
 {
    return (self->entryCounter == 0);

@@ -38,7 +38,7 @@ struct sSerialTransceiverFT12 {
 SerialTransceiverFT12
 SerialTransceiverFT12_create(SerialPort serialPort, LinkLayerParameters linkLayerParameters)
 {
-    SerialTransceiverFT12 self = GLOBAL_MALLOC(sizeof(struct sSerialTransceiverFT12));
+    SerialTransceiverFT12 self = (SerialTransceiverFT12) GLOBAL_MALLOC(sizeof(struct sSerialTransceiverFT12));
 
     if (self != NULL) {
         self->messageTimeout = 200;

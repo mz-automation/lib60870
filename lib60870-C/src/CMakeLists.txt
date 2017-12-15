@@ -28,6 +28,7 @@ set (lib_linux_SRCS
 )
 
 set (lib_windows_SRCS
+./hal/serial/win32/serial_port_win32.c
 ./hal/socket/win32/socket_win32.c
 ./hal/thread/win32/thread_win32.c
 ./hal/time/win32/time.c

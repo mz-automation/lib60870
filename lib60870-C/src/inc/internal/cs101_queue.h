@@ -24,6 +24,10 @@
 #ifndef SRC_INC_INTERNAL_CS101_QUEUE_H_
 #define SRC_INC_INTERNAL_CS101_QUEUE_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if (CONFIG_USE_THREADS == 1)
 #include "hal_thread.h"
 #endif
@@ -76,9 +80,9 @@ CS101_Queue_unlock(CS101_Queue self);
 void
 CS101_Queue_enqueue(CS101_Queue self, CS101_ASDU asdu);
 
-/*
- * NOTE: Locking has to be done by caller!
- */
+    /*
+     * NOTE: Locking has to be done by caller!
+     */
 Frame
 CS101_Queue_dequeue(CS101_Queue self, Frame resultStorage);
 
@@ -91,5 +95,8 @@ CS101_Queue_isEmpty(CS101_Queue self);
 void
 CS101_Queue_flush(CS101_Queue self);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_INC_INTERNAL_CS101_QUEUE_H_ */
