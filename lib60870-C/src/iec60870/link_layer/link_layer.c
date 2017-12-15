@@ -782,9 +782,11 @@ LinkLayerSecondaryBalanced_handleMessage(LinkLayerSecondaryBalanced self, uint8_
 
     case LL_FC_00_RESET_REMOTE_LINK:
 
-        DEBUG_PRINT ("SLL - RECV RESET REMOTE LINK\n");
+        DEBUG_PRINT ("SLL - RECV FC 00 - RESET REMOTE LINK\n");
 
         self->expectedFcb = true;
+
+        DEBUG_PRINT ("SLL - SEND FC 00 - ACK\n");
 
         if (self->linkLayer->linkLayerParameters->useSingleCharACK)
             SendSingleCharCharacter(self->linkLayer);
@@ -795,7 +797,9 @@ LinkLayerSecondaryBalanced_handleMessage(LinkLayerSecondaryBalanced self, uint8_
 
     case LL_FC_02_TEST_FUNCTION_FOR_LINK:
 
-        DEBUG_PRINT ("SLL -TEST FUNCTION FOR LINK\n");
+        DEBUG_PRINT ("SLL - RECV FC 02 - TEST FUNCTION FOR LINK\n");
+
+        DEBUG_PRINT ("SLL - SEND FC 00 - ACK\n");
 
         if (self->linkLayer->linkLayerParameters->useSingleCharACK)
             SendSingleCharCharacter(self->linkLayer);
@@ -806,11 +810,14 @@ LinkLayerSecondaryBalanced_handleMessage(LinkLayerSecondaryBalanced self, uint8_
 
     case LL_FC_03_USER_DATA_CONFIRMED:
 
-        DEBUG_PRINT("SLL - USER DATA CONFIRMED\n");
+        DEBUG_PRINT("SLL - RECV FC 03 - USER DATA CONFIRMED\n");
 
         if (userDataLength > 0) {
 
             if (self->applicationLayer->HandleReceivedData(self->appLayerParam, msg, isBroadcast, userDataStart, userDataLength)) {
+
+                DEBUG_PRINT ("SLL - SEND FC 00 - ACK\n");
+
                 if (self->linkLayer->linkLayerParameters->useSingleCharACK)
                     SendSingleCharCharacter(self->linkLayer);
                 else
@@ -822,7 +829,7 @@ LinkLayerSecondaryBalanced_handleMessage(LinkLayerSecondaryBalanced self, uint8_
 
     case LL_FC_04_USER_DATA_NO_REPLY:
 
-        DEBUG_PRINT ("SLL - USER DATA NO REPLY\n");
+        DEBUG_PRINT ("SLL -FC 04 - USER DATA NO REPLY\n");
 
         if (userDataLength > 0) {
             self->applicationLayer->HandleReceivedData(self->appLayerParam, msg, isBroadcast, userDataStart, userDataLength);
@@ -832,7 +839,9 @@ LinkLayerSecondaryBalanced_handleMessage(LinkLayerSecondaryBalanced self, uint8_
 
     case LL_FC_09_REQUEST_LINK_STATUS:
 
-        DEBUG_PRINT ("SLL - RECV REQUEST LINK STATUS");
+        DEBUG_PRINT ("SLL - RECV FC 09 - REQUEST LINK STATUS");
+
+        DEBUG_PRINT ("SLL - SEND FC 11 - STATUS OF LINK\n");
 
         SendFixedFrame(self->linkLayer, LL_FC_11_STATUS_OF_LINK_OR_ACCESS_DEMAND, self->linkLayer->address, false, self->linkLayer->dir, false, false);
 
@@ -840,6 +849,8 @@ LinkLayerSecondaryBalanced_handleMessage(LinkLayerSecondaryBalanced self, uint8_
 
     default:
         DEBUG_PRINT ("SLL - UNEXPECTED LINK LAYER MESSAGE");
+
+        DEBUG_PRINT ("SLL - SEND FC 15 - SERVICE NOT IMPLEMENTED\n");
 
         SendFixedFrame(self->linkLayer, LL_FC_15_SERVICE_NOT_IMPLEMENTED, self->linkLayer->address, false, self->linkLayer->dir, false, false);
 
@@ -968,7 +979,7 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
     case LL_FC_00_ACK:
 
-        DEBUG_PRINT ("PLL - received ACK\n");
+        DEBUG_PRINT ("PLL - RECV FC 00 - ACK\n");
 
         if (primaryState == PLL_EXECUTE_RESET_REMOTE_LINK) {
             newState = PLL_LINK_LAYERS_AVAILABLE;
@@ -976,10 +987,8 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
         }
         else if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM) {
 
-            if (self->sendLinkLayerTestFunction) {
-                self->nextFcb = !(self->nextFcb);
+            if (self->sendLinkLayerTestFunction)
                 self->sendLinkLayerTestFunction = false;
-            }
 
             newState = PLL_LINK_LAYERS_AVAILABLE;
             llpb_setNewState(self, LL_STATE_AVAILABLE);
@@ -990,7 +999,7 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
     case LL_FC_01_NACK:
 
-        DEBUG_PRINT ("PLL - received NACK\n");
+        DEBUG_PRINT ("PLL - RECV FC 01 - NACK\n");
 
         if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM) {
             newState = PLL_SECONDARY_LINK_LAYER_BUSY;
@@ -1001,12 +1010,16 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
     case LL_FC_08_RESP_USER_DATA:
 
+        DEBUG_PRINT ("PLL - RECV FC 08 - RESP USER DATA\n");
+
         newState = PLL_IDLE;
         llpb_setNewState(self, LL_STATE_ERROR);
 
         break;
 
     case LL_FC_09_RESP_NACK_NO_DATA:
+
+        DEBUG_PRINT ("PLL - RECV FC 09 - RESP NACK - NO DATA\n");
 
         newState = PLL_IDLE;
         llpb_setNewState(self, LL_STATE_ERROR);
@@ -1015,10 +1028,10 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
     case LL_FC_11_STATUS_OF_LINK_OR_ACCESS_DEMAND:
 
-        DEBUG_PRINT ("PLL - received STATUS OF LINK\n");
+        DEBUG_PRINT ("PLL - RECV FC 11 - STATUS OF LINK\n");
 
         if (primaryState == PLL_EXECUTE_REQUEST_STATUS_OF_LINK) {
-            DEBUG_PRINT ("PLL - SEND RESET REMOTE LINK\n");
+            DEBUG_PRINT ("PLL - SEND  FC 00 - RESET REMOTE LINK\n");
 
             SendFixedFrame(self->linkLayer, LL_FC_00_RESET_REMOTE_LINK, self->otherStationAddress, true, self->linkLayer->dir, false, false);
 
@@ -1145,6 +1158,9 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
             Frame asdu = self->applicationLayer->GetUserData(self->applicationLayerParam, bufferFrame);
 
             if (asdu) {
+
+                DEBUG_PRINT ("PLL: SEND USER DATA CONFIRMED\n");
+
                 SendVariableLengthFrame(self->linkLayer, LL_FC_03_USER_DATA_CONFIRMED, self->otherStationAddress, true, self->linkLayer->dir, self->nextFcb, true, asdu);
 
                 self->nextFcb = !(self->nextFcb);
