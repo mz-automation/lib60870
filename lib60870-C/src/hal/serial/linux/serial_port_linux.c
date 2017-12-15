@@ -75,22 +75,20 @@ SerialPort_destroy(SerialPort self)
     }
 }
 
-void
+bool
 SerialPort_open(SerialPort self)
 {
     self->fd = open(self->interfaceName, O_RDWR | O_NOCTTY | O_NDELAY | O_EXCL);
 
     if (self->fd == -1) {
         self->lastError = SERIAL_PORT_ERROR_OPEN_FAILED;
-        return;
+        return false;
     }
 
     struct termios tios;
     speed_t baudrate;
 
     tcgetattr(self->fd, &tios);
-
- //   memset(&tios, 0, sizeof(struct termios));
 
     switch (self->baudRate) {
     case 110:
@@ -136,7 +134,7 @@ SerialPort_open(SerialPort self)
         close(self->fd);
         self->fd = -1;
         self->lastError = SERIAL_PORT_ERROR_INVALID_BAUDRATE;
-        return;
+        return false;
     }
 
     tios.c_cflag |= (CREAD | CLOCAL);
@@ -195,7 +193,11 @@ SerialPort_open(SerialPort self)
         close(self->fd);
         self->fd = -1;
         self->lastError = SERIAL_PORT_ERROR_INVALID_ARGUMENT;
+
+        return false;
     }
+
+    return true;
 }
 
 void
@@ -238,6 +240,8 @@ SerialPort_readByte(SerialPort self)
     uint8_t buf[1];
     fd_set set;
 
+    self->lastError = SERIAL_PORT_ERROR_NONE;
+
     FD_ZERO(&set);
     FD_SET(self->fd, &set);
 
@@ -260,6 +264,8 @@ int
 SerialPort_write(SerialPort self, uint8_t* buffer, int startPos, int bufSize)
 {
     //TODO assure minimum line idle time
+
+    self->lastError = SERIAL_PORT_ERROR_NONE;
 
     ssize_t result = write(self->fd, buffer + startPos, bufSize);
 

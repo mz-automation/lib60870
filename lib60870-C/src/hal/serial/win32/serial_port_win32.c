@@ -43,7 +43,6 @@ struct sSerialPort {
 	SerialPortError lastError;
 };
 
-
 SerialPort
 SerialPort_create(const char* interfaceName, int baudRate, uint8_t dataBits, char parity, uint8_t stopBits)
 {
@@ -76,7 +75,7 @@ SerialPort_destroy(SerialPort self)
 	}
 }
 
-void
+bool
 SerialPort_open(SerialPort self)
 {
 	self->comPort = CreateFile(self->interfaceName, GENERIC_READ | GENERIC_WRITE,
@@ -85,7 +84,7 @@ SerialPort_open(SerialPort self)
 
 	if (self->comPort == INVALID_HANDLE_VALUE) {
 		self->lastError = SERIAL_PORT_ERROR_OPEN_FAILED;
-		return;
+		return false;
 	}
 
 	DCB _serialParams = { 0 };
@@ -188,7 +187,7 @@ SerialPort_open(SerialPort self)
 
 	self->lastError = SERIAL_PORT_ERROR_NONE;
 
-	return;
+	return true;
 
 exit_error:
 
@@ -197,7 +196,7 @@ exit_error:
 		self->comPort = INVALID_HANDLE_VALUE;
 	}
 
-	return;
+	return false;
 }
 
 
@@ -261,12 +260,16 @@ SerialPort_write(SerialPort self, uint8_t* buffer, int startPos, int bufSize)
 {
 	//TODO assure minimum line idle time
 
+    self->lastError = SERIAL_PORT_ERROR_NONE;
+
 	DWORD numberOfBytesWritten;
 
 	BOOL status = WriteFile(self->comPort, buffer + startPos, bufSize, &numberOfBytesWritten, NULL);
 
-	if (status == false)
-		return -1;
+	if (status == false) {
+	    self->lastError = SERIAL_PORT_ERROR_UNKNOWN;
+	    return -1;
+	}
 
 	status = FlushFileBuffers(self->comPort);
 
