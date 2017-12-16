@@ -89,6 +89,9 @@ LinkLayerPrimaryUnbalanced_resetCU(LinkLayerPrimaryUnbalanced self, int slaveAdd
 bool
 LinkLayerPrimaryUnbalanced_isChannelAvailable(LinkLayerPrimaryUnbalanced self, int slaveAddress);
 
+void
+LinkLayerPrimaryUnbalanced_sendLinkLayerTestFunction(LinkLayerPrimaryUnbalanced self, int slaveAddress);
+
 bool
 LinkLayerPrimaryUnbalanced_requestClass1Data(LinkLayerPrimaryUnbalanced self, int slaveAddress);
 
@@ -144,6 +147,9 @@ LinkLayerBalanced_create(
 void
 LinkLayerBalanced_setStateChangeHandler(LinkLayerBalanced self,
         IEC60870_LinkLayerStateChangedHandler handler, void* parameter);
+
+void
+LinkLayerBalanced_sendLinkLayerTestFunction(LinkLayerBalanced self);
 
 void
 LinkLayerBalanced_setIdleTimeout(LinkLayerBalanced self, int timeoutInMs);

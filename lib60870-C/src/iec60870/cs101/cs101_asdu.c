@@ -1357,7 +1357,7 @@ TypeID_toString(TypeID self)
 }
 
 const char*
-CauseOfTransmission_toString(CS101_CauseOfTransmission self)
+CS101_CauseOfTransmission_toString(CS101_CauseOfTransmission self)
 {
     switch (self) {
 

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016, 2017 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -31,6 +31,9 @@
 extern "C" {
 #endif
 
+/**
+ * \brief The connection to the master (used by slave)
+ */
 typedef struct sIMasterConnection* IMasterConnection;
 
 struct sIMasterConnection {
@@ -43,7 +46,7 @@ struct sIMasterConnection {
 
 
 /**
- * Callback handlers for master requests handling
+ * Callback handlers to handle requests from master
  */
 
 /**
@@ -99,18 +102,34 @@ typedef bool (*CS101_ASDUHandler) (void* parameter, IMasterConnection connection
  *
  * \param self the connection object (this is usually received as a parameter of a callback function)
  * \param asdu the ASDU to send to the client/master
- *
- * \return true if message was sent (queued), false otherwise (queue full or connection not active)
  */
 void
 IMasterConnection_sendASDU(IMasterConnection self, CS101_ASDU asdu);
 
+/**
+ * \brief Send an ACT_CON ASDU to the client/master
+ *
+ * ACT_CON is used for a command confirmation (positive or negative)
+ *
+ * \param asdu the ASDU to send to the client/master
+ * \param negative value of the negative flag
+ */
 void
 IMasterConnection_sendACT_CON(IMasterConnection self, CS101_ASDU asdu, bool negative);
 
+/**
+ * \brief Send an ACT_TERM ASDU to the client/master
+ *
+ * ACT_TERM is used to indicate that the command execution is complete.
+ *
+ * \param asdu the ASDU to send to the client/master
+ */
 void
 IMasterConnection_sendACT_TERM(IMasterConnection self, CS101_ASDU asdu);
 
+/**
+ * \brief Get the application layer parameters used by this connection
+ */
 CS101_AppLayerParameters
 IMasterConnection_getApplicationLayerParameters(IMasterConnection self);
 

@@ -267,7 +267,15 @@ CS101_Master_isChannelReady(CS101_Master self, int address)
     return false;
 }
 
-//CS101_Master_getLinkLayerState(CS101_Master self);
+void
+CS101_Master_sendLinkLayerTestFunction(CS101_Master self)
+{
+    if (self->unbalancedLinkLayer)
+        LinkLayerPrimaryUnbalanced_sendLinkLayerTestFunction(self->unbalancedLinkLayer,
+                self->slaveAddress);
+    else if (self->balancedLinkLayer)
+        LinkLayerBalanced_sendLinkLayerTestFunction(self->balancedLinkLayer);
+}
 
 void
 CS101_Master_sendInterrogationCommand(CS101_Master self, CS101_CauseOfTransmission cot, int ca, QualifierOfInterrogation qoi)

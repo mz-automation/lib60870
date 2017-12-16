@@ -26,13 +26,14 @@
 
 #include <stdbool.h>
 
-struct sLinkLayerParameters {
-    int addressLength; /* Length of link layer address (1 or 2 byte) */
-    int timeoutForAck; /* timeout for link layer ACK in ms */
-    int timeoutRepeat; /* timeout for repeating messages when no ACK received in ms */
-    bool useSingleCharACK; /* use single char ACK for ACK (FC=0) or RESP_NO_USER_DATA (FC=9) */
-};
-
+/** \brief Parameters for the IEC 60870-5 link layer */
 typedef struct sLinkLayerParameters* LinkLayerParameters;
+
+struct sLinkLayerParameters {
+    int addressLength; /** Length of link layer address (1 or 2 byte) */
+    int timeoutForAck; /** timeout for link layer ACK in ms */
+    int timeoutRepeat; /** timeout for repeated message transmission when no ACK received in ms */
+    bool useSingleCharACK; /** use single char ACK for ACK (FC=0) or RESP_NO_USER_DATA (FC=9) */
+};
 
 #endif /* SRC_IEC60870_LINK_LAYER_LINK_LAYER_PARAMETERS_H_ */

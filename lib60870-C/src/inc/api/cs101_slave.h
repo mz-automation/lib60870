@@ -147,28 +147,79 @@ CS101_Slave_run(CS101_Slave self);
 CS101_AppLayerParameters
 CS101_Slave_getAppLayerParameters(CS101_Slave self);
 
+/**
+ * \brief Set the handler for the reset CU (communication unit) message
+ *
+ * \param handler the callback handler function
+ * \param parameter user provided parameter to be passed to the callback handler
+ */
 void
 CS101_Slave_setResetCUHandler(CS101_Slave self, CS101_ResetCUHandler handler, void* parameter);
 
+/**
+ * \brief Set the handler for the general interrogation message
+ *
+ * \param handler the callback handler function
+ * \param parameter user provided parameter to be passed to the callback handler
+ */
 void
 CS101_Slave_setInterrogationHandler(CS101_Slave self, CS101_InterrogationHandler handler, void*  parameter);
 
+/**
+ * \brief Set the handler for the counter interrogation message
+ *
+ * \param handler the callback handler function
+ * \param parameter user provided parameter to be passed to the callback handler
+ */
 void
 CS101_Slave_setCounterInterrogationHandler(CS101_Slave self, CS101_CounterInterrogationHandler handler, void*  parameter);
 
+/**
+ * \brief Set the handler for the read message
+ *
+ * \param handler the callback handler function
+ * \param parameter user provided parameter to be passed to the callback handler
+ */
 void
 CS101_Slave_setReadHandler(CS101_Slave self, CS101_ReadHandler handler, void* parameter);
 
-void
-CS101_Slave_setASDUHandler(CS101_Slave self, CS101_ASDUHandler handler, void* parameter);
-
+/**
+ * \brief Set the handler for the clock synchronization message
+ *
+ * \param handler the callback handler function
+ * \param parameter user provided parameter to be passed to the callback handler
+ */
 void
 CS101_Slave_setClockSyncHandler(CS101_Slave self, CS101_ClockSynchronizationHandler handler, void* parameter);
 
+/**
+ * \brief Set the handler for the reset process message
+ *
+ * \param handler the callback handler function
+ * \param parameter user provided parameter to be passed to the callback handler
+ */
 void
 CS101_Slave_setResetProcessHandler(CS101_Slave self, CS101_ResetProcessHandler handler, void* parameter);
 
+/**
+ * \brief Set the handler for the delay acquisition message
+ *
+ * \param handler the callback handler function
+ * \param parameter user provided parameter to be passed to the callback handler
+ */
 void
 CS101_Slave_setDelayAcquisitionHandler(CS101_Slave self, CS101_DelayAcquisitionHandler handler, void* parameter);
+
+/**
+ * \brief Set the handler for a received ASDU
+ *
+ * NOTE: This a generic handler that will only be called when the ASDU has not been handled by
+ * one of the other callback handlers.
+ *
+ * \param handler the callback handler function
+ * \param parameter user provided parameter to be passed to the callback handler
+ */
+void
+CS101_Slave_setASDUHandler(CS101_Slave self, CS101_ASDUHandler handler, void* parameter);
 
 #endif /* SRC_IEC60870_CS101_CS101_SLAVE_H_ */

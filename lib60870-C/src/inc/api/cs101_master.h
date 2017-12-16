@@ -37,7 +37,7 @@ typedef struct sCS101_Master* CS101_Master;
  * \param alParameters the application layer parameters to use
  * \param mode the link layer mode (either IEC60870_LINK_LAYER_BALANCED or IEC60870_LINK_LAYER_UNBALANCED)
  *
- * \return the newly create CS101_Master instance
+ * \return the new CS101_Master instance
  */
 CS101_Master
 CS101_Master_create(SerialPort port, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode mode);
@@ -123,10 +123,14 @@ CS101_Master_useSlaveAddress(CS101_Master self, int address);
 bool
 CS101_Master_isChannelReady(CS101_Master self, int address);
 
+/**
+ * \brief Manually send link layer test function.
+ *
+ * Together with the IEC60870_LinkLayerStateChangedHandler this function can
+ * be used to ensure that the link is working correctly
+ */
 void
-CS101_Master_sendLinkLayerTestFunction(CS101_Master);
-
-//CS101_Master_getLinkLayerState(CS101_Master self);
+CS101_Master_sendLinkLayerTestFunction(CS101_Master self);
 
 /**
  * \brief send an interrogation command

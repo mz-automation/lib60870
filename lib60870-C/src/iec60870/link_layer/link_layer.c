@@ -1263,6 +1263,12 @@ LinkLayerBalanced_create(
 }
 
 void
+LinkLayerBalanced_sendLinkLayerTestFunction(LinkLayerBalanced self)
+{
+    self->primaryLinkLayer.sendLinkLayerTestFunction = true;
+}
+
+void
 LinkLayerBalanced_setStateChangeHandler(LinkLayerBalanced self,
         IEC60870_LinkLayerStateChangedHandler handler, void* parameter)
 {
@@ -1539,7 +1545,9 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
 
             newState = PLL_LINK_LAYERS_AVAILABLE;
         }
-        else if (primaryState == PLL_EXECUTE_SERVICE_REQUEST_RESPOND) {/* single char ACK is interpreted as RESP NO DATA */
+        else if (primaryState == PLL_EXECUTE_SERVICE_REQUEST_RESPOND) {
+
+            /* single char ACK is interpreted as RESP NO DATA */
 
             llsc_setState(self, LL_STATE_AVAILABLE);
 
@@ -1578,7 +1586,7 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
 
             llsc_setState(self, LL_STATE_BUSY);
         }
-        else /* illegal message */ {
+        else { /* illegal message */
             newState = PLL_IDLE;
 
             llsc_setState(self, LL_STATE_ERROR);
@@ -1741,6 +1749,7 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
             self->lastSendTime = currentTime;
             self->originalSendTime = currentTime;
             self->waitingForResponse = true;
+
             newState = PLL_EXECUTE_SERVICE_REQUEST_RESPOND;
         }
         else if (self->requestClass1Data || self->requestClass2Data) {
@@ -1914,6 +1923,15 @@ LinkLayerPrimaryUnbalanced_isChannelAvailable(LinkLayerPrimaryUnbalanced self, i
         return !(llsc_isMessageWaitingToSend(slave));
 
     return false;
+}
+
+void
+LinkLayerPrimaryUnbalanced_sendLinkLayerTestFunction(LinkLayerPrimaryUnbalanced self, int slaveAddress)
+{
+    LinkLayerSlaveConnection slave = LinkLayerPrimaryUnbalanced_getSlaveConnection(self, slaveAddress);
+
+    if (slave)
+        slave->sendLinkLayerTestFunction = true;
 }
 
 bool

@@ -47,10 +47,18 @@ typedef enum {
     IEC60870_LINK_LAYER_UNBALANCED = 1
 } IEC60870_LinkLayerMode;
 
+/**\brief State of the link layer */
 typedef enum {
+    /** The link layer is idle, there is no communication */
     LL_STATE_IDLE,
+
+    /** An error has occurred at the link layer, the link may not be usable */
     LL_STATE_ERROR,
+
+    /** The link layer is busy and therefore no usable */
     LL_STATE_BUSY,
+
+    /** The link is available for user data transmission and reception */
     LL_STATE_AVAILABLE
 } LinkLayerState;
 
@@ -63,6 +71,9 @@ typedef enum {
  */
 typedef void (*IEC60870_LinkLayerStateChangedHandler) (void* parameter, int address, LinkLayerState newState);
 
+/**
+ * \brief Application Service Data Unit (ASDU) for the CS101/CS104 application layer
+ */
 typedef struct sCS101_ASDU* CS101_ASDU;
 
 typedef struct sCP16Time2a* CP16Time2a;
@@ -89,15 +100,25 @@ struct sBinaryCounterReading {
     uint8_t encodedValue[5];
 };
 
+/**
+ * \brief Parameters for the CS101/CS104 application layer
+ */
 typedef struct sCS101_AppLayerParameters* CS101_AppLayerParameters;
 
-typedef struct sCS104_ConnectionParameters* CS104_ConnectionParameters;
-
-#include "cs101_information_objects.h"
+struct sCS101_AppLayerParameters {
+    int sizeOfTypeId;      /* size of the type id (default = 1 - don't change) */
+    int sizeOfVSQ;         /* don't change */
+    int sizeOfCOT;         /* size of COT (1/2 - default = 2 -> COT includes OA) */
+    int originatorAddress; /* originator address (OA) to use (0-255) */
+    int sizeOfCA;          /* size of common address (CA) of ASDU (1/2 - default = 2) */
+    int sizeOfIOA;         /* size of information object address (IOA) (1/2/3 - default = 3) */
+};
 
 /**
- * \brief Connection parameters for CS104
+ * \brief Parameters for CS104 connections - APCI (application protocol control information)
  */
+typedef struct sCS104_ConnectionParameters* CS104_ConnectionParameters;
+
 struct sCS104_ConnectionParameters {
     int k;
     int w;
@@ -107,17 +128,7 @@ struct sCS104_ConnectionParameters {
     int t3;
 };
 
-/**
- * \brief Application layer parameters (used by CS101 and CS104)
- */
-struct sCS101_AppLayerParameters {
-    int sizeOfTypeId;      /* size of the type id (default = 1 - don't change) */
-    int sizeOfVSQ;         /* don't change */
-    int sizeOfCOT;         /* size of COT (1/2 - default = 2 -> COT includes OA) */
-    int originatorAddress; /* originator address (OA) to use (0-255) */
-    int sizeOfCA;          /* size of common address (CA) of ASDU (1/2 - default = 2) */
-    int sizeOfIOA;         /* size of information object address (IOA) (1/2/3 - default = 3) */
-};
+#include "cs101_information_objects.h"
 
 typedef enum {
     M_SP_NA_1 = 1,
@@ -240,7 +251,7 @@ typedef enum {
 } CS101_CauseOfTransmission;
 
 const char*
-CauseOfTransmission_toString(CS101_CauseOfTransmission self);
+CS101_CauseOfTransmission_toString(CS101_CauseOfTransmission self);
 
 void
 Lib60870_enableDebugOutput(bool value);
@@ -248,42 +259,91 @@ Lib60870_enableDebugOutput(bool value);
 Lib60870VersionInfo
 Lib60870_getLibraryVersionInfo(void);
 
+/**
+ * \brief Check if the test flag of the ASDU is set
+ */
 bool
 CS101_ASDU_isTest(CS101_ASDU self);
 
+/**
+ * \brief Set the test flag of the ASDU
+ */
 void
 CS101_ASDU_setTest(CS101_ASDU self, bool value);
 
+/**
+ * \brief Check if the negative flag of the ASDU is set
+ */
 bool
 CS101_ASDU_isNegative(CS101_ASDU self);
 
+/**
+ * \brief Set the negative flag of the ASDU
+ */
 void
 CS101_ASDU_setNegative(CS101_ASDU self, bool value);
 
+/**
+ * \brief get the OA (originator address) of the ASDU.
+ */
 int
 CS101_ASDU_getOA(CS101_ASDU self);
 
+/**
+ * \brief Get the cause of transmission (COT) of the ASDU
+ */
 CS101_CauseOfTransmission
 CS101_ASDU_getCOT(CS101_ASDU self);
 
+/**
+ * \brief Set the cause of transmission (COT) of the ASDU
+ */
 void
 CS101_ASDU_setCOT(CS101_ASDU self, CS101_CauseOfTransmission value);
 
+/**
+ * \brief Get the common address (CA) of the ASDU
+ */
 int
 CS101_ASDU_getCA(CS101_ASDU self);
 
+/**
+ * \brief Set the common address (CA) of the ASDU
+ *
+ * \param ca the ca in unstructured form
+ */
 void
 CS101_ASDU_setCA(CS101_ASDU self, int ca);
 
+
+/**
+ * \brief Get the type ID of the ASDU
+ */
 IEC60870_5_TypeID
 CS101_ASDU_getTypeID(CS101_ASDU self);
 
+/**
+ * \brief Check if the ASDU contains a sequence of consecutive information objects
+ *
+ * NOTE: in a sequence of consecutive information objects only the first information object address
+ * is encoded. The following information objects ahve consecutive information object addresses.
+ */
 bool
 CS101_ASDU_isSequence(CS101_ASDU self);
 
+/**
+ * \brief Get the number of information objects (elements) in the ASDU
+ */
 int
 CS101_ASDU_getNumberOfElements(CS101_ASDU self);
 
+/**
+ * \brief Get the information object with the given index
+ *
+ * \param index the index of the information object (starting with 0)
+ *
+ * \return the information object, or NULL if there is no information object with the given index
+ */
 InformationObject
 CS101_ASDU_getElement(CS101_ASDU self, int index);
 
@@ -304,6 +364,9 @@ CS101_ASDU
 CS101_ASDU_create(CS101_AppLayerParameters parameters, bool isSequence, CS101_CauseOfTransmission cot, int oa, int ca,
         bool isTest, bool isNegative);
 
+/**
+ * \brief Destroy the ASDU object (release all resources)
+ */
 void
 CS101_ASDU_destroy(CS101_ASDU self);
 
@@ -318,55 +381,105 @@ CS101_ASDU_destroy(CS101_ASDU self);
 bool
 CS101_ASDU_addInformationObject(CS101_ASDU self, InformationObject io);
 
+/**
+ * \brief Get the elapsed time in ms
+ */
 int
 CP16Time2a_getEplapsedTimeInMs(CP16Time2a self);
 
+/**
+ * \brief set the elapsed time in ms
+ */
 void
 CP16Time2a_setEplapsedTimeInMs(CP16Time2a self, int value);
 
+/**
+ * \brief Get the millisecond part of the time value
+ */
 int
 CP24Time2a_getMillisecond(CP24Time2a self);
 
+/**
+ * \brief Set the millisecond part of the time value
+ */
 void
 CP24Time2a_setMillisecond(CP24Time2a self, int value);
 
+/**
+ * \brief Get the second part of the time value
+ */
 int
 CP24Time2a_getSecond(CP24Time2a self);
 
+/**
+ * \brief Set the second part of the time value
+ */
 void
 CP24Time2a_setSecond(CP24Time2a self, int value);
 
+/**
+ * \brief Get the minute part of the time value
+ */
 int
 CP24Time2a_getMinute(CP24Time2a self);
 
+/**
+ * \brief Set the minute part of the time value
+ */
 void
 CP24Time2a_setMinute(CP24Time2a self, int value);
 
+/**
+ * \brief Check if the invalid flag of the time value is set
+ */
 bool
 CP24Time2a_isInvalid(CP24Time2a self);
 
+/**
+ * \brief Set the invalid flag of the time value
+ */
 void
 CP24Time2a_setInvalid(CP24Time2a self, bool value);
 
+/**
+ * \brief Check if the substituted flag of the time value is set
+ */
 bool
 CP24Time2a_isSubstituted(CP24Time2a self);
 
+/**
+ * \brief Set the substituted flag of the time value
+ */
 void
 CP24Time2a_setSubstituted(CP24Time2a self, bool value);
 
-
+/**
+ * \brief Create a 7 byte time from a UTC ms timestamp
+ */
 CP56Time2a
 CP56Time2a_createFromMsTimestamp(CP56Time2a self, uint64_t timestamp);
 
+/**
+ * \brief Set the time value of a 7 byte time from a UTC ms timestamp
+ */
 void
 CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp);
 
+/**
+ * \brief Convert a 7 byte time to a ms timestamp
+ */
 uint64_t
 CP56Time2a_toMsTimestamp(CP56Time2a self);
 
+/**
+ * \brief Get the ms part of a time value
+ */
 int
 CP56Time2a_getMillisecond(CP56Time2a self);
 
+/**
+ * \brief Set the ms part of a time value
+ */
 void
 CP56Time2a_setMillisecond(CP56Time2a self, int value);
 
