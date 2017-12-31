@@ -656,6 +656,29 @@ BinaryCounterReading_setAdjusted(BinaryCounterReading self, bool value);
 void
 BinaryCounterReading_setInvalid(BinaryCounterReading self, bool value);
 
+typedef struct sFrame* Frame;
+
+void
+Frame_destroy(Frame self);
+
+void
+Frame_resetFrame(Frame self);
+
+void
+Frame_setNextByte(Frame self, uint8_t byte);
+
+void
+Frame_appendBytes(Frame self, uint8_t* bytes, int numberOfBytes);
+
+int
+Frame_getMsgSize(Frame self);
+
+uint8_t*
+Frame_getBuffer(Frame self);
+
+int
+Frame_getSpaceLeft(Frame self);
+
 #ifdef __cplusplus
 }
 #endif

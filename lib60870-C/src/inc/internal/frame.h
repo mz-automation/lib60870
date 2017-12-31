@@ -24,11 +24,11 @@
 
 #include <stdint.h>
 
-typedef struct sFrame* Frame;
+#include "iec60870_common.h"
 
 typedef struct sFrameVFT* FrameVFT;
 
-struct sFrameVFT { //TODO move to internal header
+struct sFrameVFT {
     void (*destroy)(Frame self);
     void (*resetFrame)(Frame self);
     void (*setNextByte)(Frame self, uint8_t byte);
@@ -37,26 +37,5 @@ struct sFrameVFT { //TODO move to internal header
     uint8_t* (*getBuffer)(Frame self);
     int (*getSpaceLeft)(Frame self);
 };
-
-void
-Frame_destroy(Frame self);
-
-void
-Frame_resetFrame(Frame self);
-
-void
-Frame_setNextByte(Frame self, uint8_t byte);
-
-void
-Frame_appendBytes(Frame self, uint8_t* bytes, int numberOfBytes);
-
-int
-Frame_getMsgSize(Frame self);
-
-uint8_t*
-Frame_getBuffer(Frame self);
-
-int
-Frame_getSpaceLeft(Frame self);
 
 #endif /* SRC_INC_FRAME_H_ */
