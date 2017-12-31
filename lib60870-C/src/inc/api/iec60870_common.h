@@ -88,6 +88,12 @@ struct sCP24Time2a {
     uint8_t encodedValue[3];
 };
 
+typedef struct sCP32Time2a* CP32Time2a;
+
+struct sCP32Time2a {
+    uint8_t encodedValue[4];
+};
+
 typedef struct sCP56Time2a* CP56Time2a;
 
 struct sCP56Time2a {
@@ -458,6 +464,56 @@ CP24Time2a_setSubstituted(CP24Time2a self, bool value);
  */
 CP56Time2a
 CP56Time2a_createFromMsTimestamp(CP56Time2a self, uint64_t timestamp);
+
+
+CP32Time2a
+CP32Time2a_create(CP32Time2a self);
+
+void
+CP32Time2a_setFromMsTimestamp(CP32Time2a self, uint64_t timestamp);
+
+int
+CP32Time2a_getMillisecond(CP32Time2a self);
+
+void
+CP32Time2a_setMillisecond(CP32Time2a self, int value);
+
+int
+CP32Time2a_getSecond(CP32Time2a self);
+
+void
+CP32Time2a_setSecond(CP32Time2a self, int value);
+
+int
+CP32Time2a_getMinute(CP32Time2a self);
+
+
+void
+CP32Time2a_setMinute(CP32Time2a self, int value);
+
+bool
+CP32Time2a_isInvalid(CP32Time2a self);
+
+void
+CP32Time2a_setInvalid(CP32Time2a self, bool value);
+
+bool
+CP32Time2a_isSubstituted(CP32Time2a self);
+
+void
+CP32Time2a_setSubstituted(CP32Time2a self, bool value);
+
+int
+CP32Time2a_getHour(CP32Time2a self);
+
+void
+CP32Time2a_setHour(CP32Time2a self, int value);
+
+bool
+CP32Time2a_isSummerTime(CP32Time2a self);
+
+void
+CP32Time2a_setSummerTime(CP32Time2a self, bool value);
 
 /**
  * \brief Set the time value of a 7 byte time from a UTC ms timestamp

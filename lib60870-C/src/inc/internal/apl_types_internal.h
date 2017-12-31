@@ -47,6 +47,12 @@ bool
 CP24Time2a_getFromBuffer (CP24Time2a self, uint8_t* msg, int msgSize, int startIndex);
 
 bool
+CP32Time2a_getFromBuffer (CP32Time2a self, uint8_t* msg, int msgSize, int startIndex);
+
+uint8_t*
+CP32Time2a_getEncodedValue(CP32Time2a self);
+
+bool
 CP56Time2a_getFromBuffer (CP56Time2a self, uint8_t* msg, int msgSize, int startIndex);
 
 uint8_t*
