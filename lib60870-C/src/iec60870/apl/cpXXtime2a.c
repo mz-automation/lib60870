@@ -232,24 +232,6 @@ CP24Time2a_setSubstituted(CP24Time2a self, bool value)
     setSubstituted(self->encodedValue, value);
 }
 
-/**********************************
- *  CP56Time2a type
- **********************************/
-
-CP56Time2a
-CP56Time2a_createFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
-{
-    if (self == NULL)
-        self = (CP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sCP56Time2a));
-    else
-        memset (self, 0, sizeof(struct sCP56Time2a));
-
-    if (self != NULL)
-        CP56Time2a_setFromMsTimestamp(self, timestamp);
-
-    return self;
-}
-
 #if 0
 
 
@@ -320,6 +302,177 @@ my_mktime(const struct tm * ptm)
     return ((((time_t) (y - 69) * 365u + y / 4 - y / 100 * 3 / 4 + (m + 2) * 153 / 5 - 446 +
             ptm->tm_mday) * 24u + ptm->tm_hour) * 60u + ptm->tm_min) * 60u + ptm->tm_sec;
 }
+
+
+/**********************************
+ *  CP32Time2a type
+ **********************************/
+
+CP32Time2a
+CP32Time2a_create(CP32Time2a self)
+{
+    if (self == NULL)
+        self = (CP32Time2a) GLOBAL_CALLOC(1, sizeof(struct sCP32Time2a));
+    else
+        memset (self, 0, sizeof(struct sCP32Time2a));
+
+    return self;
+}
+
+bool
+CP32Time2a_getFromBuffer (CP32Time2a self, uint8_t* msg, int msgSize, int startIndex)
+{
+    if (msgSize < startIndex + 4)
+        return false;
+
+    int i;
+
+    for (i = 0; i < 4; i++)
+        self->encodedValue[i] = msg[startIndex + i];
+
+    return true;
+}
+
+int
+CP32Time2a_getMillisecond(CP32Time2a self)
+{
+    return (self->encodedValue[0] + (self->encodedValue[1] * 0x100)) % 1000;
+}
+
+void
+CP32Time2a_setMillisecond(CP32Time2a self, int value)
+{
+    int millies = (CP32Time2a_getSecond(self) * 1000) + value;
+
+    self->encodedValue[0] = (uint8_t) (millies & 0xff);
+    self->encodedValue[1] = (uint8_t) ((millies / 0x100) & 0xff);
+}
+
+
+int
+CP32Time2a_getSecond(CP32Time2a self)
+{
+    return getSecond(self->encodedValue);
+}
+
+void
+CP32Time2a_setSecond(CP32Time2a self, int value)
+{
+    setSecond(self->encodedValue, value);
+}
+
+int
+CP32Time2a_getMinute(CP32Time2a self)
+{
+    return getMinute(self->encodedValue);
+}
+
+
+void
+CP32Time2a_setMinute(CP32Time2a self, int value)
+{
+    setMinute(self->encodedValue, value);
+}
+
+bool
+CP32Time2a_isInvalid(CP32Time2a self)
+{
+    return isInvalid(self->encodedValue);
+}
+
+void
+CP32Time2a_setInvalid(CP32Time2a self, bool value)
+{
+    setInvalid(self->encodedValue, value);
+}
+
+bool
+CP32Time2a_isSubstituted(CP32Time2a self)
+{
+    return isSubstituted(self->encodedValue);
+}
+
+void
+CP32Time2a_setSubstituted(CP32Time2a self, bool value)
+{
+    setSubstituted(self->encodedValue, value);
+}
+
+int
+CP32Time2a_getHour(CP32Time2a self)
+{
+    return (self->encodedValue[3] & 0x1f);
+}
+
+void
+CP32Time2a_setHour(CP32Time2a self, int value)
+{
+    self->encodedValue[3] = (uint8_t) ((self->encodedValue[3] & 0xe0) | (value & 0x1f));
+}
+
+bool
+CP32Time2a_isSummerTime(CP32Time2a self)
+{
+    return ((self->encodedValue[3] & 0x80) != 0);
+}
+
+void
+CP32Time2a_setSummerTime(CP32Time2a self, bool value)
+{
+    if (value)
+        self->encodedValue[3] |= 0x80;
+    else
+        self->encodedValue[3] &= 0x7f;
+}
+
+void
+CP32Time2a_setFromMsTimestamp(CP32Time2a self, uint64_t timestamp)
+{
+    time_t timeVal = timestamp / 1000;
+
+    int msPart = timestamp % 1000;
+
+    struct tm tmTime;
+
+#ifdef _WIN32
+    gmtime_s(&tmTime, &timeVal);
+#else
+    gmtime_r(&timeVal, &tmTime);
+#endif
+
+    CP32Time2a_setSecond(self, tmTime.tm_sec);
+
+    CP32Time2a_setMillisecond(self, msPart);
+
+    CP32Time2a_setMinute(self, tmTime.tm_min);
+
+    CP32Time2a_setHour(self, tmTime.tm_hour);
+}
+
+uint8_t*
+CP32Time2a_getEncodedValue(CP32Time2a self)
+{
+    return self->encodedValue;
+}
+
+/**********************************
+ *  CP56Time2a type
+ **********************************/
+
+CP56Time2a
+CP56Time2a_createFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
+{
+    if (self == NULL)
+        self = (CP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sCP56Time2a));
+    else
+        memset (self, 0, sizeof(struct sCP56Time2a));
+
+    if (self != NULL)
+        CP56Time2a_setFromMsTimestamp(self, timestamp);
+
+    return self;
+}
+
 
 void
 CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
