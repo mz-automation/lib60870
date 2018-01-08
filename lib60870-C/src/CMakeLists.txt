@@ -143,4 +143,3 @@ install (TARGETS iec60870 iec60870-shared
 	ARCHIVE DESTINATION lib COMPONENT Libraries
     LIBRARY DESTINATION lib COMPONENT Libraries
 )
-
