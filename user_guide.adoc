@@ -1,48 +1,82 @@
-= lib60870 User Guide
+= lib60870-C 2.0 User Guide
 Michael Zillgith
 
 == Introduction
 
-lib60870 is a new implementation of the IEC 60870-5-104 protocol for client (master station) and server (controlled station). The library implements all data types of the IEC 60870-5-101/104 specifications. It comes with two flavors which are actually two different implementations that share a similar API:
-
-* *lib60870-C* is an implementation written in the C99 standard. It is designed to be used on resource restricted embedded systems but is easy to use as well.
-* *lib60870.NET* is a pure C#/.NET implementation. It is designed to be as easy to use as possible. Since it is using only standardized .NET features it is compatible with Windows systems and the Microsoft .NET implementation as well as on Linux and other operating systems running with Mono.
+lib60870-C is a new implementation of the IEC 60870-5 protocol for client (master station) and server (controlled station). The library implements all data types of the IEC 60870-5-101/104 specifications. *lib60870-C* is implemented in standard C and is compatible with the C99 standard. It is designed to be as easy to use as possible.
 
 The client/server API is strictly asynchronous. You send the requests with non-blocking functions and will have to handle the response and other events in callback functions.
 
-== Create a connection
+The list of supported features:
 
-Since an IEC 60870-5-104 connection is based on a TCP client/server connection the connection will be established by the client(master). The server(slave or outstation) is passively waiting for connections.
+* CS 101 (IEC 60870-5-101) balanced and unbalanced serial modes
+* CS 104 (IEC 60870-5-104) client and server TCP/IP communication
+* CS 104 supports encrypted and authenticated TLS communication
+* CS 104 uses the CS 101 application layer
+* Master/Client supports sending system commands, process commands, parameter commands, and data messages in reverse direction.
+* Slave/Server supports sending data messages in monitoring direction and commands in reverse direction
+* The list of supported ASDU types can be found in the annex
+* The library supports user defined private ASDU types
 
-In C# a connection is simple created by calling a Constructor of the Connection class:
+*NOTE:* CS stands for "companion standard" and specifies variants of the communication protocols and services defined in the IEC 60870-5 standard series.
 
-  Connection con = new Connection ("127.0.0.1");
+The library uses an "object-oriented" programming style. It is based on abstract data types (ADT) and functions
+that operate on these data types. In general the actual implementations of the data types (the data structures that hold the data) is hidden from the API user. In almost all cases it is not required (and also not recommended) that the API user accesses these data structures directly.
 
-This creates a new Connection object that is ready to connect to the server. If you can live with the default connection parameters (TCP port 2404 and a common set of the IEC 60870-5-104 parameters) you can now simply call the _Connect_ method:
+== Master (client) side programming
 
-  con.Connect ();
+For master side programming the following abstract data types and APIs can be used:
+
+* *CS101_Master* for CS 101 compliant _balanced mode_ and _unbalanced mode_ serial connections.
+* *CS104_Connection* for a CS 104 compliant TCP/IP connection.
+
+
+=== Create a connection to a CS 104 server
+
+Since an IEC 60870-5-104 connection is based on a TCP client/server connection the connection will be established by the client(master). The server(slave or outstation) is usually passively waiting for connections.
+
+A new connection is simple created by calling a the _create_ function of the CS104_Connection type:
+
+  CS104_Connection con = CS104_Connection_create("127.0.0.1", 2404);
+
+This creates a new CS104_Connection object that is ready to connect to the server. The parameters are the hostname or IP address of the server and the TCP/IP port (usually 2404). For the port parameter you can also
+set -1 to use the default port.
+
+After the connection object is created you can now simply call the _connect_ function to connect to the server:
+
+  CS104_Connection_connect(con);
+
+The parameter _con_ is the reference to the connection object created above.
 
 When the connection has been established correctly you can use the connection object to send commands and receive data.
 
-== Sending a read request
+When you finished using the connection object you have to call
+
+  CS104_Connection_destroy(con);
+
+To release all resources allocated by the object. After using the _destroy_ function you cannot use any
+functions with the _con_ reference!
+
+=== Sending a read request
 
 The IEC 60870 documents don't recommend this service (cyclical data requests or polling) but it is an easy way to get the required data. You just need to know the common address (CA) and the information object address (IOA) to create the proper request.
 
-  con.SendReadCommand(1 /* CA */, 2001 /* IOA */);
+  CS104_Connection_sendReadCommand(con, 1 /* CA */, 2001 /* IOA */);
 
-The call is non-blocking. You have to evaluate the response in the ASDUReceivedHandler callback function.
+This call is non-blocking. You have to evaluate the response in the ASDUReceivedHandler callback function.
 
 Typically it is expected that the server response contains only the basic data type without timestamps (that is using the message types for a specific data type that does not contain the timestamps)!
 
-== Interrogation
+=== Interrogation
 
-You can also request a group of data items from a slave with a single request. On the master (client) side you can simply use the SendInterrogationCommand method of the Connection object:
+It is also possible to request a group of data items from a slave with a single request. On the master (client) side you can simply use the _sendInterrogationCommand_ function of the Connection object:
 
-  con.SendInterrogationCommand (CauseOfTransmission.ACTIVATION, 1, 20);
+  CS104_Connection_sendInterrogationCommand (con, CS101_COT_ACTIVATION, /* CA */ 1, /* QOI */ 20);
 
 The client/master side method signature looks like this:
 
-  public void SendInterrogationCommand(CauseOfTransmission cot, int ca, byte qoi)
+  bool
+  CS104_Connection_sendInterrogationCommand(CS104_Connection self, CS101_CauseOfTransmission cot, int ca, QualifierOfInterrogation qoi)
 
 The parameter ca is the common address (CA) as in the other methods. The parameter qoi is the "Qualifier of interrogation" (QOI). The value "20" (indicating "station interrogation") for the QOI indicates that it is an request for all data points. Other values for QOI will indicate that the client (master) only wants to receive data from a specific interrogation group.
 
@@ -156,6 +190,8 @@ In order to send a direct operate command the _selectCommand_ parameter should b
 
 If the command has been successful the outstation will answer with an ACT_CON response message with the _negative flag_ not set. In case the outstation cannot execute the command it will also answer with an ACT_CON response but with the _negative flag_ set. You can check if this flag is set with the IsNegative property of the received ASDU instance.
 
+
+== Slave (server) side programming
 
 == Server configuration and setup
 

@@ -1,20 +1,14 @@
 # README lib60870
 
-lib60870 library for IEC 60870-5 based protocols in C and C#
+lib60870 library for IEC 60870-5 based protocols in C
 
-The current implementation contains code for the IEC 60870-5-104 protocol only.
-
-Support for other protocol parts (companion standards - CS) like IEC 60870-5-101 (serial line link layer), IEC 60870-5-102 (CS for electricity meters) and IEC 60870-5-103 (CS for protection equipment) will be provided in future versions.
+The current implementation contains code for the IEC 60870-5-104 (CS 104) TCP/IP based protocol
+and the serial link layers (balanced and unbalanced) as defined in IEC 60870-5-101 (CS 101).
 
 Please also consider the User Guide.
 
 
 ## Compiling and running the examples:
-
-
-lib60870.NET:
-
-Open the provided solution file in the lib60870.NET folder with MonoDevelop or Visual Studio. You should be able to build and run the library and examples with any recent version of MonoDevelop or Visual Studio
 
 lib60870-C:
 
@@ -22,16 +16,22 @@ In the lib60870-C folder build the library with
 
 `make`
 
-Go to the examples folder
-
-examples/simple_client
-examples/simple_server
+Go to the subdirectories of the examples folder
 
 and build the examples with
 
 `make`
 
 in each examples' directory.
+
+The library and examples can also be build with _CMake_.
+
+To build the library in a separate folder create a new folder as subdirectory of
+the project folder and run cmake to create the build files:
+
+`mkdir build`
+`cd build`
+`cmake ..`
 
 
 ## Contact:
