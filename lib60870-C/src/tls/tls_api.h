@@ -21,9 +21,13 @@
 extern "C" {
 #endif
 
-typedef struct sTLSConfiguration* TLSConfiguration;
+/**
+ * @defgroup TLS_CONFIG_API TLS configuration
+ *
+ * @{
+ */
 
-typedef struct sTLSSocket* TLSSocket;
+typedef struct sTLSConfiguration* TLSConfiguration;
 
 TLSConfiguration
 TLSConfiguration_create(void);
@@ -64,6 +68,11 @@ TLSConfiguration_addCACertificateFromFile(TLSConfiguration self, const char* fil
 
 void
 TLSConfiguration_destroy(TLSConfiguration self);
+
+/** @} */
+
+
+typedef struct sTLSSocket* TLSSocket;
 
 TLSSocket
 TLSSocket_create(Socket socket, TLSConfiguration configuration);

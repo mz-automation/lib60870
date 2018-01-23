@@ -20,12 +20,23 @@
  *
  *  See COPYING file for the complete license text.
  */
+
 #ifndef SRC_INC_API_CS104_SLAVE_H_
 #define SRC_INC_API_CS104_SLAVE_H_
 
 #include "iec60870_slave.h"
 
-typedef struct sMasterConnection* MasterConnection;
+/**
+ * @addtogroup SLAVE Slave related functions
+ *
+ * @{
+ */
+
+/**
+ * @defgroup CS104_SLAVE CS 104 slave (TCP/IP server) related functions
+ *
+ * @{
+ */
 
 typedef struct sCS104_Slave* CS104_Slave;
 
@@ -159,6 +170,17 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu);
 
 void
 CS104_Slave_destroy(CS104_Slave self);
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
+
+//TODO move to internal
+typedef struct sMasterConnection* MasterConnection;
 
 //TODO move to internal
 void

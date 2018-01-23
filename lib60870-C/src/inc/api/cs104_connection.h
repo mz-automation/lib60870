@@ -31,6 +31,18 @@
 extern "C" {
 #endif
 
+/**
+ * @addtogroup MASTER Master related functions
+ *
+ * @{
+ */
+
+/**
+ * @defgroup CS104_MASTER CS 104 master related functions
+ *
+ * @{
+ */
+
 typedef struct sCS104_Connection* CS104_Connection;
 
 CS104_Connection
@@ -238,6 +250,10 @@ CS104_Connection_close(CS104_Connection self);
  */
 void
 CS104_Connection_destroy(CS104_Connection self);
+
+/*! @} */
+
+/*! @} */
 
 #ifdef __cplusplus
 }

@@ -27,6 +27,24 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/*! \addtogroup hal Platform (Hardware/OS) abstraction layer
+   *
+   *  @{
+   */
+
+/**
+ * @defgroup HAL_SERIAL Access to serial interfaces
+ *
+ *  Serial interface abstraction layer. This functions have to be implemented to
+ *  port lib60870 to new platforms when the serial link layers are required.
+ *
+ * @{
+ */
+
 typedef struct sSerialPort* SerialPort;
 
 typedef enum {
@@ -118,6 +136,14 @@ SerialPort_write(SerialPort self, uint8_t* buffer, int startPos, int numberOfByt
  */
 SerialPortError
 SerialPort_getLastError(SerialPort self);
+
+/*! @} */
+
+/*! @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* SRC_IEC60870_LINK_LAYER_SERIAL_PORT_H_ */

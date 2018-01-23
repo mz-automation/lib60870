@@ -32,6 +32,13 @@ extern "C" {
  * These are the implementation of the different data types and message types
  */
 
+/**
+ * @defgroup COMMON Common API functions
+ *
+ * @{
+ */
+
+
 typedef uint8_t QualityDescriptor;
 
 /**
@@ -1783,6 +1790,9 @@ FileDirectory_getCreationTime(FileDirectory self);
 void
 FileDirectory_destroy(FileDirectory self);
 
+/**
+ * @}
+ */
 
 #ifdef __cplusplus
 }

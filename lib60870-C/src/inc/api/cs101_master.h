@@ -34,6 +34,18 @@
 #include "link_layer_parameters.h"
 
 /**
+ * @defgroup MASTER Master related functions
+ *
+ * @{
+ */
+
+/**
+ * @defgroup CS101_MASTER CS 101 master related functions
+ *
+ * @{
+ */
+
+/**
  * \brief CS101_Master type
  */
 typedef struct sCS101_Master* CS101_Master;
@@ -248,5 +260,13 @@ CS101_Master_setASDUReceivedHandler(CS101_Master self, CS101_ASDUReceivedHandler
  */
 void
 CS101_Master_setLinkLayerStateChanged(CS101_Master self, IEC60870_LinkLayerStateChangedHandler handler, void* parameter);
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
 
 #endif /* SRC_INC_API_CS101_MASTER_H_ */

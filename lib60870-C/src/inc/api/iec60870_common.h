@@ -35,6 +35,13 @@ extern "C" {
  * These types are used by CS101/CS104 master and slaves
  */
 
+/**
+ * @addtogroup COMMON Common API functions
+ *
+ * @{
+ */
+
+
 #define IEC_60870_5_104_DEFAULT_PORT 2404
 #define IEC_60870_5_104_DEFAULT_TLS_PORT 19998
 
@@ -673,6 +680,10 @@ BinaryCounterReading_setAdjusted(BinaryCounterReading self, bool value);
 
 void
 BinaryCounterReading_setInvalid(BinaryCounterReading self, bool value);
+
+/**
+ * @}
+ */
 
 typedef struct sFrame* Frame;
 

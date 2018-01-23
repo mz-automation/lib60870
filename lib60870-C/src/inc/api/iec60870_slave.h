@@ -32,7 +32,33 @@ extern "C" {
 #endif
 
 /**
- * \brief The connection to the master (used by slave)
+ * \file iec60870_slave.h
+ * \brief Common slave side definitions for IEC 60870-5-101/104
+ * These types are used by CS101/CS104 master and slaves
+ */
+
+/**
+ * @addtogroup SLAVE Slave related functions
+ *
+ * @{
+ */
+
+/**
+ * @defgroup COMMON_SLAVE Common slave related functions and interfaces
+ *
+ * These definitions are used by both the CS 101 and CS 104 slave implementations.
+ *
+ * @{
+ */
+
+/**
+ * @defgroup IMASTER_CONNECTION IMasterConnection interface
+ *
+ * @{
+ */
+
+/**
+ * \brief Interface to send messages to the master (used by slave)
  */
 typedef struct sIMasterConnection* IMasterConnection;
 
@@ -44,9 +70,55 @@ struct sIMasterConnection {
     void* object;
 };
 
+/**
+ * \brief Send an ASDU to the client/master
+ *
+ * The ASDU will be released by this function after the message is sent.
+ * You should not call the ASDU_destroy function for the given ASDU after
+ * calling this function!
+ *
+ * \param self the connection object (this is usually received as a parameter of a callback function)
+ * \param asdu the ASDU to send to the client/master
+ */
+void
+IMasterConnection_sendASDU(IMasterConnection self, CS101_ASDU asdu);
 
 /**
- * Callback handlers to handle requests from master
+ * \brief Send an ACT_CON ASDU to the client/master
+ *
+ * ACT_CON is used for a command confirmation (positive or negative)
+ *
+ * \param asdu the ASDU to send to the client/master
+ * \param negative value of the negative flag
+ */
+void
+IMasterConnection_sendACT_CON(IMasterConnection self, CS101_ASDU asdu, bool negative);
+
+/**
+ * \brief Send an ACT_TERM ASDU to the client/master
+ *
+ * ACT_TERM is used to indicate that the command execution is complete.
+ *
+ * \param asdu the ASDU to send to the client/master
+ */
+void
+IMasterConnection_sendACT_TERM(IMasterConnection self, CS101_ASDU asdu);
+
+/**
+ * \brief Get the application layer parameters used by this connection
+ */
+CS101_AppLayerParameters
+IMasterConnection_getApplicationLayerParameters(IMasterConnection self);
+
+/**
+ * @}
+ */
+
+
+/**
+ * @defgroup CALLBACK_HANDLERS Slave callback handlers
+ *
+ * Callback handlers to handle events in the slave
  */
 
 /**
@@ -94,45 +166,16 @@ typedef bool (*CS101_DelayAcquisitionHandler) (void* parameter, IMasterConnectio
 typedef bool (*CS101_ASDUHandler) (void* parameter, IMasterConnection connection, CS101_ASDU asdu);
 
 /**
- * \brief Send an ASDU to the client/master
- *
- * The ASDU will be released by this function after the message is sent.
- * You should not call the ASDU_destroy function for the given ASDU after
- * calling this function!
- *
- * \param self the connection object (this is usually received as a parameter of a callback function)
- * \param asdu the ASDU to send to the client/master
+ * @}
  */
-void
-IMasterConnection_sendASDU(IMasterConnection self, CS101_ASDU asdu);
 
 /**
- * \brief Send an ACT_CON ASDU to the client/master
- *
- * ACT_CON is used for a command confirmation (positive or negative)
- *
- * \param asdu the ASDU to send to the client/master
- * \param negative value of the negative flag
+ * @}
  */
-void
-IMasterConnection_sendACT_CON(IMasterConnection self, CS101_ASDU asdu, bool negative);
 
 /**
- * \brief Send an ACT_TERM ASDU to the client/master
- *
- * ACT_TERM is used to indicate that the command execution is complete.
- *
- * \param asdu the ASDU to send to the client/master
+ * @}
  */
-void
-IMasterConnection_sendACT_TERM(IMasterConnection self, CS101_ASDU asdu);
-
-/**
- * \brief Get the application layer parameters used by this connection
- */
-CS101_AppLayerParameters
-IMasterConnection_getApplicationLayerParameters(IMasterConnection self);
-
 
 
 #ifdef __cplusplus

@@ -36,6 +36,20 @@
 #include "link_layer_parameters.h"
 
 /**
+ * @defgroup SLAVE Slave related functions
+ *
+ * @{
+ */
+
+
+/**
+ * @defgroup CS101_SLAVE CS 101 slave (serial link layer) related functions
+ *
+ * @{
+ */
+
+
+/**
  * \brief CS101_Slave type
  */
 typedef struct sCS101_Slave* CS101_Slave;
@@ -230,5 +244,13 @@ CS101_Slave_setDelayAcquisitionHandler(CS101_Slave self, CS101_DelayAcquisitionH
  */
 void
 CS101_Slave_setASDUHandler(CS101_Slave self, CS101_ASDUHandler handler, void* parameter);
+
+/**
+ * @}
+ */
+
+/**
+ * @}
+ */
 
 #endif /* SRC_IEC60870_CS101_CS101_SLAVE_H_ */
