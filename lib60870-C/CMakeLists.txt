@@ -36,18 +36,18 @@ option(BUILD_EXAMPLES "Build the examples" ON)
 option(BUILD_TESTS "Build the tests" ON)
 
 include_directories(
-    config
-    src/inc/api
-    src/inc/internal
-    src/common/inc
-    src/hal/inc
-    src/tls
+    ${CMAKE_CURRENT_LIST_DIR}/config
+    ${CMAKE_CURRENT_LIST_DIR}/src/inc/api
+    ${CMAKE_CURRENT_LIST_DIR}/src/inc/internal
+    ${CMAKE_CURRENT_LIST_DIR}/src/common/inc
+    ${CMAKE_CURRENT_LIST_DIR}/src/hal/inc
+    ${CMAKE_CURRENT_LIST_DIR}/src/tls
 )
 
 if(WITH_MBEDTLS)
 include_directories(
-    src/tls/mbedtls
-    dependencies/mbedtls-2.6.0/include
+    ${CMAKE_CURRENT_LIST_DIR}/src/tls/mbedtls
+    ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.6.0/include
 )
 
 file(GLOB tls_SRCS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.6.0/library/*.c)
@@ -59,19 +59,19 @@ endif(WITH_MBEDTLS)
 
 
 set(API_HEADERS 
-	src/hal/inc/hal_time.h 
-	src/hal/inc/hal_thread.h
-	src/hal/inc/hal_filesystem.h 
-	src/inc/api/cs101_master.h
-	src/inc/api/cs101_slave.h
-	src/inc/api/cs104_slave.h
-	src/inc/api/iec60870_master.h
-	src/inc/api/iec60870_slave.h
-	src/inc/api/iec60870_common.h
-	src/inc/api/information_objects
-	src/inc/api/cs104_connection.h
-	src/inc/api/link_layer_parameters.h
-	src/tls/tls_api.h
+	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_time.h 
+	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_thread.h
+	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_filesystem.h 
+	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_master.h
+	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_slave.h
+	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs104_slave.h
+	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/iec60870_master.h
+	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/iec60870_slave.h
+	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/iec60870_common.h
+	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/information_objects
+	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs104_connection.h
+	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/link_layer_parameters.h
+	${CMAKE_CURRENT_LIST_DIR}/src/tls/tls_api.h
 )
 
 
@@ -79,14 +79,14 @@ set(API_HEADERS
 # configure_file(config/lib60870_config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config/lib60870_config.h)
 
 if(BUILD_EXAMPLES)
-	add_subdirectory(examples)
+	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/examples)
 endif(BUILD_EXAMPLES)
 
 if(BUILD_TESTS)
-	add_subdirectory(tests)
+	add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tests)
 endif(BUILD_TESTS)
 
-add_subdirectory(src)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src)
 
 INSTALL(FILES ${API_HEADERS} DESTINATION include/lib60870 COMPONENT Development)
 
