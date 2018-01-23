@@ -5,6 +5,7 @@
 #include <signal.h>
 
 #include "iec60870_slave.h"
+#include "cs104_slave.h"
 
 #include "hal_thread.h"
 #include "hal_time.h"
@@ -31,7 +32,7 @@ printCP56Time2a(CP56Time2a time)
 }
 
 static bool
-clockSyncHandler (void* parameter, MasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
+clockSyncHandler (void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
 {
     printf("Process time sync command with time "); printCP56Time2a(newTime); printf("\n");
 
@@ -39,13 +40,13 @@ clockSyncHandler (void* parameter, MasterConnection connection, CS101_ASDU asdu,
 }
 
 static bool
-interrogationHandler(void* parameter, MasterConnection connection, CS101_ASDU asdu, uint8_t qoi)
+interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, uint8_t qoi)
 {
     printf("Received interrogation for group %i\n", qoi);
 
     if (qoi == 20) { /* only handle station interrogation */
 
-        MasterConnection_sendACT_CON(connection, asdu, false);
+        IMasterConnection_sendACT_CON(connection, asdu, false);
 
         /* The CS101 specification only allows information objects without timestamp in GI responses */
 
@@ -64,7 +65,9 @@ interrogationHandler(void* parameter, MasterConnection connection, CS101_ASDU as
 
         InformationObject_destroy(io);
 
-        MasterConnection_sendASDU(connection, newAsdu);
+        IMasterConnection_sendASDU(connection, newAsdu);
+
+        CS101_ASDU_destroy(newAsdu);
 
         newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_INTERROGATED_BY_STATION,
                     0, 1, false, false);
@@ -78,7 +81,9 @@ interrogationHandler(void* parameter, MasterConnection connection, CS101_ASDU as
 
         InformationObject_destroy(io);
 
-        MasterConnection_sendASDU(connection, newAsdu);
+        IMasterConnection_sendASDU(connection, newAsdu);
+
+        CS101_ASDU_destroy(newAsdu);
 
         newAsdu = CS101_ASDU_create(appLayerParameters, true, CS101_COT_INTERROGATED_BY_STATION,
                 0, 1, false, false);
@@ -94,19 +99,21 @@ interrogationHandler(void* parameter, MasterConnection connection, CS101_ASDU as
 
         InformationObject_destroy(io);
 
-        MasterConnection_sendASDU(connection, newAsdu);
+        IMasterConnection_sendASDU(connection, newAsdu);
 
-        MasterConnection_sendACT_TERM(connection, asdu);
+        CS101_ASDU_destroy(newAsdu);
+
+        IMasterConnection_sendACT_TERM(connection, asdu);
     }
     else {
-        MasterConnection_sendACT_CON(connection, asdu, true);
+        IMasterConnection_sendACT_CON(connection, asdu, true);
     }
 
     return true;
 }
 
 static bool
-asduHandler(void* parameter, MasterConnection connection, CS101_ASDU asdu)
+asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
 {
     if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1) {
         printf("received single command\n");
@@ -130,7 +137,7 @@ asduHandler(void* parameter, MasterConnection connection, CS101_ASDU asdu)
         else
             CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
 
-        MasterConnection_sendASDU(connection, asdu);
+        IMasterConnection_sendASDU(connection, asdu);
 
         return true;
     }
@@ -174,10 +181,9 @@ main(int argc, char** argv)
 
     TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "client1.cer");
 
-
     /* create a new slave/server instance with default connection parameters and
      * default message queue size */
-    CS104_Slave slave = CS104_Slave_createSecure(NULL, 100, 100, tlsConfig);
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig);
 
     CS104_Slave_setLocalAddress(slave, "0.0.0.0");
 

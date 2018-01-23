@@ -66,6 +66,8 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 
         IMasterConnection_sendASDU(connection, newAsdu);
 
+        CS101_ASDU_destroy(newAsdu);
+
         newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION,
                     0, 1, false, false);
 
@@ -79,6 +81,8 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
         InformationObject_destroy(io);
 
         IMasterConnection_sendASDU(connection, newAsdu);
+
+        CS101_ASDU_destroy(newAsdu);
 
         newAsdu = CS101_ASDU_create(alParams, true, CS101_COT_INTERROGATED_BY_STATION,
                 0, 1, false, false);
@@ -95,6 +99,8 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
         InformationObject_destroy(io);
 
         IMasterConnection_sendASDU(connection, newAsdu);
+
+        CS101_ASDU_destroy(newAsdu);
 
         IMasterConnection_sendACT_TERM(connection, asdu);
     }

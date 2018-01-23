@@ -766,9 +766,9 @@ CS104_Slave_create(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
 CS104_Slave
-CS104_Slave_createSecure(ConnectionParameters conParameters, int maxLowPrioQueueSize, int maxHighPrioQueueSize, TLSConfiguration tlsConfig)
+CS104_Slave_createSecure(int maxLowPrioQueueSize, int maxHighPrioQueueSize, TLSConfiguration tlsConfig)
 {
-    CS104_Slave self = createSlave(conParameters, maxLowPrioQueueSize, maxHighPrioQueueSize);
+    CS104_Slave self = createSlave(maxLowPrioQueueSize, maxHighPrioQueueSize);
 
     if (self != NULL) {
         self->tcpPort = 19998;
@@ -1874,11 +1874,7 @@ _sendASDU(IMasterConnection self, CS101_ASDU asdu)
 {
     MasterConnection con = (MasterConnection) self->object;
 
-
     sendASDUInternal(con, asdu);
-
-    if (CS101_ASDU_isStackCreated(asdu) == false)
-        CS101_ASDU_destroy(asdu);
 }
 
 static void

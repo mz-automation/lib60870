@@ -58,7 +58,6 @@ CS104_Slave_create(int maxLowPrioQueueSize, int maxHighPrioQueueSize);
 /**
  * \brief Create a new instance of a CS104 slave (server) with TLS enabled
  *
- * \param parameters the connection parameters to use (or NULL to use the default parameters)
  * \param maxLowPrioQueueSize the maximum size of the event queue
  * \param maxHighPrioQueueSize the maximum size of the high-priority queue
  * \param tlsConfig the TLS configuration object (containing configuration parameters, keys, and certificates)
@@ -66,7 +65,7 @@ CS104_Slave_create(int maxLowPrioQueueSize, int maxHighPrioQueueSize);
  * \return the new slave instance
  */
 CS104_Slave
-CS104_Slave_createSecure(CS101_AppLayerParameters parameters, int maxLowPrioQueueSize, int maxHighPrioQueueSize, TLSConfiguration tlsConfig);
+CS104_Slave_createSecure(int maxLowPrioQueueSize, int maxHighPrioQueueSize, TLSConfiguration tlsConfig);
 
 /**
  * \brief Set the local IP address to bind the server

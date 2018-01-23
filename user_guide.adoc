@@ -206,40 +206,50 @@ The following steps have to be done to send spontaneous or periodic messages:
 
 === Handling of interrogation requests
 
-On the server side you should use the InterrogationHandler delegate (or callback function in the C library) to handle the Interrogation request. Depending on the QOI value your should return different information objects. For a simple system it is enough to only handle station interrogation requests (QOI = 20).
+On the server side you should use the InterrogationHandler callback function to handle the Interrogation request. Depending on the QOI (_Qualifier of interrogation_) value you should return different information objects. For a simple system it is enough to only handle station interrogation requests (QOI = 20). The QUI value 21-36 are used for the interrogation groups (1-16). It is up to the slave implementer to assign information objects to interrogation groups.
 
-According to the specification the server has to respond the ACTIVATION request from the client with the ACT_CON response followed by ASDUs containing the information objects with the COT = INTERROGATED_BY_STATION. After sending all information objects the server has to send the initial interrogation command message with COT = ACT_TERM to indicate that the transmission of the interrogation data is finished.
+According to the specification the server has to respond the ACTIVATION request from the client with the ACT_CON response followed by ASDUs containing the information objects with _CS101_COT_INTERROGATED_BY_STATION_ for a station interrogation or COT that represent the respective interrogation group (e.g. _CS101_COT_INTERROGATED_BY_GROUP_1_ for interrogation group 1). After sending all information objects the server has to send the initial interrogation command message with COT = _CS101_COT_ACTIVATION_TERMINATION_ to indicate that the transmission of the interrogation data is finished.
 
 [[app-listing]]
-[source, csharp]
-.Example how to implement an InterrogationHandler in C#
+[source, c]
+.Example how to implement an interrogation handler
 ----
-  private static bool interrogationHandler(object parameter, ServerConnection connection, ASDU asdu, byte qoi)
-  {
-    Console.WriteLine ("Interrogation for group " + qoi);
+static bool
+interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, uint8_t qoi)
+{
+    if (qoi == 20) { /* only handle station interrogation */
 
-    // send ACT_CON
-    connection.SendACT_CON (asdu, false);
+        CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
 
-    // send information objects
-    newAsdu.AddInformationObject (new MeasuredValueScaled (100, -1, new QualityDescriptor ()));
-    newAsdu.AddInformationObject (new MeasuredValueScaled (101, 23, new QualityDescriptor ()));
-    newAsdu.AddInformationObject (new MeasuredValueScaled (102, 2300, new QualityDescriptor ()));
-    connection.SendASDU (newAsdu);
+        IMasterConnection_sendACT_CON(connection, asdu, false);
 
-    newAsdu = new ASDU (TypeID.M_ME_TE_1, CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 3, 1, false);
-    newAsdu.AddInformationObject(new MeasuredValueScaledWithCP56Time2a(103, 3456, new QualityDescriptor (), new CP56Time2a(DateTime.Now)));
-    connection.SendASDU (newAsdu);
+        CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION,
+                0, 1, false, false);
 
-    newAsdu = new ASDU (TypeID.M_SP_TB_1, CauseOfTransmission.INTERROGATED_BY_STATION, false, false, 2, 1, false);
-    newAsdu.AddInformationObject (new SinglePointWithCP56Time2a (104, true, new QualityDescriptor (), new CP56Time2a (DateTime.Now)));
-    connection.SendASDU (newAsdu);
+        InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 100, -1, IEC60870_QUALITY_GOOD);
 
-    // send ACT_TERM
-    connection.SendACT_TERM (asdu);
+        CS101_ASDU_addInformationObject(newAsdu, io);
+
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject)
+            MeasuredValueScaled_create((MeasuredValueScaled) io, 101, 23, IEC60870_QUALITY_GOOD));
+
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject)
+            MeasuredValueScaled_create((MeasuredValueScaled) io, 102, 2300, IEC60870_QUALITY_GOOD));
+
+        InformationObject_destroy(io);
+
+        IMasterConnection_sendASDU(connection, newAsdu);
+
+        CS101_ASDU_destroy(newAsdu);
+
+        IMasterConnection_sendACT_TERM(connection, asdu);
+    }
+    else {
+        IMasterConnection_sendACT_CON(connection, asdu, true);
+    }
 
     return true;
-  }
+}
 ----
 
 
