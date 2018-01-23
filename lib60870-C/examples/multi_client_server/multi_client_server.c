@@ -231,7 +231,7 @@ main(int argc, char** argv)
          */
         CS104_Slave_enqueueASDU(slave, newAsdu);
 
-        CS101_ASDU_destroy(newASDU);
+        CS101_ASDU_destroy(newAsdu);
     }
 
     CS104_Slave_stop(slave);

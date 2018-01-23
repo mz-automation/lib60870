@@ -16,5 +16,5 @@ add_executable(simple_client
 )
 
 target_link_libraries(simple_client
-    iec60870
+    lib60870
 )

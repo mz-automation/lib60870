@@ -16,5 +16,5 @@ add_executable(cs101_slave
 )
 
 target_link_libraries(cs101_slave
-    iec60870
+    lib60870
 )

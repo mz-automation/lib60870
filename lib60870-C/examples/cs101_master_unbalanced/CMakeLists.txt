@@ -16,5 +16,5 @@ add_executable(cs101_master_unbalanced
 )
 
 target_link_libraries(cs101_master_unbalanced
-    iec60870
+    lib60870
 )

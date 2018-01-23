@@ -16,5 +16,5 @@ add_executable(cs104_server
 )
 
 target_link_libraries(cs104_server
-    iec60870
+    lib60870
 )

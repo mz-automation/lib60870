@@ -52,7 +52,7 @@ set (library_SRCS
     ${lib_windows_SRCS}
 )
 
-set (CMAKE_MODULE_LINKER_FLAGS   "${CMAKE_MODULE_LINKER_FLAGS}\"/DEF:${CMAKE_CURRENT_SOURCE_DIR}/vs/lib60870.def\"") 
+set (CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS}\"/DEF:${CMAKE_CURRENT_SOURCE_DIR}/vs/lib60870.def\"") 
 
 ELSEIF(UNIX)
 IF(APPLE)
@@ -100,45 +100,45 @@ if ( WIN32 )
 	set(library_SRCS ${library_SRCS} ${RES_FILES})
 endif( WIN32 )
 
-add_library (iec60870-shared SHARED ${library_SRCS} )
+add_library (lib60870-shared SHARED ${library_SRCS} )
 
-set_target_properties(iec60870-shared PROPERTIES
-           OUTPUT_NAME iec60870
+set_target_properties(lib60870-shared PROPERTIES
+           OUTPUT_NAME lib60870
            SOVERSION "${LIB_VERSION_MAJOR}.${LIB_VERSION_MINOR}.${LIB_VERSION_PATCH}"
 )
 
 
-GENERATE_EXPORT_HEADER(iec60870-shared
-			BASE_NAME iec60870-shared
-			EXPORT_MACRO_NAME iec60870-shared_EXPORT
-			EXPORT_FILE_NAME iec60870-shared_export.h
-			STATIC_DEFINE iec60870-shared_BUILT_AS_STATIC
+GENERATE_EXPORT_HEADER(lib60870-shared
+			BASE_NAME lib60870-shared
+			EXPORT_MACRO_NAME lib60870-shared_EXPORT
+			EXPORT_FILE_NAME lib60870-shared_export.h
+			STATIC_DEFINE lib60870-shared_BUILT_AS_STATIC
 )
 
-add_library (iec60870 STATIC ${library_SRCS})
+add_library (lib60870 STATIC ${library_SRCS})
 
 IF(UNIX)
   IF (CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
-     target_link_libraries (iec60870
+     target_link_libraries (lib60870
          -lpthread
          -lm
          -lrt
      )
   ELSE ()
-     target_link_libraries (iec60870
+     target_link_libraries (lib60870
          -lpthread
          -lm
      )
   ENDIF (CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
 ENDIF(UNIX)
 IF(MINGW)
-  target_link_libraries(iec60870-shared ws2_32 iphlpapi)
-  target_link_libraries(iec60870 ws2_32 iphlpapi)
+  target_link_libraries(lib60870-shared ws2_32 iphlpapi)
+  target_link_libraries(lib60870 ws2_32 iphlpapi)
 ENDIF(MINGW)
 
 
 
-install (TARGETS iec60870 iec60870-shared
+install (TARGETS lib60870 lib60870-shared
 	RUNTIME DESTINATION bin COMPONENT Applications
 	ARCHIVE DESTINATION lib COMPONENT Libraries
     LIBRARY DESTINATION lib COMPONENT Libraries

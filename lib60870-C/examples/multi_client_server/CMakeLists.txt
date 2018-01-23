@@ -16,5 +16,5 @@ add_executable(multi_client_server
 )
 
 target_link_libraries(multi_client_server
-    iec60870
+    lib60870
 )

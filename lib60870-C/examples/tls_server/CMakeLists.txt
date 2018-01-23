@@ -16,5 +16,5 @@ add_executable(tls_server
 )
 
 target_link_libraries(tls_server
-    iec60870
+    lib60870
 )
