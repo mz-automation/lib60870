@@ -80,6 +80,132 @@ The client/master side method signature looks like this:
 
 The parameter ca is the common address (CA) as in the other methods. The parameter qoi is the "Qualifier of interrogation" (QOI). The value "20" (indicating "station interrogation") for the QOI indicates that it is an request for all data points. Other values for QOI will indicate that the client (master) only wants to receive data from a specific interrogation group.
 
+=== Clock synchronization procedure
+
+For the clock synchronization procedure the controlling station (master) sends a C_CS_NA_1 ACT message to the controlled station (slave) containing the current valid time information as a CP56Time2a typed time value. The controlled station has to update its internal time and respond with a C_CS_NA_1 ACT_CON message after all queued time-tagged PDUs have been sent.
+
+Clock synchronization of the controlled station can be done with the _CS104_Connection_sendClockSyncCommand_ function for CS104 or the _CS101_Master_sendClockSyncCommand_ for CS101.
+
+First a CP56Time2a timestamp has to be created and initialized:
+
+  struct sCP56Time2a currentTime;
+  CP56Time2a_createFromMsTimestamp(&currentTime, Hal_getTimeInMs());
+  CS104_Connection_sendClockSyncCommand(con, 1 /* CA */, &currentTime);
+
+Or when using dynamic memory allocation and CS 101:
+
+  CP56Time2a currentTime = CP56Time2a_createFromMsTimestamp(NULL, Hal_getTimeInMs());
+  CS101_Master_sendClockSyncCommand(master, 1 /* CA */, currentTime);
+
+*NOTE*: The _Hal_getTimeInMs_ function is platform independent way to get the current time
+as milliseconds since 00:00:00 1. January 1970 UTC. You can also use your own function to get
+the time.
+
+=== Command procedures
+
+Commands are used to set set points, parameters or trigger some actions at the controlled station.
+
+The following command types (data types are available for commands):
+
+* C_SC (single command) - to control binary data (switch...)
+* C_DC (double command) - to control binary data with transition state (moving switch...)
+* S_RC (step position command) - to control a step position
+* S_SE (setpoint command) - to control a set point (scaled value, normalized value, floating point values) - may also be used to set parameters, alarm limits etc.
+
+These command types are also available in a version with a time tag (CP56TIme2a).
+
+There are two different command procedures available. The *direct operate* command procedure and the *select before operate* command procedure.
+
+To send a command for the direct operate command procedure you have to send an ACTIVATION APDU to the controlled station.
+
+[[app-listing]]
+[source, c]
+.Send a process command to the controlled station
+----
+
+  InformationObject sc = (InformationObject)
+        SingleCommand_create(NULL, 5000, true, false, 0);
+
+  CS101_Master_sendProcessCommand(master, CS101_COT_ACTIVATION, 1, sc);
+
+  InformationObject_destroy(sc);
+----
+
+The constructor of SingleCommand data type has the following signature:
+
+[[app-listing]]
+[source, c]
+----
+  SingleCommand
+  SingleCommand_create(SingleCommand self, int ioa, bool command, bool selectCommand, int qu);
+----
+
+In order to send a direct operate command the _selectCommand_ parameter should be false. The qualifier (_qu_) should in general be set to 0.
+
+For *select before operate* the command has to be sent with the _selectCommand_ parameter set to true to select the control output. In the next step an additional command with _selectCommand_ set to false has to be sent to cause the actual command execution.
+
+If the command has been successful the outstation will answer with an ACT_CON response message with the _negative flag_ not set. In case the outstation cannot execute the command it will also answer with an ACT_CON response but with the _negative flag_ set. You can check if this flag is set with the _CS101_ASDU_isNegative_ function used with the received _CS101_ASDU_ instance.
+
+
+== Slave (server) side programming
+
+=== CS104 (TCP/IP) Server configuration and setup
+
+To configure and setup an IEC 60870-5-104 server/slave an instance of the _CS104_Slave_ data type is required.
+
+  CS104_Slave slave = CS104_Slave_create(100, 100);
+
+After the server instance is created it can be configured
+
+=== Starting/Stopping the server
+
+After the server is configured it can be started with the _start_ function
+
+  CS104_Slave_start(slave);
+
+To deactivate the IEC 60870-5-104 service the server can be stopped with the _stop_ function.
+
+  CS104_Slave_stop(slave);
+
+=== CS101 (serial) slave configuration and setup
+
+Analog to the master side the CS101 slave side can be configured for one of the two modes (_balanced_ or _unbalanced_).
+
+
+=== Spontaneous or periodic transmission of messages
+
+For spontaneous or periodic message transmission on the server/slave side the API user has to allocate a _CS101_ASDU_ object that represents the ASDU, add Information Objects to the ASDU, and finally put the ASDU into the transmission queue. The transmission queue is a FIFO (first in first out) list. If the queue is full the oldest message will be deleted and replaced by the newly added message. Messages will only be sent if the there is an active client connection or working link layer connection. Otherwise the messages will remain in the queue until a connection is activated.
+
+*LIB60870-C:* In the C version the queue size is determined by the *maxQueueSize* parameter of the *T104Slave_create* function. If the library is compiled with the _CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE_ option enabled the _maxQueueSize_ parameter will be ignored and the queue will always have the size defined with by _CONFIG_SLAVE_MESSAGE_QUEUE_SIZE_.
+
+The following steps have to be done to send spontaneous or periodic messages:
+
+1. Step: Create a new _CS101_ASDU_ instance (use _CS101_COT_PERIODIC_ for periodic data and _CS101_COT_SPONTANEOUS_ for spontaneous data)
+
+  CS101_ASDU newAsdu = CS101_ASDU_create(alParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+2. Step: Create a new information object instance containing the data to send
+
+  InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
+
+3. Step: Add the new information object to the ASDU
+
+  CS101_ASDU_addInformationObject(newAsdu, io);
+
+4. Step: Release the information object memory
+
+  InformationObject_destroy(io);
+
+5. Step: Put the ASDU into the class 2 data queue for transmission
+
+  CS101_Slave_enqueueUserDataClass2(slave, newAsdu);
+
+6. Step: Release the ASDU memory
+
+  CS101_ASDU_destroy(newAsdu);
+
+=== Handling of interrogation requests
+
 On the server side you should use the InterrogationHandler delegate (or callback function in the C library) to handle the Interrogation request. Depending on the QOI value your should return different information objects. For a simple system it is enough to only handle station interrogation requests (QOI = 20).
 
 According to the specification the server has to respond the ACTIVATION request from the client with the ACT_CON response followed by ASDUs containing the information objects with the COT = INTERROGATED_BY_STATION. After sending all information objects the server has to send the initial interrogation command message with COT = ACT_TERM to indicate that the transmission of the interrogation data is finished.
@@ -116,98 +242,12 @@ According to the specification the server has to respond the ACTIVATION request 
   }
 ----
 
-== Spontaneous transmission of messages
 
-For spontaneous message transmission on the server side the API user has to allocate an ASDU object, add Information Objects to the ASDU and put the ASDU into the transmission queue. The transmission queue is a FIFO (first in first out) list. If the queue is full the oldest message will be deleted and replaced by the newly added message. Messages will only be sent if the there is an active client connection. Otherwise the messages will remain in the queue until a connection is activated.
+=== CS104 (TCP/IP) specific issues
 
-*LIB60870.NET:* The size of the queue is controlled by the property *MaxQueueSize* of the *Server* object in the C# implementation.
+==== Server mode
 
-*LIB60870-C:* In the C version the queue size is determined by the *maxQueueSize* parameter of the *T104Slave_create* function. If the library is compiled with the _CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE_ option enabled the _maxQueueSize_ parameter will be ignored and the queue will always have the size defined with by _CONFIG_SLAVE_MESSAGE_QUEUE_SIZE_.
-
-*LIB60870.NET:* These are the required steps for the C# implementation:
-
-. Step: Create a new ASDU instance
-
-    ASDU newAsdu = new ASDU (TypeID.M_ME_NB_1, CauseOfTransmission.PERIODIC, false, false, 2, 1, false);
-
-. Step: Add an information object to the ASDU
-
-    newAsdu.AddInformationObject (new MeasuredValueScaled (110, -1, new QualityDescriptor ()));
-
-. Step: Add the ASDU to the transmission queue
-
-    server.EnqueueASDU (newAsdu);
-
-== Clock synchronization procedure
-
-For the clock synchronization procedure the controlling station (master) sends a C_CS_NA_1 ACT message to the controlled station (slave) containing the current valid time information as a CP56Time2a typed time value. The controlled station has to update its internal time and respond with a C_CS_NA_1 ACT_CON message after all queued time-tagged PDUs have been sent.
-
-Clock synchronization of the controlled station can be done with a with the _SendClockSyncCommand_ method of the Connection class.
-
-  CP56Time2a currentTime = new CP56Time2a (DateTime.Now);
-  con.SendClockSyncCommand (1 /* CA */, currentTime);
-
-For the C implementation it is only slightly different:
-
-    struct sCP56Time2a currentTime;
-    CP56Time2a_createFromMsTimestamp(&currentTime, Hal_getTimeInMs());
-    T104Connection_sendClockSyncCommand(con, 1 /* CA */, &currentTime);
-
-Or when using dynamic memory allocation:
-
-  CP56Time2a currentTime = CP56Time2a_createFromMsTimestamp(NULL, Hal_getTimeInMs());
-  T104Connection_sendClockSyncCommand(con, 1 /* CA */, currentTime);
-
-== Command procedures
-
-Commands are used to set set points, parameters or trigger some actions at the outstation.
-
-The following command types (data types are available for commands):
-
-* C_SC (single command) - to control binary data (switch...)
-* C_DC (double command) - to control binary data with transition state (moving switch...)
-* S_RC (step position command) - to control a step position
-* S_SE (setpoint command) - to control a set point (scaled value, normalized value, floating point values) - may also be used to set parameters, alarm limits etc.
-
-These command types are also available in a version with a time tag (CP56TIme2a).
-
-There are two different command procedures available. The *direct operate* command procedure and the *select before operate* command procedure.
-
-To send a command for the direct operate command procedure you have to send an ACTIVATION APDU to the outstation.
-
-    Connection con = new Connection ("127.0.0.1");
-
-    con.SendControlCommand (TypeID.C_SC_NA_1, CauseOfTransmission.ACTIVATION, 1,
-                  new SingleCommand (5000, true, false, 0));
-
-To issue a single command you have to provide the proper _TypeID (C_SC_NA_1)_ and pass a _SingleCommand_ instance to the _SendControlCommand_ method.
-
-The constructor of SingleCommand has the following signature:
-
-  public SingleCommand (int ioa, bool command, bool selectCommand, int qu)
-
-In order to send a direct operate command the _selectCommand_ parameter should be false. The qualifier (_qu_) should in general be set to 0.
-
-If the command has been successful the outstation will answer with an ACT_CON response message with the _negative flag_ not set. In case the outstation cannot execute the command it will also answer with an ACT_CON response but with the _negative flag_ set. You can check if this flag is set with the IsNegative property of the received ASDU instance.
-
-
-== Slave (server) side programming
-
-== Server configuration and setup
-
-To configure and setup an IEC 60870-5-104 server/slave an instance of the _Server_ class is required.
-
-  Server server = new Server ();
-
-After the server instance is created it can be configured
-
-*LIB60870-C:* In the C version a server/slave is represented by the _Slave_ data type. To create a slave instance for IEC 60870-5-104 the _T104Slave_create_ function is required.
-
-  Slave slave = T104Slave_create(NULL, 100, 100);
-
-=== Server mode
-
-From version 0.9.5 the server provides two different modes.
+The server provides two different modes:
 
 The default mode (_SINGLE_REDUNDANCY_GROUP_) allows only a *single active client connection*. An active client connection is a connection where ASDUs are sent. All other connections are standby connections. There is a single queue for events. Events are also stored when no client is connected or when no connection is active.
 
@@ -217,7 +257,7 @@ The server mode can be set with the _ServerMode_ property of the _Server_ class.
 
   server.ServerMode = ServerMode.CONNECION_IS_REDUNDANCY_GROUP;
 
-=== Restrict the number of client connections
+==== Restrict the number of client connections
 
 The number of clients can be restricted with the _MaxOpenConnections_ property of the _Server_ class.
 
@@ -225,7 +265,7 @@ The number of clients can be restricted with the _MaxOpenConnections_ property o
 
 In this case the server will only allow two concurrent client connections.
 
-=== Setting local port and IP address
+==== Setting local port and IP address
 
 The default TCP port for IEC 60870-5-104 is 2404. The port can be changed with the _SetLocalPort_ method of the _Server_ class.
 
@@ -235,13 +275,9 @@ Per default the server listens to all local IP addresses. With the _SetLocalAddr
 
   server.SetLocalAddress("192.168.1.50");
 
-=== Set the size of the event queue
+==== Create a secure connection with TLS
 
-The maximum size of the event queue(s) can be set with the _MaxQueueSize_ property of the _Server_ class. The default size is 1000. Each queue entry needs approximately 260 bytes.
-
-    server.MaxQueueSize = 10;
-
-=== Set a connection request handler to restrict the access and track connections
+==== Set a connection request handler to restrict the access and track connections
 
 The _ConnectionRequestHandler_ can be used to restrict the access to the server. With the return value the application can allow or deny the connection attempt of a client.
 
@@ -266,15 +302,6 @@ static bool connectionRequestHandler(object parameter, IPAddress ipAddress)
 
 In the handler you can optionally check the client IP address against a whitelist of allowed clients or implement a blacklist.
 
-=== Starting/Stopping the server
-
-After the server is configured it can be started with the _Start_ method
-
-  server.Start ();
-
-To deactivate the IEC 60870-5-104 service the server can be stopped with the _Stop_ method.
-
-  server.Stop ();
 
 
 == lib60870-C specific topics

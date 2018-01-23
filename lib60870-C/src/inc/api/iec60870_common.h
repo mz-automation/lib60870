@@ -29,6 +29,12 @@
 extern "C" {
 #endif
 
+/**
+ * \file iec60870_common.h
+ * \brief Common definitions for IEC 60870-5-101/104
+ * These types are used by CS101/CS104 master and slaves
+ */
+
 #define IEC_60870_5_104_DEFAULT_PORT 2404
 #define IEC_60870_5_104_DEFAULT_TLS_PORT 19998
 
@@ -90,16 +96,25 @@ struct sCP24Time2a {
 
 typedef struct sCP32Time2a* CP32Time2a;
 
+/**
+ * \brief 4 byte binary time
+ */
 struct sCP32Time2a {
     uint8_t encodedValue[4];
 };
 
+/**
+ * \brief 7 byte binary time
+ */
 typedef struct sCP56Time2a* CP56Time2a;
 
 struct sCP56Time2a {
     uint8_t encodedValue[7];
 };
 
+/**
+ * \brief Base type for counter readings
+ */
 typedef struct sBinaryCounterReading* BinaryCounterReading;
 
 struct sBinaryCounterReading {
@@ -136,6 +151,9 @@ struct sCS104_ConnectionParameters {
 
 #include "cs101_information_objects.h"
 
+/**
+ * \brief Message type IDs
+ */
 typedef enum {
     M_SP_NA_1 = 1,
     M_SP_TA_1 = 2,

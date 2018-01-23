@@ -2099,7 +2099,6 @@ exit_function:
 void
 CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
 {
-
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
     if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
         MessageQueue_enqueueASDU(self->asduQueue, asdu);
@@ -2132,9 +2131,6 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
 #endif
     }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
-
-    if (CS101_ASDU_isStackCreated(asdu) == false)
-        CS101_ASDU_destroy(asdu);
 }
 
 void

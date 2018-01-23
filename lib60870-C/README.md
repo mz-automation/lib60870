@@ -1,4 +1,4 @@
-# README lib60870-C
+# README lib60870-C                      {#mainpage}
 
 lib60870 library for IEC 60870-5 based protocols in C
 

@@ -24,11 +24,20 @@
 #ifndef SRC_IEC60870_CS101_CS101_SLAVE_H_
 #define SRC_IEC60870_CS101_CS101_SLAVE_H_
 
+/**
+ * \file cs101_slave.h
+ * \brief Functions for CS101_Slave ADT.
+ * Can be used to implement a balanced or unbalanced CS 101 slave.
+ */
+
 #include "hal_serial.h"
 #include "iec60870_common.h"
 #include "iec60870_slave.h"
 #include "link_layer_parameters.h"
 
+/**
+ * \brief CS101_Slave type
+ */
 typedef struct sCS101_Slave* CS101_Slave;
 
 /**

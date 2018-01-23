@@ -47,7 +47,6 @@ typedef bool (*CS104_ConnectionRequestHandler) (void* parameter, const char* ipA
 /**
  * \brief Create a new instance of a CS104 slave (server)
  *
- * TODO remove  \param parameters the connection parameters to use (or NULL to use the default parameters)
  * \param maxLowPrioQueueSize the maximum size of the event queue
  * \param maxHighPrioQueueSize the maximum size of the high-priority queue
  *

@@ -21,12 +21,21 @@
  *  See COPYING file for the complete license text.
  */
 
+/**
+ * \file cs101_master.h
+ * \brief Functions for CS101_Master ADT.
+ * Can be used to implement a balanced or unbalanced CS 101 master.
+ */
+
 #ifndef SRC_INC_API_CS101_MASTER_H_
 #define SRC_INC_API_CS101_MASTER_H_
 
 #include "iec60870_common.h"
 #include "link_layer_parameters.h"
 
+/**
+ * \brief CS101_Master type
+ */
 typedef struct sCS101_Master* CS101_Master;
 
 /**

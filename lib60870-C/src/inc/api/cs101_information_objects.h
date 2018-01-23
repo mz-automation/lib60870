@@ -26,6 +26,11 @@
 extern "C" {
 #endif
 
+/**
+ * \file cs101_information_objects.h
+ * \brief Functions for CS101/CS104 information objects
+ * These are the implementation of the different data types and message types
+ */
 
 typedef uint8_t QualityDescriptor;
 
