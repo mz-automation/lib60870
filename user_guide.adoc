@@ -3,11 +3,11 @@ Michael Zillgith
 
 == Introduction
 
-lib60870-C is a new implementation of the IEC 60870-5 protocol for client (master station) and server (controlled station). The library implements all data types of the IEC 60870-5-101/104 specifications. *lib60870-C* is implemented in standard C and is compatible with the C99 standard. It is designed to be as easy to use as possible.
+lib60870-C is a new implementation of the IEC 60870-5-101/104 protocol for client (master station) and server (slave or controlled station). The library implements all data types of the IEC 60870-5-101/104 specifications. *lib60870-C* is implemented in standard C and is compatible with the C99 standard. It is designed to be as easy to use as possible.
 
-The client/server API is strictly asynchronous. You send the requests with non-blocking functions and will have to handle the response and other events in callback functions.
+The client/server API is strictly asynchronous. You send the requests with non-blocking functions and will have to handle the responses and other events in callback functions.
 
-The list of supported features:
+Here is a list of supported features:
 
 * CS 101 (IEC 60870-5-101) balanced and unbalanced serial modes
 * CS 104 (IEC 60870-5-104) client and server TCP/IP communication
@@ -35,14 +35,14 @@ For master side programming the following abstract data types and APIs can be us
 
 Since an IEC 60870-5-104 connection is based on a TCP client/server connection the connection will be established by the client(master). The server(slave or outstation) is usually passively waiting for connections.
 
-A new connection is simple created by calling a the _create_ function of the CS104_Connection type:
+A new connection is simple created by calling a the _CS104_Connection_create_ function of the CS104_Connection type:
 
   CS104_Connection con = CS104_Connection_create("127.0.0.1", 2404);
 
 This creates a new CS104_Connection object that is ready to connect to the server. The parameters are the hostname or IP address of the server and the TCP/IP port (usually 2404). For the port parameter you can also
 set -1 to use the default port.
 
-After the connection object is created you can now simply call the _connect_ function to connect to the server:
+After the connection object is created you can now simply call the _CS104_Connection_connect_ function to connect to the server:
 
   CS104_Connection_connect(con);
 
@@ -157,20 +157,84 @@ To configure and setup an IEC 60870-5-104 server/slave an instance of the _CS104
 
 After the server instance is created it can be configured
 
-=== Starting/Stopping the server
+=== CS101 (serial) slave configuration and setup
 
-After the server is configured it can be started with the _start_ function
+Similar to the master side the CS101 slave side can also be configured for one of the two link layer modes (_balanced_ or _unbalanced_). A CS101 slave is represented by a _CS101_SLave_ object.
+
+Before a _CS101_Slave_ object can be created a _SerialPort_ object is required. The _SerialPort_ object
+represents the serial interface and its configuration.
+
+  SerialPort port = SerialPort_create(serialPort, 9600, 8, 'E', 1);
+
+The created _SerialPort_ object is required for the _CS101_Slave_create_ function:
+
+  CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_UNBALANCED);
+
+This function has the following signature:
+
+[[app-listing]]
+[source, c]
+----
+CS101_Slave
+CS101_Slave_create(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode)
+----
+
+Optionally the link layer parameters and application layer parameters can be specified. If the
+default values should be used these parameters can be skipped (set to _NULL_). The last parameter specifies
+if the _balanced_ or _unbalanced_ mode is used.
+
+For the serial slave it is also required to set a link layer address:
+
+  CS101_Slave_setLinkLayerAddress(slave, 1);
+
+=== Setting the callback handler functions
+
+Before starting or running the server it is recommended to set the callback functions to
+handle slave events. The following callback handler types are available (please the the API
+reference manual for function signature details). Some of them are only available for CS 104 servers and some only for CS101 slaves.
+
+.Callback handler types
+[width="90%",cols="n,10,1,1",frame="topbot",options="header"]
+|==========================
+| callback type | event | CS 101 | CS 104
+| CS101_InterrogationHandler | interrogation requests | + | +
+| CS101_CounterInterrogationHandler | counter interrogation requests | + | +
+| CS101_ReadHandler | read requests for single information objects | + | +
+| CS101_ClockSynchronizationHandler | clock synchronization message received | + | +
+| CS101_ResetProcessHandler | reset process request received | + | +
+| CS101_DelayAcquisitionHandler | delay acquisition request received | + | -
+| CS101_ASDUHandler | ASDU received but not handled by one of the other callback handlers | + | +
+| CS101_ResetCUHandler | a link layer message of type reset CU (communication unit) has been received | + | -
+| CS104_ConnectionRequestHandler | a new TCP/IP client tries to connect | - | +
+|==========================
+
+[[app-listing]]
+[source, c]
+.Setting some callback functions for the CS101 slave
+----
+/* set the callback handler for the clock synchronization command */
+CS101_Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);
+
+/* set the callback handler for the interrogation command */
+CS101_Slave_setInterrogationHandler(slave, interrogationHandler, NULL);
+
+/* set handler for other message types */
+CS101_Slave_setASDUHandler(slave, asduHandler, NULL);
+
+/* set handler for reset CU (reset communication unit) message */
+CS101_Slave_setResetCUHandler(slave, resetCUHandler, (void*) slave);
+----
+
+=== CS104 Starting/Stopping the server
+
+After the server is configured it can be started with the _CS104_Slave_start_ function. This function
+starts a new background thread that is listening for incoming client connections.
 
   CS104_Slave_start(slave);
 
-To deactivate the IEC 60870-5-104 service the server can be stopped with the _stop_ function.
+To deactivate the IEC 60870-5-104 service the server can be stopped with the _CS104_Slave_stop_ function.
 
   CS104_Slave_stop(slave);
-
-=== CS101 (serial) slave configuration and setup
-
-Analog to the master side the CS101 slave side can be configured for one of the two modes (_balanced_ or _unbalanced_).
-
 
 === Spontaneous or periodic transmission of messages
 
@@ -206,7 +270,7 @@ The following steps have to be done to send spontaneous or periodic messages:
 
 === Handling of interrogation requests
 
-On the server side you should use the InterrogationHandler callback function to handle the Interrogation request. Depending on the QOI (_Qualifier of interrogation_) value you should return different information objects. For a simple system it is enough to only handle station interrogation requests (QOI = 20). The QUI value 21-36 are used for the interrogation groups (1-16). It is up to the slave implementer to assign information objects to interrogation groups.
+On the server side you should use the InterrogationHandler callback function to handle the Interrogation request. Depending on the QOI (_Qualifier of interrogation_) value you should return different information objects. For a simple system it is enough to only handle station interrogation requests (QOI = 20). The QOI values 21-36 are used for the interrogation groups (1-16). It is up to the slave implementer to assign information objects to interrogation groups.
 
 According to the specification the server has to respond the ACTIVATION request from the client with the ACT_CON response followed by ASDUs containing the information objects with _CS101_COT_INTERROGATED_BY_STATION_ for a station interrogation or COT that represent the respective interrogation group (e.g. _CS101_COT_INTERROGATED_BY_GROUP_1_ for interrogation group 1). After sending all information objects the server has to send the initial interrogation command message with COT = _CS101_COT_ACTIVATION_TERMINATION_ to indicate that the transmission of the interrogation data is finished.
 
@@ -252,6 +316,8 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 }
 ----
 
+Inside of the interrogation handler the IMasterConnection interface can be used to send the interrogated data
+back to the client/master. The _CS101_ASDU_ and _InformationObject_ instances created inside the interrogation handler are in the responsibility of the user and have to be release with the appropriate functions (_CS101_ASDU_destroy_ and _InformationObject_destroy_) when they have been allocated dynamically.
 
 === CS104 (TCP/IP) specific issues
 
@@ -259,60 +325,87 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 
 The server provides two different modes:
 
-The default mode (_SINGLE_REDUNDANCY_GROUP_) allows only a *single active client connection*. An active client connection is a connection where ASDUs are sent. All other connections are standby connections. There is a single queue for events. Events are also stored when no client is connected or when no connection is active.
+The default mode (_CS104_MODE_SINGLE_REDUNDANCY_GROUP_) allows only a *single active client connection*. An active client connection is a connection where ASDUs are sent. All other connections are standby connections. There is a single queue for events. Events are also stored when no client is connected or when no connection is active.
 
-The second mode (_CONNECION_IS_REDUNDANCY_GROUP_) allows *multiple active client connections*. Every connection has its own event queue. The event queue will be deleted when the client connection is closed. This mode has to be used when more then one client has to access the application data.
+The second mode (_CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP_) allows *multiple active client connections*. Every connection has its own event queue. The event queue will be deleted when the client connection is closed. This mode has to be used when more then one client has to access the application data.
 
-The server mode can be set with the _ServerMode_ property of the _Server_ class.
+The server mode can be set with the _CS104_Slave_setServerMode_ function.
 
-  server.ServerMode = ServerMode.CONNECION_IS_REDUNDANCY_GROUP;
+      CS104_Slave_setServerMode(slave, CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP);
 
 ==== Restrict the number of client connections
 
-The number of clients can be restricted with the _MaxOpenConnections_ property of the _Server_ class.
+The number of clients can be restricted with the _CS104_Slave_setMaxOpenConnections_ function.
 
-  server.MaxOpenConnections = 2;
+  CS104_Slave_setMaxOpenConnections(slave, 2);
 
 In this case the server will only allow two concurrent client connections.
 
 ==== Setting local port and IP address
 
-The default TCP port for IEC 60870-5-104 is 2404. The port can be changed with the _SetLocalPort_ method of the _Server_ class.
+The default TCP port for IEC 60870-5-104 is 2404. The port can be changed with the _CS104_Slave_setLocalPort_ function.
 
-  server.SetLocalPort(2405);
+  CS104_Slave_setLocalPort(slave, 2405);
 
-Per default the server listens to all local IP addresses. With the _SetLocalAddress_ method of the _Server_ class it is possible to restrict the server to a single local IP address.
+Per default the server listens to all local IP addresses. With the _CS104_Slave_setLocalAddress_ function it is possible to restrict the server to a single local IP address.
 
-  server.SetLocalAddress("192.168.1.50");
+  CS104_Slave_setLocalAddress(slave, "192.168.1.50");
 
-==== Create a secure connection with TLS
+With this setting the CS104 server will only listen on the local interface with the assigned IP address 192.168.1.50.
 
 ==== Set a connection request handler to restrict the access and track connections
 
-The _ConnectionRequestHandler_ can be used to restrict the access to the server. With the return value the application can allow or deny the connection attempt of a client.
+The _CS104_ConnectionRequestHandler_ can be used to restrict the access to the server. With the return value the application can allow or deny the connection attempt of a client.
 
-A _ConnectionRequestHandler_ can be set with the _SetConnectionRequestHandler_ method of the _Server_ class. The second parameter is an arbitrary user provided object that will be passed to the handler when it is called. If not needed it can be set to _null_.
+A _CS104_ConnectionRequestHandler_ can be set with the _CS104_Slave_setConnectionRequestHandler_ function. The second parameter is an arbitrary user provided object that will be passed to the handler when it is called. If not needed it can be set to _NULL_.
 
-  server.SetConnectionRequestHandler (connectionRequestHandler, null);
+  CS104_Slave_setConnectionRequestHandler(slave, connectionRequestHandler, NULL);
+
+In the handler you can optionally check the client IP address against a whitelist of allowed clients or implement a blacklist.
 
 [[app-listing]]
-[source, csharp]
-.Example how to implement a ConnectionRequestHandler in C#
+[source, c]
+.Example how to implement a ConnectionRequestHandler
 ----
-static bool connectionRequestHandler(object parameter, IPAddress ipAddress)
+static bool connectionRequestHandler(void* parameter, const char* ipAddress)
 {
-  // Allow only known IP addresses!
-  // You can implement your allowed client whitelist here
-  if (ipAddress.ToString ().Equals ("127.0.0.1"))
+  /* Allow only known IP addresses! */
+  /* You can implement your allowed client whitelist here */
+  if (strcmp(ipAddress, "127.0.0.1") == 0) {
     return true;
   else
     return false;
 }
 ----
 
-In the handler you can optionally check the client IP address against a whitelist of allowed clients or implement a blacklist.
 
 
+==== Create a secure connection with TLS
+
+The CS 104 standard can also be used with TLS to realize secure and authenticated connections.
+
+In order to use TLS the configuration parameters, certificates, and private keys have to be configured.
+
+This configuration is stored in a _TLSConfiguration_ object. A new configuration object can be created with the _TLSConfiguration_create_ function.
+
+[[app-listing]]
+[source, c]
+.Example how to create a CS 104 slave with TLS support
+----
+TLSConfiguration tlsConfig = TLSConfiguration_create();
+
+TLSConfiguration_setChainValidation(tlsConfig, false);
+TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
+
+TLSConfiguration_setOwnKeyFromFile(tlsConfig, "server-key.pem", NULL);
+TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "server.cer");
+TLSConfiguration_addCACertificateFromFile(tlsConfig, "root.cer");
+
+TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "client1.cer");
+
+/* create a new slave/server instance */
+CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig);
+----
 
 == lib60870-C specific topics
 
@@ -337,12 +430,6 @@ on the GCC command line when the platform byte order is big endian.
 === Configuration options at library compile time
 
 Some configuration options are fixed at compile time of the library code. These options can be found in the file *lib60870_config.h*.
-
-== Advanced topics ==
-
-=== Creating non-standard information object types ===
-
-For lib60870.NET you should derive a new class from the *InformationObject* class.
 
 == Reference information
 
@@ -414,11 +501,19 @@ The library supports the following ASDU (application service data unit) types.
 | P_ME_NB_1(111) | Parameter of measured values, scaled value  | + | +
 | P_ME_NC_1(112) | Parameter of measured values, short floating point number | + | +
 | P_AC_NA_1(113) | Parameter for activation | + | +
+
+| F_FR_NA_1(120) | File ready | + | +
+| F_SR_NA_1(121) | Section ready | + | +
+| F_SC_NA_1(122) | Call/Select directory/file/section | + | +
+| F_LS_NA_1(123) | Last segment/section | + | +
+| F_AF_NA_1(124) | ACK file/section | + | +
+| F_SG_NA_1(125) | File segment | + | +
+| F_DR_TA_1(126) | File directory | + | +
 |==========================
 
-=== IEC 60870-5-104 parameters
+=== CS 104 specific parameters
 
-The following parameters are stored in *T104ConnectionParameter* objects.
+The following parameters are stored in *CS104_ConnectionParameters* objects.
 
 .IEC 60870-5-104 parameters
 [width="90%",cols="n,10",frame="topbot",options="header"]

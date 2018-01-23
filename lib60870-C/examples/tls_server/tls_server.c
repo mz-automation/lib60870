@@ -181,8 +181,7 @@ main(int argc, char** argv)
 
     TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "client1.cer");
 
-    /* create a new slave/server instance with default connection parameters and
-     * default message queue size */
+    /* create a new slave/server instance */
     CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig);
 
     CS104_Slave_setLocalAddress(slave, "0.0.0.0");
