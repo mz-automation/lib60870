@@ -140,7 +140,7 @@ CS104_Slave_setASDUHandler(CS104_Slave self, CS101_ASDUHandler handler, void* pa
 void
 CS104_Slave_setClockSyncHandler(CS104_Slave self, CS101_ClockSynchronizationHandler handler, void* parameter);
 
-CS104_ConnectionParameters
+CS104_APCIParameters
 CS104_Slave_getConnectionParameters(CS104_Slave self);
 
 CS101_AppLayerParameters

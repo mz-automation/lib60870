@@ -37,7 +37,7 @@
 #include "lib60870_internal.h"
 #include "cs101_asdu_internal.h"
 
-struct sCS104_ConnectionParameters defaultConnectionParameters = {
+struct sCS104_APCIParameters defaultAPCIParameters = {
 		/* .k = */ 12,
 		/* .w = */ 8,
 		/* .t0 = */ 10,
@@ -69,7 +69,7 @@ struct sCS104_Connection {
     char hostname[HOST_NAME_MAX + 1];
     int tcpPort;
 
-    struct sCS104_ConnectionParameters parameters;
+    struct sCS104_APCIParameters parameters;
     struct sCS101_AppLayerParameters alParameters;
 
     int connectTimeoutInMs;
@@ -183,7 +183,7 @@ createConnection(const char* hostname, int tcpPort)
     if (self != NULL) {
         strncpy(self->hostname, hostname, HOST_NAME_MAX);
         self->tcpPort = tcpPort;
-        self->parameters = defaultConnectionParameters;
+        self->parameters = defaultAPCIParameters;
         self->alParameters = defaultAppLayerParameters;
 
         self->receivedHandler = NULL;
@@ -213,6 +213,9 @@ createConnection(const char* hostname, int tcpPort)
 CS104_Connection
 CS104_Connection_create(const char* hostname, int tcpPort)
 {
+    if (tcpPort == -1)
+        tcpPort = IEC_60870_5_104_DEFAULT_PORT;
+
     return createConnection(hostname, tcpPort);
 }
 
@@ -220,6 +223,9 @@ CS104_Connection_create(const char* hostname, int tcpPort)
 CS104_Connection
 CS104_Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguration tlsConfig)
 {
+    if (tcpPort == -1)
+        tcpPort = IEC_60870_5_104_DEFAULT_TLS_PORT;
+
     CS104_Connection self = createConnection(hostname, tcpPort);
 
     if (self != NULL) {
@@ -382,7 +388,7 @@ CS104_Connection_destroy(CS104_Connection self)
 }
 
 void
-CS104_Connection_setConnectionParameters(CS104_Connection self, CS104_ConnectionParameters parameters)
+CS104_Connection_setAPCIParameters(CS104_Connection self, CS104_APCIParameters parameters)
 {
     self->parameters = *parameters;
 
@@ -407,8 +413,8 @@ CS104_Connection_setConnectTimeout(CS104_Connection self, int millies)
     self->connectTimeoutInMs = millies;
 }
 
-CS104_ConnectionParameters
-CS104_Connection_getConnectionParameters(CS104_Connection self)
+CS104_APCIParameters
+CS104_Connection_getAPCIParameters(CS104_Connection self)
 {
     return &(self->parameters);
 }

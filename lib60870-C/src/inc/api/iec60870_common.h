@@ -151,9 +151,9 @@ struct sCS101_AppLayerParameters {
 /**
  * \brief Parameters for CS104 connections - APCI (application protocol control information)
  */
-typedef struct sCS104_ConnectionParameters* CS104_ConnectionParameters;
+typedef struct sCS104_APCIParameters* CS104_APCIParameters;
 
-struct sCS104_ConnectionParameters {
+struct sCS104_APCIParameters {
     int k;
     int w;
     int t0;

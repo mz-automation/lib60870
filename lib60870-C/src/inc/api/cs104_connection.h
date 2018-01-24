@@ -45,14 +45,31 @@ extern "C" {
 
 typedef struct sCS104_Connection* CS104_Connection;
 
+/**
+ * \brief Create a new connection object
+ *
+ * \param hostname host name of IP address of the server to connect
+ * \param tcpPort tcp port of the server to connect. If set to -1 use default port (2404)
+ *
+ * \return the new connection object
+ */
 CS104_Connection
 CS104_Connection_create(const char* hostname, int tcpPort);
 
+/**
+ * \brief Create a new secure connection object (uses TLS)
+ *
+ * \param hostname host name of IP address of the server to connect
+ * \param tcpPort tcp port of the server to connect. If set to -1 use default port (19998)
+ * \param tlcConfig the TLS configuration (certificates, keys, and parameters)
+ *
+ * \return the new connection object
+ */
 CS104_Connection
 CS104_Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguration tlsConfig);
 
 /**
- * \brief Set the CS104 specific connection parameters.
+ * \brief Set the CS104 specific APCI parameters.
  *
  * If not set the default parameters are used. This function must be called before the
  * CS104_Connection_connect function is called! If the function is called after the connect
@@ -61,10 +78,13 @@ CS104_Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguratio
  * \param self CS104_Connection instance
  */
 void
-CS104_Connection_setConnectionParameters(CS104_Connection self, CS104_ConnectionParameters parameters);
+CS104_Connection_setAPCIParameters(CS104_Connection self, CS104_APCIParameters parameters);
 
-CS104_ConnectionParameters
-CS104_Connection_getConnectionParameters(CS104_Connection self);
+/**
+ * \brief Get the currently used CS104 specific APCI parameters
+ */
+CS104_APCIParameters
+CS104_Connection_getAPCIParameters(CS104_Connection self);
 
 /**
  * \brief Set the CS101 application layer parameters
@@ -79,6 +99,15 @@ CS104_Connection_getConnectionParameters(CS104_Connection self);
 void
 CS104_Connection_setAppLayerParameters(CS104_Connection self, CS101_AppLayerParameters parameters);
 
+/**
+ * \brief Return the currently used application layer parameter
+ *
+ * NOTE: The application layer parameters are required to create CS101_ASDU objects.
+ *
+ * \param self CS104_Connection instance
+ *
+ * \return the currently used CS101_AppLayerParameters object
+ */
 CS101_AppLayerParameters
 CS104_Connection_getAppLayerParameters(CS104_Connection self);
 

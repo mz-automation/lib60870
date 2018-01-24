@@ -52,7 +52,7 @@
 
 #define CS104_DEFAULT_PORT 2404
 
-static struct sCS104_ConnectionParameters defaultConnectionParameters = {
+static struct sCS104_APCIParameters defaultConnectionParameters = {
 	/* .k = */ 12,
 	/* .w = */ 8,
 	/* .t0 = */ 10,
@@ -631,7 +631,7 @@ struct sCS104_Slave {
     /* TODO if configured for fixed number of connections and connection_is_redundancy_group,
      *  add connection queues here */
 
-    struct sCS104_ConnectionParameters conParameters;
+    struct sCS104_APCIParameters conParameters;
 
     struct sCS101_AppLayerParameters alParameters;
 
@@ -908,7 +908,7 @@ CS104_Slave_setClockSyncHandler(CS104_Slave self, CS101_ClockSynchronizationHand
     self->clockSyncHandlerParameter = parameter;
 }
 
-CS104_ConnectionParameters
+CS104_APCIParameters
 CS104_Slave_getConnectionParameters(CS104_Slave self)
 {
     return &(self->conParameters);
