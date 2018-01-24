@@ -105,6 +105,7 @@ add_library (lib60870-shared SHARED ${library_SRCS} )
 set_target_properties(lib60870-shared PROPERTIES
            OUTPUT_NAME lib60870
            SOVERSION "${LIB_VERSION_MAJOR}.${LIB_VERSION_MINOR}.${LIB_VERSION_PATCH}"
+	   WINDOWS_EXPORT_ALL_SYMBOLS true
 )
 
 
