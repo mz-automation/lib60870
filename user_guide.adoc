@@ -23,6 +23,57 @@ Here is a list of supported features:
 The library uses an "object-oriented" programming style. It is based on abstract data types (ADT) and functions
 that operate on these data types. In general the actual implementations of the data types (the data structures that hold the data) is hidden from the API user. In almost all cases it is not required (and also not recommended) that the API user accesses these data structures directly.
 
+== Application layer messages
+
+This programming style will be explained by the example of the *_CS101_ASDU_* ADT that is a central part of the
+library API. This data type represents an application layer message of the CS101/CS104 protocols. The abbreviation ASDU stands for "Application Service Data Unit". To create a new ASDU object the _CS101_ASDU_create_ function has to be used as a constructor of the object.
+
+  CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION,
+        0, 1, false, false);
+
+This function has various parameters to reflect the different properties of an ASDU. Here is the signature of the _CS101_ASDU_create_ function:
+
+[[app-listing]]
+[source, c]
+----
+CS101_ASDU
+CS101_ASDU_create(CS101_AppLayerParameters parameters, bool isSequence, CS101_CauseOfTransmission cot,
+                  int oa, int ca, bool isTest, bool isNegative);
+----
+
+The first parameter if another object of type _CS101_AppLayerParameters_ that represents the application layer parameters that are shared
+between master and slave on agreement. If both side don't have the identical parameters they will not
+be able to understand the ASDUs from the other side.
+
+The second parameter _isSequence_ indicates that the ASDU contains a sequence of consecutive information objects (if _true_) or one or more independent information objects (if _false_). A sequence of consecutive information objects means that the ASDU only contains a single information object address (IOA). The consecutive information objects then have addresses IOA, IOA + 1, IOA + 2, ...
+
+The third parameters indicates the cause of transmission (COT). It is to tell the other side the reason for sending the messages. Possible values could be _CS101_COT_PERIODIC_ for periodic messages, _CS101_COT_SPONTANEOUS_ for spontaneous messages.
+
+The other parameters are _oa_ for the originator address, _ca_ for the common address of the ASDU, _isTest_ to indicate that the message is a test message, and _isNegative_ to indicate that the message is a negative confirmation of another message.
+
+With the handle of the new ASDU object (in our case _newAsdu_) we can call one of the various functions to
+get or set data of the ASDU. For example you can get or set the test flag values with the _CS101_ASDU_isTest_ or _CS101_ASDU_setTest_ functions. The first parameter of these functions is always the handle of the ASDU object.
+
+  bool isTest = CS101_ASDU_isTest(newAsdu);
+
+An important function to create usable ASDU objects is the _CS101_ASDU_addInformationObject_ functions. With this function you can add information object instances to the ASDU.
+
+[[app-listing]]
+[source, c]
+----
+InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 100, -1,
+                       IEC60870_QUALITY_GOOD);
+
+CS101_ASDU_addInformationObject(newAsdu, io);
+----
+
+This function can be called multiple times to add more information objects to the ASDU object. It has a boolean return values that indicates if the information object has been added successfully (return value _true_). Adding an information object can fail when the ASDU payload is already full. In this case the function will return _false_.
+
+Finally, when the application created an ASDU object and it is no longer needed it has to be released with
+with the _CS101_ASDU_destroy_ function.
+
+  CS101_ASDU_destroy(newAsdu);
+
 == Master (client) side programming
 
 For master side programming the following abstract data types and APIs can be used:
@@ -60,11 +111,72 @@ functions with the _con_ reference!
 === Sending requests and receiving responses from the slave
 
 In general an application is concerned with sending application layer messages (ASDUs) to the slave. The master side API supports generic and specialized functions to send messages to the slave. When sending system commands or process commands it is recommended to use the specialized functions because they help to
-create ASDUs that comply to the standards. These special functions are explained in the following sections. They exist generally in two variants for CS101 and CS104.
+create ASDUs that comply to the standards. These specialized functions are explained in the following sections. They exist generally in two variants for CS101 and CS104.
 
 For the general case it is possible to send arbitrary ASDUs by using the _CS101_Master_sendASDU_ or _CS104_Connection_sendASDU_ functions.
 
-For receiving application layer messages
+For receiving application layer messages the application has to implement the _CS101_ASDUReceivedHandler_ callback.
+
+[[app-listing]]
+[source, c]
+.Example for processing received ASDUs in the CS101_ASDUReceivedHandler
+----
+static bool
+asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
+{
+    printf("RECVD ASDU type: %s(%i) elements: %i\n",
+            TypeID_toString(CS101_ASDU_getTypeID(asdu)),
+            CS101_ASDU_getTypeID(asdu),
+            CS101_ASDU_getNumberOfElements(asdu));
+
+    if (CS101_ASDU_getTypeID(asdu) == M_ME_TE_1) {
+
+        printf("  measured scaled values with CP56Time2a timestamp:\n");
+
+        int i;
+
+        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+
+            MeasuredValueScaledWithCP56Time2a io =
+                    (MeasuredValueScaledWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
+
+            printf("    IOA: %i value: %i\n",
+                    InformationObject_getObjectAddress((InformationObject) io),
+                    MeasuredValueScaled_getValue((MeasuredValueScaled) io)
+            );
+
+            MeasuredValueScaledWithCP56Time2a_destroy(io);
+        }
+    }
+    else if (CS101_ASDU_getTypeID(asdu) == M_SP_NA_1) {
+        printf("  single point information:\n");
+
+        int i;
+
+        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+
+            SinglePointInformation io =
+                    (SinglePointInformation) CS101_ASDU_getElement(asdu, i);
+
+            printf("    IOA: %i value: %i\n",
+                    InformationObject_getObjectAddress((InformationObject) io),
+                    SinglePointInformation_getValue((SinglePointInformation) io)
+            );
+
+            SinglePointInformation_destroy(io);
+        }
+    }
+
+    return true;
+}
+----
+
+This callback handler has to be installed with the _CS104_Connection_setASDUReceivedHandler_ or _CS101_Master_setASDUReceivedHandler_ function.
+
+  CS101_Master_setASDUReceivedHandler(master, asduReceivedHandler, NULL);
+
+All callback handler have a generic reference parameter with the name "parameter" in its function signatures. This parameter can be used by the user to provide application specific context information to the callback
+handler. This parameter will be set with the install function of the callback handler (like _CS101_Master_setASDUReceivedHandler_ in the example above). If not used this parameter can be set to _NULL_.
 
 .Master side callback handler types
 [width="90%",cols="n,10,1,1",frame="topbot",options="header"]
