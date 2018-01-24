@@ -59,6 +59,11 @@ struct sCS101_Master {
     void* asduReceivedHandlerParameter;
 
     struct sCS101_Queue userDataQueue;
+
+#if (CONFIG_USE_THREADS == 1)
+    bool isRunning;
+    Thread workerThread;
+#endif
 };
 
 
@@ -203,6 +208,12 @@ CS101_Master_create(SerialPort serialPort, LinkLayerParameters llParameters, CS1
         }
 
         self->asduReceivedHandler = NULL;
+
+#if (CONFIG_USE_THREADS == 1)
+        self->isRunning = false;
+        self->workerThread = NULL;
+#endif
+
     }
 
     return self;
@@ -218,6 +229,46 @@ CS101_Master_run(CS101_Master self)
     else
         LinkLayerBalanced_run(self->balancedLinkLayer);
 }
+
+#if (CONFIG_USE_THREADS == 1)
+static void*
+masterMainThread(void* parameter)
+{
+    CS101_Master self = (CS101_Master) parameter;
+
+    self->isRunning = true;
+
+    while (self->isRunning) {
+        CS101_Master_run(self);
+    }
+
+    return NULL;
+}
+#endif /* (CONFIG_USE_THREADS == 1) */
+
+void
+CS101_Master_start(CS101_Master self)
+{
+#if (CONFIG_USE_THREADS == 1)
+    if (self->workerThread == NULL) {
+        self->workerThread = Thread_create(masterMainThread, self, false);
+        Thread_start(self->workerThread);
+    }
+#endif /* (CONFIG_USE_THREADS == 1) */
+}
+
+void
+CS101_Master_stop(CS101_Master self)
+{
+#if (CONFIG_USE_THREADS == 1)
+    if (self->isRunning) {
+        self->isRunning = false;
+        Thread_destroy(self->workerThread);
+        self->workerThread = NULL;
+    }
+#endif /* (CONFIG_USE_THREADS == 1) */
+}
+
 
 void
 CS101_Master_destroy(CS101_Master self)

@@ -73,6 +73,26 @@ void
 CS101_Master_run(CS101_Master self);
 
 /**
+ * \brief Start a background thread that handles the link layer connections
+ *
+ * NOTE: This requires threads. If you don't want to use a separate thread
+ * for the master instance you have to call the \ref CS101_Master_run function
+ * periodically.
+ *
+ * \param self CS101_Master instance
+ */
+void
+CS101_Master_start(CS101_Master self);
+
+/**
+ * \brief Stops the background thread that handles the link layer connections
+ *
+ * \param self CS101_Master instance
+ */
+void
+CS101_Master_stop(CS101_Master self);
+
+/**
  * \brief Add a new slave connection
  *
  * This function creates and starts a new link layer state machine
