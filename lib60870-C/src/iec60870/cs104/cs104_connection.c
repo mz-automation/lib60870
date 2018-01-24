@@ -945,7 +945,7 @@ CS104_Connection_sendTestCommand(CS104_Connection self, int ca)
 }
 
 bool
-CS104_Connection_sendControlCommand(CS104_Connection self, TypeID typeId, CS101_CauseOfTransmission cot, int ca, InformationObject sc)
+CS104_Connection_sendProcessCommand(CS104_Connection self, TypeID typeId, CS101_CauseOfTransmission cot, int ca, InformationObject sc)
 {
     Frame frame = (Frame) T104Frame_create();
 

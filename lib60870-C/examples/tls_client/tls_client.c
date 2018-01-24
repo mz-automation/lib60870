@@ -111,7 +111,7 @@ main(int argc, char** argv)
                 SingleCommand_create(NULL, 5000, true, false, 0);
 
         printf("Send control command C_SC_NA_1\n");
-        CS104_Connection_sendControlCommand(con, C_SC_NA_1, CS101_COT_ACTIVATION, 1, sc);
+        CS104_Connection_sendProcessCommand(con, C_SC_NA_1, CS101_COT_ACTIVATION, 1, sc);
 
         InformationObject_destroy(sc);
 
