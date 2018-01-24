@@ -1,5 +1,5 @@
 /*
- *  serial_port.h
+ *  hal_serial.h
  *
  *  Copyright 2017 MZ Automation GmbH
  *
@@ -30,6 +30,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * \file hal_serial.h
+ * \brief Abstraction layer for serial ports.
+ * Has to be implemented for the serial link layer of CS 101.
+ */
 
 /*! \addtogroup hal Platform (Hardware/OS) abstraction layer
    *

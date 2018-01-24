@@ -23,6 +23,11 @@ extern "C" {
 #include <stdint.h>
 
 /**
+ * \file tls_api.h
+ * \brief TLS API functions
+ */
+
+/**
  * @defgroup TLS_CONFIG_API TLS configuration
  *
  * @{

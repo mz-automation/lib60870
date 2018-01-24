@@ -1,3 +1,14 @@
+Changes to version 2.0.0
+------------------------
+- added support for CS 101 balanced and unbalanced serial link layer
+- added serial port abstraction layer and implementations for linux and windows
+- seperated lib60870-C and lib60870.NET into separate projects. Removed all .NET code from the lib60870 main branch
+- added TLS support for CS 104
+- API redesign. Not compatible with old API.
+- updated and extended user guide
+- added doxygen based API reference documentation
+- added more examples
+
 Changes to version 0.9.5
 ------------------------
 - lib60870.NET: add support for server allowing multiple clients using the application layer (ServerMode.CONNECTION_IS_REDUNDANCY_GROUP)

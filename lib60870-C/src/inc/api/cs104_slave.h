@@ -27,6 +27,11 @@
 #include "iec60870_slave.h"
 
 /**
+ * \file cs104_slave.h
+ * \brief CS 104 slave side definitions
+ */
+
+/**
  * @addtogroup SLAVE Slave related functions
  *
  * @{

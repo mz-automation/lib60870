@@ -28,6 +28,12 @@
 #include "iec60870_common.h"
 
 /**
+ * \file iec60870_master.h
+ * \brief Common master side definitions for IEC 60870-5-101/104
+ * These types are used by CS101/CS104 master
+ */
+
+/**
  * \brief Callback handler for received ASDUs
  *
  * This callback handler will be called for each received ASDU.

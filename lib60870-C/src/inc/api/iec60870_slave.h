@@ -34,7 +34,7 @@ extern "C" {
 /**
  * \file iec60870_slave.h
  * \brief Common slave side definitions for IEC 60870-5-101/104
- * These types are used by CS101/CS104 master and slaves
+ * These types are used by CS101/CS104 slaves
  */
 
 /**

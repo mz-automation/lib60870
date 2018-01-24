@@ -26,6 +26,12 @@
 
 #include <stdbool.h>
 
+/**
+ * \file link_layer_parameters.h
+ *
+ * \brief Parameters for serial link layers
+ */
+
 /** \brief Parameters for the IEC 60870-5 link layer */
 typedef struct sLinkLayerParameters* LinkLayerParameters;
 

@@ -1,5 +1,5 @@
-= lib60870-C 2.0 User Guide
-Michael Zillgith
+= lib60870-C 2.0.0 User Guide
+Copyright 2018 MZ Automation GmbH
 
 == Introduction
 

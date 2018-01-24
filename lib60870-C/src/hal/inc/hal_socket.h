@@ -25,6 +25,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/**
+ * \file hal_socket.h
+ * \brief Abstraction layer TCP/IP sockets
+ * Has to be implemented for CS 104 TCP/IP.
+ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif

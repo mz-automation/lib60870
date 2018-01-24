@@ -32,6 +32,11 @@ extern "C" {
 #endif
 
 /**
+ * \file cs104_connection.h
+ * \brief CS 104 master side definitions
+ */
+
+/**
  * @addtogroup MASTER Master related functions
  *
  * @{
