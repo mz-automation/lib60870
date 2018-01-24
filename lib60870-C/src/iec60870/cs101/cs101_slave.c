@@ -83,6 +83,11 @@ struct sCS101_Slave
     struct sIMasterConnection iMasterConnection;
 
     IEC60870_LinkLayerMode linkLayerMode;
+
+#if (CONFIG_USE_THREADS == 1)
+    bool isRunning;
+    Thread workerThread;
+#endif
 };
 
 static void
@@ -278,6 +283,11 @@ CS101_Slave_create(SerialPort serialPort, LinkLayerParameters llParameters, CS10
         self->delayAcquisitionHandler = NULL;
         self->resetCUHandler = NULL;
 
+#if (CONFIG_USE_THREADS == 1)
+        self->isRunning = false;
+        self->workerThread = NULL;
+#endif
+
         if (llParameters)
             self->linkLayerParameters = *llParameters;
         else {
@@ -419,8 +429,48 @@ CS101_Slave_run(CS101_Slave self)
         LinkLayerBalanced_run(self->balancedLinkLayer);
 
     //TODO handle file transmission
-
 }
+
+#if (CONFIG_USE_THREADS == 1)
+static void*
+slaveMainThread(void* parameter)
+{
+    CS101_Slave self = (CS101_Slave) parameter;
+
+    self->isRunning = true;
+
+    while (self->isRunning) {
+        CS101_Slave_run(self);
+    }
+
+    return NULL;
+}
+#endif /* (CONFIG_USE_THREADS == 1) */
+
+void
+CS101_Slave_start(CS101_Slave self)
+{
+#if (CONFIG_USE_THREADS == 1)
+    if (self->workerThread == NULL) {
+        self->workerThread = Thread_create(slaveMainThread, self, false);
+        Thread_start(self->workerThread);
+    }
+#endif /* (CONFIG_USE_THREADS == 1) */
+}
+
+void
+CS101_Slave_stop(CS101_Slave self)
+{
+#if (CONFIG_USE_THREADS == 1)
+    if (self->isRunning) {
+        self->isRunning = false;
+        Thread_destroy(self->workerThread);
+        self->workerThread = NULL;
+    }
+#endif /* (CONFIG_USE_THREADS == 1) */
+}
+
+
 
 CS101_AppLayerParameters
 CS101_Slave_getAppLayerParameters(CS101_Slave self)

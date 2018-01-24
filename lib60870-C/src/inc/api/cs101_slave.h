@@ -153,12 +153,33 @@ CS101_Slave_flushQueues(CS101_Slave self);
 /**
  * \brief Receive a new message and run the link layer state machines
  *
- * NOTE: has to be called frequently
+ * NOTE: Has to be called frequently, when the start/stop functions are
+ * not used. Otherwise it will be called by the background thread.
  *
  * \param self CS101_Slave instance
  */
 void
 CS101_Slave_run(CS101_Slave self);
+
+/**
+ * \brief Start a background thread that handles the link layer connections
+ *
+ * NOTE: This requires threads. If you don't want to use a separate thread
+ * for the slave instance you have to call the \ref CS101_Slave_run function
+ * periodically.
+ *
+ * \param self CS101_Slave instance
+ */
+void
+CS101_Slave_start(CS101_Slave self);
+
+/**
+ * \brief Stops the background thread that handles the link layer connections
+ *
+ * \param self CS101_Slave instance
+ */
+void
+CS101_Slave_stop(CS101_Slave self);
 
 /**
  * \brief Returns the application layer parameters object of this slave instance
