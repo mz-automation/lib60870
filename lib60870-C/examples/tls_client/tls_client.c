@@ -1,8 +1,6 @@
-#include "iec60870_master.h"
-#include "iec60870_common.h"
+#include "cs104_connection.h"
 #include "hal_time.h"
 #include "hal_thread.h"
-#include "tls_api.h"
 
 #include <stdio.h>
 
@@ -25,8 +23,13 @@ connectionHandler (void* parameter, CS104_Connection connection, CS104_Connectio
     }
 }
 
+/*
+ * CS101_ASDUReceivedHandler implementation
+ *
+ * For CS104 the address parameter has to be ignored
+ */
 static bool
-asduReceivedHandler (void* parameter, CS101_ASDU asdu)
+asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
 {
     printf("RECVD ASDU type: %s(%i) elements: %i\n",
             TypeID_toString(CS101_ASDU_getTypeID(asdu)),

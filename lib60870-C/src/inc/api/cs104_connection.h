@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016-2018 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -19,13 +19,13 @@
  *  See COPYING file for the complete license text.
  */
 
-#ifndef SRC_INC_T104_CONNECTION_H_
-#define SRC_INC_T104_CONNECTION_H_
+#ifndef SRC_INC_CS104_CONNECTION_H_
+#define SRC_INC_CS104_CONNECTION_H_
 
 #include <stdbool.h>
 #include <stdint.h>
 #include "tls_api.h"
-#include "iec60870_common.h"
+#include "iec60870_master.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -214,10 +214,14 @@ CS104_Connection_sendControlCommand(CS104_Connection self, TypeID typeId, CS101_
 bool
 CS104_Connection_sendASDU(CS104_Connection self, CS101_ASDU asdu);
 
-typedef bool (*ASDUReceivedHandler) (void* parameter, CS101_ASDU asdu);
-
+/**
+ * \brief Register a callback handler for received ASDUs
+ *
+ * \param handler user provided callback handler function
+ * \param parameter user provided parameter that is passed to the callback handler
+ */
 void
-CS104_Connection_setASDUReceivedHandler(CS104_Connection self, ASDUReceivedHandler handler, void* parameter);
+CS104_Connection_setASDUReceivedHandler(CS104_Connection self, CS101_ASDUReceivedHandler handler, void* parameter);
 
 
 typedef enum {
@@ -259,4 +263,4 @@ CS104_Connection_destroy(CS104_Connection self);
 }
 #endif
 
-#endif /* SRC_INC_T104_CONNECTION_H_ */
+#endif /* SRC_INC_CS104_CONNECTION_H_ */

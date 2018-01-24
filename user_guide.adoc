@@ -57,13 +57,32 @@ When you finished using the connection object you have to call
 To release all resources allocated by the object. After using the _destroy_ function you cannot use any
 functions with the _con_ reference!
 
+=== Sending requests and receiving responses from the slave
+
+In general an application is concerned with sending application layer messages (ASDUs) to the slave. The master side API supports generic and specialized functions to send messages to the slave. When sending system commands or process commands it is recommended to use the specialized functions because they help to
+create ASDUs that comply to the standards. These special functions are explained in the following sections. They exist generally in two variants for CS101 and CS104.
+
+For the general case it is possible to send arbitrary ASDUs by using the _CS101_Master_sendASDU_ or _CS104_Connection_sendASDU_ functions.
+
+For receiving application layer messages
+
+.Master side callback handler types
+[width="90%",cols="n,10,1,1",frame="topbot",options="header"]
+|==========================
+| callback type | event | CS 101 | CS 104
+| CS101_ASDUReceivedHandler | ASDU received but not handled by one of the other callback handlers | + | +
+| IEC60870_LinkLayerStateChangedHandler | link layer state changed event | + | -
+| CS104_ConnectionHandler | CS104 APCI event | - | +
+|==========================
+
+
 === Sending a read request
 
 The IEC 60870 documents don't recommend this service (cyclical data requests or polling) but it is an easy way to get the required data. You just need to know the common address (CA) and the information object address (IOA) to create the proper request.
 
   CS104_Connection_sendReadCommand(con, 1 /* CA */, 2001 /* IOA */);
 
-This call is non-blocking. You have to evaluate the response in the ASDUReceivedHandler callback function.
+This call is non-blocking. You have to evaluate the response in the _CS101_ASDUReceivedHandler_ callback function.
 
 Typically it is expected that the server response contains only the basic data type without timestamps (that is using the message types for a specific data type that does not contain the timestamps)!
 
@@ -193,7 +212,7 @@ Before starting or running the server it is recommended to set the callback func
 handle slave events. The following callback handler types are available (please the the API
 reference manual for function signature details). Some of them are only available for CS 104 servers and some only for CS101 slaves.
 
-.Callback handler types
+.Slave side callback handler types
 [width="90%",cols="n,10,1,1",frame="topbot",options="header"]
 |==========================
 | callback type | event | CS 101 | CS 104

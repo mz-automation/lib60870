@@ -19,15 +19,14 @@
  *  See COPYING file for the complete license text.
  */
 
-#include "../../inc/api/cs104_connection.h"
+#include "cs104_connection.h"
 
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-#include "../../inc/internal/cs104_frame.h"
-#include "iec60870_common.h"
+#include "cs104_frame.h"
 #include "hal_thread.h"
 #include "hal_socket.h"
 #include "hal_time.h"
@@ -37,10 +36,6 @@
 #include "information_objects_internal.h"
 #include "lib60870_internal.h"
 #include "cs101_asdu_internal.h"
-
-#if (CONFIG_CS104_SUPPORT_TLS == 1)
-#include "tls_api.h"
-#endif
 
 struct sCS104_ConnectionParameters defaultConnectionParameters = {
 		/* .k = */ 12,
@@ -112,7 +107,7 @@ struct sCS104_Connection {
     TLSSocket tlsSocket;
 #endif
 
-    ASDUReceivedHandler receivedHandler;
+    CS101_ASDUReceivedHandler receivedHandler;
     void* receivedHandlerParameter;
 
     CS104_ConnectionHandler connectionHandler;
@@ -525,7 +520,7 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
 
         if (asdu != NULL) {
             if (self->receivedHandler != NULL)
-                self->receivedHandler(self->receivedHandlerParameter, asdu);
+                self->receivedHandler(self->receivedHandlerParameter, -1, asdu);
 
             CS101_ASDU_destroy(asdu);
         }
@@ -773,7 +768,7 @@ CS104_Connection_connect(CS104_Connection self)
 }
 
 void
-CS104_Connection_setASDUReceivedHandler(CS104_Connection self, ASDUReceivedHandler handler, void* parameter)
+CS104_Connection_setASDUReceivedHandler(CS104_Connection self, CS101_ASDUReceivedHandler handler, void* parameter)
 {
     self->receivedHandler = handler;
     self->receivedHandlerParameter = parameter;

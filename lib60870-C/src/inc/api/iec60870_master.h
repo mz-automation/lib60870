@@ -25,7 +25,21 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "cs104_connection.h"
 #include "iec60870_common.h"
+
+/**
+ * \brief Callback handler for received ASDUs
+ *
+ * This callback handler will be called for each received ASDU.
+ * The CS101_ASDU object that is passed is only valid in the context
+ * of the callback function.
+ *
+ * \param parameter user provided parameter
+ * \param address address of the sender (slave/other station) - undefined for CS 104
+ * \param asdu object representing the received ASDU
+ *
+ * \return true if the ASDU has been handled by the callback, false otherwise
+ */
+typedef bool (*CS101_ASDUReceivedHandler) (void* parameter, int address, CS101_ASDU asdu);
 
 #endif /* SRC_IEC60870_MASTER_H_ */

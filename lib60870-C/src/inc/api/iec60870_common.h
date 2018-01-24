@@ -49,18 +49,24 @@ extern "C" {
 #define LIB60870_VERSION_MINOR 0
 #define LIB60870_VERSION_PATCH 0
 
+/**
+ * \brief lib60870 version information
+ */
 typedef struct {
     int major;
     int minor;
     int patch;
 } Lib60870VersionInfo;
 
+/**
+ * \brief link layer mode for serial link layers
+ */
 typedef enum {
     IEC60870_LINK_LAYER_BALANCED = 0,
     IEC60870_LINK_LAYER_UNBALANCED = 1
 } IEC60870_LinkLayerMode;
 
-/**\brief State of the link layer */
+/** \brief State of the link layer */
 typedef enum {
     /** The link layer is idle, there is no communication */
     LL_STATE_IDLE,

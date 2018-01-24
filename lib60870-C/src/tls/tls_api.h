@@ -15,11 +15,12 @@
 #ifndef SRC_TLS_TLS_API_H_
 #define SRC_TLS_TLS_API_H_
 
-#include "hal_socket.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <stdbool.h>
+#include <stdint.h>
 
 /**
  * @defgroup TLS_CONFIG_API TLS configuration
@@ -71,6 +72,7 @@ TLSConfiguration_destroy(TLSConfiguration self);
 
 /** @} */
 
+#include "hal_socket.h"
 
 typedef struct sTLSSocket* TLSSocket;
 
