@@ -2,9 +2,13 @@
 
 lib60870 library for IEC 60870-5 based protocols in C
 
-The current implementation contains code for the IEC 60870-5-104 protocol only.
+The current implementation contains code for the IEC 60870-5-101 (application layer and serial link layer) and IEC 60870-5-104 (protocool over TCP/IP) specifications.
 
-Support for other protocol parts (companion standards - CS) like IEC 60870-5-101 (serial line link layer), IEC 60870-5-102 (CS for electricity meters) and IEC 60870-5-103 (CS for protection equipment) will be provided in future versions.
+Features:
+- support for all application layer message types
+- master and slave
+- balanced and unbalanced link layers
+- portable C99 code
 
 Please also consider the User Guide.
 
@@ -61,7 +65,9 @@ This software can be dual licensed under the GPLv3 (https://www.gnu.org/licenses
 
 Support and commercial license options are provided by MZ Automation GmbH. Please contact info@mz-automation.de for more details.
 
+
 ## Contributing
 
 If you want to contribute to the improvement and development of the library please send me comments, feature requests, bug reports, or patches.
+
 For more than trivial contributions I require you to sign a Contributor License Agreement. Please contact info@mz-automation.de.
