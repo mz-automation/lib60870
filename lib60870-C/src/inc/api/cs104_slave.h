@@ -26,6 +26,10 @@
 
 #include "iec60870_slave.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \file cs104_slave.h
  * \brief CS 104 slave side definitions
@@ -194,6 +198,10 @@ MasterConnection_close(MasterConnection self);
 //TODO move to internal
 void
 MasterConnection_deactivate(MasterConnection self);
+
+#ifdef __cplusplus
+}
+#endif
 
 
 #endif /* SRC_INC_API_CS104_SLAVE_H_ */

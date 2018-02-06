@@ -33,6 +33,10 @@
 #include "iec60870_master.h"
 #include "link_layer_parameters.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @defgroup MASTER Master related functions
  *
@@ -273,5 +277,9 @@ CS101_Master_setLinkLayerStateChanged(CS101_Master self, IEC60870_LinkLayerState
 /**
  * @}
  */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_INC_API_CS101_MASTER_H_ */

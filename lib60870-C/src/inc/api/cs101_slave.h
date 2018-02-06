@@ -35,6 +35,10 @@
 #include "iec60870_slave.h"
 #include "link_layer_parameters.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @defgroup SLAVE Slave related functions
  *
@@ -273,5 +277,9 @@ CS101_Slave_setASDUHandler(CS101_Slave self, CS101_ASDUHandler handler, void* pa
 /**
  * @}
  */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_IEC60870_CS101_CS101_SLAVE_H_ */

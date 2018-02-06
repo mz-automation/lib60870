@@ -504,14 +504,14 @@ HighPriorityASDUQueue_getNextASDU(HighPriorityASDUQueue self)
     return buffer;
 }
 
-//static bool
-//Slave_enqueueHighPrioASDU(Slave self, ASDU asdu)
 static bool
 HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, CS101_ASDU asdu)
 {
 #if (CONFIG_USE_THREADS == 1)
     Semaphore_wait(self->queueLock);
 #endif
+
+    Frame frame;
 
     bool enqueued = false;
 
@@ -536,7 +536,7 @@ HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, CS101_ASDU asdu)
 
     struct sBufferFrame bufferFrame;
 
-    Frame frame = BufferFrame_initialize(&bufferFrame, self->asdus[nextIndex].msg,
+    frame = BufferFrame_initialize(&bufferFrame, self->asdus[nextIndex].msg,
                                             IEC60870_5_104_APCI_LENGTH);
 
     CS101_ASDU_encode(asdu, frame);
@@ -557,8 +557,6 @@ exit_function:
     return enqueued;
 }
 
-//static void
-//Slave_resetConnectionQueue(Slave self)
 static void
 HighPriorityASDUQueue_resetConnectionQueue(HighPriorityASDUQueue self)
 {
@@ -1626,6 +1624,8 @@ sendNextLowPriorityASDU(MasterConnection self)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
+    FrameBuffer* asdu;
+
     if (isSentBufferFull(self))
         goto exit_function;
 
@@ -1634,7 +1634,7 @@ sendNextLowPriorityASDU(MasterConnection self)
     uint64_t timestamp;
     int index;
 
-    FrameBuffer* asdu = MessageQueue_getNextWaitingASDU(self->lowPrioQueue, &timestamp, &index);
+    asdu = MessageQueue_getNextWaitingASDU(self->lowPrioQueue, &timestamp, &index);
 
     if (asdu != NULL)
         sendASDU(self, asdu, timestamp, index);
@@ -1652,6 +1652,8 @@ sendNextHighPriorityASDU(MasterConnection self)
 {
     bool retVal = false;
 
+    FrameBuffer* msg;
+
 #if (CONFIG_USE_THREADS == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
@@ -1661,7 +1663,7 @@ sendNextHighPriorityASDU(MasterConnection self)
 
     HighPriorityASDUQueue_lock(self->highPrioQueue);
 
-    FrameBuffer* msg = HighPriorityASDUQueue_getNextASDU(self->highPrioQueue);
+    msg = HighPriorityASDUQueue_getNextASDU(self->highPrioQueue);
 
     if (msg != NULL) {
         sendASDU(self, msg, 0, -1);

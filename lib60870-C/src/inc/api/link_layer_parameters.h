@@ -26,6 +26,10 @@
 
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \file link_layer_parameters.h
  *
@@ -41,5 +45,9 @@ struct sLinkLayerParameters {
     int timeoutRepeat; /** timeout for repeated message transmission when no ACK received in ms */
     bool useSingleCharACK; /** use single char ACK for ACK (FC=0) or RESP_NO_USER_DATA (FC=9) */
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_IEC60870_LINK_LAYER_LINK_LAYER_PARAMETERS_H_ */

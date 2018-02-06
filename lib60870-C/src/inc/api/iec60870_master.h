@@ -27,6 +27,10 @@
 
 #include "iec60870_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \file iec60870_master.h
  * \brief Common master side definitions for IEC 60870-5-101/104
@@ -47,5 +51,9 @@
  * \return true if the ASDU has been handled by the callback, false otherwise
  */
 typedef bool (*CS101_ASDUReceivedHandler) (void* parameter, int address, CS101_ASDU asdu);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_IEC60870_MASTER_H_ */
