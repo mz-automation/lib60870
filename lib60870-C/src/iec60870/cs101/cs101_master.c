@@ -307,6 +307,10 @@ void
 CS101_Master_useSlaveAddress(CS101_Master self, int address)
 {
     self->slaveAddress = address;
+
+    if (self->balancedLinkLayer) {
+        LinkLayerBalanced_setOtherStationAddress(self->balancedLinkLayer, address);
+    }
 }
 
 bool

@@ -148,9 +148,13 @@ void
 CS101_Master_setOwnAddress(CS101_Master self, int address);
 
 /**
- * \brief Select a slave for the following send functions (only unbalanced mode)
+ * \brief Set the slave address for the following send functions
  *
- * \param address the link layer address of the slave to select
+ * NOTE: This is always required in unbalanced mode. Some balanced slaves
+ * also check the link layer address. In this case the slave address
+ * has also to be set in balanced mode.
+ *
+ * \param address the link layer address of the slave to address
  */
 void
 CS101_Master_useSlaveAddress(CS101_Master self, int address);

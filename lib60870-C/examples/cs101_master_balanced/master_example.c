@@ -106,6 +106,9 @@ main(int argc, char** argv)
 
     CS101_Master master = CS101_Master_create(port, NULL, NULL, IEC60870_LINK_LAYER_BALANCED);
 
+    /* Set the address of the slave (optional for balanced master */
+    CS101_Master_useSlaveAddress(master, 3);
+
     /* set handler for received ASDUs (application layer data) */
     CS101_Master_setASDUReceivedHandler(master, asduReceivedHandler, NULL);
 
