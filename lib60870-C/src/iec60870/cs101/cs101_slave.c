@@ -387,6 +387,13 @@ CS101_Slave_setLinkLayerAddress(CS101_Slave self, int address)
         LinkLayerBalanced_setAddress(self->balancedLinkLayer, address);
 }
 
+void
+CS101_Slave_setLinkLayerAddressOtherStation(CS101_Slave self, int address)
+{
+    if (self->balancedLinkLayer)
+        LinkLayerBalanced_setOtherStationAddress(self->balancedLinkLayer, address);
+}
+
 bool
 CS101_Slave_isClass1QueueFull(CS101_Slave self)
 {

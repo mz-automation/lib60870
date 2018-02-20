@@ -109,6 +109,15 @@ void
 CS101_Slave_setLinkLayerAddress(CS101_Slave self, int address);
 
 /**
+ * \brief Set the link layer address of the remote station
+ *
+ * \param self CS101_Slave instance
+ * \param address the link layer address (can be either 1 or 2 byte wide).
+ */
+void
+CS101_Slave_setLinkLayerAddressOtherStation(CS101_Slave self, int address);
+
+/**
  * \brief Check if the class 1 ASDU is full
  *
  * \param self CS101_Slave instance
