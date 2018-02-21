@@ -485,6 +485,12 @@ CS101_Slave_getAppLayerParameters(CS101_Slave self)
     return &(self->alParameters);
 }
 
+LinkLayerParameters
+CS101_Slave_getLinkLayerParameters(CS101_Slave self)
+{
+    return &(self->linkLayerParameters);
+}
+
 void
 CS101_Slave_setResetCUHandler(CS101_Slave self, CS101_ResetCUHandler handler, void* parameter)
 {

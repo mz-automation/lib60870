@@ -313,6 +313,19 @@ CS101_Master_useSlaveAddress(CS101_Master self, int address)
     }
 }
 
+LinkLayerParameters
+CS101_Master_getLinkLayerParameters(CS101_Master self)
+{
+    return &(self->linkLayerParameters);
+}
+
+CS101_AppLayerParameters
+CS101_Master_getAppLayerParameters(CS101_Master self)
+{
+    return &(self->alParameters);
+}
+
+
 bool
 CS101_Master_isChannelReady(CS101_Master self, int address)
 {

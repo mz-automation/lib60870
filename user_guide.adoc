@@ -108,6 +108,86 @@ When you finished using the connection object you have to call
 To release all resources allocated by the object. After using the _destroy_ function you cannot use any
 functions with the _con_ reference!
 
+=== Preparing a CS 101 connection to one or more slaves
+
+CS 101 provides two link layer modes for master/slave connections.
+
+*Balanced mode* supports communication between a single master and a single slave using a
+dedicated serial line. This mode is "balanced" in the sense that both ends can spontaneously
+send messages at any time.
+
+*Unbalanced mode* supports communication between a single master and multiple slaves on a
+serial bus. Each slave is addressed by its unique link layer address. Slaves are not allowed
+to send messages spontaneously. They only respond following a request from the master.
+The master can address multiple slaves at once by using a broadcast address.
+
+==== Configuring the serial port
+
+For both modes first the serial port has to be configured and initialized. The following
+code shows an example how to prepare the serial port for usage with the library:
+
+[[app-listing]]
+[source, c]
+----
+  SerialPort port = SerialPort_create("/dev/ttsS0", 9600, 8, 'E', 1);
+----
+
+==== Create and use a new unbalanced master instances
+
+For balanced and unbalanced communication modes the *CS101_Master* type has to be used.
+
+The following code creates a new unbalanced master instance using the serial port
+defined above. The _CS101_Master_setASDUReceivedHandler_ function provides a callback handler for received ASDUs. The _CS101_Master_addSlave_ function will create a new slave specific state machine to handle all communication with the slave with link layer address 1.
+
+[[app-listing]]
+[source, c]
+----
+CS101_Master master = CS101_Master_create(port, NULL, NULL, IEC60870_LINK_LAYER_UNBALANCED);
+
+CS101_Master_setASDUReceivedHandler(master, asduReceivedHandler, NULL);
+
+CS101_Master_addSlave(master, 1);
+----
+
+The link layer parameters and application layer parameters are optional parameters. If not set default instances of the parameter objects are created and used. The
+parameters can also be modified later.
+
+Before sending any command or other request to a specific slave the slave address has to be set with the _CS101_Master_useSlaveAddress_ function.
+
+[[app-listing]]
+[source, c]
+----
+CS101_Master_useSlaveAddress(master, 1);
+CS101_Master_sendProcessCommand(master, CS101_COT_ACTIVATION, 1, sc);
+----
+
+==== Balanced master
+
+The balanced master is created the same way. Just the link layer mode parameter is different. The _CS101_Master_useSlaveAddress_ is used to set the slave address. In
+the balanced master case it has only to be set one time, as there exists only
+
+[[app-listing]]
+[source, c]
+----
+CS101_Master master = CS101_Master_create(port, NULL, NULL, IEC60870_LINK_LAYER_BALANCED);
+
+CS101_Master_useSlaveAddress(master, 3);
+CS101_Master_setASDUReceivedHandler(master, asduReceivedHandler, NULL);
+----
+
+==== Setting the link layer parameters
+
+Setting the link layer parameters is an optional step. When not explicitly set a default set of parameters will be used for the new master instance. The parameters
+can be given with the constructor _CS101_Master_create_ or modified later.
+
+[[app-listing]]
+[source, c]
+.Example: Disable usage of single char ACKs
+----
+LinkLayerParameters llParams = CS101_Master_getLinkLayerParameters(master);
+llParams->useSingleCharACK = false;
+----
+
 === Sending requests and receiving responses from the slave
 
 In general an application is concerned with sending application layer messages (ASDUs) to the slave. The master side API supports generic and specialized functions to send messages to the slave. When sending system commands or process commands it is recommended to use the specialized functions because they help to

@@ -159,6 +159,24 @@ CS101_Master_setOwnAddress(CS101_Master self, int address);
 void
 CS101_Master_useSlaveAddress(CS101_Master self, int address);
 
+
+
+/**
+ * \brief Returns the application layer parameters object of this master instance
+ *
+ * \return the CS101_AppLayerParameters instance used by this master
+ */
+CS101_AppLayerParameters
+CS101_Master_getAppLayerParameters(CS101_Master self);
+
+/**
+ * \brief Returns the link layer parameters object of this master instance
+ *
+ * \return the LinkLayerParameters instance used by this master
+ */
+LinkLayerParameters
+CS101_Master_getLinkLayerParameters(CS101_Master self);
+
 /**
  * \brief Is the channel ready to transmit an ASDU (only unbalanced mode)
  *

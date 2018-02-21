@@ -112,6 +112,10 @@ main(int argc, char** argv)
     /* set handler for received ASDUs (application layer data) */
     CS101_Master_setASDUReceivedHandler(master, asduReceivedHandler, NULL);
 
+    /* modify some of the default parameters */
+    LinkLayerParameters llParams = CS101_Master_getLinkLayerParameters(master);
+    llParams->useSingleCharACK = false;
+
     /* set handler for link layer state changes */
     CS101_Master_setLinkLayerStateChanged(master, linkLayerStateChanged, NULL);
 

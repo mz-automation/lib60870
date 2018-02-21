@@ -106,9 +106,10 @@ main(int argc, char** argv)
 
     CS101_Master master = CS101_Master_create(port, NULL, NULL, IEC60870_LINK_LAYER_UNBALANCED);
 
+    /* Setting the callback handler for generic ASDUs */
     CS101_Master_setASDUReceivedHandler(master, asduReceivedHandler, NULL);
 
-    /* set handler for link layer state changes */
+    /* set callback handler for link layer state changes */
     CS101_Master_setLinkLayerStateChanged(master, linkLayerStateChanged, NULL);
 
     CS101_Master_addSlave(master, 1);
@@ -125,16 +126,19 @@ main(int argc, char** argv)
         CS101_Master_run(master);
 
         if (cycleCounter == 10) {
+
+            /* Send a general interrogation to a specific slave */
             CS101_Master_useSlaveAddress(master, 1);
             CS101_Master_sendInterrogationCommand(master, CS101_COT_ACTIVATION, 1, IEC60870_QOI_STATION);
         }
 
         if (cycleCounter == 50) {
 
+            printf("Send control command C_SC_NA_1\n");
+
             InformationObject sc = (InformationObject)
                     SingleCommand_create(NULL, 5000, true, false, 0);
 
-            printf("Send control command C_SC_NA_1\n");
             CS101_Master_useSlaveAddress(master, 1);
             CS101_Master_sendProcessCommand(master, CS101_COT_ACTIVATION, 1, sc);
 

@@ -198,11 +198,15 @@ main(int argc, char** argv)
     // CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_UNBALANCED);
     CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_BALANCED);
 
-    CS101_Slave_setLinkLayerAddress(slave, 1);
+    CS101_Slave_setLinkLayerAddress(slave, 3);
     CS101_Slave_setLinkLayerAddressOtherStation(slave, 3);
 
     /* get the application layer parameters - we need them to create correct ASDUs */
     CS101_AppLayerParameters alParameters = CS101_Slave_getAppLayerParameters(slave);
+
+    LinkLayerParameters llParameters = CS101_Slave_getLinkLayerParameters(slave);
+    llParameters->timeoutForAck = 500;
+
 
     /* set the callback handler for the clock synchronization command */
     CS101_Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);

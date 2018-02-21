@@ -205,6 +205,16 @@ CS101_AppLayerParameters
 CS101_Slave_getAppLayerParameters(CS101_Slave self);
 
 /**
+ * \brief Returns the link layer parameters object of this slave instance
+ *
+ * \param self CS101_Slave instance
+ *
+ * \return the LinkLayerParameters instance used by this slave
+ */
+LinkLayerParameters
+CS101_Slave_getLinkLayerParameters(CS101_Slave self);
+
+/**
  * \brief Set the handler for the reset CU (communication unit) message
  *
  * \param handler the callback handler function

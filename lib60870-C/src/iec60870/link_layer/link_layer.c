@@ -97,7 +97,7 @@ struct sLinkLayerSecondaryUnbalanced {
     LinkLayer linkLayer;
     ISecondaryApplicationLayer applicationLayer;
     void* appLayerParam;
-    struct sLinkLayerParameters linkLayerParameters;
+    LinkLayerParameters linkLayerParameters;
 
     uint64_t lastReceivedMsg;
     int idleTimeout; /* connection timeout in ms */
@@ -168,7 +168,7 @@ LinkLayerSecondaryUnbalanced_create(
         self->expectedFcb = true;
         self->applicationLayer = applicationLayer;
         self->appLayerParam = applicationLayerParameter;
-        self->linkLayerParameters = *linkLayerParameters;
+        self->linkLayerParameters = linkLayerParameters;
         self->linkLayer = &(self->_linkLayer);
 
         self->state = LL_STATE_IDLE;
@@ -178,7 +178,7 @@ LinkLayerSecondaryUnbalanced_create(
 
         self->lastReceivedMsg = 0;
 
-        LinkLayer_init(self->linkLayer, linkLayerAddress, transceiver, &(self->linkLayerParameters));
+        LinkLayer_init(self->linkLayer, linkLayerAddress, transceiver, self->linkLayerParameters);
 
         self->linkLayer->llSecUnbalanced = self;
     }
@@ -358,7 +358,7 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
         {
             self->expectedFcb = true;
 
-            if (self->linkLayerParameters.useSingleCharACK)
+            if (self->linkLayerParameters->useSingleCharACK)
                 SendSingleCharCharacter(self->linkLayer);
             else
                 SendFixedFrame(self->linkLayer, LL_FC_00_ACK, self->linkLayer->address, false, false, false, false);
@@ -372,7 +372,7 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
         {
             self->expectedFcb = true;
 
-            if (self->linkLayerParameters.useSingleCharACK)
+            if (self->linkLayerParameters->useSingleCharACK)
                 SendSingleCharCharacter(self->linkLayer);
             else
                 SendFixedFrame(self->linkLayer, LL_FC_00_ACK, self->linkLayer->address, false, false, false, false);
@@ -401,7 +401,7 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
             }
             else {
 
-                if (self->linkLayerParameters.useSingleCharACK && !accessDemand)
+                if (self->linkLayerParameters->useSingleCharACK && !accessDemand)
                     SendSingleCharCharacter(self->linkLayer);
                 else
                     SendFixedFrame(self->linkLayer, LL_FC_09_RESP_NACK_NO_DATA, self->linkLayer->address, false, false, accessDemand, false);
@@ -428,7 +428,7 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
                     Frame_destroy(asdu);
             }
             else {
-                if (self->linkLayerParameters.useSingleCharACK && !accessDemand)
+                if (self->linkLayerParameters->useSingleCharACK && !accessDemand)
                     SendSingleCharCharacter(self->linkLayer);
                 else
                     SendFixedFrame(self->linkLayer, LL_FC_09_RESP_NACK_NO_DATA, self->linkLayer->address, false, false, accessDemand, false);
@@ -442,7 +442,7 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
             if (self->applicationLayer->HandleReceivedData(self->appLayerParam, msg, isBroadcast, userDataStart, userDataLength)) {
                 bool accessDemand = self->applicationLayer->IsClass1DataAvailable(self->appLayerParam);
 
-                if (self->linkLayerParameters.useSingleCharACK && !accessDemand)
+                if (self->linkLayerParameters->useSingleCharACK && !accessDemand)
                     SendSingleCharCharacter(self->linkLayer);
                 else
                     SendFixedFrame(self->linkLayer, LL_FC_00_ACK, self->linkLayer->address, false, false, accessDemand, false);
@@ -1226,7 +1226,7 @@ struct sLinkLayerBalanced {
     IBalancedApplicationLayer applicationLayer;
     void* appLayerParameter;
 
-    struct sLinkLayerParameters linkLayerParameters;
+    //LinkLayerParameters linkLayerParameters;
     struct sLinkLayer _linkLayer;
 
     struct sLinkLayerPrimaryBalanced primaryLinkLayer;
@@ -1250,7 +1250,7 @@ LinkLayerBalanced_create(
         self->applicationLayer = applicationLayer;
         self->appLayerParameter = applicationLayerParameter;
 
-        self->linkLayerParameters = *linkLayerParameters;
+        //self->linkLayerParameters = linkLayerParameters;
 
         LinkLayerPrimaryBalanced_init(&(self->primaryLinkLayer), self->linkLayer, applicationLayer, applicationLayerParameter);
         LinkLayerSecondaryBalanced_init(&(self->secondaryLinkLayer), self->linkLayer, applicationLayer, applicationLayerParameter);
