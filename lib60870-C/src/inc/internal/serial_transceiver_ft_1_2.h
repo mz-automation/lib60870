@@ -31,8 +31,6 @@ typedef struct sSerialTransceiverFT12* SerialTransceiverFT12;
 
 typedef void (*SerialTXMessageHandler) (void* parameter, uint8_t* msg, int msgSize);
 
-typedef struct sLinkLayerParameters* LinkLayerParameters;
-
 SerialTransceiverFT12
 SerialTransceiverFT12_create(SerialPort serialPort, LinkLayerParameters linkLayerParameters);
 
