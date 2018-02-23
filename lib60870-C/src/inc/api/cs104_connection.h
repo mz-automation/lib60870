@@ -214,12 +214,12 @@ CS104_Connection_sendReadCommand(CS104_Connection self, int ca, int ioa);
  * \brief Sends a clock synchronization command (C_CS_NA_1 typeID: 103)
  *
  * \param ca Common address of the slave/server
- * \param time new system time for the slave/server
+ * \param newTime new system time for the slave/server
  *
  * \return true if message was sent, false otherwise
  */
 bool
-CS104_Connection_sendClockSyncCommand(CS104_Connection self, int ca, CP56Time2a time);
+CS104_Connection_sendClockSyncCommand(CS104_Connection self, int ca, CP56Time2a newTime);
 
 /**
  * \brief Send a test command (C_TS_NA_1 typeID: 104)

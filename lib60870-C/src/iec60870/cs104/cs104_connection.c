@@ -916,7 +916,7 @@ CS104_Connection_sendReadCommand(CS104_Connection self, int ca, int ioa)
 }
 
 bool
-CS104_Connection_sendClockSyncCommand(CS104_Connection self, int ca, CP56Time2a time)
+CS104_Connection_sendClockSyncCommand(CS104_Connection self, int ca, CP56Time2a newTime)
 {
     Frame frame = (Frame) T104Frame_create();
 
@@ -924,7 +924,7 @@ CS104_Connection_sendClockSyncCommand(CS104_Connection self, int ca, CP56Time2a 
 
     encodeIOA(self, frame, 0);
 
-    T104Frame_appendBytes(frame, CP56Time2a_getEncodedValue(time), 7);
+    T104Frame_appendBytes(frame, CP56Time2a_getEncodedValue(newTime), 7);
 
     return sendASDUInternal(self, frame);
 }

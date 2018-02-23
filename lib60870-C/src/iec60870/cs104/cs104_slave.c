@@ -262,7 +262,7 @@ MessageQueue_isAsduAvailable(MessageQueue self)
 
 
 static FrameBuffer*
-MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* timestamp, int* index)
+MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* timestamp, int* queueIndex)
 {
     FrameBuffer* buffer = NULL;
 
@@ -285,7 +285,7 @@ MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* timestamp, int* ind
 
             self->asdus[currentIndex].state = QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED;
             *timestamp = self->asdus[currentIndex].entryTimestamp;
-            *index = currentIndex;
+            *queueIndex = currentIndex;
 
             buffer = &(self->asdus[currentIndex].asdu);
         }
@@ -313,9 +313,9 @@ MessageQueue_releaseAllQueuedASDUs(MessageQueue self)
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
 static void
-MessageQueue_markAsduAsConfirmed(MessageQueue self, int index, uint64_t timestamp)
+MessageQueue_markAsduAsConfirmed(MessageQueue self, int queueIndex, uint64_t timestamp)
 {
-    if ((index < 0) || (index > self->size))
+    if ((queueIndex < 0) || (queueIndex > self->size))
         return;
 
 #if (CONFIG_USE_THREADS == 1)
@@ -323,10 +323,10 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, int index, uint64_t timestam
 #endif
 
     if (self->entryCounter > 0) {
-        if (self->asdus[index].state == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED) {
+        if (self->asdus[queueIndex].state == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED) {
 
-            if (self->asdus[index].entryTimestamp == timestamp) {
-                int currentIndex = index;
+            if (self->asdus[queueIndex].entryTimestamp == timestamp) {
+                int currentIndex = queueIndex;
 
                 while (self->asdus[currentIndex].state == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED) {
 
@@ -344,7 +344,7 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, int index, uint64_t timestam
                     }
 
                     if (currentIndex == self->firstMsgIndex) {
-                        self->firstMsgIndex = (index + 1) % self->size;
+                        self->firstMsgIndex = (queueIndex + 1) % self->size;
 
                         if (self->entryCounter == 1)
                             self->lastMsgIndex = self->firstMsgIndex;
@@ -358,7 +358,7 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, int index, uint64_t timestam
                         currentIndex = self->size - 1;
 
                     /* break if we reached the first deleted entry again */
-                    if (currentIndex == index)
+                    if (currentIndex == queueIndex)
                         break;
 
                     DEBUG_PRINT("queue state: noASDUs: %i oldest: %i latest: %i\n", self->entryCounter,
@@ -1632,12 +1632,12 @@ sendNextLowPriorityASDU(MasterConnection self)
     MessageQueue_lock(self->lowPrioQueue);
 
     uint64_t timestamp;
-    int index;
+    int queueIndex;
 
-    asdu = MessageQueue_getNextWaitingASDU(self->lowPrioQueue, &timestamp, &index);
+    asdu = MessageQueue_getNextWaitingASDU(self->lowPrioQueue, &timestamp, &queueIndex);
 
     if (asdu != NULL)
-        sendASDU(self, asdu, timestamp, index);
+        sendASDU(self, asdu, timestamp, queueIndex);
 
     MessageQueue_unlock(self->lowPrioQueue);
 

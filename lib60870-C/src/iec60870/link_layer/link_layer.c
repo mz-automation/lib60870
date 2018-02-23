@@ -34,15 +34,12 @@
 #include "hal_time.h"
 #include "linked_list.h"
 
-typedef struct sLinkLayerSecondaryUnbalanced* LinkLayerSecondaryUnbalanced;
 typedef struct sLinkLayerSecondaryUnbalanced* LL_Sec_Unb; /* short cut definition */
 
 typedef struct sLinkLayerSecondaryBalanced* LinkLayerSecondaryBalanced;
 typedef struct sLinkLayerSecondaryBalanced* LL_Sec_Bal;  /* short cut definition */
 
 typedef struct sLinkLayerPrimaryBalanced* LinkLayerPrimaryBalanced;
-
-typedef struct sLinkLayerPrimaryUnbalanced* LinkLayerPrimaryUnbalanced;
 
 void
 LinkLayerSecondaryBalanced_handleMessage(LinkLayerSecondaryBalanced self, uint8_t fc, bool isBroadcast, bool fcb, bool fcv, uint8_t* msg, int userDataStart, int userDataLength);
@@ -873,8 +870,6 @@ typedef enum {
     PLL_SECONDARY_LINK_LAYER_BUSY /* Only required in balanced link layer */
 } PrimaryLinkLayerState;
 
-typedef struct sLinkLayerPrimaryBalanced* LinkLayerPrimaryBalanced;
-
 struct sLinkLayerPrimaryBalanced {
 
     LinkLayerState state; /* state information for user */
@@ -1329,8 +1324,6 @@ LinkLayerBalanced_run(LinkLayerBalanced self)
  *
  *******************************************************/
 
-
-typedef struct sLinkLayerPrimaryUnbalanced* LinkLayerPrimaryUnbalanced;
 
 typedef struct sLinkLayerSlaveConnection* LinkLayerSlaveConnection;
 
@@ -1910,7 +1903,7 @@ LinkLayerPrimaryUnbalanced_resetCU(LinkLayerPrimaryUnbalanced self, int slaveAdd
     LinkLayerSlaveConnection slave = LinkLayerPrimaryUnbalanced_getSlaveConnection(self, slaveAddress);
 
     if (slave) {
-        // slave->resetCU = true;
+        //slave->resetCU = true;
     }
 }
 
