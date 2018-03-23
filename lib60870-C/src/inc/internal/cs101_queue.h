@@ -32,8 +32,6 @@ extern "C" {
 #include "hal_thread.h"
 #endif
 
-#define CS101_ASDU_MAX_SIZE 249
-
 #ifdef CONFIG_SLAVE_MESSAGE_QUEUE_SIZE
 #define CS101_MAX_QUEUE_SIZE CONFIG_SLAVE_MESSAGE_QUEUE_SIZE
 #else

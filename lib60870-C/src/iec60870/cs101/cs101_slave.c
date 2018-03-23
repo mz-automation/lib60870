@@ -265,6 +265,7 @@ static struct sCS101_AppLayerParameters defaultAppLayerParameters = {
     /* .originatorAddress = */ 0,
     /* .sizeOfCA = */ 2,
     /* .sizeOfIOA = */ 3,
+    /* .maxSizeOfASDU = */ 249
 };
 
 CS101_Slave
@@ -299,8 +300,9 @@ CS101_Slave_create(SerialPort serialPort, LinkLayerParameters llParameters, CS10
 
         if (alParameters)
             self->alParameters = *alParameters;
-        else
+        else {
             self->alParameters = defaultAppLayerParameters;
+        }
 
         self->transceiver = SerialTransceiverFT12_create(serialPort,  &(self->linkLayerParameters));
 

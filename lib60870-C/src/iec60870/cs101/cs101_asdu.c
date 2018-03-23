@@ -68,7 +68,7 @@ asduFrame_getSpaceLeft(Frame self)
 {
     ASDUFrame frame = (ASDUFrame) self;
 
-    return (IEC60870_5_104_MAX_ASDU_LENGTH - frame->asdu->payloadSize - frame->asdu->asduHeaderLength);
+    return (frame->asdu->parameters->maxSizeOfASDU - frame->asdu->payloadSize - frame->asdu->asduHeaderLength);
 }
 
 struct sFrameVFT asduFrameVFT = {

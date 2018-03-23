@@ -146,6 +146,7 @@ struct sCS101_AppLayerParameters {
     int originatorAddress; /* originator address (OA) to use (0-255) */
     int sizeOfCA;          /* size of common address (CA) of ASDU (1/2 - default = 2) */
     int sizeOfIOA;         /* size of information object address (IOA) (1/2/3 - default = 3) */
+    int maxSizeOfASDU;     /* maximum size of the ASDU that is generated - the maximum maximum value is 249 for IEC 104 and 254 for IEC 101 */
 };
 
 /**

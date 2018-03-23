@@ -6844,7 +6844,7 @@ FileSegment_getSegmentData(FileSegment self)
 int
 FileSegment_GetMaxDataSize(CS101_AppLayerParameters parameters)
 {
-    int maxSize = 249 -
+    int maxSize = parameters->maxSizeOfASDU -
         parameters->sizeOfTypeId - parameters->sizeOfVSQ - parameters->sizeOfCA - parameters->sizeOfCOT;
 
     return maxSize;
