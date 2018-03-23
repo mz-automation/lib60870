@@ -65,7 +65,7 @@ void
 LinkLayerPrimaryUnbalanced_runStateMachine(LinkLayerPrimaryUnbalanced self);
 
 struct sLinkLayer {
-    uint8_t buffer[256];
+    uint8_t buffer[261]; /* 261 = maximum FT1.2 frame length */
     uint8_t userDataBuffer[255];
     int address;
     SerialTransceiverFT12 transceiver;
