@@ -1047,6 +1047,9 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
         DEBUG_PRINT ("PLL - link layer service not functioning/not implemented in secondary station\n");
 
+        if (self->sendLinkLayerTestFunction)
+            self->sendLinkLayerTestFunction = false;
+
         if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM) {
             newState = PLL_LINK_LAYERS_AVAILABLE;
             llpb_setNewState(self, LL_STATE_AVAILABLE);
