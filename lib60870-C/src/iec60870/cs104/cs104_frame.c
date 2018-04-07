@@ -19,7 +19,7 @@
  *  See COPYING file for the complete license text.
  */
 
-#include "../../inc/internal/cs104_frame.h"
+#include "cs104_frame.h"
 
 #include <stdlib.h>
 #include <stdint.h>

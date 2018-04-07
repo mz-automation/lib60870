@@ -239,6 +239,12 @@ CS104_Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguratio
 #endif /* (CONFIG_CS104_SUPPORT_TLS == 1) */
 
 static void
+resetT3Timeout(CS104_Connection self) {
+    self->nextT3Timeout = Hal_getTimeInMs() + (self->parameters.t3 * 1000);
+}
+
+
+static void
 resetConnection(CS104_Connection self)
 {
     self->connectTimeoutInMs = self->parameters.t0 * 1000;
@@ -264,12 +270,10 @@ resetConnection(CS104_Connection self)
 
     self->outstandingTestFCConMessages = 0;
     self->uMessageTimeout = 0;
+
+    resetT3Timeout(self);
 }
 
-static void
-resetT3Timeout(CS104_Connection self) {
-    self->nextT3Timeout = Hal_getTimeInMs() + (self->parameters.t3 * 1000);
-}
 
 static bool
 checkSequenceNumber(CS104_Connection self, int seqNo)
@@ -753,10 +757,6 @@ handleConnection(void* parameter)
 void
 CS104_Connection_connectAsync(CS104_Connection self)
 {
-    resetConnection(self);
-
-    resetT3Timeout(self);
-
     self->connectionHandlingThread = Thread_create(handleConnection, (void*) self, false);
 
     if (self->connectionHandlingThread)

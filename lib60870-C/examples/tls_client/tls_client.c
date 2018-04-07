@@ -89,7 +89,7 @@ main(int argc, char** argv)
     TLSConfiguration_setOwnCertificateFromFile(tlsConfig, "client1.cer");
     TLSConfiguration_addCACertificateFromFile(tlsConfig, "root.cer");
 
-    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "client1.cer");
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "server.cer");
 
     CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", IEC_60870_5_104_DEFAULT_TLS_PORT, tlsConfig);
 
