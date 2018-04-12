@@ -950,6 +950,23 @@ CS104_Connection_sendProcessCommand(CS104_Connection self, TypeID typeId, CS101_
 {
     Frame frame = (Frame) T104Frame_create();
 
+    if (typeId == 0)
+        typeId = InformationObject_getType(sc);
+
+    encodeIdentificationField (self, frame, typeId, 1 /* SQ:false; NumIX:1 */, cot, ca);
+
+    InformationObject_encode(sc, frame, (CS101_AppLayerParameters) &(self->alParameters), false);
+
+    return sendASDUInternal(self, frame);
+}
+
+bool
+CS104_Connection_sendProcessCommandEx(CS104_Connection self, CS101_CauseOfTransmission cot, int ca, InformationObject sc)
+{
+    Frame frame = (Frame) T104Frame_create();
+
+    TypeID typeId = InformationObject_getType(sc);
+
     encodeIdentificationField (self, frame, typeId, 1 /* SQ:false; NumIX:1 */, cot, ca);
 
     InformationObject_encode(sc, frame, (CS101_AppLayerParameters) &(self->alParameters), false);

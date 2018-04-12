@@ -236,6 +236,9 @@ CS104_Connection_sendTestCommand(CS104_Connection self, int ca);
 /**
  * \brief Send a process command to the controlled (or other) station
  *
+ * \deprecated Use \ref CS104_Connection_sendProcessCommandEx instead
+ *
+ * \param typeId the type ID of the command message to send or 0 to use the type ID of the information object
  * \param cot the cause of transmission (should be ACTIVATION to select/execute or ACT_TERM to cancel the command)
  * \param ca the common address of the information object
  * \param command the command information object (e.g. SingleCommand or DoubleCommand)
@@ -245,6 +248,18 @@ CS104_Connection_sendTestCommand(CS104_Connection self, int ca);
 bool
 CS104_Connection_sendProcessCommand(CS104_Connection self, TypeID typeId, CS101_CauseOfTransmission cot,
         int ca, InformationObject command);
+
+/**
+ * \brief Send a process command to the controlled (or other) station
+ *
+ * \param cot the cause of transmission (should be ACTIVATION to select/execute or ACT_TERM to cancel the command)
+ * \param ca the common address of the information object
+ * \param command the command information object (e.g. SingleCommand or DoubleCommand)
+ *
+ * \return true if message was sent, false otherwise
+ */
+bool
+CS104_Connection_sendProcessCommandEx(CS104_Connection self, CS101_CauseOfTransmission cot, int ca, InformationObject sc);
 
 
 /**
