@@ -951,7 +951,10 @@ struct sMasterConnection {
     int receiveCount;  /* received messages - sequence counter */
 
     int unconfirmedReceivedIMessages; /* number of unconfirmed messages received */
+
+    /* timeout T2 handling */
     uint64_t lastConfirmationTime; /* timestamp when the last confirmation message (for I messages) was sent */
+    bool timeoutT2Triggered;
 
     uint64_t nextT3Timeout;
     int outstandingTestFRConMessages;
@@ -966,8 +969,6 @@ struct sMasterConnection {
 
     MessageQueue lowPrioQueue;
     HighPriorityASDUQueue highPrioQueue;
-
-    bool firstIMessageReceived;
 };
 
 
@@ -1090,6 +1091,7 @@ sendIMessage(MasterConnection self, uint8_t* buffer, int msgSize)
         DEBUG_PRINT("SEND I (size = %i) N(S) = %i N(R) = %i\n", msgSize, self->sendCount, self->receiveCount);
         self->sendCount = (self->sendCount + 1) % 32768;
         self->unconfirmedReceivedIMessages = 0;
+        self->timeoutT2Triggered = false;
     }
     else
         self->isRunning = false;
@@ -1487,8 +1489,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             return false;
         }
 
-        if (self->firstIMessageReceived == false) {
-            self->firstIMessageReceived = true;
+        if (self->timeoutT2Triggered == false) {
+            self->timeoutT2Triggered = true;
             self->lastConfirmationTime = currentTime; /* start timeout T2 */
         }
 
@@ -1739,6 +1741,7 @@ handleTimeouts(MasterConnection self)
         if ((currentTime - self->lastConfirmationTime) >= (uint64_t) (self->slave->conParameters.t2 * 1000)) {
             self->lastConfirmationTime = currentTime;
             self->unconfirmedReceivedIMessages = 0;
+            self->timeoutT2Triggered = false;
             sendSMessage(self);
         }
     }
@@ -1837,6 +1840,8 @@ connectionHandlingThread(void* parameter)
 
                     self->unconfirmedReceivedIMessages = 0;
 
+                    self->timeoutT2Triggered = false;
+
                     sendSMessage(self);
                 }
             }
@@ -1927,7 +1932,7 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
         self->unconfirmedReceivedIMessages = 0;
         self->lastConfirmationTime = UINT64_MAX;
 
-        self->firstIMessageReceived = false;
+        self->timeoutT2Triggered = false;
 
         self->maxSentASDUs = slave->conParameters.k;
         self->oldestSentASDU = -1;

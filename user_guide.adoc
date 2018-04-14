@@ -357,6 +357,8 @@ For *select before operate* the command has to be sent with the _selectCommand_ 
 
 If the command has been successful the outstation will answer with an ACT_CON response message with the _negative flag_ not set. In case the outstation cannot execute the command it will also answer with an ACT_CON response but with the _negative flag_ set. You can check if this flag is set with the _CS101_ASDU_isNegative_ function used with the received _CS101_ASDU_ instance.
 
+For a CS 104 master a command can be sent the same way by using the _CS104_Master_sendProcessCommandEx_ function.
+
 
 == Slave (server) side programming
 

@@ -88,9 +88,10 @@ struct sCS104_Connection {
     int receiveCount;
     int sendCount;
 
-    bool firstIMessageReceived;
-
     int unconfirmedReceivedIMessages;
+
+    /* timeout T2 handling */
+    bool timeoutT2Trigger;
     uint64_t lastConfirmationTime;
 
     uint64_t nextT3Timeout;
@@ -172,6 +173,9 @@ sendIMessage(CS104_Connection self, Frame frame)
     writeToSocket(self, T104Frame_getBuffer(frame), T104Frame_getMsgSize(frame));
 
     self->sendCount = (self->sendCount + 1) % 32768;
+
+    self->unconfirmedReceivedIMessages = false;
+    self->timeoutT2Trigger = false;
 
     return self->sendCount;
 }
@@ -258,7 +262,7 @@ resetConnection(CS104_Connection self)
 
     self->unconfirmedReceivedIMessages = 0;
     self->lastConfirmationTime = 0xffffffffffffffff;
-    self->firstIMessageReceived = false;
+    self->timeoutT2Trigger = false;
 
     self->oldestSentASDU = -1;
     self->newestSentASDU = -1;
@@ -500,8 +504,8 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
 {
     if ((buffer[2] & 1) == 0) { /* I format frame */
 
-        if (self->firstIMessageReceived == false) {
-            self->firstIMessageReceived = true;
+        if (self->timeoutT2Trigger == false) {
+            self->timeoutT2Trigger = true;
             self->lastConfirmationTime = Hal_getTimeInMs(); /* start timeout T2 */
         }
 
@@ -619,6 +623,7 @@ handleTimeouts(CS104_Connection self)
 
             self->lastConfirmationTime = currentTime;
             self->unconfirmedReceivedIMessages = 0;
+            self->timeoutT2Trigger = false;
 
             sendSMessage(self); /* send confirmation message */
         }
@@ -717,6 +722,7 @@ handleConnection(void* parameter)
                     if (self->unconfirmedReceivedIMessages >= self->parameters.w) {
                         self->lastConfirmationTime = Hal_getTimeInMs();
                         self->unconfirmedReceivedIMessages = 0;
+                        self->timeoutT2Trigger = false;
                         sendSMessage(self);
                     }
                 }
