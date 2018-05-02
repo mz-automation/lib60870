@@ -820,7 +820,7 @@ encodeIOA(CS104_Connection self, Frame frame, int ioa)
     if (self->alParameters.sizeOfIOA > 1)
         T104Frame_setNextByte(frame, (uint8_t) ((ioa / 0x100) & 0xff));
 
-    if (self->alParameters.sizeOfIOA > 1)
+    if (self->alParameters.sizeOfIOA > 2)
         T104Frame_setNextByte(frame, (uint8_t) ((ioa / 0x10000) & 0xff));
 }
 
