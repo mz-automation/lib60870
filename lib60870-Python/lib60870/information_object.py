@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 c_enum = c_int
 cTypeId = c_enum
 DoublePointValue = c_enum
+StepCommandValue = c_enum
 StartEvent = c_uint8
 OutputCircuitInfo = c_uint8
 QualifierOfRPC = c_uint8
@@ -1603,7 +1604,7 @@ class StepCommand(ctypes.Structure, IOBase):
         return lib.StepCommand_create(
             pStepCommand(self),
             c_int(ioa),
-            pStepCommandValue(command),
+            StepCommandValue(command),
             c_bool(selectCommand),
             c_int(qu)).contents
 
@@ -1612,7 +1613,7 @@ class StepCommand(ctypes.Structure, IOBase):
         return lib.StepCommand_getQU(pStepCommand(self))
 
     def get_state(self):
-        lib.StepCommand_getState.restype = pStepCommandValue
+        lib.StepCommand_getState.restype = StepCommandValue
         return lib.StepCommand_getState(pStepCommand(self)).contents
 
     def is_select(self):
@@ -1864,7 +1865,7 @@ class StepCommandWithCP56Time2a(ctypes.Structure, IOBase):
         return lib.StepCommandWithCP56Time2a_create(
             pStepCommandWithCP56Time2a(self),
             c_int(ioa),
-            pStepCommandValue(command),
+            StepCommandValue(command),
             c_bool(selectCommand),
             c_int(qu),
             timestamp.pointer).contents
@@ -1874,7 +1875,7 @@ class StepCommandWithCP56Time2a(ctypes.Structure, IOBase):
         return lib.StepCommandWithCP56Time2a_getQU(pStepCommandWithCP56Time2a(self))
 
     def get_state(self):
-        lib.StepCommandWithCP56Time2a_getState.restype = pStepCommandValue
+        lib.StepCommandWithCP56Time2a_getState.restype = StepCommandValue
         return lib.StepCommandWithCP56Time2a_getState(pStepCommandWithCP56Time2a(self)).contents
 
     def is_select(self):
