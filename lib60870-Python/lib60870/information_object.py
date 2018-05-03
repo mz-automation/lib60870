@@ -1538,6 +1538,9 @@ class SingleCommand(ctypes.Structure, IOBase):
         lib.SingleCommand_getQU.restype = c_int
         return lib.SingleCommand_getQU(pSingleCommand(self))
 
+    def get_value(self):
+        return self.get_state()
+
     def get_state(self):
         lib.SingleCommand_getState.restype = c_bool
         return lib.SingleCommand_getState(pSingleCommand(self))
@@ -1575,6 +1578,9 @@ class DoubleCommand(ctypes.Structure, IOBase):
         lib.DoubleCommand_getQU.restype = c_int
         return lib.DoubleCommand_getQU(pDoubleCommand(self))
 
+    def get_value(self):
+        return self.get_state()
+
     def get_state(self):
         lib.DoubleCommand_getState.restype = c_int
         return lib.DoubleCommand_getState(pDoubleCommand(self))
@@ -1611,6 +1617,9 @@ class StepCommand(ctypes.Structure, IOBase):
     def get_qu(self):
         lib.StepCommand_getQU.restype = c_int
         return lib.StepCommand_getQU(pStepCommand(self))
+
+    def get_value(self):
+        return self.get_state()
 
     def get_state(self):
         lib.StepCommand_getState.restype = StepCommandValue
@@ -1796,6 +1805,9 @@ class SingleCommandWithCP56Time2a(ctypes.Structure, IOBase):
         lib.SingleCommand_getQU.restype = c_int
         return lib.SingleCommand_getQU(pSingleCommand(self))
 
+    def get_value(self):
+        return self.get_state()
+
     def get_state(self):
         lib.SingleCommand_getState.restype = c_bool
         return lib.SingleCommand_getState(pSingleCommand(self))
@@ -1835,6 +1847,9 @@ class DoubleCommandWithCP56Time2a(ctypes.Structure, IOBase):
         lib.DoubleCommandWithCP56Time2a_getQU.restype = c_int
         return lib.DoubleCommandWithCP56Time2a_getQU(pDoubleCommandWithCP56Time2a(self))
 
+    def get_value(self):
+        return self.get_state()
+
     def get_state(self):
         lib.DoubleCommandWithCP56Time2a_getState.restype = c_int
         return lib.DoubleCommandWithCP56Time2a_getState(pDoubleCommandWithCP56Time2a(self))
@@ -1873,6 +1888,9 @@ class StepCommandWithCP56Time2a(ctypes.Structure, IOBase):
     def get_qu(self):
         lib.StepCommandWithCP56Time2a_getQU.restype = c_int
         return lib.StepCommandWithCP56Time2a_getQU(pStepCommandWithCP56Time2a(self))
+
+    def get_value(self):
+        return self.get_state()
 
     def get_state(self):
         lib.StepCommandWithCP56Time2a_getState.restype = StepCommandValue
