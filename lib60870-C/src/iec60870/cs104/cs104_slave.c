@@ -1968,15 +1968,19 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
         self->highPrioQueue = highPrioQueue;
 
         self->outstandingTestFRConMessages = 0;
-
-        Thread newThread =
-               Thread_create((ThreadExecutionFunction) connectionHandlingThread,
-                       (void*) self, true);
-
-        Thread_start(newThread);
     }
 
     return self;
+}
+
+static void
+MasterConnection_start(MasterConnection self)
+{
+    Thread newThread =
+           Thread_create((ThreadExecutionFunction) connectionHandlingThread,
+                   (void*) self, true);
+
+    Thread_start(newThread);
 }
 
 void
@@ -2077,6 +2081,9 @@ serverThread (void* parameter)
 #if (CONFIG_USE_THREADS)
                     Semaphore_post(self->openConnectionsLock);
 #endif
+
+                    /* now start the connection handling (thread) */
+                    MasterConnection_start(connection);
                 }
                 else
                     DEBUG_PRINT("Connection attempt failed!");

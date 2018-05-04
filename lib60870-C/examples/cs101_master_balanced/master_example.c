@@ -106,6 +106,9 @@ main(int argc, char** argv)
 
     CS101_Master master = CS101_Master_create(port, NULL, NULL, IEC60870_LINK_LAYER_BALANCED);
 
+
+    CS101_Master_setOwnAddress(master, 3);
+
     /* Set the address of the slave (optional for balanced master */
     CS101_Master_useSlaveAddress(master, 3);
 
