@@ -1,3 +1,15 @@
+Changes to version 2.0.1
+------------------------
+- fixed problems to compile code with C++
+- CS101: added functions to better control link layer addresses
+- CS101 master: added function to modify default link layer parameters
+- link layer: fixed problem in test function handling
+- application layer: allow configuration of maximum size of ASDU
+- CS104 master: added new function CS104_Master_sendProcessCommandEx
+- CS104: fixed timeout T2 problem
+- and other small fixes
+
+
 Changes to version 2.0.0
 ------------------------
 - added support for CS 101 balanced and unbalanced serial link layer
