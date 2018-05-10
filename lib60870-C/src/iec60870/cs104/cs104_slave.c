@@ -50,6 +50,18 @@
 #error Illegal configuration: Define either CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP or CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP
 #endif
 
+typedef struct sMasterConnection* MasterConnection;
+
+void
+MasterConnection_close(MasterConnection self);
+
+void
+MasterConnection_deactivate(MasterConnection self);
+
+void
+MasterConnection_activate(MasterConnection self);
+
+
 #define CS104_DEFAULT_PORT 2404
 
 static struct sCS104_APCIParameters defaultConnectionParameters = {
@@ -605,6 +617,9 @@ struct sCS104_Slave {
     CS104_ConnectionRequestHandler connectionRequestHandler;
     void* connectionRequestHandlerParameter;
 
+    CS104_ConnectionEventHandler connectionEventHandler;
+    void* connectionEventHandlerParameter;
+
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     TLSConfiguration tlsConfig;
 #endif
@@ -721,6 +736,7 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
         self->resetProcessHandler = NULL;
         self->delayAcquisitionHandler = NULL;
         self->connectionRequestHandler = NULL;
+        self->connectionEventHandler = NULL;
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
         self->maxLowPrioQueueSize = maxLowPrioQueueSize;
@@ -838,6 +854,13 @@ CS104_Slave_setConnectionRequestHandler(CS104_Slave self, CS104_ConnectionReques
     self->connectionRequestHandlerParameter = parameter;
 }
 
+void
+CS104_Slave_setConnectionEventHandler(CS104_Slave self, CS104_ConnectionEventHandler handler, void* parameter)
+{
+    self->connectionEventHandler = handler;
+    self->connectionEventHandlerParameter = parameter;
+}
+
 /**
  * Activate connection and deactivate existing active connections if required
  */
@@ -870,6 +893,8 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
 
     }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
+
+    MasterConnection_activate(connectionToActivate);
 }
 
 void
@@ -1534,22 +1559,20 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
     /* Check for STARTDT_ACT message */
     else if ((buffer [2] & 0x07) == 0x07) {
-        DEBUG_PRINT("Send STARTDT_CON\n");
-
         CS104_Slave_activate(self->slave, self);
 
-        self->isActive = true;
-
         HighPriorityASDUQueue_resetConnectionQueue(self->highPrioQueue);
+
+        DEBUG_PRINT("Send STARTDT_CON\n");
 
         writeToSocket(self, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
     }
 
     /* Check for STOPDT_ACT message */
     else if ((buffer [2] & 0x13) == 0x13) {
-        DEBUG_PRINT("Send STOPDT_CON\n");
+        MasterConnection_deactivate(self);
 
-        self->isActive = false;
+        DEBUG_PRINT("Send STOPDT_CON\n");
 
         writeToSocket(self, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE);
     }
@@ -1803,6 +1826,10 @@ connectionHandlingThread(void* parameter)
 
     bool isAsduWaiting = false;
 
+    if (self->slave->connectionEventHandler) {
+        self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_CONNECTION_OPENED);
+    }
+
     while (self->isRunning) {
 
         Handleset_reset(handleSet);
@@ -1853,6 +1880,10 @@ connectionHandlingThread(void* parameter)
         if (self->isRunning)
             if (self->isActive)
                 isAsduWaiting = sendWaitingASDUs(self);
+    }
+
+    if (self->slave->connectionEventHandler) {
+       self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_CONNECTION_CLOSED);
     }
 
     DEBUG_PRINT("Connection closed\n");
@@ -1992,7 +2023,25 @@ MasterConnection_close(MasterConnection self)
 void
 MasterConnection_deactivate(MasterConnection self)
 {
+    if (self->isActive == true) {
+        if (self->slave->connectionEventHandler) {
+             self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_STOPDT_RECEIVED);
+        }
+    }
+
     self->isActive = false;
+}
+
+void
+MasterConnection_activate(MasterConnection self)
+{
+    if (self->isActive == false) {
+        if (self->slave->connectionEventHandler) {
+             self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_STARTDT_RECEIVED);
+        }
+    }
+
+    self->isActive = true;
 }
 
 

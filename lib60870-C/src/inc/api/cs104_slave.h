@@ -1,7 +1,7 @@
 /*
  *  cs104_slave.h
  *
- *  Copyright 2017 MZ Automation GmbH
+ *  Copyright 2017, 2018 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -64,6 +64,24 @@ typedef enum {
  */
 typedef bool (*CS104_ConnectionRequestHandler) (void* parameter, const char* ipAddress);
 
+typedef enum {
+    CS104_CON_EVENT_CONNECTION_OPENED = 0,
+    CS104_CON_EVENT_CONNECTION_CLOSED = 1,
+    CS104_CON_EVENT_STARTDT_RECEIVED = 2,
+    CS104_CON_EVENT_STOPDT_RECEIVED = 3
+} CS104_PeerConnectionEvent;
+
+
+/**
+ * \brief Handler that is called when a peer connection is established or closed, or START_DT/STOP_DT is issued
+ *
+ * \param parameter user provided parameter
+ * \param connection the connection object
+ * \param event event type
+ */
+typedef void (*CS104_ConnectionEventHandler) (void* parameter, IMasterConnection connection, CS104_PeerConnectionEvent event);
+
+
 /**
  * \brief Create a new instance of a CS104 slave (server)
  *
@@ -125,11 +143,41 @@ CS104_Slave_getOpenConnections(CS104_Slave self);
 void
 CS104_Slave_setMaxOpenConnections(CS104_Slave self, int maxOpenConnections);
 
+/**
+ * \brief Set one of the server modes
+ *
+ * \param self the slave instance
+ * \param serverMode the server mode (see \ref CS104_ServerMode) to use
+ */
 void
 CS104_Slave_setServerMode(CS104_Slave self, CS104_ServerMode serverMode);
 
+/**
+ * \brief Set the connection request handler
+ *
+ * The connection request handler is called whenever a client/master is trying to connect.
+ * This handler can be used to implement access control mechanisms as it allows the user to decide
+ * if the new connection is accepted or not.
+ *
+ * \param self the slave instance
+ * \param handler the callback function to be used
+ * \param parameter user provided context parameter that will be passed to the callback function (or NULL if not required).
+ */
 void
 CS104_Slave_setConnectionRequestHandler(CS104_Slave self, CS104_ConnectionRequestHandler handler, void* parameter);
+
+/**
+ * \brief Set the connection event handler
+ *
+ * The connection request handler is called whenever a connection event happens. A connection event
+ * can be when a client connects or disconnects, or when a START_DT or STOP_DT message is received.
+ *
+ * \param self the slave instance
+ * \param handler the callback function to be used
+ * \param parameter user provided context parameter that will be passed to the callback function (or NULL if not required).
+ */
+void
+CS104_Slave_setConnectionEventHandler(CS104_Slave self, CS104_ConnectionEventHandler handler, void* parameter);
 
 void
 CS104_Slave_setInterrogationHandler(CS104_Slave self, CS101_InterrogationHandler handler, void*  parameter);
@@ -187,17 +235,6 @@ CS104_Slave_destroy(CS104_Slave self);
 /**
  * @}
  */
-
-//TODO move to internal
-typedef struct sMasterConnection* MasterConnection;
-
-//TODO move to internal
-void
-MasterConnection_close(MasterConnection self);
-
-//TODO move to internal
-void
-MasterConnection_deactivate(MasterConnection self);
 
 #ifdef __cplusplus
 }

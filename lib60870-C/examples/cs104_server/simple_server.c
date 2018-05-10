@@ -147,7 +147,7 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
 static bool
 connectionRequestHandler(void* parameter, const char* ipAddress)
 {
-    printf("New connection from %s\n", ipAddress);
+    printf("New connection request from %s\n", ipAddress);
 
 #if 0
     if (strcmp(ipAddress, "127.0.0.1") == 0) {
@@ -161,6 +161,23 @@ connectionRequestHandler(void* parameter, const char* ipAddress)
 #else
     return true;
 #endif
+}
+
+static void
+connectionEventHandler(void* parameter, IMasterConnection con, CS104_PeerConnectionEvent event)
+{
+    if (event == CS104_CON_EVENT_CONNECTION_OPENED) {
+        printf("Connection opened (%p)\n", con);
+    }
+    else if (event == CS104_CON_EVENT_CONNECTION_CLOSED) {
+        printf("Connection closed (%p)\n", con);
+    }
+    else if (event == CS104_CON_EVENT_STARTDT_RECEIVED) {
+        printf("Connection activated (%p)\n", con);
+    }
+    else if (event == CS104_CON_EVENT_STOPDT_RECEIVED) {
+        printf("Connection deactivated (%p)\n", con);
+    }
 }
 
 int
@@ -189,7 +206,11 @@ main(int argc, char** argv)
     /* set handler for other message types */
     CS104_Slave_setASDUHandler(slave, asduHandler, NULL);
 
+    /* set handler to handle connection requests (optional) */
     CS104_Slave_setConnectionRequestHandler(slave, connectionRequestHandler, NULL);
+
+    /* set handler to track connection events (optional) */
+    CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, NULL);
 
     CS104_Slave_start(slave);
 

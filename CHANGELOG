@@ -1,3 +1,8 @@
+Changes to version 2.0.2
+------------------------
+- CS104 slave: added new CS104_ConnectionEventHandler to track connection events
+
+
 Changes to version 2.0.1
 ------------------------
 - fixed problems to compile code with C++
