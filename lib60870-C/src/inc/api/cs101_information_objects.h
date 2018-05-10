@@ -1285,6 +1285,9 @@ DoubleCommandWithCP56Time2a_getState(DoubleCommandWithCP56Time2a self);
 bool
 DoubleCommandWithCP56Time2a_isSelect(DoubleCommandWithCP56Time2a self);
 
+CP56Time2a
+DoubleCommandWithCP56Time2a_getTimestamp(DoubleCommandWithCP56Time2a self);
+
 /*************************************************
  * StepCommandWithCP56Time2a : InformationObject
  *************************************************/
@@ -1305,6 +1308,9 @@ StepCommandWithCP56Time2a_getState(StepCommandWithCP56Time2a self);
 
 bool
 StepCommandWithCP56Time2a_isSelect(StepCommandWithCP56Time2a self);
+
+CP56Time2a
+StepCommandWithCP56Time2a_getTimestamp(StepCommandWithCP56Time2a self);
 
 /**********************************************************************
  * SetpointCommandNormalizedWithCP56Time2a : SetpointCommandNormalized
@@ -1327,6 +1333,9 @@ SetpointCommandNormalizedWithCP56Time2a_getQL(SetpointCommandNormalizedWithCP56T
 bool
 SetpointCommandNormalizedWithCP56Time2a_isSelect(SetpointCommandNormalizedWithCP56Time2a self);
 
+CP56Time2a
+SetpointCommandNormalizedWithCP56Time2a_getTimestamp(SetpointCommandNormalizedWithCP56Time2a self);
+
 /**********************************************************************
  * SetpointCommandScaledWithCP56Time2a : SetpointCommandScaled
  **********************************************************************/
@@ -1348,6 +1357,9 @@ SetpointCommandScaledWithCP56Time2a_getQL(SetpointCommandScaledWithCP56Time2a se
 bool
 SetpointCommandScaledWithCP56Time2a_isSelect(SetpointCommandScaledWithCP56Time2a self);
 
+CP56Time2a
+SetpointCommandScaledWithCP56Time2a_getTimestamp(SetpointCommandScaledWithCP56Time2a self);
+
 /**********************************************************************
  * SetpointCommandShortWithCP56Time2a : SetpointCommandShort
  **********************************************************************/
@@ -1368,6 +1380,9 @@ SetpointCommandShortWithCP56Time2a_getQL(SetpointCommandShortWithCP56Time2a self
 
 bool
 SetpointCommandShortWithCP56Time2a_isSelect(SetpointCommandShortWithCP56Time2a self);
+
+CP56Time2a
+SetpointCommandShortWithCP56Time2a_getTimestamp(SetpointCommandShortWithCP56Time2a self);
 
 /*******************************************************
  * Bitstring32CommandWithCP56Time2a: Bitstring32Command
