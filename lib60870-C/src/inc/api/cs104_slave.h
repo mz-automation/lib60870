@@ -67,8 +67,8 @@ typedef bool (*CS104_ConnectionRequestHandler) (void* parameter, const char* ipA
 typedef enum {
     CS104_CON_EVENT_CONNECTION_OPENED = 0,
     CS104_CON_EVENT_CONNECTION_CLOSED = 1,
-    CS104_CON_EVENT_STARTDT_RECEIVED = 2,
-    CS104_CON_EVENT_STOPDT_RECEIVED = 3
+    CS104_CON_EVENT_ACTIVATED = 2,
+    CS104_CON_EVENT_DEACTIVATED = 3
 } CS104_PeerConnectionEvent;
 
 

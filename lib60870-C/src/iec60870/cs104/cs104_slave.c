@@ -2025,7 +2025,7 @@ MasterConnection_deactivate(MasterConnection self)
 {
     if (self->isActive == true) {
         if (self->slave->connectionEventHandler) {
-             self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_STOPDT_RECEIVED);
+             self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_DEACTIVATED);
         }
     }
 
@@ -2037,7 +2037,7 @@ MasterConnection_activate(MasterConnection self)
 {
     if (self->isActive == false) {
         if (self->slave->connectionEventHandler) {
-             self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_STARTDT_RECEIVED);
+             self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_ACTIVATED);
         }
     }
 

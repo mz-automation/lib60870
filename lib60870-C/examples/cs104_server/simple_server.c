@@ -172,10 +172,10 @@ connectionEventHandler(void* parameter, IMasterConnection con, CS104_PeerConnect
     else if (event == CS104_CON_EVENT_CONNECTION_CLOSED) {
         printf("Connection closed (%p)\n", con);
     }
-    else if (event == CS104_CON_EVENT_STARTDT_RECEIVED) {
+    else if (event == CS104_CON_EVENT_ACTIVATED) {
         printf("Connection activated (%p)\n", con);
     }
-    else if (event == CS104_CON_EVENT_STOPDT_RECEIVED) {
+    else if (event == CS104_CON_EVENT_DEACTIVATED) {
         printf("Connection deactivated (%p)\n", con);
     }
 }
