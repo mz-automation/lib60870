@@ -1769,20 +1769,26 @@ handleTimeouts(MasterConnection self)
         }
     }
 
-    /* check if counterpart confirmed I message */
 #if (CONFIG_USE_THREADS == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
+    /* check if counterpart confirmed I message */
     if (self->oldestSentASDU != -1) {
-        if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->slave->conParameters.t1 * 1000)) {
-            timeoutsOk = false;
 
-            printSendBuffer(self);
+        if (currentTime > self->sentASDUs[self->oldestSentASDU].sentTime) {
 
-            DEBUG_PRINT("I message timeout for %i seqNo: %i\n", self->oldestSentASDU,
-                    self->sentASDUs[self->oldestSentASDU].seqNo);
+            if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->slave->conParameters.t1 * 1000)) {
+                timeoutsOk = false;
+
+                printSendBuffer(self);
+
+                DEBUG_PRINT("I message timeout for %i seqNo: %i\n", self->oldestSentASDU,
+                        self->sentASDUs[self->oldestSentASDU].seqNo);
+            }
+
         }
+
     }
 
 #if (CONFIG_USE_THREADS == 1)
