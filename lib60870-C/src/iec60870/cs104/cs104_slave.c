@@ -1410,6 +1410,7 @@ checkSequenceNumber(MasterConnection self, int seqNo)
 
     bool seqNoIsValid = false;
     bool counterOverflowDetected = false;
+    int oldestValidSeqNo = -1;
 
     if (self->oldestSentASDU == -1) { /* if k-Buffer is empty */
         if (seqNo == self->sendCount)
@@ -1431,9 +1432,13 @@ checkSequenceNumber(MasterConnection self, int seqNo)
             counterOverflowDetected = true;
         }
 
-        int latestValidSeqNo = (oldestAsduSeqNo - 1) % 32768;
+        /* check if confirmed message was already removed from list */
+        if (oldestAsduSeqNo == 0)
+            oldestValidSeqNo = 32767;
+        else
+            oldestValidSeqNo = (oldestAsduSeqNo - 1) % 32768;
 
-        if (latestValidSeqNo == seqNo)
+        if (oldestValidSeqNo == seqNo)
             seqNoIsValid = true;
     }
 
@@ -1447,10 +1452,9 @@ checkSequenceNumber(MasterConnection self, int seqNo)
                     if (seqNo < oldestAsduSeqNo)
                         break;
                 }
-                else {
-                    if (seqNo == ((oldestAsduSeqNo - 1) % 32768))
-                        break;
-                }
+
+                if (seqNo == oldestValidSeqNo)
+                    break;
 
                 /* remove from server (low-priority) queue if required */
                 if (self->sentASDUs[self->oldestSentASDU].queueIndex != -1) {
@@ -1460,16 +1464,7 @@ checkSequenceNumber(MasterConnection self, int seqNo)
                             self->sentASDUs[self->oldestSentASDU].entryTime);
                 }
 
-                self->oldestSentASDU = (self->oldestSentASDU + 1) % self->maxSentASDUs;
-
-                int checkIndex = (self->newestSentASDU + 1) % self->maxSentASDUs;
-
-                if (self->oldestSentASDU == checkIndex) {
-                    self->oldestSentASDU = -1;
-                    break;
-                }
-
-                if (self->sentASDUs[self->oldestSentASDU].seqNo == seqNo) {
+                if (oldestAsduSeqNo == seqNo) {
                     /* we arrived at the seq# that has been confirmed */
 
                     if (self->oldestSentASDU == self->newestSentASDU)
@@ -1477,6 +1472,15 @@ checkSequenceNumber(MasterConnection self, int seqNo)
                     else
                         self->oldestSentASDU = (self->oldestSentASDU + 1) % self->maxSentASDUs;
 
+                    break;
+                }
+
+                self->oldestSentASDU = (self->oldestSentASDU + 1) % self->maxSentASDUs;
+
+                int checkIndex = (self->newestSentASDU + 1) % self->maxSentASDUs;
+
+                if (self->oldestSentASDU == checkIndex) {
+                    self->oldestSentASDU = -1;
                     break;
                 }
 
@@ -1751,8 +1755,12 @@ handleTimeouts(MasterConnection self)
             timeoutsOk = false;
         }
         else {
-            if (writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE) == -1)
+            if (writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE) == -1) {
+
+                DEBUG_PRINT("Failed to write TESTFR ACT message\n");
+
                 self->isRunning = false;
+            }
 
             self->outstandingTestFRConMessages++;
             resetT3Timeout(self);

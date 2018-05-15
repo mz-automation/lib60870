@@ -290,6 +290,7 @@ checkSequenceNumber(CS104_Connection self, int seqNo)
 
     bool seqNoIsValid = false;
     bool counterOverflowDetected = false;
+    int oldestValidSeqNo = -1;
 
     if (self->oldestSentASDU == -1) { /* if k-Buffer is empty */
         if (seqNo == self->sendCount)
@@ -310,9 +311,13 @@ checkSequenceNumber(CS104_Connection self, int seqNo)
             counterOverflowDetected = true;
         }
 
-        int latestValidSeqNo = (self->sentASDUs[self->oldestSentASDU].seqNo - 1) % 32768;
+        /* check if confirmed message was already removed from list */
+        if (self->sentASDUs[self->oldestSentASDU].seqNo == 0)
+            oldestValidSeqNo = 32767;
+        else
+            oldestValidSeqNo = (self->sentASDUs[self->oldestSentASDU].seqNo - 1) % 32768;
 
-        if (latestValidSeqNo == seqNo)
+        if (oldestValidSeqNo == seqNo)
             seqNoIsValid = true;
     }
 
@@ -325,9 +330,21 @@ checkSequenceNumber(CS104_Connection self, int seqNo)
                     if (seqNo < self->sentASDUs [self->oldestSentASDU].seqNo)
                         break;
                 }
-                else {
-                    if (seqNo == ((self->sentASDUs [self->oldestSentASDU].seqNo - 1) % 32768))
-                        break;
+
+                if (seqNo == oldestValidSeqNo)
+                    break;
+
+
+
+                if (self->sentASDUs [self->oldestSentASDU].seqNo == seqNo) {
+                    /* we arrived at the seq# that has been confirmed */
+
+                    if (self->oldestSentASDU == self->newestSentASDU)
+                        self->oldestSentASDU = -1;
+                    else
+                        self->oldestSentASDU = (self->oldestSentASDU + 1) % self->maxSentASDUs;
+
+                    break;
                 }
 
                 self->oldestSentASDU = (self->oldestSentASDU + 1) % self->maxSentASDUs;
@@ -339,8 +356,6 @@ checkSequenceNumber(CS104_Connection self, int seqNo)
                     break;
                 }
 
-                if (self->sentASDUs [self->oldestSentASDU].seqNo == seqNo)
-                    break;
             } while (true);
 
         }
