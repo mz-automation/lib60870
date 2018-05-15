@@ -53,7 +53,7 @@ extern "C" {
 typedef bool (*CS101_ASDUReceivedHandler) (void* parameter, int address, CS101_ASDU asdu);
 
 /**
- * \brief Callback handler for received messages
+ * \brief Callback handler for sent and received messages
  *
  * This callback handler provides access to the raw message buffer of received or sent
  * messages. It can be used for debugging purposes. Usually it is not used nor required

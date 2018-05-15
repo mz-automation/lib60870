@@ -81,6 +81,21 @@ typedef enum {
  */
 typedef void (*CS104_ConnectionEventHandler) (void* parameter, IMasterConnection connection, CS104_PeerConnectionEvent event);
 
+/**
+ * \brief Callback handler for sent and received messages
+ *
+ * This callback handler provides access to the raw message buffer of received or sent
+ * messages. It can be used for debugging purposes. Usually it is not used nor required
+ * for applications.
+ *
+ * \param parameter user provided parameter
+ * \param connection the connection that sent or received the message
+ * \param msg the message buffer
+ * \param msgSize size of the message
+ * \param sent indicates if the message was sent or received
+ */
+typedef void (*CS104_SlaveRawMessageHandler) (void* parameter, IMasterConnection connection, uint8_t* msg, int msgSize, bool send);
+
 
 /**
  * \brief Create a new instance of a CS104 slave (server)
@@ -196,6 +211,15 @@ CS104_Slave_setASDUHandler(CS104_Slave self, CS101_ASDUHandler handler, void* pa
 
 void
 CS104_Slave_setClockSyncHandler(CS104_Slave self, CS101_ClockSynchronizationHandler handler, void* parameter);
+
+/**
+ * \brief Set the raw message callback (called when a message is sent or received)
+ *
+ * \param handler user provided callback handler function
+ * \param parameter user provided parameter that is passed to the callback handler
+ */
+void
+CS104_Slave_setRawMessageHandler(CS104_Slave self, CS104_SlaveRawMessageHandler handler, void* parameter);
 
 CS104_APCIParameters
 CS104_Slave_getConnectionParameters(CS104_Slave self);

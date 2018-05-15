@@ -620,6 +620,9 @@ struct sCS104_Slave {
     CS104_ConnectionEventHandler connectionEventHandler;
     void* connectionEventHandlerParameter;
 
+    CS104_SlaveRawMessageHandler rawMessageHandler;
+    void* rawMessageHandlerParameter;
+
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     TLSConfiguration tlsConfig;
 #endif
@@ -737,6 +740,7 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
         self->delayAcquisitionHandler = NULL;
         self->connectionRequestHandler = NULL;
         self->connectionEventHandler = NULL;
+        self->rawMessageHandler = NULL;
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
         self->maxLowPrioQueueSize = maxLowPrioQueueSize;
@@ -932,6 +936,13 @@ CS104_Slave_setClockSyncHandler(CS104_Slave self, CS101_ClockSynchronizationHand
     self->clockSyncHandlerParameter = parameter;
 }
 
+void
+CS104_Slave_setRawMessageHandler(CS104_Slave self, CS104_SlaveRawMessageHandler handler, void* parameter)
+{
+    self->rawMessageHandler = handler;
+    self->rawMessageHandlerParameter = parameter;
+}
+
 CS104_APCIParameters
 CS104_Slave_getConnectionParameters(CS104_Slave self)
 {
@@ -1090,6 +1101,10 @@ receiveMessage(MasterConnection self, uint8_t* buffer)
 static inline int
 writeToSocket(MasterConnection self, uint8_t* buf, int size)
 {
+    if (self->slave->rawMessageHandler)
+        self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
+                &(self->iMasterConnection), buf, size, true);
+
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     if (self->tlsSocket)
         return TLSSocket_write(self->tlsSocket, buf, size);
@@ -1863,6 +1878,10 @@ connectionHandlingThread(void* parameter)
         if (Handleset_waitReady(handleSet, socketTimeout)) {
 
             int bytesRec = receiveMessage(self, buffer);
+
+            if (self->slave->rawMessageHandler)
+                self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
+                        &(self->iMasterConnection), buffer, bytesRec, false);
 
             if (bytesRec == -1) {
                 DEBUG_PRINT("Error reading from socket\n");

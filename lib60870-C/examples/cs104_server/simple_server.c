@@ -28,6 +28,23 @@ printCP56Time2a(CP56Time2a time)
                              CP56Time2a_getYear(time) + 2000);
 }
 
+/* Callback handler to log sent or received messages (optional) */
+static void
+rawMessageHandler(void* parameter, IMasterConnection conneciton, uint8_t* msg, int msgSize, bool sent)
+{
+    if (sent)
+        printf("SEND: ");
+    else
+        printf("RCVD: ");
+
+    int i;
+    for (i = 0; i < msgSize; i++) {
+        printf("%02x ", msg[i]);
+    }
+
+    printf("\n");
+}
+
 static bool
 clockSyncHandler (void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
 {
@@ -211,6 +228,9 @@ main(int argc, char** argv)
 
     /* set handler to track connection events (optional) */
     CS104_Slave_setConnectionEventHandler(slave, connectionEventHandler, NULL);
+
+    /* uncomment to log messages */
+    //CS104_Slave_setRawMessageHandler(slave, rawMessageHandler, NULL);
 
     CS104_Slave_start(slave);
 
