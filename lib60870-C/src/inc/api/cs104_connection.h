@@ -298,8 +298,24 @@ typedef enum {
  */
 typedef void (*CS104_ConnectionHandler) (void* parameter, CS104_Connection connection, CS104_ConnectionEvent event);
 
+/**
+ * \brief Set the connection event handler
+ *
+ * \param handler user provided callback handler function
+ * \param parameter user provided parameter that is passed to the callback handler
+ */
 void
 CS104_Connection_setConnectionHandler(CS104_Connection self, CS104_ConnectionHandler handler, void* parameter);
+
+
+/**
+ * \brief Set the raw message callback (called when a message is sent or received)
+ *
+ * \param handler user provided callback handler function
+ * \param parameter user provided parameter that is passed to the callback handler
+ */
+void
+CS104_Connection_setRawMessageHandler(CS104_Connection self, CS101_RawMessageHandler handler, void* parameter);
 
 /**
  * \brief Close the connection

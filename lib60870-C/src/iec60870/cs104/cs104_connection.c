@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016-2018 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -114,6 +114,9 @@ struct sCS104_Connection {
 
     CS104_ConnectionHandler connectionHandler;
     void* connectionHandlerParameter;
+
+    CS101_RawMessageHandler rawMessageHandler;
+    void* rawMessageHandlerParameter;
 };
 
 
@@ -135,6 +138,9 @@ static uint8_t STARTDT_CON_MSG[] = { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
 static inline int
 writeToSocket(CS104_Connection self, uint8_t* buf, int size)
 {
+    if (self->rawMessageHandler)
+        self->rawMessageHandler(self->rawMessageHandlerParameter, buf, size, true);
+
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     if (self->tlsSocket)
         return TLSSocket_write(self->tlsSocket, buf, size);
@@ -196,6 +202,9 @@ createConnection(const char* hostname, int tcpPort)
 
         self->connectionHandler = NULL;
         self->connectionHandlerParameter = NULL;
+
+        self->rawMessageHandler = NULL;
+        self->rawMessageHandlerParameter = NULL;
 
 #if (CONFIG_USE_THREADS == 1)
         self->sentASDUsLock = Semaphore_create(1);
@@ -727,9 +736,12 @@ handleConnection(void* parameter)
 
                     if (bytesRec > 0) {
 
+                        if (self->rawMessageHandler)
+                            self->rawMessageHandler(self->rawMessageHandlerParameter, buffer, bytesRec, false);
+
                         if (checkMessage(self, buffer, bytesRec) == false) {
                             /* close connection on error */
-                            loopRunning= false;
+                            loopRunning = false;
                             self->failure = true;
                         }
                     }
@@ -807,6 +819,13 @@ CS104_Connection_setConnectionHandler(CS104_Connection self, CS104_ConnectionHan
 {
     self->connectionHandler = handler;
     self->connectionHandlerParameter = parameter;
+}
+
+void
+CS104_Connection_setRawMessageHandler(CS104_Connection self, CS101_RawMessageHandler handler, void* parameter)
+{
+    self->rawMessageHandler = handler;
+    self->rawMessageHandlerParameter = parameter;
 }
 
 static void
