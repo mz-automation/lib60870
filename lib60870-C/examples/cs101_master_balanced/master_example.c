@@ -140,7 +140,7 @@ main(int argc, char** argv)
     CS101_Master_setLinkLayerStateChanged(master, linkLayerStateChanged, NULL);
 
     /* uncomment to log messages */
-    CS101_Master_setRawMessageHandler(master, rawMessageHandler, NULL);
+    //CS101_Master_setRawMessageHandler(master, rawMessageHandler, NULL);
 
     SerialPort_open(port);
 

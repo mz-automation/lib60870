@@ -246,7 +246,7 @@ main(int argc, char** argv)
     CS101_Slave_setLinkLayerStateChanged(slave, linkLayerStateChanged, NULL);
 
     /* uncomment to log messages */
-    CS101_Slave_setRawMessageHandler(slave, rawMessageHandler, NULL);
+    //CS101_Slave_setRawMessageHandler(slave, rawMessageHandler, NULL);
 
     int16_t scaledValue = 0;
 

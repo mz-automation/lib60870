@@ -509,3 +509,13 @@ CS101_Master_setRawMessageHandler(CS101_Master self, IEC60870_RawMessageHandler 
 {
     SerialTransceiverFT12_setRawMessageHandler(self->transceiver, handler, parameter);
 }
+
+void
+CS101_Master_setIdleTimeout(CS101_Master self, int timeoutInMs)
+{
+    if (self->linkLayerMode == IEC60870_LINK_LAYER_BALANCED)
+        LinkLayerBalanced_setIdleTimeout(self->balancedLinkLayer, timeoutInMs);
+
+    /* unbalanced primary layer does not support automatic idle detection */
+}
+

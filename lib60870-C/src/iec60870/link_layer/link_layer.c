@@ -55,6 +55,9 @@ void
 LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self);
 
 void
+LinkLayerPrimaryBalanced_resetIdleTimeout(LinkLayerPrimaryBalanced self);
+
+void
 LinkLayerPrimaryUnbalanced_handleMessage(LinkLayerPrimaryUnbalanced self, uint8_t fc, bool acd, bool dfc, int address,
         uint8_t* msg, int userDataStart, int userDataLength);
 
@@ -675,6 +678,10 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
             bool fcb = ((c & 0x20) == 0x20);
             bool fcv = ((c & 0x10) == 0x10);
 
+            if (self->llPriBalanced != NULL) {
+                LinkLayerPrimaryBalanced_resetIdleTimeout(self->llPriBalanced);
+            }
+
             if (self->llSecBalanced != NULL)
                 LinkLayerSecondaryBalanced_handleMessage(self->llSecBalanced, fc, false, fcb, fcv, msg, userDataStart, userDataLength);
             else
@@ -915,7 +922,7 @@ LinkLayerPrimaryBalanced_init(LinkLayerPrimaryBalanced self, LinkLayer linkLayer
 
     self->stateChangedHandler = NULL;
 
-    self->idleTimeout = 1000;
+    self->idleTimeout = 5000;
 
     self->otherStationAddress = 0;
 }
@@ -1258,6 +1265,12 @@ LinkLayerBalanced_create(
     }
 
     return self;
+}
+
+void
+LinkLayerPrimaryBalanced_resetIdleTimeout(LinkLayerPrimaryBalanced self)
+{
+    self->lastReceivedMsg = Hal_getTimeInMs();
 }
 
 void
