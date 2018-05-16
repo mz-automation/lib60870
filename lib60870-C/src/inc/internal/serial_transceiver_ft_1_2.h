@@ -26,6 +26,7 @@
 
 #include "link_layer_parameters.h"
 #include "hal_serial.h"
+#include "iec60870_common.h"
 
 typedef struct sSerialTransceiverFT12* SerialTransceiverFT12;
 
@@ -39,6 +40,9 @@ SerialTransceiverFT12_destroy(SerialTransceiverFT12 self);
 
 void
 SerialTransceiverFT12_setTimeouts(SerialTransceiverFT12 self, int messageTimeout, int characterTimeout);
+
+void
+SerialTransceiverFT12_setRawMessageHandler(SerialTransceiverFT12 self, IEC60870_RawMessageHandler handler, void* parameter);
 
 int
 SerialTransceiverFT12_getBaudRate(SerialTransceiverFT12 self);

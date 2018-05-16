@@ -36,6 +36,24 @@ printCP56Time2a(CP56Time2a time)
                              CP56Time2a_getYear(time) + 2000);
 }
 
+/* Callback handler to log sent or received messages (optional) */
+static void
+rawMessageHandler (void* parameter, uint8_t* msg, int msgSize, bool sent)
+{
+    if (sent)
+        printf("SEND: ");
+    else
+        printf("RCVD: ");
+
+    int i;
+    for (i = 0; i < msgSize; i++) {
+        printf("%02x ", msg[i]);
+    }
+
+    printf("\n");
+}
+
+/* Callback handler that is called when a clock synchronization command is received */
 static bool
 clockSyncHandler (void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime)
 {
@@ -44,6 +62,7 @@ clockSyncHandler (void* parameter, IMasterConnection connection, CS101_ASDU asdu
     return true;
 }
 
+/* Callback handler that is called when an interrogation command is received */
 static bool
 interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, uint8_t qoi)
 {
@@ -225,6 +244,9 @@ main(int argc, char** argv)
 
     /* set handler for link layer state changes */
     CS101_Slave_setLinkLayerStateChanged(slave, linkLayerStateChanged, NULL);
+
+    /* uncomment to log messages */
+    CS101_Slave_setRawMessageHandler(slave, rawMessageHandler, NULL);
 
     int16_t scaledValue = 0;
 

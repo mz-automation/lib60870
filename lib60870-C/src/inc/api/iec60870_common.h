@@ -91,6 +91,20 @@ typedef enum {
 typedef void (*IEC60870_LinkLayerStateChangedHandler) (void* parameter, int address, LinkLayerState newState);
 
 /**
+ * \brief Callback handler for sent and received messages
+ *
+ * This callback handler provides access to the raw message buffer of received or sent
+ * messages. It can be used for debugging purposes. Usually it is not used nor required
+ * for applications.
+ *
+ * \param parameter user provided parameter
+ * \param msg the message buffer
+ * \param msgSize size of the message
+ * \param sent indicates if the message was sent or received
+ */
+typedef void (*IEC60870_RawMessageHandler) (void* parameter, uint8_t* msg, int msgSize, bool sent);
+
+/**
  * \brief Application Service Data Unit (ASDU) for the CS101/CS104 application layer
  */
 typedef struct sCS101_ASDU* CS101_ASDU;

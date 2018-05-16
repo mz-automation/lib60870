@@ -732,4 +732,9 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
     }
 }
 
+void
+CS101_Slave_setRawMessageHandler(CS101_Slave self, IEC60870_RawMessageHandler handler, void* parameter)
+{
+    SerialTransceiverFT12_setRawMessageHandler(self->transceiver, handler, parameter);
+}
 

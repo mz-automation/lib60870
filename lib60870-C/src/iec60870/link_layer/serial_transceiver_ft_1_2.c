@@ -33,6 +33,8 @@ struct sSerialTransceiverFT12 {
     int characterTimeout;
     LinkLayerParameters linkLayerParameters;
     SerialPort serialPort;
+    IEC60870_RawMessageHandler rawMessageHandler;
+    void* rawMessageHandlerParameter;
 };
 
 SerialTransceiverFT12
@@ -45,6 +47,7 @@ SerialTransceiverFT12_create(SerialPort serialPort, LinkLayerParameters linkLaye
         self->characterTimeout = 1000;
         self->linkLayerParameters = linkLayerParameters;
         self->serialPort = serialPort;
+        self->rawMessageHandler = NULL;
     }
 
     return self;
@@ -64,6 +67,13 @@ SerialTransceiverFT12_setTimeouts(SerialTransceiverFT12 self, int messageTimeout
     self->characterTimeout = characterTimeout;
 }
 
+void
+SerialTransceiverFT12_setRawMessageHandler(SerialTransceiverFT12 self, IEC60870_RawMessageHandler handler, void* parameter)
+{
+    self->rawMessageHandler = handler;
+    self->rawMessageHandlerParameter = parameter;
+}
+
 int
 SerialTransceiverFT12_getBaudRate(SerialTransceiverFT12 self)
 {
@@ -73,6 +83,9 @@ SerialTransceiverFT12_getBaudRate(SerialTransceiverFT12 self)
 void
 SerialTransceiverFT12_sendMessage(SerialTransceiverFT12 self, uint8_t* msg, int msgSize)
 {
+    if (self->rawMessageHandler)
+        self->rawMessageHandler(self->rawMessageHandlerParameter, msg, msgSize, true);
+
     SerialPort_write(self->serialPort, msg, 0, msgSize);
 }
 
@@ -123,6 +136,9 @@ SerialTransceiverFT12_readNextMessage(SerialTransceiverFT12 self, uint8_t* buffe
             if (readBytes == msgSize) {
                 msgSize += 2;
 
+                if (self->rawMessageHandler)
+                    self->rawMessageHandler(self->rawMessageHandlerParameter, buffer, msgSize, false);
+
                 messageHandler(parameter, buffer, msgSize);
             }
             else {
@@ -143,6 +159,9 @@ SerialTransceiverFT12_readNextMessage(SerialTransceiverFT12 self, uint8_t* buffe
             if (readBytes == msgSize) {
                 msgSize += 1;
 
+                if (self->rawMessageHandler)
+                    self->rawMessageHandler(self->rawMessageHandlerParameter, buffer, msgSize, false);
+
                 messageHandler(parameter, buffer, msgSize);
             }
             else {
@@ -153,6 +172,9 @@ SerialTransceiverFT12_readNextMessage(SerialTransceiverFT12 self, uint8_t* buffe
         else if (read == 0xe5) {
             int msgSize = 1;
             buffer[0] = (uint8_t) read;
+
+            if (self->rawMessageHandler)
+                self->rawMessageHandler(self->rawMessageHandlerParameter, buffer, msgSize, false);
 
             messageHandler(parameter, buffer, msgSize);
         }

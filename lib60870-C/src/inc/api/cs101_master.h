@@ -293,6 +293,15 @@ void
 CS101_Master_setLinkLayerStateChanged(CS101_Master self, IEC60870_LinkLayerStateChangedHandler handler, void* parameter);
 
 /**
+ * \brief Set the raw message callback (called when a message is sent or received)
+ *
+ * \param handler user provided callback handler function
+ * \param parameter user provided parameter that is passed to the callback handler
+ */
+void
+CS101_Master_setRawMessageHandler(CS101_Master self, IEC60870_RawMessageHandler handler, void* parameter);
+
+/**
  * @}
  */
 

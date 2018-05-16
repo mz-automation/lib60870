@@ -1,6 +1,8 @@
 Changes to version 2.0.2
 ------------------------
 - CS104 slave: added new CS104_ConnectionEventHandler to track connection events
+- CS104 master/slave: added callback handlers to log raw messages
+- CS101 master/slave: added callback handlers to log raw messages
 
 
 Changes to version 2.0.1

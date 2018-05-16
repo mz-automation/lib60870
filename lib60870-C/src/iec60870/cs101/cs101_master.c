@@ -503,3 +503,9 @@ CS101_Master_setLinkLayerStateChanged(CS101_Master self, IEC60870_LinkLayerState
         LinkLayerPrimaryUnbalanced_setStateChangeHandler(self->unbalancedLinkLayer, handler, parameter);
     }
 }
+
+void
+CS101_Master_setRawMessageHandler(CS101_Master self, IEC60870_RawMessageHandler handler, void* parameter)
+{
+    SerialTransceiverFT12_setRawMessageHandler(self->transceiver, handler, parameter);
+}

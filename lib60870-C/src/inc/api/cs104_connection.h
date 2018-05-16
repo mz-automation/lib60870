@@ -315,7 +315,7 @@ CS104_Connection_setConnectionHandler(CS104_Connection self, CS104_ConnectionHan
  * \param parameter user provided parameter that is passed to the callback handler
  */
 void
-CS104_Connection_setRawMessageHandler(CS104_Connection self, CS101_RawMessageHandler handler, void* parameter);
+CS104_Connection_setRawMessageHandler(CS104_Connection self, IEC60870_RawMessageHandler handler, void* parameter);
 
 /**
  * \brief Close the connection

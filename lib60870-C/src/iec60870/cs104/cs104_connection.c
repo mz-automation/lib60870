@@ -115,7 +115,7 @@ struct sCS104_Connection {
     CS104_ConnectionHandler connectionHandler;
     void* connectionHandlerParameter;
 
-    CS101_RawMessageHandler rawMessageHandler;
+    IEC60870_RawMessageHandler rawMessageHandler;
     void* rawMessageHandlerParameter;
 };
 
@@ -822,7 +822,7 @@ CS104_Connection_setConnectionHandler(CS104_Connection self, CS104_ConnectionHan
 }
 
 void
-CS104_Connection_setRawMessageHandler(CS104_Connection self, CS101_RawMessageHandler handler, void* parameter)
+CS104_Connection_setRawMessageHandler(CS104_Connection self, IEC60870_RawMessageHandler handler, void* parameter)
 {
     self->rawMessageHandler = handler;
     self->rawMessageHandlerParameter = parameter;
