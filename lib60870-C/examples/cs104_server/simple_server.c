@@ -209,6 +209,9 @@ main(int argc, char** argv)
 
     CS104_Slave_setLocalAddress(slave, "0.0.0.0");
 
+    /* Set mode to a single redundancy group
+     * NOTE: library has to be compiled with CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP enabled (=1)
+     */
     CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
 
     /* get the connection parameters - we need them to create correct ASDUs */

@@ -192,7 +192,9 @@ main(int argc, char** argv)
 
     CS104_Slave_setConnectionRequestHandler(slave, connectionRequestHandler, NULL);
 
-    /* Set server mode to allow multiple clients using the application layer */
+    /* Set server mode to allow multiple clients using the application layer
+     * NOTE: library has to be compiled with CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP enabled (=1)
+     */
     CS104_Slave_setServerMode(slave, CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP);
 
     CS104_Slave_start(slave);

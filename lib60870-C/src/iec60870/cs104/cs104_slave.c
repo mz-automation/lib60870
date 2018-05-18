@@ -632,10 +632,8 @@ struct sCS104_Slave {
     HighPriorityASDUQueue connectionAsduQueue; /**< high priority ASDU queue */
 #endif
 
-#if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP)
     int maxLowPrioQueueSize;
     int maxHighPrioQueueSize;
-#endif
 
     int openConnections; /**< number of connected clients */
     LinkedList masterConnections; /**< references to all MasterConnection objects */
@@ -741,11 +739,8 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
         self->connectionRequestHandler = NULL;
         self->connectionEventHandler = NULL;
         self->rawMessageHandler = NULL;
-
-#if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
         self->maxLowPrioQueueSize = maxLowPrioQueueSize;
         self->maxHighPrioQueueSize = maxHighPrioQueueSize;
-#endif
 
         self->masterConnections = LinkedList_create();
         self->maxOpenConnections = CONFIG_CS104_MAX_CLIENT_CONNECTIONS;
@@ -768,7 +763,7 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
         self->serverMode = CS104_MODE_SINGLE_REDUNDANCY_GROUP;
 #else
-#if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
         self->serverMode = CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP;
 #endif
 #endif
@@ -1925,7 +1920,7 @@ connectionHandlingThread(void* parameter)
 
     self->isRunning = false;
 
-#if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
     if (self->slave->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
         MessageQueue_destroy(self->lowPrioQueue);
         HighPriorityASDUQueue_destroy(self->highPrioQueue);
@@ -2141,7 +2136,7 @@ serverThread (void* parameter)
                 }
 #endif
 
-#if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
                 if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
                     lowPrioQueue = MessageQueue_create(self->maxLowPrioQueueSize);
                     highPrioQueue = HighPriorityASDUQueue_create(self->maxHighPrioQueueSize);
@@ -2197,7 +2192,7 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
         MessageQueue_enqueueASDU(self->asduQueue, asdu);
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
-#if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
     if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
 
 #if (CONFIG_USE_THREADS == 1)
