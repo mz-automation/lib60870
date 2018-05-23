@@ -68,7 +68,7 @@ set(API_HEADERS
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/iec60870_master.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/iec60870_slave.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/iec60870_common.h
-	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/information_objects
+	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_information_objects.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs104_connection.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/link_layer_parameters.h
 	${CMAKE_CURRENT_LIST_DIR}/src/tls/tls_api.h
