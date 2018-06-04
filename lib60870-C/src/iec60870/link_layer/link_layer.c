@@ -240,7 +240,9 @@ SendFixedFrame(LinkLayer self, uint8_t fc, int address, bool prm, bool dir, bool
 
     uint8_t checksum = 0;
 
-    for (int i = 1; i < bufPos; i++)
+    int i;
+
+    for (i = 1; i < bufPos; i++)
         checksum += buffer[i];
 
     buffer [bufPos++] = checksum;
@@ -565,7 +567,9 @@ ParserHeaderSecondaryUnbalanced(void* parameter, uint8_t* msg, int msgSize)
     /* check checksum */
     uint8_t checksum = 0;
 
-    for (int i = csStart; i < csIndex; i++)
+    int i;
+
+    for (i = csStart; i < csIndex; i++)
         checksum += msg [i];
 
     if (checksum != msg [csIndex]) {
@@ -662,7 +666,9 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
         /* check checksum */
         uint8_t checksum = 0;
 
-        for (int i = csStart; i < csIndex; i++)
+        int i;
+
+        for (i = csStart; i < csIndex; i++)
             checksum += msg [i];
 
         if (checksum != msg [csIndex]) {
