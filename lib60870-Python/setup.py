@@ -109,9 +109,9 @@ setup(
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
-        'console_scripts': [
-            'simple_client=simple_client:main',
-            'simple_server=simple_server:main',
+        'examples': [
+            'lib60870-simple-client=simple_client:main',
+            'lib60870-simple-server=simple_server:main',
         ],
     },
 )
