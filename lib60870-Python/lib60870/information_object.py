@@ -33,6 +33,11 @@ class InformationObjectVFP(ctypes.Structure):
 pInformationObjectVFT = ctypes.POINTER(InformationObjectVFP)
 
 
+class EncodedValue(ctypes.c_uint8 * 2):
+    def __eq__(self, other):
+        return len(self) == len(other) and all(x == y for x, y in zip(self, other))
+
+
 class IOBase():
     """
     Python base class for all InformationObject-derived types
@@ -507,7 +512,7 @@ class MeasuredValueNormalized(ctypes.Structure, IOBase):
         ('objectAddress', c_int),
         ('type', cTypeId),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
+        ('encodedValue', EncodedValue),
         ('quality', c_uint8)
         ]
 
@@ -546,7 +551,7 @@ class MeasuredValueNormalizedWithCP24Time2a(ctypes.Structure, IOBase):
         ('objectAddress', c_int),
         ('type', cTypeId),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
+        ('encodedValue', EncodedValue),
         ('quality', c_uint8),
         ('timestamp', CP24Time2a)
         ]
@@ -596,7 +601,7 @@ class MeasuredValueScaled(ctypes.Structure, IOBase):
         ('objectAddress', c_int),
         ('type', cTypeId),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
+        ('encodedValue', EncodedValue),
         ('quality', c_uint8)
         ]
 
@@ -640,7 +645,7 @@ class MeasuredValueScaledWithCP24Time2a(ctypes.Structure, IOBase):
         ('objectAddress', c_int),
         ('type', cTypeId),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
+        ('encodedValue', EncodedValue),
         ('quality', c_uint8),
         ('timestamp', CP24Time2a)
         ]
@@ -1024,7 +1029,7 @@ class MeasuredValueNormalizedWithoutQuality(ctypes.Structure, IOBase):
         ('objectAddress', c_int),
         ('type', cTypeId),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2)
+        ('encodedValue', EncodedValue)
         ]
 
     def __init__(self, ioa, value):
@@ -1215,7 +1220,7 @@ class MeasuredValueNormalizedWithCP56Time2a(ctypes.Structure, IOBase):
         ('objectAddress', c_int),
         ('type', cTypeId),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
+        ('encodedValue', EncodedValue),
         ('quality', c_uint8),
         ('timestamp', CP56Time2a)
         ]
@@ -1265,7 +1270,7 @@ class MeasuredValueScaledWithCP56Time2a(ctypes.Structure, IOBase):
         ('objectAddress', c_int),
         ('type', cTypeId),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
+        ('encodedValue', EncodedValue),
         ('quality', c_uint8),
         ('timestamp', CP56Time2a)
         ]
@@ -1664,7 +1669,7 @@ class SetpointCommandNormalized(ctypes.Structure, IOBase):
         ('objectAddress', c_int),
         ('type', cTypeId),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
+        ('encodedValue', EncodedValue),
         ('qos', c_uint8)
         ]
 
@@ -1702,7 +1707,7 @@ class SetpointCommandScaled(ctypes.Structure, IOBase):
         ('objectAddress', c_int),
         ('type', cTypeId),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
+        ('encodedValue', EncodedValue),
         ('qos', c_uint8)
         ]
 
@@ -1935,7 +1940,7 @@ class SetpointCommandNormalizedWithCP56Time2a(ctypes.Structure, IOBase):
         ('objectAddress', c_int),
         ('type', cTypeId),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
+        ('encodedValue', EncodedValue),
         ('qos', c_uint8),
         ('timestamp', CP56Time2a)
         ]
@@ -1975,7 +1980,7 @@ class SetpointCommandScaledWithCP56Time2a(ctypes.Structure, IOBase):
         ('objectAddress', c_int),
         ('type', cTypeId),
         ('virtualFunctionTable', pInformationObjectVFT),
-        ('encodedValue', ctypes.c_uint8 * 2),
+        ('encodedValue', EncodedValue),
         ('qos', c_uint8),
         ('timestamp', CP56Time2a)
         ]
