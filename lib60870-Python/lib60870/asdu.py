@@ -48,11 +48,11 @@ class ASDU(ctypes.Structure):
         self.encodedData[0] = c_uint8(type_id.value)
         self.encodedData[1] = c_uint8(0x80) if (is_sequence) else c_uint8(0)
         self.encodedData[2] = c_uint8(cot.value & 0x3f)
-        if (is_test):
+        if is_test:
             self.encodedData[2] |= c_uint8(0x80)
-        if (is_negative):
+        if is_negative:
             self.encodedData[2] |= c_uint8(0x40)
-        if (parameters.sizeOfCOT > 1):
+        if parameters.sizeOfCOT > 1:
             self.encodedData[3] = c_uint8(oa)
             caIndex = 4
         else:
@@ -120,21 +120,17 @@ class ASDU(ctypes.Structure):
         lib.ASDU_getNumberOfElements.restype = c_int
         return lib.ASDU_getNumberOfElements(self.pointer)
 
-    def get_element(self, index):
-        lib.ASDU_getElement.restype = information_object.pInformationObject
-        p_element = lib.ASDU_getElement(self.pointer, c_int(index))
-        if p_element:
-            return p_element.contents
-
-    def get_upcasted_element(self, index):
-        io_type = information_object.get_io_type_from_type_id(self.get_type_id())
+    def get_element(self, index, io_type=None):
+        io_type = io_type or information_object.get_io_type_from_type_id(self.get_type_id())
         lib.ASDU_getElement.restype = ctypes.POINTER(io_type)
-        io = lib.ASDU_getElement(self.pointer, c_int(index))
-        if io:
-            return io.contents
+        io_p = lib.ASDU_getElement(self.pointer, c_int(index))
+        if io_p:
+            result = io_p.contents.clone()
+            io_p.contents.destroy()
+            return result
 
     def add_information_object(self, io):
-        if(self.get_type_id() != io.get_type_id()):
+        if self.get_type_id() != io.get_type_id():
             raise ValueError("Cannot add InformationObject of type ({}) to ASDU of type({})"
                              "".format(io.get_type_id(), self.get_type_id()))
         io_type = information_object.get_io_type_from_type_id(io.get_type_id())
@@ -142,7 +138,7 @@ class ASDU(ctypes.Structure):
         return lib.ASDU_addInformationObject(self.pointer, ctypes.POINTER(io_type)(io))
 
     def get_elements(self):
-        return [self.get_upcasted_element(index) for index in range(0, self.get_number_of_elements())]
+        return [self.get_element(index) for index in range(0, self.get_number_of_elements())]
 
     def get_buffer(self):
         size = self.asduHeaderLength + self.payloadSize

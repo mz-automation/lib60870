@@ -33,6 +33,7 @@ class InformationObjectTest(unittest.TestCase):
     def test_not_equal(self):
         self.assertNotEqual(InformationObject(40), InformationObject(39))
 
+
 class SinglePointInformationTest(unittest.TestCase):
     def setUp(self):
         ioa = 400
@@ -64,6 +65,11 @@ class SinglePointInformationTest(unittest.TestCase):
         sut = DoublePointInformation(ioa, value, quality)
         self.assertNotEqual(sut, self.sut)
 
+    def test_clone(self):
+        clone = self.sut.clone()
+        self.assertEqual(clone, self.sut)
+        self.assertIsNot(clone, self.sut)
+
 
 class SinglePointWithCP24Time2aTest(unittest.TestCase):
     def setUp(self):
@@ -83,6 +89,14 @@ class SinglePointWithCP24Time2aTest(unittest.TestCase):
         self.assertEqual(self.sut.get_quality(), QualityDescriptor.IEC60870_QUALITY_GOOD)
         self.assertEqual(self.sut.get_timestamp(), CP24Time2a())
 
+    def test_equal(self):
+        self.assertEqual(self.sut, self.sut)
+
+    def test_clone(self):
+        clone = self.sut.clone()
+        self.assertEqual(clone, self.sut)
+        self.assertIsNot(clone, self.sut)
+
 
 class DoublePointInformationTest(unittest.TestCase):
     def setUp(self):
@@ -99,6 +113,14 @@ class DoublePointInformationTest(unittest.TestCase):
         self.assertEqual(self.sut.get_object_address(), 400)
         self.assertEqual(self.sut.get_value(), 0)
         self.assertEqual(self.sut.get_quality(), QualityDescriptor.IEC60870_QUALITY_GOOD)
+
+    def test_equal(self):
+        self.assertEqual(self.sut, self.sut)
+
+    def test_clone(self):
+        clone = self.sut.clone()
+        self.assertEqual(clone, self.sut)
+        self.assertIsNot(clone, self.sut)
 
 
 class DoublePointWithCP24Time2aTest(unittest.TestCase):
@@ -119,6 +141,14 @@ class DoublePointWithCP24Time2aTest(unittest.TestCase):
         self.assertEqual(self.sut.get_quality(), QualityDescriptor.IEC60870_QUALITY_GOOD)
         self.assertEqual(self.sut.get_timestamp(), CP24Time2a())
 
+    def test_equal(self):
+        self.assertEqual(self.sut, self.sut)
+
+    def test_clone(self):
+        clone = self.sut.clone()
+        self.assertEqual(clone, self.sut)
+        self.assertIsNot(clone, self.sut)
+
 
 class StepPositionInformationTest(unittest.TestCase):
     def setUp(self):
@@ -137,6 +167,14 @@ class StepPositionInformationTest(unittest.TestCase):
         self.assertEqual(self.sut.get_value(), 0)
         self.assertEqual(self.sut.get_quality(), QualityDescriptor.IEC60870_QUALITY_GOOD)
         self.assertTrue(self.sut.is_transient())
+
+    def test_equal(self):
+        self.assertEqual(self.sut, self.sut)
+
+    def test_clone(self):
+        clone = self.sut.clone()
+        self.assertEqual(clone, self.sut)
+        self.assertIsNot(clone, self.sut)
 
 
 class StepPositionWithCP24Time2aTest(unittest.TestCase):
@@ -158,6 +196,14 @@ class StepPositionWithCP24Time2aTest(unittest.TestCase):
         self.assertEqual(self.sut.get_quality(), QualityDescriptor.IEC60870_QUALITY_GOOD)
         self.assertFalse(self.sut.is_transient())
         self.assertEqual(self.sut.get_timestamp(), CP24Time2a())
+
+    def test_equal(self):
+        self.assertEqual(self.sut, self.sut)
+
+    def test_clone(self):
+        clone = self.sut.clone()
+        self.assertEqual(clone, self.sut)
+        self.assertIsNot(clone, self.sut)
 
 
 class SinglePointWithCP56Time2aTest(unittest.TestCase):
@@ -181,6 +227,36 @@ class SinglePointWithCP56Time2aTest(unittest.TestCase):
         self.assertEqual(self.sut.get_quality(), QualityDescriptor.IEC60870_QUALITY_GOOD)
         self.assertEqual(self.sut.get_timestamp(), CP56Time2a())
 
+    def test_clone(self):
+        clone = self.sut.clone()
+        self.assertEqual(clone, self.sut)
+        self.assertIsNot(clone, self.sut)
+
+
+class MeasuredValueNormalizedTest(unittest.TestCase):
+    def setUp(self):
+        ioa = 2400
+        value = 1
+        quality = QualityDescriptor.IEC60870_QUALITY_GOOD
+        self.sut = MeasuredValueNormalized(ioa, value, quality)
+
+    def test_init(self):
+        pass
+
+    def test_get_value(self):
+        self.assertEqual(self.sut.get_value(), 1)
+        self.assertEqual(self.sut.get_ql(), 0)
+        self.assertEqual(self.sut.is_select(), False)
+
+    def test_equal(self):
+        self.assertEqual(self.sut, self.sut)
+
+    def test_clone(self):
+        clone = self.sut.clone()
+        self.assertEqual(clone, self.sut)
+        self.assertIsNot(clone, self.sut)
+
+
 class SetpointCommandScaledTest(unittest.TestCase):
     def setUp(self):
         ioa = 400
@@ -195,6 +271,14 @@ class SetpointCommandScaledTest(unittest.TestCase):
         self.assertEqual(self.sut.get_value(), -100)
         self.assertEqual(self.sut.get_ql(), 0)
         self.assertEqual(self.sut.is_select(), False)
+
+    def test_equal(self):
+        self.assertEqual(self.sut, self.sut)
+
+    def test_clone(self):
+        clone = self.sut.clone()
+        self.assertEqual(clone, self.sut)
+        self.assertIsNot(clone, self.sut)
 
 
 class LookupTests(unittest.TestCase):

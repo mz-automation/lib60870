@@ -62,9 +62,8 @@ class ASDUTest(unittest.TestCase):
         sut = ASDU_create_from_buffer(parameters, data, 10)
         self.assertEqual(sut.get_type_id(), TypeID.C_IC_NA_1)
         self.assertEqual(sut.get_number_of_elements(), 1)
-        element_0 = sut.get_upcasted_element(0)
+        element_0 = sut.get_element(0)
         self.assertEqual(element_0.get_type_id(), TypeID.C_IC_NA_1)
-
         self.assertEqual(element_0.get_qoi(), 20)
 
     def test_get_elements(self):
@@ -87,6 +86,7 @@ class ASDUTest(unittest.TestCase):
         sut = ASDU(None, io.get_type_id(), False, CauseOfTransmission.PERIODIC, 0, 1, False, False)
         value = sut.add_information_object(io)
         self.assertEqual(io, sut.elements[0])
+
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(name)s:%(levelname)s:%(message)s', level=logging.DEBUG)
