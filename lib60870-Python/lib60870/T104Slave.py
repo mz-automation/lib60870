@@ -42,7 +42,7 @@ class MasterConnection():
 
     def send_act_term(self, asdu):
         lib.MasterConnection_sendACT_TERM.restype = c_bool
-        return(lib.MasterConnection_sendACT_TERM(self.pointer, asdu.pointer))
+        return lib.MasterConnection_sendACT_TERM(self.pointer, asdu.pointer)
 
     def close(self):
         lib.MasterConnection_close(self.pointer)
@@ -115,7 +115,6 @@ class T104Slave():
         lib.Slave_enqueueASDU(self.con, asdu.pointer)
 
     def destroy(self):
-        logger.debug("calling Slave_destroy()")
         lib.Slave_destroy(self.con)
 
     def set_connection_request_handler(self, callback, parameter=None):
