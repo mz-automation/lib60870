@@ -245,8 +245,7 @@ class MeasuredValueNormalizedTest(unittest.TestCase):
 
     def test_get_value(self):
         self.assertEqual(self.sut.get_value(), 1)
-        self.assertEqual(self.sut.get_ql(), 0)
-        self.assertEqual(self.sut.is_select(), False)
+        self.assertEqual(self.sut.get_quality(), QualityDescriptor.IEC60870_QUALITY_GOOD)
 
     def test_equal(self):
         self.assertEqual(self.sut, self.sut)
