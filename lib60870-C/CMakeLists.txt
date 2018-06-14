@@ -61,7 +61,7 @@ endif(WITH_MBEDTLS)
 set(API_HEADERS 
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_time.h 
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_thread.h
-	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_filesystem.h 
+	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_socket.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_master.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_slave.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs104_slave.h

@@ -49,7 +49,7 @@ endif
 
 LIB_API_HEADER_FILES = src/hal/inc/hal_time.h 
 LIB_API_HEADER_FILES += src/hal/inc/hal_thread.h
-LIB_API_HEADER_FILES += src/hal/inc/hal_filesystem.h 
+LIB_API_HEADER_FILES += src/hal/inc/hal_socket.h
 LIB_API_HEADER_FILES += src/inc/api/iec60870_master.h
 LIB_API_HEADER_FILES += src/inc/api/iec60870_server.h
 LIB_API_HEADER_FILES += src/inc/api/iec60870_common.h
