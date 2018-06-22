@@ -7,7 +7,7 @@
 
 
 /* print debugging information with printf if set to 1 */
-#define CONFIG_DEBUG_OUTPUT 0
+#define CONFIG_DEBUG_OUTPUT 1
 
 
 

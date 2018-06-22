@@ -25,7 +25,8 @@ sigint_handler(int signalId)
 static bool
 asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
 {
-    printf("RECVD ASDU type: %s(%i) elements: %i\n",
+    printf("SLAVE %i: RECVD ASDU type: %s(%i) elements: %i\n",
+            address,
             TypeID_toString(CS101_ASDU_getTypeID(asdu)),
             CS101_ASDU_getTypeID(asdu),
             CS101_ASDU_getNumberOfElements(asdu));
@@ -113,6 +114,7 @@ main(int argc, char** argv)
     CS101_Master_setLinkLayerStateChanged(master, linkLayerStateChanged, NULL);
 
     CS101_Master_addSlave(master, 1);
+    CS101_Master_addSlave(master, 2);
 
     SerialPort_open(port);
 
@@ -123,6 +125,9 @@ main(int argc, char** argv)
     while (running) {
 
         CS101_Master_pollSingleSlave(master, 1);
+        CS101_Master_run(master);
+
+        CS101_Master_pollSingleSlave(master, 2);
         CS101_Master_run(master);
 
         if (cycleCounter == 10) {

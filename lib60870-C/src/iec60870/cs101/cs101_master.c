@@ -142,7 +142,7 @@ IPrimaryApplicationLayer_UserData(void* parameter, int slaveAddress, uint8_t* ms
     CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->alParameters), msg + start, length);
 
     if (self->asduReceivedHandler)
-        self->asduReceivedHandler(self->asduReceivedHandlerParameter, 0, asdu);
+        self->asduReceivedHandler(self->asduReceivedHandlerParameter, slaveAddress, asdu);
 
     CS101_ASDU_destroy(asdu);
 
