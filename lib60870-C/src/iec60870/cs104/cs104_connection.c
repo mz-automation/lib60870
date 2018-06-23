@@ -790,10 +790,12 @@ handleConnection(void* parameter)
 void
 CS104_Connection_connectAsync(CS104_Connection self)
 {
+#if (CONFIG_USE_THREADS == 1)
     self->connectionHandlingThread = Thread_create(handleConnection, (void*) self, false);
 
     if (self->connectionHandlingThread)
         Thread_start(self->connectionHandlingThread);
+#endif
 }
 
 bool

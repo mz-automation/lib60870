@@ -24,7 +24,7 @@
  *
  * CONFIG_USE_THREADS = 0 not yet supported
  */
-#define CONFIG_USE_THREADS 1
+#define CONFIG_USE_THREADS 0
 
 /**
  * Use a separate thread to call the callback functions. This allows the user

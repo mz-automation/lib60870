@@ -1698,6 +1698,7 @@ exit_function:
 #if (CONFIG_USE_THREADS == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
+    return;
 }
 
 static bool
@@ -2460,7 +2461,9 @@ CS104_Slave_startThreadless(CS104_Slave self)
 {
     if (self->isRunning == false) {
 
+#if (CONFIG_USE_THREADS == 1)
         self->isThreadlessMode = true;
+#endif
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
         if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
@@ -2514,8 +2517,11 @@ CS104_Slave_isRunning(CS104_Slave self)
 void
 CS104_Slave_stop(CS104_Slave self)
 {
+#if (CONFIG_USE_THREADS == 1)
     if (self->isThreadlessMode) {
+#endif
         CS104_Slave_stopThreadless(self);
+#if (CONFIG_USE_THREADS == 1)
     }
     else {
         if (self->isRunning) {
@@ -2531,6 +2537,7 @@ CS104_Slave_stop(CS104_Slave self)
 
         self->listeningThread = NULL;
     }
+#endif
 }
 
 void
@@ -2571,7 +2578,9 @@ CS104_Slave_destroy(CS104_Slave self)
     Semaphore_post(self->openConnectionsLock);
 #endif
 
+#if (CONFIG_USE_THREADS == 1)
     if (self->isThreadlessMode) {
+#endif
         for (element = LinkedList_getNext(self->masterConnections);
              element != NULL;
              element = LinkedList_getNext(element))
@@ -2580,12 +2589,14 @@ CS104_Slave_destroy(CS104_Slave self)
 
             MasterConnection_destroy(connection);
         }
+#if (CONFIG_USE_THREADS == 1)
     }
     else {
         /* Wait until all connections are closed */
         while (CS104_Slave_getOpenConnections(self) > 0)
             Thread_sleep(10);
     }
+#endif
 
     LinkedList_destroyStatic(self->masterConnections);
 
