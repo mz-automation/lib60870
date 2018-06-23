@@ -241,6 +241,16 @@ CS104_Slave_isRunning(CS104_Slave self);
 void
 CS104_Slave_stop(CS104_Slave self);
 
+
+void
+CS104_Slave_startThreadless(CS104_Slave self);
+
+void
+CS104_Slave_stopThreadless(CS104_Slave self);
+
+void
+CS104_Slave_tick(CS104_Slave self);
+
 /**
  * \brief Add an ASDU to the low-priority queue of the slave (use for periodic and spontaneous messages)
  *

@@ -636,9 +636,11 @@ struct sCS104_Slave {
     int maxHighPrioQueueSize;
 
     int openConnections; /**< number of connected clients */
+
     LinkedList masterConnections; /**< references to all MasterConnection objects */
 #if (CONFIG_USE_THREADS == 1)
     Semaphore openConnectionsLock;
+    bool isThreadlessMode;
 #endif
 
     int maxOpenConnections; /**< maximum accepted open client connections */
@@ -660,6 +662,8 @@ struct sCS104_Slave {
 
     char* localAddress;
     Thread listeningThread;
+
+    ServerSocket serverSocket;
 };
 
 #if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
@@ -746,6 +750,7 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
         self->maxOpenConnections = CONFIG_CS104_MAX_CLIENT_CONNECTIONS;
 #if (CONFIG_USE_THREADS == 1)
         self->openConnectionsLock = Semaphore_create(1);
+        self->isThreadlessMode = false;
 #endif
 
         self->isRunning = false;
@@ -755,6 +760,8 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
         self->tcpPort = CS104_DEFAULT_PORT;
         self->openConnections = 0;
         self->listeningThread = NULL;
+
+        self->serverSocket = NULL;
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         self->tlsConfig = NULL;
@@ -997,6 +1004,10 @@ struct sMasterConnection {
 #if (CONFIG_USE_THREADS == 1)
     Semaphore sentASDUsLock;
 #endif
+
+    HandleSet handleSet;
+
+    uint8_t buffer[260];
 
     MessageQueue lowPrioQueue;
     HighPriorityASDUQueue highPrioQueue;
@@ -1652,6 +1663,8 @@ MasterConnection_destroy(MasterConnection self)
         Semaphore_destroy(self->sentASDUsLock);
 #endif
 
+        Handleset_destroy(self->handleSet);
+
         GLOBAL_FREEMEM(self);
     }
 }
@@ -1840,13 +1853,9 @@ connectionHandlingThread(void* parameter)
 {
     MasterConnection self = (MasterConnection) parameter;
 
-    uint8_t buffer[260];
-
     self->isRunning = true;
 
     resetT3Timeout(self);
-
-    HandleSet handleSet = Handleset_new();
 
     bool isAsduWaiting = false;
 
@@ -1856,8 +1865,8 @@ connectionHandlingThread(void* parameter)
 
     while (self->isRunning) {
 
-        Handleset_reset(handleSet);
-        Handleset_addSocket(handleSet, self->socket);
+        Handleset_reset(self->handleSet);
+        Handleset_addSocket(self->handleSet, self->socket);
 
         int socketTimeout;
 
@@ -1870,13 +1879,13 @@ connectionHandlingThread(void* parameter)
         else
             socketTimeout = 100; /* TODO replace by configurable parameter */
 
-        if (Handleset_waitReady(handleSet, socketTimeout)) {
+        if (Handleset_waitReady(self->handleSet, socketTimeout)) {
 
-            int bytesRec = receiveMessage(self, buffer);
+            int bytesRec = receiveMessage(self, self->buffer);
 
             if (self->slave->rawMessageHandler)
                 self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
-                        &(self->iMasterConnection), buffer, bytesRec, false);
+                        &(self->iMasterConnection), self->buffer, bytesRec, false);
 
             if (bytesRec == -1) {
                 DEBUG_PRINT("Error reading from socket\n");
@@ -1886,7 +1895,7 @@ connectionHandlingThread(void* parameter)
             if (bytesRec > 0) {
                 DEBUG_PRINT("Connection: rcvd msg(%i bytes)\n", bytesRec);
 
-                if (handleMessage(self, buffer, bytesRec) == false)
+                if (handleMessage(self, self->buffer, bytesRec) == false)
                     self->isRunning = false;
 
                 if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w) {
@@ -1915,8 +1924,6 @@ connectionHandlingThread(void* parameter)
     }
 
     DEBUG_PRINT("Connection closed\n");
-
-    Handleset_destroy(handleSet);
 
     self->isRunning = false;
 
@@ -2004,6 +2011,8 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
         self->iMasterConnection.sendACT_CON = _sendACT_CON;
         self->iMasterConnection.sendACT_TERM = _sendACT_TERM;
 
+        resetT3Timeout(self);
+
 #if (CONFIG_USE_THREADS == 1)
         self->sentASDUsLock = Semaphore_create(1);
 #endif
@@ -2027,6 +2036,8 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
         self->highPrioQueue = highPrioQueue;
 
         self->outstandingTestFRConMessages = 0;
+
+        self->handleSet = Handleset_new();
     }
 
     return self;
@@ -2072,33 +2083,235 @@ MasterConnection_activate(MasterConnection self)
     self->isActive = true;
 }
 
+static void
+MasterConnection_handleTcpConnection(MasterConnection self)
+{
+    int bytesRec = receiveMessage(self, self->buffer);
 
+    if (self->slave->rawMessageHandler)
+        self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
+                &(self->iMasterConnection), self->buffer, bytesRec, false);
+
+    if (bytesRec == -1) {
+        DEBUG_PRINT("Error reading from socket\n");
+        self->isRunning = false;
+    }
+
+    if (bytesRec > 0) {
+        DEBUG_PRINT("Connection: rcvd msg(%i bytes)\n", bytesRec);
+
+        if (handleMessage(self, self->buffer, bytesRec) == false)
+            self->isRunning = false;
+
+        if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w) {
+
+            self->lastConfirmationTime = Hal_getTimeInMs();
+
+            self->unconfirmedReceivedIMessages = 0;
+
+            self->timeoutT2Triggered = false;
+
+            sendSMessage(self);
+        }
+    }
+
+}
+
+static void
+MasterConnection_executePeriodicTasks(MasterConnection self)
+{
+    if (self->isActive)
+        sendWaitingASDUs(self);
+
+    if (handleTimeouts(self) == false)
+        self->isRunning = false;
+}
+
+static void
+handleClientConnections(CS104_Slave self)
+{
+    HandleSet handleset = NULL;
+
+    if (self->openConnections > 0) {
+
+        LinkedList connection = LinkedList_getNext(self->masterConnections);
+
+        bool first = true;
+
+        while (connection) {
+            MasterConnection con = (MasterConnection) LinkedList_getData(connection);
+
+            if (con->isRunning) {
+
+                connection = LinkedList_getNext(connection);
+
+                if (first) {
+                    handleset = con->handleSet;
+                    Handleset_reset(handleset);
+                    first = false;
+                }
+
+                Handleset_addSocket(handleset, con->socket);
+            }
+            else {
+
+                connection = LinkedList_getNext(connection);
+
+
+                if (self->connectionEventHandler) {
+                   self->connectionEventHandler(self->connectionEventHandlerParameter, &(con->iMasterConnection), CS104_CON_EVENT_CONNECTION_CLOSED);
+                }
+
+                DEBUG_PRINT("Connection closed\n");
+
+                LinkedList_remove(self->masterConnections, con);
+
+                self->openConnections--;
+
+                MasterConnection_destroy(con);
+            }
+
+        }
+
+        if (handleset != NULL) {
+
+
+            if (Handleset_waitReady(handleset, 1)) {
+                connection = LinkedList_getNext(self->masterConnections);
+
+                while (connection) {
+
+                    MasterConnection con = (MasterConnection) LinkedList_getData(connection);
+
+                    MasterConnection_handleTcpConnection(con);
+
+                    connection = LinkedList_getNext(connection);
+                }
+            }
+        }
+
+
+        connection = LinkedList_getNext(self->masterConnections);
+
+        while (connection) {
+
+            MasterConnection con = (MasterConnection) LinkedList_getData(connection);
+
+            MasterConnection_executePeriodicTasks(con);
+
+            connection = LinkedList_getNext(connection);
+        }
+    }
+
+}
+
+/* handle TCP connections in non-threaded mode */
+static void
+handleConnectionsThreadless(CS104_Slave self)
+{
+
+
+    if ((self->maxOpenConnections < 1) || (self->openConnections < self->maxOpenConnections)) {
+
+        Socket newSocket = ServerSocket_accept(self->serverSocket);
+
+        if (newSocket != NULL) {
+
+            bool acceptConnection = true;
+
+            if (acceptConnection && (self->connectionRequestHandler != NULL)) {
+                char ipAddress[60];
+
+                Socket_getPeerAddressStatic(newSocket, ipAddress);
+
+                /* remove TCP port part */
+                char* separator = strchr(ipAddress, ':');
+                if (separator != NULL)
+                    *separator = 0;
+
+                acceptConnection = self->connectionRequestHandler(self->connectionRequestHandlerParameter,
+                        ipAddress);
+            }
+
+            if (acceptConnection) {
+
+                MessageQueue lowPrioQueue = NULL;
+                HighPriorityASDUQueue highPrioQueue = NULL;
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+                if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
+                    lowPrioQueue = self->asduQueue;
+                    highPrioQueue = self->connectionAsduQueue;
+                }
+#endif
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+                if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
+                    lowPrioQueue = MessageQueue_create(self->maxLowPrioQueueSize);
+                    highPrioQueue = HighPriorityASDUQueue_create(self->maxHighPrioQueueSize);
+                }
+#endif
+
+                MasterConnection connection =
+                        MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+
+                if (connection) {
+
+#if (CONFIG_USE_THREADS)
+                    Semaphore_wait(self->openConnectionsLock);
+#endif
+
+                    self->openConnections++;
+                    LinkedList_add(self->masterConnections, connection);
+
+#if (CONFIG_USE_THREADS)
+                    Semaphore_post(self->openConnectionsLock);
+#endif
+
+
+
+                    /* now start the connection handling (thread) */
+                    //MasterConnection_start(connection);
+                    connection->isRunning = true;
+                }
+                else
+                    DEBUG_PRINT("Connection attempt failed!");
+
+            }
+            else {
+                Socket_destroy(newSocket);
+            }
+        }
+
+    }
+
+
+    handleClientConnections(self);
+}
 
 static void*
 serverThread (void* parameter)
 {
     CS104_Slave self = (CS104_Slave) parameter;
 
-    ServerSocket serverSocket;
-
     if (self->localAddress)
-        serverSocket = TcpServerSocket_create(self->localAddress, self->tcpPort);
+        self->serverSocket = TcpServerSocket_create(self->localAddress, self->tcpPort);
     else
-        serverSocket = TcpServerSocket_create("0.0.0.0", self->tcpPort);
+        self->serverSocket = TcpServerSocket_create("0.0.0.0", self->tcpPort);
 
-    if (serverSocket == NULL) {
+    if (self->serverSocket == NULL) {
         DEBUG_PRINT("Cannot create server socket\n");
         self->isStarting = false;
         goto exit_function;
     }
 
-    ServerSocket_listen(serverSocket);
+    ServerSocket_listen(self->serverSocket);
 
     self->isRunning = true;
     self->isStarting = false;
 
     while (self->stopRunning == false) {
-        Socket newSocket = ServerSocket_accept(serverSocket);
+        Socket newSocket = ServerSocket_accept(self->serverSocket);
 
         if (newSocket != NULL) {
 
@@ -2174,8 +2387,8 @@ serverThread (void* parameter)
             Thread_sleep(10);
     }
 
-    if (serverSocket)
-        Socket_destroy((Socket) serverSocket);
+    if (self->serverSocket)
+        Socket_destroy((Socket) self->serverSocket);
 
     self->isRunning = false;
     self->stopRunning = false;
@@ -2227,7 +2440,6 @@ CS104_Slave_start(CS104_Slave self)
     if (self->isRunning == false) {
 
         self->isStarting = true;
-        self->isRunning = false;
         self->stopRunning = false;
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
@@ -2243,6 +2455,56 @@ CS104_Slave_start(CS104_Slave self)
     }
 }
 
+void
+CS104_Slave_startThreadless(CS104_Slave self)
+{
+    if (self->isRunning == false) {
+
+        self->isThreadlessMode = true;
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+        if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
+            initializeMessageQueues(self, self->maxLowPrioQueueSize, self->maxHighPrioQueueSize);
+#endif
+
+        if (self->localAddress)
+            self->serverSocket = TcpServerSocket_create(self->localAddress, self->tcpPort);
+        else
+            self->serverSocket = TcpServerSocket_create("0.0.0.0", self->tcpPort);
+
+        if (self->serverSocket == NULL) {
+            DEBUG_PRINT("Cannot create server socket\n");
+            self->isStarting = false;
+            goto exit_function;
+        }
+
+        ServerSocket_listen(self->serverSocket);
+
+        self->isRunning = true;
+    }
+
+exit_function:
+    return;
+}
+
+void
+CS104_Slave_stopThreadless(CS104_Slave self)
+{
+    self->isRunning = false;
+
+    if (self->serverSocket) {
+        Socket_destroy((Socket) self->serverSocket);
+        self->serverSocket = NULL;
+    }
+}
+
+void
+CS104_Slave_tick(CS104_Slave self)
+{
+    handleConnectionsThreadless(self);
+}
+
+
 bool
 CS104_Slave_isRunning(CS104_Slave self)
 {
@@ -2252,25 +2514,32 @@ CS104_Slave_isRunning(CS104_Slave self)
 void
 CS104_Slave_stop(CS104_Slave self)
 {
-    if (self->isRunning) {
-        self->stopRunning = true;
-
-        while (self->isRunning)
-            Thread_sleep(1);
+    if (self->isThreadlessMode) {
+        CS104_Slave_stopThreadless(self);
     }
+    else {
+        if (self->isRunning) {
+            self->stopRunning = true;
 
-    if (self->listeningThread) {
-        Thread_destroy(self->listeningThread);
+            while (self->isRunning)
+                Thread_sleep(1);
+        }
+
+        if (self->listeningThread) {
+            Thread_destroy(self->listeningThread);
+        }
+
+        self->listeningThread = NULL;
     }
-
-    self->listeningThread = NULL;
 }
 
 void
 CS104_Slave_destroy(CS104_Slave self)
 {
+#if (CONFIG_USE_THREADS == 1)
     if (self->isRunning)
         CS104_Slave_stop(self);
+#endif
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
     if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
@@ -2302,9 +2571,21 @@ CS104_Slave_destroy(CS104_Slave self)
     Semaphore_post(self->openConnectionsLock);
 #endif
 
-    /* Wait until all connections are closed */
-    while (CS104_Slave_getOpenConnections(self) > 0)
-        Thread_sleep(10);
+    if (self->isThreadlessMode) {
+        for (element = LinkedList_getNext(self->masterConnections);
+             element != NULL;
+             element = LinkedList_getNext(element))
+        {
+            MasterConnection connection = (MasterConnection) LinkedList_getData(element);
+
+            MasterConnection_destroy(connection);
+        }
+    }
+    else {
+        /* Wait until all connections are closed */
+        while (CS104_Slave_getOpenConnections(self) > 0)
+            Thread_sleep(10);
+    }
 
     LinkedList_destroyStatic(self->masterConnections);
 
