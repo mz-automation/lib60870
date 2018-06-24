@@ -85,8 +85,7 @@ CS101_ASDU
 CS101_ASDU_create(CS101_AppLayerParameters parameters, bool isSequence, CS101_CauseOfTransmission cot, int oa, int ca,
         bool isTest, bool isNegative)
 {
-    CS101_StaticASDU self = (CS101_StaticASDU) GLOBAL_MALLOC(sizeof(struct sCS101_StaticASDU));
-    //TODO support allocation from static pool
+    CS101_StaticASDU self = (CS101_StaticASDU) GLOBAL_MALLOC(sizeof(sCS101_StaticASDU));
 
     if (self != NULL)
         CS101_ASDU_initializeStatic(self, parameters, isSequence, cot, oa, ca, isTest, isNegative);
@@ -98,8 +97,6 @@ CS101_ASDU
 CS101_ASDU_initializeStatic(CS101_StaticASDU self, CS101_AppLayerParameters parameters, bool isSequence, CS101_CauseOfTransmission cot, int oa, int ca,
         bool isTest, bool isNegative)
 {
-    self->stackCreated = false;
-
     int asduHeaderLength = 2 + parameters->sizeOfCOT + parameters->sizeOfCA;
 
     self->encodedData[0] = (uint8_t) 0;
@@ -146,12 +143,6 @@ CS101_ASDU_destroy(CS101_ASDU self)
     GLOBAL_FREEMEM(self);
 }
 
-bool
-CS101_ASDU_isStackCreated(CS101_ASDU self)
-{
-    return self->stackCreated;
-}
-
 void
 CS101_ASDU_encode(CS101_ASDU self, Frame frame)
 {
@@ -167,11 +158,8 @@ CS101_ASDU_createFromBuffer(CS101_AppLayerParameters parameters, uint8_t* msg, i
         return NULL;
 
     CS101_ASDU self = (CS101_ASDU) GLOBAL_MALLOC(sizeof(struct sCS101_ASDU));
-    //TODO support allocation from static pool
 
     if (self != NULL) {
-
-        self->stackCreated = true;
         self->parameters = parameters;
 
         self->asdu = msg;
@@ -214,9 +202,7 @@ CS101_ASDU_addInformationObject(CS101_ASDU self, InformationObject io)
     int numberOfElements = CS101_ASDU_getNumberOfElements(self);
 
     if (numberOfElements == 0) {
-        if (self->stackCreated == false) {
-            ((CS101_StaticASDU)self)->encodedData[0] = (uint8_t) InformationObject_getType(io);
-        }
+        ((CS101_StaticASDU)self)->encodedData[0] = (uint8_t) InformationObject_getType(io);
 
         encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);
     }

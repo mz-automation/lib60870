@@ -105,9 +105,35 @@ typedef void (*IEC60870_LinkLayerStateChangedHandler) (void* parameter, int addr
 typedef void (*IEC60870_RawMessageHandler) (void* parameter, uint8_t* msg, int msgSize, bool sent);
 
 /**
+ * \brief Parameters for the CS101/CS104 application layer
+ */
+typedef struct sCS101_AppLayerParameters* CS101_AppLayerParameters;
+
+struct sCS101_AppLayerParameters {
+    int sizeOfTypeId;      /* size of the type id (default = 1 - don't change) */
+    int sizeOfVSQ;         /* don't change */
+    int sizeOfCOT;         /* size of COT (1/2 - default = 2 -> COT includes OA) */
+    int originatorAddress; /* originator address (OA) to use (0-255) */
+    int sizeOfCA;          /* size of common address (CA) of ASDU (1/2 - default = 2) */
+    int sizeOfIOA;         /* size of information object address (IOA) (1/2/3 - default = 3) */
+    int maxSizeOfASDU;     /* maximum size of the ASDU that is generated - the maximum maximum value is 249 for IEC 104 and 254 for IEC 101 */
+};
+
+/**
  * \brief Application Service Data Unit (ASDU) for the CS101/CS104 application layer
  */
 typedef struct sCS101_ASDU* CS101_ASDU;
+
+typedef struct {
+    CS101_AppLayerParameters parameters;
+    uint8_t* asdu;
+    int asduHeaderLength;
+    uint8_t* payload;
+    int payloadSize;
+    uint8_t encodedData[256];
+} sCS101_StaticASDU;
+
+typedef sCS101_StaticASDU* CS101_StaticASDU;
 
 typedef struct sCP16Time2a* CP16Time2a;
 
@@ -146,21 +172,6 @@ typedef struct sBinaryCounterReading* BinaryCounterReading;
 
 struct sBinaryCounterReading {
     uint8_t encodedValue[5];
-};
-
-/**
- * \brief Parameters for the CS101/CS104 application layer
- */
-typedef struct sCS101_AppLayerParameters* CS101_AppLayerParameters;
-
-struct sCS101_AppLayerParameters {
-    int sizeOfTypeId;      /* size of the type id (default = 1 - don't change) */
-    int sizeOfVSQ;         /* don't change */
-    int sizeOfCOT;         /* size of COT (1/2 - default = 2 -> COT includes OA) */
-    int originatorAddress; /* originator address (OA) to use (0-255) */
-    int sizeOfCA;          /* size of common address (CA) of ASDU (1/2 - default = 2) */
-    int sizeOfIOA;         /* size of information object address (IOA) (1/2/3 - default = 3) */
-    int maxSizeOfASDU;     /* maximum size of the ASDU that is generated - the maximum maximum value is 249 for IEC 104 and 254 for IEC 101 */
 };
 
 /**
@@ -414,6 +425,26 @@ CS101_ASDU_getElement(CS101_ASDU self, int index);
  */
 CS101_ASDU
 CS101_ASDU_create(CS101_AppLayerParameters parameters, bool isSequence, CS101_CauseOfTransmission cot, int oa, int ca,
+        bool isTest, bool isNegative);
+
+/**
+ * \brief Create a new ASDU and store it in the provided static ASDU structure.
+ *
+ * NOTE: The type ID will be derived from the first InformationObject that will be added.
+ *
+ * \param self pointer to the statically allocated data structure
+ * \param parameters the application layer parameters used to encode the ASDU
+ * \param isSequence if the information objects will be encoded as a compact sequence of information objects with subsequent IOA values
+ * \param cot cause of transmission (COT)
+ * \param oa originator address (OA) to be used
+ * \param ca the common address (CA) of the ASDU
+ * \param isTest if the test flag will be set or not
+ * \param isNegative if the negative falg will be set or not
+ *
+ * \return the new CS101_ASDU instance
+ */
+CS101_ASDU
+CS101_ASDU_initializeStatic(CS101_StaticASDU self, CS101_AppLayerParameters parameters, bool isSequence, CS101_CauseOfTransmission cot, int oa, int ca,
         bool isTest, bool isNegative);
 
 /**
