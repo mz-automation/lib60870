@@ -227,6 +227,13 @@ CS101_ASDU_addInformationObject(CS101_ASDU self, InformationObject io)
     return encoded;
 }
 
+void
+CS101_ASDU_removeAllElements(CS101_ASDU self)
+{
+    self->asdu[1] = (self->asdu[1] & 0x80);
+    self->payloadSize = 0;
+}
+
 bool
 CS101_ASDU_isTest(CS101_ASDU self)
 {

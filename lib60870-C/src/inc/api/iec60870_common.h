@@ -465,6 +465,14 @@ bool
 CS101_ASDU_addInformationObject(CS101_ASDU self, InformationObject io);
 
 /**
+ * \brief remove all information elements from the ASDU object
+ *
+ * \param self ASDU object instance
+ */
+void
+CS101_ASDU_removeAllElements(CS101_ASDU self);
+
+/**
  * \brief Get the elapsed time in ms
  */
 int
