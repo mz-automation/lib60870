@@ -50,6 +50,13 @@ clockSyncHandler (void* parameter, IMasterConnection connection, CS101_ASDU asdu
 {
     printf("Process time sync command with time "); printCP56Time2a(newTime); printf("\n");
 
+    uint64_t newSystemTimeInMs = CP56Time2a_toMsTimestamp(newTime);
+
+    /* Set time for ACT_CON message */
+    CP56Time2a_setFromMsTimestamp(newTime, Hal_getTimeInMs());
+
+    /* update system time here */
+
     return true;
 }
 

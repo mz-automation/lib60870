@@ -1332,16 +1332,14 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
                 ClockSynchronizationCommand csc = (ClockSynchronizationCommand) CS101_ASDU_getElement(asdu, 0);
 
+                CP56Time2a newTime = ClockSynchronizationCommand_getTime(csc);
+
                 if (slave->clockSyncHandler(slave->clockSyncHandlerParameter,
-                        &(self->iMasterConnection), asdu, ClockSynchronizationCommand_getTime(csc))) {
+                        &(self->iMasterConnection), asdu, newTime)) {
 
                     CS101_ASDU_removeAllElements(asdu);
 
-                    struct sCP56Time2a timeValue;
-
-                    CP56Time2a_createFromMsTimestamp(&timeValue, Hal_getTimeInMs());
-
-                    ClockSynchronizationCommand_create(csc, 0, &timeValue);
+                    ClockSynchronizationCommand_create(csc, 0, newTime);
 
                     CS101_ASDU_addInformationObject(asdu, (InformationObject) csc);
 
