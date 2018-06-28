@@ -1265,13 +1265,13 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
         if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_DEACTIVATION)) {
             if (slave->interrogationHandler != NULL) {
 
-                InterrogationCommand irc = (InterrogationCommand) CS101_ASDU_getElement(asdu, 0);
+                union uInformationObject _io;
+
+                InterrogationCommand irc = (InterrogationCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
                 if (slave->interrogationHandler(slave->interrogationHandlerParameter,
                         &(self->iMasterConnection), asdu, InterrogationCommand_getQOI(irc)))
                     messageHandled = true;
-
-                InterrogationCommand_destroy(irc);
             }
         }
         else
@@ -1287,8 +1287,9 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
             if (slave->counterInterrogationHandler != NULL) {
 
-                CounterInterrogationCommand cic = (CounterInterrogationCommand) CS101_ASDU_getElement(asdu, 0);
+                union uInformationObject _io;
 
+                CounterInterrogationCommand cic = (CounterInterrogationCommand)  CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
                 if (slave->counterInterrogationHandler(slave->counterInterrogationHandlerParameter,
                         &(self->iMasterConnection), asdu, CounterInterrogationCommand_getQCC(cic)))
@@ -1308,13 +1309,14 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         if (cot == CS101_COT_REQUEST) {
             if (slave->readHandler != NULL) {
-                ReadCommand rc = (ReadCommand) CS101_ASDU_getElement(asdu, 0);
+
+                union uInformationObject _io;
+
+                ReadCommand rc = (ReadCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
                 if (slave->readHandler(slave->readHandlerParameter,
                         &(self->iMasterConnection), asdu, InformationObject_getObjectAddress((InformationObject) rc)))
                     messageHandled = true;
-
-                ReadCommand_destroy(rc);
             }
         }
         else
@@ -1330,7 +1332,9 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
             if (slave->clockSyncHandler != NULL) {
 
-                ClockSynchronizationCommand csc = (ClockSynchronizationCommand) CS101_ASDU_getElement(asdu, 0);
+                union uInformationObject _io;
+
+                ClockSynchronizationCommand csc = (ClockSynchronizationCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
                 CP56Time2a newTime = ClockSynchronizationCommand_getTime(csc);
 
@@ -1353,8 +1357,6 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
                     sendASDUInternal(self, asdu);
                 }
-
-                ClockSynchronizationCommand_destroy(csc);
 
                 messageHandled = true;
             }
@@ -1386,13 +1388,14 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
         if (cot == CS101_COT_ACTIVATION) {
 
             if (slave->resetProcessHandler != NULL) {
-                ResetProcessCommand rpc = (ResetProcessCommand) CS101_ASDU_getElement(asdu, 0);
+
+                union uInformationObject _io;
+
+                ResetProcessCommand rpc = (ResetProcessCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
                 if (slave->resetProcessHandler(slave->resetProcessHandlerParameter,
                         &(self->iMasterConnection), asdu, ResetProcessCommand_getQRP(rpc)))
                     messageHandled = true;
-
-                ResetProcessCommand_destroy(rpc);
             }
 
         }
@@ -1408,13 +1411,14 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
         if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_SPONTANEOUS)) {
 
             if (slave->delayAcquisitionHandler != NULL) {
-                DelayAcquisitionCommand dac = (DelayAcquisitionCommand) CS101_ASDU_getElement(asdu, 0);
+
+                union uInformationObject _io;
+
+                DelayAcquisitionCommand dac = (DelayAcquisitionCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
                 if (slave->delayAcquisitionHandler(slave->delayAcquisitionHandlerParameter,
                         &(self->iMasterConnection), asdu, DelayAcquisitionCommand_getDelay(dac)))
                     messageHandled = true;
-
-                DelayAcquisitionCommand_destroy(dac);
             }
         }
         else

@@ -411,6 +411,17 @@ InformationObject
 CS101_ASDU_getElement(CS101_ASDU self, int index);
 
 /**
+ * \brief Get the information object with the given index and store it in the provided information object instance
+ *
+ * \param io if not NULL use the provided information object instance to store the information, has to be of correct type.
+ * \param index the index of the information object (starting with 0)
+ *
+ * \return the information object, or NULL if there is no information object with the given index
+ */
+InformationObject
+CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index);
+
+/**
  * \brief Create a new ASDU. The type ID will be derived from the first InformationObject that will be added
  *
  * \param parameters the application layer parameters used to encode the ASDU
