@@ -922,18 +922,42 @@ PackedSinglePointWithSCD_getSCD(PackedSinglePointWithSCD self);
 
 typedef struct sSingleCommand* SingleCommand;
 
+/**
+ * \brief Create a single point command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] command the command value
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] qu qualifier of command QU parameter(0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output)
+ *
+ * \return the initialized instance
+ */
 SingleCommand
 SingleCommand_create(SingleCommand self, int ioa, bool command, bool selectCommand, int qu);
 
 void
 SingleCommand_destroy(SingleCommand self);
 
+/**
+ * \brief Get the qualifier of command QU value
+ *
+ * \return the QU value (0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output, > 3 = reserved)
+ */
 int
 SingleCommand_getQU(SingleCommand self);
 
+/**
+ * \brief Get the state (command) value
+ */
 bool
 SingleCommand_getState(SingleCommand self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 SingleCommand_isSelect(SingleCommand self);
 
@@ -946,9 +970,29 @@ typedef struct sSingleCommandWithCP56Time2a* SingleCommandWithCP56Time2a;
 void
 SingleCommandWithCP56Time2a_destroy(SingleCommandWithCP56Time2a self);
 
+/**
+ * \brief Create a single command with CP56Time2a time stamp information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] command the command value
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] qu qualifier of command QU parameter(0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output)
+ * \param[in] timestamp the time stamp value
+ *
+ * \return the initialized instance
+ */
 SingleCommandWithCP56Time2a
 SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bool command, bool selectCommand, int qu, CP56Time2a timestamp);
 
+/**
+ * \brief Get the time stamp of the command.
+ *
+ * NOTE: according to the specification the command shall not be accepted when the time stamp differs too much
+ * from the time of the receiving system. In this case the command has to be discarded silently.
+ *
+ * \return the time stamp of the command
+ */
 CP56Time2a
 SingleCommandWithCP56Time2a_getTimestamp(SingleCommandWithCP56Time2a self);
 
@@ -961,15 +1005,41 @@ typedef struct sDoubleCommand* DoubleCommand;
 void
 DoubleCommand_destroy(DoubleCommand self);
 
+/**
+ * \brief Create a double command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] command the double command state (0 = not permitted, 1 = off, 2 = on, 3 = not permitted)
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] qu qualifier of command QU parameter(0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output)
+ *
+ * \return the initialized instance
+ */
 DoubleCommand
 DoubleCommand_create(DoubleCommand self, int ioa, int command, bool selectCommand, int qu);
 
+/**
+ * \brief Get the qualifier of command QU value
+ *
+ * \return the QU value (0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output, > 3 = reserved)
+ */
 int
 DoubleCommand_getQU(DoubleCommand self);
 
+/**
+ * \brief Get the state (command) value
+ *
+ * \return 0 = not permitted, 1 = off, 2 = on, 3 = not permitted
+ */
 int
 DoubleCommand_getState(DoubleCommand self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 DoubleCommand_isSelect(DoubleCommand self);
 
@@ -985,12 +1055,22 @@ StepCommand_destroy(StepCommand self);
 StepCommand
 StepCommand_create(StepCommand self, int ioa, StepCommandValue command, bool selectCommand, int qu);
 
+/**
+ * \brief Get the qualifier of command QU value
+ *
+ * \return the QU value (0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output, > 3 = reserved)
+ */
 int
 StepCommand_getQU(StepCommand self);
 
 StepCommandValue
 StepCommand_getState(StepCommand self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 StepCommand_isSelect(StepCommand self);
 
@@ -1003,6 +1083,17 @@ typedef struct sSetpointCommandNormalized* SetpointCommandNormalized;
 void
 SetpointCommandNormalized_destroy(SetpointCommandNormalized self);
 
+/**
+ * \brief Create a normalized set point command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value normalized value between -1 and 1
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] ql qualifier of set point command (0 = standard, 1..127 = reserved)
+ *
+ * \return the initialized instance
+ */
 SetpointCommandNormalized
 SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float value, bool selectCommand, int ql);
 
@@ -1012,6 +1103,11 @@ SetpointCommandNormalized_getValue(SetpointCommandNormalized self);
 int
 SetpointCommandNormalized_getQL(SetpointCommandNormalized self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 SetpointCommandNormalized_isSelect(SetpointCommandNormalized self);
 
@@ -1033,6 +1129,11 @@ SetpointCommandScaled_getValue(SetpointCommandScaled self);
 int
 SetpointCommandScaled_getQL(SetpointCommandScaled self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 SetpointCommandScaled_isSelect(SetpointCommandScaled self);
 
@@ -1054,6 +1155,11 @@ SetpointCommandShort_getValue(SetpointCommandShort self);
 int
 SetpointCommandShort_getQL(SetpointCommandShort self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 SetpointCommandShort_isSelect(SetpointCommandShort self);
 
