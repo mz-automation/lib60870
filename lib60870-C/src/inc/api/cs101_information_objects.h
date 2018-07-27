@@ -82,6 +82,15 @@ typedef uint8_t OutputCircuitInfo;
 
 /**
  *  \brief Qualifier of parameter of measured values (QPM) according to IEC 60870-5-101:2003 7.2.6.24
+ *
+ *  Possible values:
+ *  0 = not used
+ *  1 = threshold value
+ *  2 = smoothing factor (filter time constant)
+ *  3 = low limit for transmission of measured values
+ *  4 = high limit for transmission of measured values
+ *  5..31 = reserved for standard definitions of CS101 (compatible range)
+ *  32..63 = reserved for special use (private range)
  */
 typedef uint8_t QualifierOfParameterMV;
 
@@ -1120,6 +1129,17 @@ typedef struct sSetpointCommandScaled* SetpointCommandScaled;
 void
 SetpointCommandScaled_destroy(SetpointCommandScaled self);
 
+/**
+ * \brief Create a scaled set point command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value the scaled value (–32.768 .. 32.767)
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] ql qualifier of set point command (0 = standard, 1..127 = reserved)
+ *
+ * \return the initialized instance
+ */
 SetpointCommandScaled
 SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, int value, bool selectCommand, int ql);
 
@@ -1146,6 +1166,17 @@ typedef struct sSetpointCommandShort* SetpointCommandShort;
 void
 SetpointCommandShort_destroy(SetpointCommandShort self);
 
+/**
+ * \brief Create a short floating point set point command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value short floating point number
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] ql qualifier of set point command (0 = standard, 1..127 = reserved)
+ *
+ * \return the initialized instance
+ */
 SetpointCommandShort
 SetpointCommandShort_create(SetpointCommandShort self, int ioa, float value, bool selectCommand, int ql);
 
@@ -1229,6 +1260,28 @@ typedef struct sMeasuredValueNormalized* ParameterNormalizedValue;
 void
 ParameterNormalizedValue_destroy(ParameterNormalizedValue self);
 
+/**
+ * \brief Create a parameter measured values, normalized (P_ME_NA_1) information object
+ *
+ * NOTE: Can only be used in control direction (with COT=ACTIVATION) or in monitoring
+ * direction as a response of an interrogation request (with COT=INTERROGATED_BY...).
+ *
+ * Possible values of qpm:
+ * 0 = not used
+ * 1 = threshold value
+ * 2 = smoothing factor (filter time constant)
+ * 3 = low limit for transmission of measured values
+ * 4 = high limit for transmission of measured values
+ * 5..31 = reserved for standard definitions of CS101 (compatible range)
+ * 32..63 = reserved for special use (private range)
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value the normalized value (-1 .. 1)
+ * \param[in] qpm qualifier of measured values (\ref QualifierOfParameterMV)
+ *
+ * \return the initialized instance
+ */
 ParameterNormalizedValue
 ParameterNormalizedValue_create(ParameterNormalizedValue self, int ioa, float value, QualifierOfParameterMV qpm);
 
@@ -1238,6 +1291,11 @@ ParameterNormalizedValue_getValue(ParameterNormalizedValue self);
 void
 ParameterNormalizedValue_setValue(ParameterNormalizedValue self, float value);
 
+/**
+ * \brief Returns the qualifier of measured values (QPM)
+ *
+ * \return the QPM value (\ref QualifierOfParameterMV)
+ */
 QualifierOfParameterMV
 ParameterNormalizedValue_getQPM(ParameterNormalizedValue self);
 
@@ -1250,6 +1308,28 @@ typedef struct sMeasuredValueScaled* ParameterScaledValue;
 void
 ParameterScaledValue_destroy(ParameterScaledValue self);
 
+/**
+ * \brief Create a parameter measured values, scaled (P_ME_NB_1) information object
+ *
+ * NOTE: Can only be used in control direction (with COT=ACTIVATION) or in monitoring
+ * direction as a response of an interrogation request (with COT=INTERROGATED_BY...).
+ *
+ * Possible values of qpm:
+ * 0 = not used
+ * 1 = threshold value
+ * 2 = smoothing factor (filter time constant)
+ * 3 = low limit for transmission of measured values
+ * 4 = high limit for transmission of measured values
+ * 5..31 = reserved for standard definitions of CS101 (compatible range)
+ * 32..63 = reserved for special use (private range)
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value the scaled value (–32.768 .. 32.767)
+ * \param[in] qpm qualifier of measured values (\ref QualifierOfParameterMV)
+ *
+ * \return the initialized instance
+ */
 ParameterScaledValue
 ParameterScaledValue_create(ParameterScaledValue self, int ioa, int value, QualifierOfParameterMV qpm);
 
@@ -1259,6 +1339,11 @@ ParameterScaledValue_getValue(ParameterScaledValue self);
 void
 ParameterScaledValue_setValue(ParameterScaledValue self, int value);
 
+/**
+ * \brief Returns the qualifier of measured values (QPM)
+ *
+ * \return the QPM value (\ref QualifierOfParameterMV)
+ */
 QualifierOfParameterMV
 ParameterScaledValue_getQPM(ParameterScaledValue self);
 
@@ -1271,6 +1356,28 @@ typedef struct sMeasuredValueShort* ParameterFloatValue;
 void
 ParameterFloatValue_destroy(ParameterFloatValue self);
 
+/**
+ * \brief Create a parameter measured values, short floating point (P_ME_NC_1) information object
+ *
+ * NOTE: Can only be used in control direction (with COT=ACTIVATION) or in monitoring
+ * direction as a response of an interrogation request (with COT=INTERROGATED_BY...).
+ *
+ * Possible values of qpm:
+ * 0 = not used
+ * 1 = threshold value
+ * 2 = smoothing factor (filter time constant)
+ * 3 = low limit for transmission of measured values
+ * 4 = high limit for transmission of measured values
+ * 5..31 = reserved for standard definitions of CS101 (compatible range)
+ * 32..63 = reserved for special use (private range)
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value short floating point number
+ * \param[in] qpm qualifier of measured values (QPM - \ref QualifierOfParameterMV)
+ *
+ * \return the initialized instance
+ */
 ParameterFloatValue
 ParameterFloatValue_create(ParameterFloatValue self, int ioa, float value, QualifierOfParameterMV qpm);
 
@@ -1280,6 +1387,11 @@ ParameterFloatValue_getValue(ParameterFloatValue self);
 void
 ParameterFloatValue_setValue(ParameterFloatValue self, float value);
 
+/**
+ * \brief Returns the qualifier of measured values (QPM)
+ *
+ * \return the QPM value (\ref QualifierOfParameterMV)
+ */
 QualifierOfParameterMV
 ParameterFloatValue_getQPM(ParameterFloatValue self);
 
@@ -1292,9 +1404,23 @@ typedef struct sParameterActivation* ParameterActivation;
 void
 ParameterActivation_destroy(ParameterActivation self);
 
+/**
+ * \brief Create a parameter activation (P_AC_NA_1) information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] qpa qualifier of parameter activation (3 = act/deact of persistent cyclic or periodic transmission)
+ *
+ * \return the initialized instance
+ */
 ParameterActivation
 ParameterActivation_create(ParameterActivation self, int ioa, QualifierOfParameterActivation qpa);
 
+/**
+ * \brief Get the qualifier of parameter activation (QPA) value
+ *
+ * \return 3 = act/deact of persistent cyclic or periodic transmission
+ */
 QualifierOfParameterActivation
 ParameterActivation_getQuality(ParameterActivation self);
 
