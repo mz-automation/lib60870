@@ -119,7 +119,7 @@ struct sMessageQueue {
     ASDUQueueEntry asdus;
 #endif
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore queueLock;
 #endif
 };
@@ -139,7 +139,7 @@ MessageQueue_initialize(MessageQueue self, int maxQueueSize)
     self->lastMsgIndex = 0;
     self->size = maxQueueSize;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     self->queueLock = Semaphore_create(1);
 #endif
 }
@@ -163,7 +163,7 @@ MessageQueue_destroy(MessageQueue self)
         GLOBAL_FREEMEM(self->asdus);
 #endif
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_destroy(self->queueLock);
 #endif
 
@@ -174,7 +174,7 @@ MessageQueue_destroy(MessageQueue self)
 static void
 MessageQueue_lock(MessageQueue self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 }
@@ -182,7 +182,7 @@ MessageQueue_lock(MessageQueue self)
 static void
 MessageQueue_unlock(MessageQueue self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
 #endif
 }
@@ -194,7 +194,7 @@ MessageQueue_unlock(MessageQueue self)
 static void
 MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 
@@ -247,7 +247,7 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
     DEBUG_PRINT("ASDUs in FIFO: %i (first: %i, last: %i)\n", self->entryCounter,
             self->firstMsgIndex, self->lastMsgIndex);
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
 #endif
 }
@@ -255,7 +255,7 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
 static bool
 MessageQueue_isAsduAvailable(MessageQueue self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 
@@ -266,7 +266,7 @@ MessageQueue_isAsduAvailable(MessageQueue self)
     else
         retVal = false;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
 #endif
 
@@ -311,7 +311,7 @@ MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* timestamp, int* que
 static void
 MessageQueue_releaseAllQueuedASDUs(MessageQueue self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 
@@ -319,7 +319,7 @@ MessageQueue_releaseAllQueuedASDUs(MessageQueue self)
     self->lastMsgIndex = 0;
     self->entryCounter = 0;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
 #endif
 }
@@ -331,7 +331,7 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, int queueIndex, uint64_t tim
     if ((queueIndex < 0) || (queueIndex > self->size))
         return;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 
@@ -382,7 +382,7 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, int queueIndex, uint64_t tim
         }
     }
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
 #endif
 }
@@ -403,7 +403,7 @@ struct sHighPriorityASDUQueue {
     FrameBuffer* asdus;
 #endif
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore queueLock;
 #endif
 };
@@ -424,7 +424,7 @@ HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self, int maxQueueSize)
     self->lastMsgIndex = 0;
     self->size = maxQueueSize;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     self->queueLock = Semaphore_create(1);
 #endif
 }
@@ -448,7 +448,7 @@ HighPriorityASDUQueue_destroy(HighPriorityASDUQueue self)
     GLOBAL_FREEMEM(self->asdus);
 #endif
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_destroy(self->queueLock);
 #endif
 
@@ -458,7 +458,7 @@ HighPriorityASDUQueue_destroy(HighPriorityASDUQueue self)
 static void
 HighPriorityASDUQueue_lock(HighPriorityASDUQueue self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 }
@@ -466,7 +466,7 @@ HighPriorityASDUQueue_lock(HighPriorityASDUQueue self)
 static void
 HighPriorityASDUQueue_unlock(HighPriorityASDUQueue self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
 #endif
 }
@@ -474,7 +474,7 @@ HighPriorityASDUQueue_unlock(HighPriorityASDUQueue self)
 static bool
 HighPriorityASDUQueue_isAsduAvailable(HighPriorityASDUQueue self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 
@@ -485,7 +485,7 @@ HighPriorityASDUQueue_isAsduAvailable(HighPriorityASDUQueue self)
     else
         retVal = false;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
 #endif
 
@@ -520,7 +520,7 @@ HighPriorityASDUQueue_getNextASDU(HighPriorityASDUQueue self)
 static bool
 HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, CS101_ASDU asdu)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 
@@ -563,7 +563,7 @@ HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, CS101_ASDU asdu)
 
 exit_function:
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
 #endif
 
@@ -573,7 +573,7 @@ exit_function:
 static void
 HighPriorityASDUQueue_resetConnectionQueue(HighPriorityASDUQueue self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 
@@ -581,7 +581,7 @@ HighPriorityASDUQueue_resetConnectionQueue(HighPriorityASDUQueue self)
     self->lastMsgIndex = 0;
     self->entryCounter = 0;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
 #endif
 }
@@ -638,8 +638,11 @@ struct sCS104_Slave {
     int openConnections; /**< number of connected clients */
 
     LinkedList masterConnections; /**< references to all MasterConnection objects */
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore openConnectionsLock;
+#endif
+
+#if (CONFIG_USE_THREADS == 1)
     bool isThreadlessMode;
 #endif
 
@@ -748,8 +751,11 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 
         self->masterConnections = LinkedList_create();
         self->maxOpenConnections = CONFIG_CS104_MAX_CLIENT_CONNECTIONS;
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
         self->openConnectionsLock = Semaphore_create(1);
+#endif
+
+#if (CONFIG_USE_THREADS == 1)
         self->isThreadlessMode = false;
 #endif
 

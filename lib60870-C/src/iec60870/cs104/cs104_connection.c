@@ -80,8 +80,12 @@ struct sCS104_Connection {
     int maxSentASDUs;    /* maximum number of ASDU to be sent without confirmation - parameter k */
     int oldestSentASDU;  /* index of oldest entry in k-buffer */
     int newestSentASDU;  /* index of newest entry in k-buffer */
-#if (CONFIG_USE_THREADS == 1)
+
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore sentASDUsLock;
+#endif
+
+#if (CONFIG_USE_THREADS == 1)
     Thread connectionHandlingThread;
 #endif
 
@@ -206,8 +210,11 @@ createConnection(const char* hostname, int tcpPort)
         self->rawMessageHandler = NULL;
         self->rawMessageHandlerParameter = NULL;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
         self->sentASDUsLock = Semaphore_create(1);
+#endif
+
+#if (CONFIG_USE_THREADS == 1)
         self->connectionHandlingThread = NULL;
 #endif
 
@@ -291,7 +298,7 @@ resetConnection(CS104_Connection self)
 static bool
 checkSequenceNumber(CS104_Connection self, int seqNo)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
@@ -370,7 +377,7 @@ checkSequenceNumber(CS104_Connection self, int seqNo)
         }
     }
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 
@@ -413,7 +420,7 @@ CS104_Connection_destroy(CS104_Connection self)
     if (self->sentASDUs != NULL)
         GLOBAL_FREEMEM(self->sentASDUs);
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_destroy(self->sentASDUsLock);
 #endif
 
@@ -662,7 +669,7 @@ handleTimeouts(CS104_Connection self)
     }
 
     /* check if counterpart confirmed I messages */
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
     if (self->oldestSentASDU != -1) {
@@ -671,7 +678,7 @@ handleTimeouts(CS104_Connection self)
             retVal = false;
         }
     }
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 
@@ -681,6 +688,7 @@ exit_function:
     return retVal;
 }
 
+#if (CONFIG_USE_THREADS == 1)
 static void*
 handleConnection(void* parameter)
 {
@@ -786,6 +794,7 @@ handleConnection(void* parameter)
 
     return NULL;
 }
+#endif /* (CONFIG_USE_THREADS == 1) */
 
 void
 CS104_Connection_connectAsync(CS104_Connection self)
@@ -875,7 +884,7 @@ CS104_Connection_sendStopDT(CS104_Connection self)
 static void
 sendIMessageAndUpdateSentASDUs(CS104_Connection self, Frame frame)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
@@ -894,7 +903,7 @@ sendIMessageAndUpdateSentASDUs(CS104_Connection self, Frame frame)
 
     self->newestSentASDU = currentIndex;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 }

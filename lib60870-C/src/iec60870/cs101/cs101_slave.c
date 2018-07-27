@@ -37,7 +37,7 @@
 #include "cs101_queue.h"
 #include "cs101_asdu_internal.h"
 
-#if (CONFIG_USE_THREADS == 1)
+#if ((CONFIG_USE_THREADS == 1) || (CONFIG_USE_SEMAPHORES == 1))
 #include "hal_thread.h"
 #endif
 
