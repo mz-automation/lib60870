@@ -82,6 +82,15 @@ typedef uint8_t OutputCircuitInfo;
 
 /**
  *  \brief Qualifier of parameter of measured values (QPM) according to IEC 60870-5-101:2003 7.2.6.24
+ *
+ *  Possible values:
+ *  0 = not used
+ *  1 = threshold value
+ *  2 = smoothing factor (filter time constant)
+ *  3 = low limit for transmission of measured values
+ *  4 = high limit for transmission of measured values
+ *  5..31 = reserved for standard definitions of CS101 (compatible range)
+ *  32..63 = reserved for special use (private range)
  */
 typedef uint8_t QualifierOfParameterMV;
 
@@ -922,18 +931,42 @@ PackedSinglePointWithSCD_getSCD(PackedSinglePointWithSCD self);
 
 typedef struct sSingleCommand* SingleCommand;
 
+/**
+ * \brief Create a single point command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] command the command value
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] qu qualifier of command QU parameter(0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output)
+ *
+ * \return the initialized instance
+ */
 SingleCommand
 SingleCommand_create(SingleCommand self, int ioa, bool command, bool selectCommand, int qu);
 
 void
 SingleCommand_destroy(SingleCommand self);
 
+/**
+ * \brief Get the qualifier of command QU value
+ *
+ * \return the QU value (0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output, > 3 = reserved)
+ */
 int
 SingleCommand_getQU(SingleCommand self);
 
+/**
+ * \brief Get the state (command) value
+ */
 bool
 SingleCommand_getState(SingleCommand self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 SingleCommand_isSelect(SingleCommand self);
 
@@ -946,9 +979,29 @@ typedef struct sSingleCommandWithCP56Time2a* SingleCommandWithCP56Time2a;
 void
 SingleCommandWithCP56Time2a_destroy(SingleCommandWithCP56Time2a self);
 
+/**
+ * \brief Create a single command with CP56Time2a time stamp information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] command the command value
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] qu qualifier of command QU parameter(0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output)
+ * \param[in] timestamp the time stamp value
+ *
+ * \return the initialized instance
+ */
 SingleCommandWithCP56Time2a
 SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bool command, bool selectCommand, int qu, CP56Time2a timestamp);
 
+/**
+ * \brief Get the time stamp of the command.
+ *
+ * NOTE: according to the specification the command shall not be accepted when the time stamp differs too much
+ * from the time of the receiving system. In this case the command has to be discarded silently.
+ *
+ * \return the time stamp of the command
+ */
 CP56Time2a
 SingleCommandWithCP56Time2a_getTimestamp(SingleCommandWithCP56Time2a self);
 
@@ -961,15 +1014,41 @@ typedef struct sDoubleCommand* DoubleCommand;
 void
 DoubleCommand_destroy(DoubleCommand self);
 
+/**
+ * \brief Create a double command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] command the double command state (0 = not permitted, 1 = off, 2 = on, 3 = not permitted)
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] qu qualifier of command QU parameter(0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output)
+ *
+ * \return the initialized instance
+ */
 DoubleCommand
 DoubleCommand_create(DoubleCommand self, int ioa, int command, bool selectCommand, int qu);
 
+/**
+ * \brief Get the qualifier of command QU value
+ *
+ * \return the QU value (0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output, > 3 = reserved)
+ */
 int
 DoubleCommand_getQU(DoubleCommand self);
 
+/**
+ * \brief Get the state (command) value
+ *
+ * \return 0 = not permitted, 1 = off, 2 = on, 3 = not permitted
+ */
 int
 DoubleCommand_getState(DoubleCommand self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 DoubleCommand_isSelect(DoubleCommand self);
 
@@ -985,12 +1064,22 @@ StepCommand_destroy(StepCommand self);
 StepCommand
 StepCommand_create(StepCommand self, int ioa, StepCommandValue command, bool selectCommand, int qu);
 
+/**
+ * \brief Get the qualifier of command QU value
+ *
+ * \return the QU value (0 = no additional definition, 1 = short pulse, 2 = long pulse, 3 = persistent output, > 3 = reserved)
+ */
 int
 StepCommand_getQU(StepCommand self);
 
 StepCommandValue
 StepCommand_getState(StepCommand self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 StepCommand_isSelect(StepCommand self);
 
@@ -1003,6 +1092,17 @@ typedef struct sSetpointCommandNormalized* SetpointCommandNormalized;
 void
 SetpointCommandNormalized_destroy(SetpointCommandNormalized self);
 
+/**
+ * \brief Create a normalized set point command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value normalized value between -1 and 1
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] ql qualifier of set point command (0 = standard, 1..127 = reserved)
+ *
+ * \return the initialized instance
+ */
 SetpointCommandNormalized
 SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float value, bool selectCommand, int ql);
 
@@ -1012,6 +1112,11 @@ SetpointCommandNormalized_getValue(SetpointCommandNormalized self);
 int
 SetpointCommandNormalized_getQL(SetpointCommandNormalized self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 SetpointCommandNormalized_isSelect(SetpointCommandNormalized self);
 
@@ -1024,6 +1129,17 @@ typedef struct sSetpointCommandScaled* SetpointCommandScaled;
 void
 SetpointCommandScaled_destroy(SetpointCommandScaled self);
 
+/**
+ * \brief Create a scaled set point command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value the scaled value (–32.768 .. 32.767)
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] ql qualifier of set point command (0 = standard, 1..127 = reserved)
+ *
+ * \return the initialized instance
+ */
 SetpointCommandScaled
 SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, int value, bool selectCommand, int ql);
 
@@ -1033,6 +1149,11 @@ SetpointCommandScaled_getValue(SetpointCommandScaled self);
 int
 SetpointCommandScaled_getQL(SetpointCommandScaled self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 SetpointCommandScaled_isSelect(SetpointCommandScaled self);
 
@@ -1045,6 +1166,17 @@ typedef struct sSetpointCommandShort* SetpointCommandShort;
 void
 SetpointCommandShort_destroy(SetpointCommandShort self);
 
+/**
+ * \brief Create a short floating point set point command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value short floating point number
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] ql qualifier of set point command (0 = standard, 1..127 = reserved)
+ *
+ * \return the initialized instance
+ */
 SetpointCommandShort
 SetpointCommandShort_create(SetpointCommandShort self, int ioa, float value, bool selectCommand, int ql);
 
@@ -1054,6 +1186,11 @@ SetpointCommandShort_getValue(SetpointCommandShort self);
 int
 SetpointCommandShort_getQL(SetpointCommandShort self);
 
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
 bool
 SetpointCommandShort_isSelect(SetpointCommandShort self);
 
@@ -1123,6 +1260,28 @@ typedef struct sMeasuredValueNormalized* ParameterNormalizedValue;
 void
 ParameterNormalizedValue_destroy(ParameterNormalizedValue self);
 
+/**
+ * \brief Create a parameter measured values, normalized (P_ME_NA_1) information object
+ *
+ * NOTE: Can only be used in control direction (with COT=ACTIVATION) or in monitoring
+ * direction as a response of an interrogation request (with COT=INTERROGATED_BY...).
+ *
+ * Possible values of qpm:
+ * 0 = not used
+ * 1 = threshold value
+ * 2 = smoothing factor (filter time constant)
+ * 3 = low limit for transmission of measured values
+ * 4 = high limit for transmission of measured values
+ * 5..31 = reserved for standard definitions of CS101 (compatible range)
+ * 32..63 = reserved for special use (private range)
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value the normalized value (-1 .. 1)
+ * \param[in] qpm qualifier of measured values (\ref QualifierOfParameterMV)
+ *
+ * \return the initialized instance
+ */
 ParameterNormalizedValue
 ParameterNormalizedValue_create(ParameterNormalizedValue self, int ioa, float value, QualifierOfParameterMV qpm);
 
@@ -1132,6 +1291,11 @@ ParameterNormalizedValue_getValue(ParameterNormalizedValue self);
 void
 ParameterNormalizedValue_setValue(ParameterNormalizedValue self, float value);
 
+/**
+ * \brief Returns the qualifier of measured values (QPM)
+ *
+ * \return the QPM value (\ref QualifierOfParameterMV)
+ */
 QualifierOfParameterMV
 ParameterNormalizedValue_getQPM(ParameterNormalizedValue self);
 
@@ -1144,6 +1308,28 @@ typedef struct sMeasuredValueScaled* ParameterScaledValue;
 void
 ParameterScaledValue_destroy(ParameterScaledValue self);
 
+/**
+ * \brief Create a parameter measured values, scaled (P_ME_NB_1) information object
+ *
+ * NOTE: Can only be used in control direction (with COT=ACTIVATION) or in monitoring
+ * direction as a response of an interrogation request (with COT=INTERROGATED_BY...).
+ *
+ * Possible values of qpm:
+ * 0 = not used
+ * 1 = threshold value
+ * 2 = smoothing factor (filter time constant)
+ * 3 = low limit for transmission of measured values
+ * 4 = high limit for transmission of measured values
+ * 5..31 = reserved for standard definitions of CS101 (compatible range)
+ * 32..63 = reserved for special use (private range)
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value the scaled value (–32.768 .. 32.767)
+ * \param[in] qpm qualifier of measured values (\ref QualifierOfParameterMV)
+ *
+ * \return the initialized instance
+ */
 ParameterScaledValue
 ParameterScaledValue_create(ParameterScaledValue self, int ioa, int value, QualifierOfParameterMV qpm);
 
@@ -1153,6 +1339,11 @@ ParameterScaledValue_getValue(ParameterScaledValue self);
 void
 ParameterScaledValue_setValue(ParameterScaledValue self, int value);
 
+/**
+ * \brief Returns the qualifier of measured values (QPM)
+ *
+ * \return the QPM value (\ref QualifierOfParameterMV)
+ */
 QualifierOfParameterMV
 ParameterScaledValue_getQPM(ParameterScaledValue self);
 
@@ -1165,6 +1356,28 @@ typedef struct sMeasuredValueShort* ParameterFloatValue;
 void
 ParameterFloatValue_destroy(ParameterFloatValue self);
 
+/**
+ * \brief Create a parameter measured values, short floating point (P_ME_NC_1) information object
+ *
+ * NOTE: Can only be used in control direction (with COT=ACTIVATION) or in monitoring
+ * direction as a response of an interrogation request (with COT=INTERROGATED_BY...).
+ *
+ * Possible values of qpm:
+ * 0 = not used
+ * 1 = threshold value
+ * 2 = smoothing factor (filter time constant)
+ * 3 = low limit for transmission of measured values
+ * 4 = high limit for transmission of measured values
+ * 5..31 = reserved for standard definitions of CS101 (compatible range)
+ * 32..63 = reserved for special use (private range)
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value short floating point number
+ * \param[in] qpm qualifier of measured values (QPM - \ref QualifierOfParameterMV)
+ *
+ * \return the initialized instance
+ */
 ParameterFloatValue
 ParameterFloatValue_create(ParameterFloatValue self, int ioa, float value, QualifierOfParameterMV qpm);
 
@@ -1174,6 +1387,11 @@ ParameterFloatValue_getValue(ParameterFloatValue self);
 void
 ParameterFloatValue_setValue(ParameterFloatValue self, float value);
 
+/**
+ * \brief Returns the qualifier of measured values (QPM)
+ *
+ * \return the QPM value (\ref QualifierOfParameterMV)
+ */
 QualifierOfParameterMV
 ParameterFloatValue_getQPM(ParameterFloatValue self);
 
@@ -1186,9 +1404,23 @@ typedef struct sParameterActivation* ParameterActivation;
 void
 ParameterActivation_destroy(ParameterActivation self);
 
+/**
+ * \brief Create a parameter activation (P_AC_NA_1) information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] qpa qualifier of parameter activation (3 = act/deact of persistent cyclic or periodic transmission)
+ *
+ * \return the initialized instance
+ */
 ParameterActivation
 ParameterActivation_create(ParameterActivation self, int ioa, QualifierOfParameterActivation qpa);
 
+/**
+ * \brief Get the qualifier of parameter activation (QPA) value
+ *
+ * \return 3 = act/deact of persistent cyclic or periodic transmission
+ */
 QualifierOfParameterActivation
 ParameterActivation_getQuality(ParameterActivation self);
 

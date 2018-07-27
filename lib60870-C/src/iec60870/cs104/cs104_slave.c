@@ -1719,9 +1719,11 @@ sendNextLowPriorityASDU(MasterConnection self)
     MessageQueue_unlock(self->lowPrioQueue);
 
 exit_function:
+
 #if (CONFIG_USE_THREADS == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
+
     return;
 }
 
@@ -1919,6 +1921,10 @@ connectionHandlingThread(void* parameter)
 
             if (bytesRec > 0) {
                 DEBUG_PRINT("Connection: rcvd msg(%i bytes)\n", bytesRec);
+
+                if (self->slave->rawMessageHandler)
+                    self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
+                            &(self->iMasterConnection), self->buffer, bytesRec, false);
 
                 if (handleMessage(self, self->buffer, bytesRec) == false)
                     self->isRunning = false;
