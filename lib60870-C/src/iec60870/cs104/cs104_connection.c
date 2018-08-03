@@ -186,6 +186,40 @@ sendIMessage(CS104_Connection self, Frame frame)
     return self->sendCount;
 }
 
+static void
+resetT3Timeout(CS104_Connection self) {
+    self->nextT3Timeout = Hal_getTimeInMs() + (self->parameters.t3 * 1000);
+}
+
+static void
+resetConnection(CS104_Connection self)
+{
+    self->connectTimeoutInMs = self->parameters.t0 * 1000;
+
+    self->running = false;
+    self->failure = false;
+    self->close = false;
+
+    self->receiveCount = 0;
+    self->sendCount = 0;
+
+    self->unconfirmedReceivedIMessages = 0;
+    self->lastConfirmationTime = 0xffffffffffffffff;
+    self->timeoutT2Trigger = false;
+
+    self->oldestSentASDU = -1;
+    self->newestSentASDU = -1;
+
+    self->maxSentASDUs = self->parameters.k;
+    GLOBAL_FREEMEM(self->sentASDUs);
+    self->sentASDUs = (SentASDU*) GLOBAL_MALLOC(sizeof(SentASDU) * self->maxSentASDUs);
+
+    self->outstandingTestFCConMessages = 0;
+    self->uMessageTimeout = 0;
+
+    resetT3Timeout(self);
+}
+
 static CS104_Connection
 createConnection(const char* hostname, int tcpPort)
 {
@@ -219,6 +253,7 @@ createConnection(const char* hostname, int tcpPort)
         self->sentASDUs = NULL;
 
         prepareSMessage(self->sMessage);
+        resetConnection(self);
     }
 
     return self;
@@ -250,42 +285,6 @@ CS104_Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguratio
     return self;
 }
 #endif /* (CONFIG_CS104_SUPPORT_TLS == 1) */
-
-static void
-resetT3Timeout(CS104_Connection self) {
-    self->nextT3Timeout = Hal_getTimeInMs() + (self->parameters.t3 * 1000);
-}
-
-
-static void
-resetConnection(CS104_Connection self)
-{
-    self->connectTimeoutInMs = self->parameters.t0 * 1000;
-
-    self->running = false;
-    self->failure = false;
-    self->close = false;
-
-    self->receiveCount = 0;
-    self->sendCount = 0;
-
-    self->unconfirmedReceivedIMessages = 0;
-    self->lastConfirmationTime = 0xffffffffffffffff;
-    self->timeoutT2Trigger = false;
-
-    self->oldestSentASDU = -1;
-    self->newestSentASDU = -1;
-
-    if (self->sentASDUs == NULL) {
-        self->maxSentASDUs = self->parameters.k;
-        self->sentASDUs = (SentASDU*) GLOBAL_MALLOC(sizeof(SentASDU) * self->maxSentASDUs);
-    }
-
-    self->outstandingTestFCConMessages = 0;
-    self->uMessageTimeout = 0;
-
-    resetT3Timeout(self);
-}
 
 
 static bool
@@ -410,8 +409,7 @@ CS104_Connection_destroy(CS104_Connection self)
 {
     CS104_Connection_close(self);
 
-    if (self->sentASDUs != NULL)
-        GLOBAL_FREEMEM(self->sentASDUs);
+    GLOBAL_FREEMEM(self->sentASDUs);
 
 #if (CONFIG_USE_THREADS == 1)
     Semaphore_destroy(self->sentASDUsLock);
