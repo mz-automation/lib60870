@@ -1538,6 +1538,9 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
         self->dontSendMessages = false;
     }
 
+    if (acd)
+        self->requestClass1Data = true;
+
     switch (fc) {
 
     case LL_FC_00_ACK:
@@ -1779,25 +1782,6 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
 
             newState = PLL_EXECUTE_SERVICE_REQUEST_RESPOND;
         }
-        else if (self->requestClass1Data || self->requestClass2Data) {
-
-            if (self->requestClass1Data) {
-                DEBUG_PRINT ("[SLAVE %i] PLL - SEND FC 10 - REQ UD 1\n", self->address);
-
-                SendFixedFrame(self->primaryLink->linkLayer, LL_FC_10_REQUEST_USER_DATA_CLASS_1, self->address, true, false, self->nextFcb, true);
-            }
-            else {
-                DEBUG_PRINT ("[SLAVE %i] PLL - SEND FC 11 - REQ UD 2\n", self->address);
-
-                SendFixedFrame(self->primaryLink->linkLayer, LL_FC_11_REQUEST_USER_DATA_CLASS_2, self->address, true, false, self->nextFcb, true);
-            }
-
-            self->nextFcb = !(self->nextFcb);
-            self->lastSendTime = currentTime;
-            self->originalSendTime = currentTime;
-            self->waitingForResponse = true;
-            newState = PLL_EXECUTE_SERVICE_REQUEST_RESPOND;
-        }
         else if (self->hasMessageToSend) {
 
             DEBUG_PRINT ("[SLAVE %i] PLL - SEND FC 03 - USER DATA CONFIRMED\n", self->address);
@@ -1810,6 +1794,29 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
             self->waitingForResponse = true;
 
             newState = PLL_EXECUTE_SERVICE_SEND_CONFIRM;
+        }
+        else if (self->requestClass1Data || self->requestClass2Data) {
+
+            if (self->requestClass1Data) {
+                DEBUG_PRINT ("[SLAVE %i] PLL - SEND FC 10 - REQ UD 1\n", self->address);
+
+                SendFixedFrame(self->primaryLink->linkLayer, LL_FC_10_REQUEST_USER_DATA_CLASS_1, self->address, true, false, self->nextFcb, true);
+
+                self->requestClass1Data = false;
+            }
+            else {
+                DEBUG_PRINT ("[SLAVE %i] PLL - SEND FC 11 - REQ UD 2\n", self->address);
+
+                SendFixedFrame(self->primaryLink->linkLayer, LL_FC_11_REQUEST_USER_DATA_CLASS_2, self->address, true, false, self->nextFcb, true);
+
+                self->requestClass2Data = false;
+            }
+
+            self->nextFcb = !(self->nextFcb);
+            self->lastSendTime = currentTime;
+            self->originalSendTime = currentTime;
+            self->waitingForResponse = true;
+            newState = PLL_EXECUTE_SERVICE_REQUEST_RESPOND;
         }
 
         break;
@@ -1967,11 +1974,8 @@ LinkLayerPrimaryUnbalanced_requestClass1Data(LinkLayerPrimaryUnbalanced self, in
     LinkLayerSlaveConnection slave = LinkLayerPrimaryUnbalanced_getSlaveConnection(self, slaveAddress);
 
     if (slave) {
-
-        if (llsc_isMessageWaitingToSend(slave) == false) {
-            slave->requestClass1Data = true;
-            return true;
-        }
+        slave->requestClass1Data = true;
+        return true;
     }
 
     return false;
@@ -1983,11 +1987,8 @@ LinkLayerPrimaryUnbalanced_requestClass2Data(LinkLayerPrimaryUnbalanced self, in
     LinkLayerSlaveConnection slave = LinkLayerPrimaryUnbalanced_getSlaveConnection(self, slaveAddress);
 
     if (slave) {
-
-        if (llsc_isMessageWaitingToSend(slave) == false) {
-            slave->requestClass2Data = true;
-            return true;
-        }
+        slave->requestClass2Data = true;
+        return true;
     }
 
     return false;
