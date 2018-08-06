@@ -33,7 +33,7 @@ asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
 
     if (CS101_ASDU_getTypeID(asdu) == M_ME_TE_1) {
 
-        printf("  measured scaled values with CP56Time2a timestamp:\n");
+        printf("  measured scaled values with CP56Time2a timestamp (M_ME_TE_1):\n");
 
         int i;
 
@@ -42,16 +42,22 @@ asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
             MeasuredValueScaledWithCP56Time2a io =
                     (MeasuredValueScaledWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
 
-            printf("    IOA: %i value: %i\n",
-                    InformationObject_getObjectAddress((InformationObject) io),
-                    MeasuredValueScaled_getValue((MeasuredValueScaled) io)
-            );
+            if (io != NULL) {
 
-            MeasuredValueScaledWithCP56Time2a_destroy(io);
+                printf("    IOA: %i value: %i\n",
+                        InformationObject_getObjectAddress((InformationObject) io),
+                        MeasuredValueScaled_getValue((MeasuredValueScaled) io)
+                );
+
+                MeasuredValueScaledWithCP56Time2a_destroy(io);
+            }
+            else {
+                printf("     invalid object!\n");
+            }
         }
     }
     else if (CS101_ASDU_getTypeID(asdu) == M_SP_NA_1) {
-        printf("  single point information:\n");
+        printf("  single point information (M_SP_NA_1):\n");
 
         int i;
 
@@ -60,12 +66,46 @@ asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
             SinglePointInformation io =
                     (SinglePointInformation) CS101_ASDU_getElement(asdu, i);
 
-            printf("    IOA: %i value: %i\n",
-                    InformationObject_getObjectAddress((InformationObject) io),
-                    SinglePointInformation_getValue((SinglePointInformation) io)
-            );
 
-            SinglePointInformation_destroy(io);
+            if (io != NULL) {
+
+                printf("    IOA: %i value: %i\n",
+                        InformationObject_getObjectAddress((InformationObject) io),
+                        SinglePointInformation_getValue((SinglePointInformation) io)
+                );
+
+                SinglePointInformation_destroy(io);
+            }
+            else {
+                printf("     invalid object!\n");
+            }
+        }
+    }
+    else if (CS101_ASDU_getTypeID(asdu) == M_EP_TD_1) {
+        printf("   event of protection equipment (M_EP_TD_1):\n");
+
+        int i;
+
+        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
+
+            EventOfProtectionEquipmentWithCP56Time2a epe = (EventOfProtectionEquipmentWithCP56Time2a)
+                    CS101_ASDU_getElement(asdu, i);
+
+            if (epe != NULL) {
+
+                SingleEvent singleEvent = EventOfProtectionEquipmentWithCP56Time2a_getEvent(epe);
+
+                printf("    IOA: %i state: %i  QDQ: %i\n",
+                                   InformationObject_getObjectAddress((InformationObject) epe),
+                                   SingleEvent_getEventState(singleEvent),
+                                   SingleEvent_getQDP(singleEvent)
+                           );
+
+                EventOfProtectionEquipmentWithCP56Time2a_destroy(epe);
+            }
+            else {
+                printf("     invalid object!\n");
+            }
         }
     }
 
@@ -135,6 +175,13 @@ main(int argc, char** argv)
             /* Send a general interrogation to a specific slave */
             CS101_Master_useSlaveAddress(master, 1);
             CS101_Master_sendInterrogationCommand(master, CS101_COT_ACTIVATION, 1, IEC60870_QOI_STATION);
+        }
+
+        if (cycleCounter == 30) {
+
+            /* Send a read request */
+            CS101_Master_useSlaveAddress(master, 1);
+            CS101_Master_sendReadCommand(master, 1, 102);
         }
 
         if (cycleCounter == 50) {

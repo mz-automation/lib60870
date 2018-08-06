@@ -3273,7 +3273,7 @@ EventOfProtectionEquipmentWithCP56Time2a
 EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmentWithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 6))
+    if ((msgSize - startIndex) < (parameters->sizeOfIOA + 10))
         return NULL;
 
     if (self == NULL)
