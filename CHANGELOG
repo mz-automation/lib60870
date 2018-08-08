@@ -1,3 +1,14 @@
+Changes to version 2.1.0
+------------------------
+- added non-threaded moded for CS 104 slave
+- separated thread and semaphore support for CS 104 slave
+- CS101 unbalanced link layer (master): automatically send request UD 1 when ACD bit is set in received frame
+- added CS101_ASDU_getElementEx function to avoid dynamic memory allocation
+- added support for static ASDU object allocation
+- fixed length check when parsing M_EP_TD_1
+- CS101 unbalanced master: fixed state machine problem with multiple slaves (some responses don't change state and master keeps locked on the slave)
+- optionally compile library without HAL to simply using together with libiec61850
+
 Changes to version 2.0.2
 ------------------------
 - CS104 slave: added new CS104_ConnectionEventHandler to track connection events

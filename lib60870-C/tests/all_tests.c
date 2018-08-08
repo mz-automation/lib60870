@@ -159,7 +159,7 @@ test_EventOfProtectionEquipmentWithTime(void)
 
     CS101_ASDU_encode(asdu, f);
 
-    InformationObject_destroy(e);
+    InformationObject_destroy((InformationObject) e);
     CS101_ASDU_destroy(asdu);
 
     CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
