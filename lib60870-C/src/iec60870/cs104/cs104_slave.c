@@ -835,13 +835,13 @@ CS104_Slave_getOpenConnections(CS104_Slave self)
 {
     int openConnections;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->openConnectionsLock);
 #endif
 
     openConnections = self->openConnections;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->openConnectionsLock);
 #endif
 
@@ -883,7 +883,7 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
     if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
 
         /* Deactivate all other connections */
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->openConnectionsLock);
 #endif
 
@@ -899,7 +899,7 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
                 MasterConnection_deactivate(connection);
         }
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_post(self->openConnectionsLock);
 #endif
 
@@ -1007,7 +1007,7 @@ struct sMasterConnection {
     int oldestSentASDU;
     int newestSentASDU;
     SentASDUSlave* sentASDUs;
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore sentASDUsLock;
 #endif
 
@@ -1139,7 +1139,7 @@ sendIMessage(MasterConnection self, uint8_t* buffer, int msgSize)
     buffer[4] = (uint8_t) ((self->receiveCount % 128) * 2);
     buffer[5] = (uint8_t) (self->receiveCount / 128);
 
-    if (writeToSocket(self, buffer, msgSize) != -1) {
+    if (writeToSocket(self, buffer, msgSize) > 0) {
         DEBUG_PRINT("SEND I (size = %i) N(S) = %i N(R) = %i\n", msgSize, self->sendCount, self->receiveCount);
         self->sendCount = (self->sendCount + 1) % 32768;
         self->unconfirmedReceivedIMessages = 0;
@@ -1200,7 +1200,7 @@ sendASDUInternal(MasterConnection self, CS101_ASDU asdu)
 
     if (self->isActive) {
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->sentASDUsLock);
 #endif
 
@@ -1217,14 +1217,14 @@ sendASDUInternal(MasterConnection self, CS101_ASDU asdu)
 
             sendASDU(self, &frameBuffer, 0, -1);
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
             Semaphore_post(self->sentASDUsLock);
 #endif
 
             asduSent = true;
         }
         else {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
             Semaphore_post(self->sentASDUsLock);
 #endif
             asduSent = HighPriorityASDUQueue_enqueue(self->highPrioQueue, asdu);
@@ -1453,7 +1453,7 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 static bool
 checkSequenceNumber(MasterConnection self, int seqNo)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
@@ -1543,7 +1543,7 @@ checkSequenceNumber(MasterConnection self, int seqNo)
         DEBUG_PRINT("Received sequence number out of range");
 
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 
@@ -1609,7 +1609,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
     else if ((buffer[2] & 0x43) == 0x43) {
         DEBUG_PRINT("Send TESTFR_CON\n");
 
-        writeToSocket(self, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
+        if (writeToSocket(self, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE) < 0)
+            return false;
     }
 
     /* Check for STARTDT_ACT message */
@@ -1620,7 +1621,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
         DEBUG_PRINT("Send STARTDT_CON\n");
 
-        writeToSocket(self, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
+        if (writeToSocket(self, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE) < 0)
+            return false;
     }
 
     /* Check for STOPDT_ACT message */
@@ -1629,7 +1631,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
         DEBUG_PRINT("Send STOPDT_CON\n");
 
-        writeToSocket(self, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE);
+        if (writeToSocket(self, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE) < 0)
+            return false;
     }
 
     /* Check for TESTFR_CON message */
@@ -1672,7 +1675,8 @@ sendSMessage(MasterConnection self)
     msg[4] = (uint8_t) ((self->receiveCount % 128) * 2);
     msg[5] = (uint8_t) (self->receiveCount / 128);
 
-    writeToSocket(self, msg, 6);
+    if (writeToSocket(self, msg, 6) < 0)
+        self->isRunning = false;
 }
 
 static void
@@ -1689,7 +1693,7 @@ MasterConnection_destroy(MasterConnection self)
 
         GLOBAL_FREEMEM(self->sentASDUs);
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_destroy(self->sentASDUsLock);
 #endif
 
@@ -1703,7 +1707,7 @@ MasterConnection_destroy(MasterConnection self)
 static void
 sendNextLowPriorityASDU(MasterConnection self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
@@ -1726,7 +1730,7 @@ sendNextLowPriorityASDU(MasterConnection self)
 
 exit_function:
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 
@@ -1740,7 +1744,7 @@ sendNextHighPriorityASDU(MasterConnection self)
 
     FrameBuffer* msg;
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
@@ -1759,7 +1763,7 @@ sendNextHighPriorityASDU(MasterConnection self)
     HighPriorityASDUQueue_unlock(self->highPrioQueue);
 
 exit_function:
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 
@@ -1811,7 +1815,7 @@ handleTimeouts(MasterConnection self)
             timeoutsOk = false;
         }
         else {
-            if (writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE) == -1) {
+            if (writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE) < 0) {
 
                 DEBUG_PRINT("Failed to write TESTFR ACT message\n");
 
@@ -1833,7 +1837,7 @@ handleTimeouts(MasterConnection self)
         }
     }
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
 
@@ -1855,7 +1859,7 @@ handleTimeouts(MasterConnection self)
 
     }
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->sentASDUsLock);
 #endif
 
@@ -1865,7 +1869,7 @@ handleTimeouts(MasterConnection self)
 static void
 CS104_Slave_removeConnection(CS104_Slave self, MasterConnection connection)
 {
-#if (CONFIG_USE_THREADS)
+#if (CONFIG_USE_SEMAPHORES)
     Semaphore_wait(self->openConnectionsLock);
 #endif
 
@@ -1874,7 +1878,7 @@ CS104_Slave_removeConnection(CS104_Slave self, MasterConnection connection)
 
     MasterConnection_destroy(connection);
 
-#if (CONFIG_USE_THREADS)
+#if (CONFIG_USE_SEMAPHORES)
     Semaphore_post(self->openConnectionsLock);
 #endif
 
@@ -2050,7 +2054,7 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
 
         resetT3Timeout(self);
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
         self->sentASDUsLock = Semaphore_create(1);
 #endif
 
@@ -2059,7 +2063,7 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
             self->tlsSocket = TLSSocket_create(socket, slave->tlsConfig);
 
             if (self->tlsSocket == NULL) {
-                printf("Close connection\n");
+                DEBUG_PRINT("Close connection\n");
 
                 MasterConnection_destroy(self);
                 return NULL;
@@ -2125,17 +2129,16 @@ MasterConnection_handleTcpConnection(MasterConnection self)
 {
     int bytesRec = receiveMessage(self, self->buffer);
 
-    if (self->slave->rawMessageHandler)
-        self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
-                &(self->iMasterConnection), self->buffer, bytesRec, false);
-
-    if (bytesRec == -1) {
+    if (bytesRec < 0) {
         DEBUG_PRINT("Error reading from socket\n");
         self->isRunning = false;
     }
 
-    if (bytesRec > 0) {
-        DEBUG_PRINT("Connection: rcvd msg(%i bytes)\n", bytesRec);
+    if ((bytesRec > 0) && (self->isRunning)) {
+
+        if (self->slave->rawMessageHandler)
+            self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
+                    &(self->iMasterConnection), self->buffer, bytesRec, false);
 
         if (handleMessage(self, self->buffer, bytesRec) == false)
             self->isRunning = false;
@@ -2234,7 +2237,8 @@ handleClientConnections(CS104_Slave self)
 
             MasterConnection con = (MasterConnection) LinkedList_getData(connection);
 
-            MasterConnection_executePeriodicTasks(con);
+            if (con->isRunning)
+                MasterConnection_executePeriodicTasks(con);
 
             connection = LinkedList_getNext(connection);
         }
@@ -2294,22 +2298,22 @@ handleConnectionsThreadless(CS104_Slave self)
 
                 if (connection) {
 
-#if (CONFIG_USE_THREADS)
+#if (CONFIG_USE_SEMAPHORES)
                     Semaphore_wait(self->openConnectionsLock);
 #endif
 
                     self->openConnections++;
                     LinkedList_add(self->masterConnections, connection);
 
-#if (CONFIG_USE_THREADS)
+#if (CONFIG_USE_SEMAPHORES)
                     Semaphore_post(self->openConnectionsLock);
 #endif
 
-
-
-                    /* now start the connection handling (thread) */
-                    //MasterConnection_start(connection);
                     connection->isRunning = true;
+
+                    if (self->connectionEventHandler) {
+                        self->connectionEventHandler(self->connectionEventHandlerParameter, &(connection->iMasterConnection), CS104_CON_EVENT_CONNECTION_OPENED);
+                    }
                 }
                 else
                     DEBUG_PRINT("Connection attempt failed!");
@@ -2321,7 +2325,6 @@ handleConnectionsThreadless(CS104_Slave self)
         }
 
     }
-
 
     handleClientConnections(self);
 }
@@ -2398,14 +2401,14 @@ serverThread (void* parameter)
 
                 if (connection) {
 
-#if (CONFIG_USE_THREADS)
+#if (CONFIG_USE_SEMAPHORES)
                     Semaphore_wait(self->openConnectionsLock);
 #endif
 
                     self->openConnections++;
                     LinkedList_add(self->masterConnections, connection);
 
-#if (CONFIG_USE_THREADS)
+#if (CONFIG_USE_SEMAPHORES)
                     Semaphore_post(self->openConnectionsLock);
 #endif
 
@@ -2445,7 +2448,7 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
     if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->openConnectionsLock);
 #endif
 
@@ -2464,7 +2467,7 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
             MessageQueue_enqueueASDU(connection->lowPrioQueue, asdu);
         }
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_post(self->openConnectionsLock);
 #endif
     }
@@ -2595,7 +2598,7 @@ CS104_Slave_destroy(CS104_Slave self)
     /*
      * Stop all connections
      * */
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->openConnectionsLock);
 #endif
 
@@ -2610,7 +2613,7 @@ CS104_Slave_destroy(CS104_Slave self)
         MasterConnection_close(connection);
     }
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->openConnectionsLock);
 #endif
 
@@ -2636,7 +2639,7 @@ CS104_Slave_destroy(CS104_Slave self)
 
     LinkedList_destroyStatic(self->masterConnections);
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_destroy(self->openConnectionsLock);
 #endif
 
