@@ -361,6 +361,14 @@ CS101_Slave_destroy(CS101_Slave self)
 }
 
 void
+CS101_Slave_setDIR(CS101_Slave self, bool dir)
+{
+    if (self->linkLayerMode == IEC60870_LINK_LAYER_BALANCED) {
+        LinkLayerBalanced_setDIR(self->balancedLinkLayer, dir);
+    }
+}
+
+void
 CS101_Slave_setIdleTimeout(CS101_Slave self, int timeoutInMs)
 {
     if (self->linkLayerMode == IEC60870_LINK_LAYER_UNBALANCED)

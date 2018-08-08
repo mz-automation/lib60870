@@ -82,6 +82,17 @@ void
 CS101_Slave_destroy(CS101_Slave self);
 
 /**
+ * \brief Set the value of the DIR bit when sending messages (only balanced mode)
+ *
+ * NOTE: Default value is false (controlled station). In the case of two equivalent stations
+ * the value is defined by agreement.
+ *
+ * \param dir the value of the DIR bit when sending messages
+ */
+void
+CS101_Slave_setDIR(CS101_Slave self, bool dir);
+
+/**
  * \brief Set the idle timeout
  *
  * Time with no activity after which the connection is considered
