@@ -22,7 +22,7 @@
 /**
  * Compile the library to use threads. This will require semaphore support
  */
-#define CONFIG_USE_THREADS 0
+#define CONFIG_USE_THREADS 1
 
 /**
  * Compile the library using semaphore to protect critical objects.
