@@ -1,7 +1,5 @@
 
 set (lib_common_SRCS
-./common/lib_memory.c
-./common/linked_list.c
 ./iec60870/apl/cpXXtime2a.c
 ./iec60870/cs101/cs101_asdu.c
 ./iec60870/cs101/cs101_bcr.c
@@ -20,11 +18,18 @@ set (lib_common_SRCS
 ./iec60870/lib60870_common.c
 )
 
+if (BUILD_COMMON)
+list (APPEND lib_common_SRCS ./common/linked_list.c)
+endif (BUILD_COMMON)
+
+if (BUILD_HAL)
+
 set (lib_linux_SRCS
 ./hal/serial/linux/serial_port_linux.c
 ./hal/socket/linux/socket_linux.c
 ./hal/thread/linux/thread_linux.c
 ./hal/time/unix/time.c
+./hal/memory/lib_memory.c
 )
 
 set (lib_windows_SRCS
@@ -32,13 +37,17 @@ set (lib_windows_SRCS
 ./hal/socket/win32/socket_win32.c
 ./hal/thread/win32/thread_win32.c
 ./hal/time/win32/time.c
+./hal/memory/lib_memory.c
 )
 
 set (lib_bsd_SRCS
 ./hal/socket/bsd/socket_bsd.c
 ./hal/thread/bsd/thread_bsd.c
 ./hal/time/unix/time.c
+./hal/memory/lib_memory.c
 )
+
+endif (BUILD_HAL)
 
 IF(WIN32)
 
@@ -76,7 +85,7 @@ ENDIF(WIN32)
 IF(WITH_MBEDTLS)
 
 list (APPEND library_SRCS ${tls_SRCS})
-list (APPEND library_SRCS ./tls/mbedtls/tls_mbedtls.c)
+list (APPEND library_SRCS ./hal/tls/mbedtls/tls_mbedtls.c)
 
 ENDIF(WITH_MBEDTLS)
 
