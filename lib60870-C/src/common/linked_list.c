@@ -22,6 +22,8 @@
 #include "linked_list.h"
 #include "lib_memory.h"
 
+#ifndef CONFIG_COMPILE_WITHOUT_COMMON
+
 LinkedList
 LinkedList_getLastElement(LinkedList list)
 {
@@ -179,4 +181,6 @@ LinkedList_getData(LinkedList self)
 {
     return self->data;
 }
+
+#endif
 

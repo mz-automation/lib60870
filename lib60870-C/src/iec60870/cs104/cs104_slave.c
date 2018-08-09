@@ -43,7 +43,7 @@
 #include "cs101_asdu_internal.h"
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
-#include "tls_api.h"
+#include "tls_socket.h"
 #endif
 
 #if ((CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP != 1) && (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP != 1))

@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "iec60870_common.h"
-#include "tls_api.h"
+#include "tls_config.h"
 
 #ifdef __cplusplus
 extern "C" {
