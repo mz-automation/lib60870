@@ -80,6 +80,12 @@ asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
 int
 main(int argc, char** argv)
 {
+    char* hostname = "127.0.0.1";
+
+    if (argc > 1) {
+        hostname = argv[1];
+    }
+
     TLSConfiguration tlsConfig = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig, true);
@@ -91,7 +97,7 @@ main(int argc, char** argv)
 
     TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "server.cer");
 
-    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", IEC_60870_5_104_DEFAULT_TLS_PORT, tlsConfig);
+    CS104_Connection con = CS104_Connection_createSecure(hostname, IEC_60870_5_104_DEFAULT_TLS_PORT, tlsConfig);
 
     CS104_Connection_setConnectionHandler(con, connectionHandler, NULL);
     CS104_Connection_setASDUReceivedHandler(con, asduReceivedHandler, NULL);
