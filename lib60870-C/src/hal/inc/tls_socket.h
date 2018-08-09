@@ -3,7 +3,7 @@
  *
  * TLS socket API for protocol libraries using TCP/IP
  *
- * Copyright 2017-2018 MZ Automation GmbH
+ * Copyright 2017-2018 Michael Zillgith, MZ Automation GmbH
  *
  * Abstraction layer for different TLS implementations
  *
@@ -62,7 +62,6 @@ typedef struct sTLSSocket* TLSSocket;
 TLSSocket
 TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClientCert);
 
-
 /**
  * \brief Perform a new TLS handshake/session renegotiation
  */
@@ -84,10 +83,6 @@ TLSSocket_getPeerCertificate(TLSSocket self, int* certSize);
  *
  * The function shall return immediately if no data is available. In this case
  * the function returns 0. If an error happens the function shall return -1.
- *
- * Implementation of this function is MANDATORY
- *
- * NOTE: The behavior of this function changed with version 0.8!
  *
  * \param self the client, connection or server socket instance
  * \param buf the buffer where the read bytes are copied to
