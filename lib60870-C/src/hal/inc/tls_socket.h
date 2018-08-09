@@ -1,5 +1,5 @@
 /*
- * tls_api.h
+ * tls_socket.h
  *
  * TLS socket API for protocol libraries using TCP/IP
  *
@@ -54,11 +54,30 @@ typedef struct sTLSSocket* TLSSocket;
  *
  * \param socket the socket instance to use for the TLS connection
  * \param configuration the TLS configuration object to use
+ * \param storeClientCert if true, the client certificate will be stored
+ *                        for later access by \ref TLSSocket_getPeerCertificate
  *
  * \return new TLS connection instance
  */
 TLSSocket
-TLSSocket_create(Socket socket, TLSConfiguration configuration);
+TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClientCert);
+
+
+/**
+ * \brief Perform a new TLS handshake/session renegotiation
+ */
+bool
+TLSSocket_performHandshake(TLSSocket self);
+
+/**
+ * \brief Access the certificate used by the peer
+ *
+ * \param[out] certSize the size of the certificate in bytes
+ *
+ * \return the certificate byte buffer
+ */
+uint8_t*
+TLSSocket_getPeerCertificate(TLSSocket self, int* certSize);
 
 /**
  * \brief read from socket to local buffer (non-blocking)

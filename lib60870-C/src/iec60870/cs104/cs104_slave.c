@@ -2060,7 +2060,7 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         if (slave->tlsConfig != NULL) {
-            self->tlsSocket = TLSSocket_create(socket, slave->tlsConfig);
+            self->tlsSocket = TLSSocket_create(socket, slave->tlsConfig, false);
 
             if (self->tlsSocket == NULL) {
                 DEBUG_PRINT("Close connection\n");

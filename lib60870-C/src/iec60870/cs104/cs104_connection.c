@@ -704,7 +704,7 @@ handleConnection(void* parameter)
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         if (self->tlsConfig != NULL) {
-            self->tlsSocket = TLSSocket_create(self->socket, self->tlsConfig);
+            self->tlsSocket = TLSSocket_create(self->socket, self->tlsConfig, false);
 
             if (self->tlsSocket)
                 self->running = true;
