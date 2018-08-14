@@ -48,10 +48,15 @@
  *
  * For each queued message about 256 bytes of memory are required.
  */
-#define CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE 20
+#define CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE 50
 
-
-#define CONFIG_CS104_MAX_K_BUFFER_SIZE 20
+/**
+ * \brief This parameter restricts the k-buffer size when \ref CONFIG_CS104_SLAVE_POOL is enabled
+ *
+ * The actual size of the k-buffer (corresponding to the APCI parameter k) is defined by the runtime parameter.
+ * However the runtime parameter is restricted to the maximum of this value.
+ */
+#define CONFIG_CS104_MAX_K_BUFFER_SIZE 30
 
 /**
  * Compile the library to use threads. This will require semaphore support

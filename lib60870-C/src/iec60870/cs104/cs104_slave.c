@@ -786,9 +786,6 @@ struct sCS104_Slave {
 
     int maxOpenConnections; /**< maximum accepted open client connections */
 
-    /* TODO if configured for fixed number of connections and connection_is_redundancy_group,
-     *  add connection queues here */
-
     struct sCS104_APCIParameters conParameters;
 
     struct sCS101_AppLayerParameters alParameters;
@@ -800,6 +797,10 @@ struct sCS104_Slave {
     int tcpPort;
 
     CS104_ServerMode serverMode;
+
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    char _localAddress[60];
+#endif
 
     char* localAddress;
     Thread listeningThread;
@@ -1008,6 +1009,15 @@ CS104_Slave_setServerMode(CS104_Slave self, CS104_ServerMode serverMode)
 void
 CS104_Slave_setLocalAddress(CS104_Slave self, const char* ipAddress)
 {
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    if (ipAddress) {
+        self->localAddress = self->_localAddress;
+        strncpy(self->_localAddress, ipAddress, sizeof(self->_localAddress));
+    }
+    else
+        self->localAddress = NULL;
+
+#else
     if (self->localAddress)
         GLOBAL_FREEMEM(self->localAddress);
 
@@ -1015,6 +1025,7 @@ CS104_Slave_setLocalAddress(CS104_Slave self, const char* ipAddress)
 
     if (self->localAddress)
         strcpy(self->localAddress, ipAddress);
+#endif
 }
 
 void
@@ -2203,7 +2214,7 @@ connectionHandlingThread(void* parameter)
         if (isAsduWaiting)
             socketTimeout = 1;
         else
-            socketTimeout = 100; /* TODO replace by configurable parameter */
+            socketTimeout = 100;
 
         if (Handleset_waitReady(self->handleSet, socketTimeout)) {
 
@@ -2873,8 +2884,10 @@ CS104_Slave_destroy(CS104_Slave self)
         MessageQueue_releaseAllQueuedASDUs(self->asduQueue);
 #endif
 
+#if (CONFIG_CS104_SLAVE_POOL != 1)
     if (self->localAddress != NULL)
         GLOBAL_FREEMEM(self->localAddress);
+#endif
 
     /*
      * Stop all connections
