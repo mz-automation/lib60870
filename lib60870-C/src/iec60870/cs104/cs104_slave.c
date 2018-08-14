@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016, 2017 MZ Automation GmbH
+ *  Copyright 2016-2018 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -113,8 +113,8 @@ struct sMessageQueue {
     int lastMsgIndex;
     int firstMsgIndex;
 
-#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
-    struct sASDUQueueEntry asdus [CONFIG_SLAVE_ASDU_QUEUE_SIZE];
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    struct sASDUQueueEntry asdus [CONFIG_CS104_MESSAGE_QUEUE_SIZE];
 #else
     ASDUQueueEntry asdus;
 #endif
@@ -126,10 +126,65 @@ struct sMessageQueue {
 
 typedef struct sMessageQueue* MessageQueue;
 
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+
+struct sMessageQueuePool {
+    struct sMessageQueue msgQueue;
+    bool used;
+};
+
+static bool messageQueuePoolInitialized = false;
+
+static struct sMessageQueuePool msgQueuePool[CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE];
+
+static MessageQueue
+AllocateMessageQueueMemory(void)
+{
+    int i;
+
+    if (!messageQueuePoolInitialized) {
+        for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++)
+            msgQueuePool[i].used = false;
+
+        messageQueuePoolInitialized = true;
+    }
+
+    for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++) {
+        if (msgQueuePool[i].used == false) {
+            msgQueuePool[i].used = true;
+            return &(msgQueuePool[i].msgQueue);
+        }
+    }
+
+    DEBUG_PRINT("AllocateMessageQueueMemory: failed\n");
+
+    return NULL;
+}
+
+static void
+ReleaseMessageQueueMemory(MessageQueue queue)
+{
+    int i;
+
+    for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++) {
+        if (msgQueuePool[i].used == true) {
+            if (&(msgQueuePool[i].msgQueue) == queue) {
+                msgQueuePool[i].used = false;
+                return;
+            }
+        }
+    }
+
+    DEBUG_PRINT("ReleaseMessageQueueMemory: failed\n");
+}
+
+#endif /* (CONFIG_CS104_SLAVE_POOL == 1) */
+
 static void
 MessageQueue_initialize(MessageQueue self, int maxQueueSize)
 {
-#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    memset(self->asdus, 0, sizeof(struct sASDUQueueEntry) * CONFIG_CS104_MESSAGE_QUEUE_SIZE);
 #else
     self->asdus = (ASDUQueueEntry) GLOBAL_CALLOC(maxQueueSize, sizeof(struct sASDUQueueEntry));
 #endif
@@ -137,7 +192,14 @@ MessageQueue_initialize(MessageQueue self, int maxQueueSize)
     self->entryCounter = 0;
     self->firstMsgIndex = 0;
     self->lastMsgIndex = 0;
+
     self->size = maxQueueSize;
+
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    if (maxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_SIZE)
+        self->size = CONFIG_CS104_MESSAGE_QUEUE_SIZE;
+#endif
+
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     self->queueLock = Semaphore_create(1);
@@ -147,7 +209,11 @@ MessageQueue_initialize(MessageQueue self, int maxQueueSize)
 static MessageQueue
 MessageQueue_create(int maxQueueSize)
 {
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    MessageQueue self = AllocateMessageQueueMemory();
+#else
     MessageQueue self = (MessageQueue) GLOBAL_MALLOC(sizeof(struct sMessageQueue));
+#endif
 
     if (self != NULL)
         MessageQueue_initialize(self, maxQueueSize);
@@ -159,7 +225,8 @@ static void
 MessageQueue_destroy(MessageQueue self)
 {
     if (self != NULL) {
-#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE != 1)
+
+#if (CONFIG_CS104_SLAVE_POOL != 1)
         GLOBAL_FREEMEM(self->asdus);
 #endif
 
@@ -167,7 +234,11 @@ MessageQueue_destroy(MessageQueue self)
         Semaphore_destroy(self->queueLock);
 #endif
 
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+        ReleaseMessageQueueMemory(self);
+#else
         GLOBAL_FREEMEM(self);
+#endif
     }
 }
 
@@ -397,8 +468,8 @@ struct sHighPriorityASDUQueue {
     int lastMsgIndex;
     int firstMsgIndex;
 
-#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
-    FrameBuffer asdus[CONFIG_SLAVE_CONNECTION_ASDU_QUEUE_SIZE];
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    FrameBuffer asdus[CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE];
 #else
     FrameBuffer* asdus;
 #endif
@@ -410,19 +481,78 @@ struct sHighPriorityASDUQueue {
 
 typedef struct sHighPriorityASDUQueue* HighPriorityASDUQueue;
 
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+
+struct sHighPrioQueuePool {
+    struct sHighPriorityASDUQueue msgQueue;
+    bool used;
+};
+
+static bool highPrioQueuePoolInitialized = false;
+
+static struct sHighPrioQueuePool highPrioQueuePool[CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE];
+
+static HighPriorityASDUQueue
+AllocateHighPrioQueueMemory(void)
+{
+    int i;
+
+    if (!highPrioQueuePoolInitialized) {
+        for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++)
+            highPrioQueuePool[i].used = false;
+
+        highPrioQueuePoolInitialized = true;
+    }
+
+    for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++) {
+        if (highPrioQueuePool[i].used == false) {
+            highPrioQueuePool[i].used = true;
+            return &(highPrioQueuePool[i].msgQueue);
+        }
+    }
+
+    DEBUG_PRINT("AllocateHighPrioQueueMemory: failed\n");
+
+    return NULL;
+}
+
+static void
+ReleaseHighPrioQueueMemory(HighPriorityASDUQueue queue)
+{
+    int i;
+
+    for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++) {
+        if (highPrioQueuePool[i].used == true) {
+            if (&(highPrioQueuePool[i].msgQueue) == queue) {
+                highPrioQueuePool[i].used = false;
+                return;
+            }
+        }
+    }
+
+    DEBUG_PRINT("ReleaseHighPrioQueueMemory: failed\n");
+}
+
+#endif /* (CONFIG_CS104_SLAVE_POOL == 1) */
 
 static void
 HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self, int maxQueueSize)
 {
-#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
-#else
+#if (CONFIG_CS104_SLAVE_POOL != 1)
     self->asdus = (FrameBuffer*) GLOBAL_CALLOC(maxQueueSize, sizeof(FrameBuffer));
 #endif
 
     self->entryCounter = 0;
     self->firstMsgIndex = 0;
     self->lastMsgIndex = 0;
+
     self->size = maxQueueSize;
+
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    if (maxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE)
+        self->size = CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE;
+#endif
+
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     self->queueLock = Semaphore_create(1);
@@ -432,7 +562,11 @@ HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self, int maxQueueSize)
 static HighPriorityASDUQueue
 HighPriorityASDUQueue_create(int maxQueueSize)
 {
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    HighPriorityASDUQueue self = AllocateHighPrioQueueMemory();
+#else
     HighPriorityASDUQueue self = (HighPriorityASDUQueue) GLOBAL_MALLOC(sizeof(struct sHighPriorityASDUQueue));
+#endif
 
     if (self != NULL)
         HighPriorityASDUQueue_initialize(self, maxQueueSize);
@@ -443,7 +577,7 @@ HighPriorityASDUQueue_create(int maxQueueSize)
 static void
 HighPriorityASDUQueue_destroy(HighPriorityASDUQueue self)
 {
-#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
+#if (CONFIG_CS104_SLAVE_POOL == 1)
 #else
     GLOBAL_FREEMEM(self->asdus);
 #endif
@@ -452,7 +586,11 @@ HighPriorityASDUQueue_destroy(HighPriorityASDUQueue self)
     Semaphore_destroy(self->queueLock);
 #endif
 
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    ReleaseHighPrioQueueMemory(self);
+#else
     GLOBAL_FREEMEM(self);
+#endif
 }
 
 static void
@@ -636,8 +774,8 @@ struct sCS104_Slave {
     int maxHighPrioQueueSize;
 
     int openConnections; /**< number of connected clients */
+    MasterConnection masterConnections[CONFIG_CS104_MAX_CLIENT_CONNECTIONS]; /**< references to all MasterConnection objects */
 
-    LinkedList masterConnections; /**< references to all MasterConnection objects */
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore openConnectionsLock;
 #endif
@@ -669,11 +807,59 @@ struct sCS104_Slave {
     ServerSocket serverSocket;
 };
 
-#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
+#if (CONFIG_CS104_SLAVE_POOL == 1)
 
-static struct sCS104_Slave singleStaticSlaveInstance;
+struct sCS104_Slave_PoolEntry {
+    struct sCS104_Slave slave;
+    bool used;
+};
 
-#endif
+static struct sCS104_Slave_PoolEntry slavePool[CONFIG_CS104_SLAVE_POOL_SIZE];
+static bool slavePoolInitialized = false;
+
+static CS104_Slave
+AllocateSlave(void)
+{
+    int i;
+
+    if (!slavePoolInitialized) {
+
+        for (i = 0; i < CONFIG_CS104_SLAVE_POOL_SIZE; i++)
+            slavePool[i].used = false;
+
+        slavePoolInitialized = true;
+    }
+
+    for (i = 0; i < CONFIG_CS104_SLAVE_POOL_SIZE; i++) {
+        if (slavePool[i].used == false) {
+            slavePool[i].used = true;
+            return &(slavePool[i].slave);
+        }
+    }
+
+    DEBUG_PRINT("AllocateSlave: failed\n");
+
+    return NULL;
+}
+
+static void
+ReleaseSlave(CS104_Slave slave)
+{
+    int i;
+
+    for (i = 0; i < CONFIG_CS104_SLAVE_POOL_SIZE; i++) {
+        if (slavePool[i].used == true) {
+            if (&(slavePool[i].slave) == slave) {
+                slavePool[i].used = false;
+                return;
+            }
+        }
+    }
+
+    DEBUG_PRINT("ReleaseSlave: failed\n");
+}
+
+#endif /* (CONFIG_CS104_SLAVE_POOL == 1) */
 
 static uint8_t STARTDT_CON_MSG[] = { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
 
@@ -697,27 +883,27 @@ initializeMessageQueues(CS104_Slave self, int lowPrioMaxQueueSize, int highPrioM
 {
     /* initialized low priority queue */
 
-#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
-    lowPrioMaxQueueSize = CONFIG_SLAVE_ASDU_QUEUE_SIZE;
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    if (lowPrioMaxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_SIZE)
+        lowPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_SIZE;
 #else
     if (lowPrioMaxQueueSize < 1)
-        lowPrioMaxQueueSize = CONFIG_SLAVE_ASDU_QUEUE_SIZE;
+        lowPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_SIZE;
 #endif
 
     self->asduQueue = MessageQueue_create(lowPrioMaxQueueSize);
-    //TODO support static memory allocation mode
 
     /* initialize high priority queue */
 
-#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
-    highPrioMaxQueueSize = CONFIG_SLAVE_CONNECTION_ASDU_QUEUE_SIZE;
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    if (highPrioMaxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE)
+        highPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE;
 #else
     if (highPrioMaxQueueSize < 1)
-        highPrioMaxQueueSize = CONFIG_SLAVE_CONNECTION_ASDU_QUEUE_SIZE;
+        highPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE;
 #endif
 
     self->connectionAsduQueue = HighPriorityASDUQueue_create(highPrioMaxQueueSize);
-    //TODO support static memory allocation mode
 }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
@@ -725,8 +911,8 @@ initializeMessageQueues(CS104_Slave self, int lowPrioMaxQueueSize, int highPrioM
 static CS104_Slave
 createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 {
-#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 1)
-    CS104_Slave self = &(singleStaticSlaveInstance);
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    CS104_Slave self = AllocateSlave();
 #else
     CS104_Slave self = (CS104_Slave) GLOBAL_MALLOC(sizeof(struct sCS104_Slave));
 #endif
@@ -749,7 +935,14 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
         self->maxLowPrioQueueSize = maxLowPrioQueueSize;
         self->maxHighPrioQueueSize = maxHighPrioQueueSize;
 
-        self->masterConnections = LinkedList_create();
+        {
+            int i;
+
+            for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+                self->masterConnections[i] = NULL;
+            }
+        }
+
         self->maxOpenConnections = CONFIG_CS104_MAX_CLIENT_CONNECTIONS;
 #if (CONFIG_USE_SEMAPHORES == 1)
         self->openConnectionsLock = Semaphore_create(1);
@@ -848,6 +1041,28 @@ CS104_Slave_getOpenConnections(CS104_Slave self)
     return openConnections;
 }
 
+static void
+addOpenConnection(CS104_Slave self, MasterConnection connection)
+{
+#if (CONFIG_USE_SEMAPHORES)
+    Semaphore_wait(self->openConnectionsLock);
+#endif
+
+    int i;
+
+    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+        if (self->masterConnections[i] == NULL) {
+            self->masterConnections[i] = connection;
+            self->openConnections++;
+            break;
+        }
+    }
+
+#if (CONFIG_USE_SEMAPHORES)
+    Semaphore_post(self->openConnectionsLock);
+#endif
+}
+
 void
 CS104_Slave_setMaxOpenConnections(CS104_Slave self, int maxOpenConnections)
 {
@@ -886,17 +1101,16 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->openConnectionsLock);
 #endif
+        int i;
 
-        LinkedList element;
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+            MasterConnection con = self->masterConnections[i];
 
-        for (element = LinkedList_getNext(self->masterConnections);
-             element != NULL;
-             element = LinkedList_getNext(element))
-        {
-            MasterConnection connection = (MasterConnection) LinkedList_getData(element);
+            if (con) {
+                if (con!= connectionToActivate)
+                    MasterConnection_deactivate(con);
+            }
 
-            if (connection != connectionToActivate)
-                MasterConnection_deactivate(connection);
         }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -1006,7 +1220,14 @@ struct sMasterConnection {
     int maxSentASDUs;
     int oldestSentASDU;
     int newestSentASDU;
+
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    SentASDUSlave sentASDUs[CONFIG_CS104_MAX_K_BUFFER_SIZE];
+#else
     SentASDUSlave* sentASDUs;
+#endif
+
+
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore sentASDUsLock;
 #endif
@@ -1019,6 +1240,60 @@ struct sMasterConnection {
     HighPriorityASDUQueue highPrioQueue;
 };
 
+
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+
+struct sMasterConnectionPool {
+    struct sMasterConnection con;
+    bool used;
+};
+
+static bool conPoolInitialized = false;
+
+static struct sMasterConnectionPool conPool[CONFIG_CS104_MAX_CLIENT_CONNECTIONS * CONFIG_CS104_SLAVE_POOL_SIZE];
+
+static MasterConnection
+AllocateConnectionMemory(void)
+{
+    int i;
+
+    if (!conPoolInitialized) {
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS * CONFIG_CS104_SLAVE_POOL_SIZE; i++)
+            conPool[i].used = false;
+
+        conPoolInitialized = true;
+    }
+
+    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS * CONFIG_CS104_SLAVE_POOL_SIZE; i++) {
+        if (conPool[i].used == false) {
+            conPool[i].used = true;
+            return &(conPool[i].con);
+        }
+    }
+
+    DEBUG_PRINT("AllocateConnectionMemory: failed\n");
+
+    return NULL;
+}
+
+static void
+ReleaseConnectionMemory(MasterConnection con)
+{
+    int i;
+
+    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS * CONFIG_CS104_SLAVE_POOL_SIZE; i++) {
+        if (conPool[i].used == true) {
+            if (&(conPool[i].con) == con) {
+                conPool[i].used = false;
+                return;
+            }
+        }
+    }
+
+    DEBUG_PRINT("ReleaseConnectionMemory: failed\n");
+}
+
+#endif /* (CONFIG_CS104_SLAVE_POOL == 1) */
 
 static void
 printSendBuffer(MasterConnection self)
@@ -1691,7 +1966,9 @@ MasterConnection_destroy(MasterConnection self)
 
         Socket_destroy(self->socket);
 
+#if (CONFIG_CS104_SLAVE_POOL != 1)
         GLOBAL_FREEMEM(self->sentASDUs);
+#endif
 
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_destroy(self->sentASDUsLock);
@@ -1699,7 +1976,11 @@ MasterConnection_destroy(MasterConnection self)
 
         Handleset_destroy(self->handleSet);
 
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+        ReleaseConnectionMemory(self);
+#else
         GLOBAL_FREEMEM(self);
+#endif
     }
 }
 
@@ -1874,7 +2155,15 @@ CS104_Slave_removeConnection(CS104_Slave self, MasterConnection connection)
 #endif
 
     self->openConnections--;
-    LinkedList_remove(self->masterConnections, (void*) connection);
+
+    int i;
+
+    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+        if (self->masterConnections[i] == connection) {
+            self->masterConnections[i] = NULL;
+            break;
+        }
+    }
 
     MasterConnection_destroy(connection);
 
@@ -2025,7 +2314,11 @@ _getApplicationLayerParameters(IMasterConnection self)
 static MasterConnection
 MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQueue, HighPriorityASDUQueue highPrioQueue)
 {
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    MasterConnection self = AllocateConnectionMemory();
+#else
     MasterConnection self = (MasterConnection) GLOBAL_MALLOC(sizeof(struct sMasterConnection));
+#endif
 
     if (self != NULL) {
 
@@ -2044,7 +2337,15 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
         self->maxSentASDUs = slave->conParameters.k;
         self->oldestSentASDU = -1;
         self->newestSentASDU = -1;
+
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+        if (slave->conParameters.k > CONFIG_CS104_MAX_K_BUFFER_SIZE) {
+            DEBUG_PRINT("Parameter k is to large!\n");
+            self->maxSentASDUs = CONFIG_CS104_MAX_K_BUFFER_SIZE;
+        }
+#else
         self->sentASDUs = (SentASDUSlave*) GLOBAL_MALLOC(sizeof(SentASDUSlave) * self->maxSentASDUs);
+#endif
 
         self->iMasterConnection.object = self;
         self->iMasterConnection.getApplicationLayerParameters = _getApplicationLayerParameters;
@@ -2174,74 +2475,72 @@ handleClientConnections(CS104_Slave self)
 
     if (self->openConnections > 0) {
 
-        LinkedList connection = LinkedList_getNext(self->masterConnections);
+        int i;
 
         bool first = true;
 
-        while (connection) {
-            MasterConnection con = (MasterConnection) LinkedList_getData(connection);
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
 
-            if (con->isRunning) {
+            MasterConnection con = self->masterConnections[i];
 
-                connection = LinkedList_getNext(connection);
+            if (con != NULL) {
 
-                if (first) {
-                    handleset = con->handleSet;
-                    Handleset_reset(handleset);
-                    first = false;
+                if (con->isRunning) {
+
+                    if (first) {
+
+                        handleset = con->handleSet;
+                        Handleset_reset(handleset);
+
+                        first = false;
+                    }
+
+                    Handleset_addSocket(handleset, con->socket);
+                }
+                else {
+
+                    if (self->connectionEventHandler) {
+                       self->connectionEventHandler(self->connectionEventHandlerParameter, &(con->iMasterConnection), CS104_CON_EVENT_CONNECTION_CLOSED);
+                    }
+
+                    DEBUG_PRINT("Connection closed\n");
+
+                    self->masterConnections[i] = NULL;
+
+                    self->openConnections--;
+
+                    MasterConnection_destroy(con);
                 }
 
-                Handleset_addSocket(handleset, con->socket);
-            }
-            else {
-
-                connection = LinkedList_getNext(connection);
-
-
-                if (self->connectionEventHandler) {
-                   self->connectionEventHandler(self->connectionEventHandlerParameter, &(con->iMasterConnection), CS104_CON_EVENT_CONNECTION_CLOSED);
-                }
-
-                DEBUG_PRINT("Connection closed\n");
-
-                LinkedList_remove(self->masterConnections, con);
-
-                self->openConnections--;
-
-                MasterConnection_destroy(con);
             }
 
         }
 
+        /* handle incoming messages when available */
         if (handleset != NULL) {
 
-
             if (Handleset_waitReady(handleset, 1)) {
-                connection = LinkedList_getNext(self->masterConnections);
 
-                while (connection) {
+                for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+                    MasterConnection con = self->masterConnections[i];
 
-                    MasterConnection con = (MasterConnection) LinkedList_getData(connection);
-
-                    MasterConnection_handleTcpConnection(con);
-
-                    connection = LinkedList_getNext(connection);
+                    if (con != NULL)
+                        MasterConnection_handleTcpConnection(con);
                 }
+
             }
         }
 
+        /* handle periodic tasks for running connections */
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+            MasterConnection con = self->masterConnections[i];
 
-        connection = LinkedList_getNext(self->masterConnections);
-
-        while (connection) {
-
-            MasterConnection con = (MasterConnection) LinkedList_getData(connection);
-
-            if (con->isRunning)
-                MasterConnection_executePeriodicTasks(con);
-
-            connection = LinkedList_getNext(connection);
+            if (con != NULL) {
+                if (con->isRunning)
+                    MasterConnection_executePeriodicTasks(con);
+            }
         }
+
     }
 
 }
@@ -2298,16 +2597,7 @@ handleConnectionsThreadless(CS104_Slave self)
 
                 if (connection) {
 
-#if (CONFIG_USE_SEMAPHORES)
-                    Semaphore_wait(self->openConnectionsLock);
-#endif
-
-                    self->openConnections++;
-                    LinkedList_add(self->masterConnections, connection);
-
-#if (CONFIG_USE_SEMAPHORES)
-                    Semaphore_post(self->openConnectionsLock);
-#endif
+                    addOpenConnection(self, connection);
 
                     connection->isRunning = true;
 
@@ -2401,16 +2691,7 @@ serverThread (void* parameter)
 
                 if (connection) {
 
-#if (CONFIG_USE_SEMAPHORES)
-                    Semaphore_wait(self->openConnectionsLock);
-#endif
-
-                    self->openConnections++;
-                    LinkedList_add(self->masterConnections, connection);
-
-#if (CONFIG_USE_SEMAPHORES)
-                    Semaphore_post(self->openConnectionsLock);
-#endif
+                    addOpenConnection(self, connection);
 
                     /* now start the connection handling (thread) */
                     MasterConnection_start(connection);
@@ -2456,15 +2737,15 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
          * Dispatch event to all open client connections
          ************************************************/
 
-        LinkedList element;
+        int i;
 
-        for (element = LinkedList_getNext(self->masterConnections);
-             element != NULL;
-             element = LinkedList_getNext(element))
-        {
-            MasterConnection connection = (MasterConnection) LinkedList_getData(element);
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
 
-            MessageQueue_enqueueASDU(connection->lowPrioQueue, asdu);
+            MasterConnection con = self->masterConnections[i];
+
+            if (con)
+                MessageQueue_enqueueASDU(con->lowPrioQueue, asdu);
+
         }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -2602,15 +2883,13 @@ CS104_Slave_destroy(CS104_Slave self)
     Semaphore_wait(self->openConnectionsLock);
 #endif
 
-    LinkedList element;
-
-    for (element = LinkedList_getNext(self->masterConnections);
-         element != NULL;
-         element = LinkedList_getNext(element))
     {
-        MasterConnection connection = (MasterConnection) LinkedList_getData(element);
+        int i;
 
-        MasterConnection_close(connection);
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+            if (self->masterConnections[i] != NULL)
+                MasterConnection_close(self->masterConnections[i]);
+        }
     }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -2620,14 +2899,16 @@ CS104_Slave_destroy(CS104_Slave self)
 #if (CONFIG_USE_THREADS == 1)
     if (self->isThreadlessMode) {
 #endif
-        for (element = LinkedList_getNext(self->masterConnections);
-             element != NULL;
-             element = LinkedList_getNext(element))
-        {
-            MasterConnection connection = (MasterConnection) LinkedList_getData(element);
 
-            MasterConnection_destroy(connection);
+        int i;
+
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+            if (self->masterConnections[i] != NULL) {
+                MasterConnection_destroy(self->masterConnections[i]);
+                self->masterConnections[i] = NULL;
+            }
         }
+
 #if (CONFIG_USE_THREADS == 1)
     }
     else {
@@ -2637,13 +2918,9 @@ CS104_Slave_destroy(CS104_Slave self)
     }
 #endif
 
-    LinkedList_destroyStatic(self->masterConnections);
-
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_destroy(self->openConnectionsLock);
 #endif
-
-#if (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 0)
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
     if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
@@ -2651,7 +2928,11 @@ CS104_Slave_destroy(CS104_Slave self)
         HighPriorityASDUQueue_destroy(self->connectionAsduQueue);
     }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
-    GLOBAL_FREEMEM(self);
 
-#endif /* (CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE == 0) */
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    ReleaseSlave(self);
+#else
+    GLOBAL_FREEMEM(self);
+#endif
+
 }
