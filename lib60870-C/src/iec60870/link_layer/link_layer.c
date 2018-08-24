@@ -536,7 +536,7 @@ ParserHeaderSecondaryUnbalanced(void* parameter, uint8_t* msg, int msgSize)
         address = msg [csStart + 1];
 
         if (addressLength > 1) {
-            address = msg [csStart + 2] * 0x100;
+            address += msg [csStart + 2] * 0x100;
 
             if (address == 65535)
                 isBroadcast = true;
