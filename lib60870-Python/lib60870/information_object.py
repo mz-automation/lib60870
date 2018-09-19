@@ -239,12 +239,14 @@ class SinglePointWithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
-    def __init__(self, ioa, value, quality, timestamp):
+    def __init__(self, ioa, value, quality, timestamp=None):
+        timestamp = timestamp or CP24Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.singlePointWithCP24Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_SP_TA_1.c_value
         self.create(ioa, value, quality, timestamp)
 
     def create(self, ioa, value, quality, timestamp):
+        timestamp = timestamp or CP24Time2a()
         lib.SinglePointWithCP24Time2a_create.restype = pSinglePointWithCP24Time2a
         return lib.SinglePointWithCP24Time2a_create(
             pSinglePointWithCP24Time2a(self),
@@ -313,7 +315,8 @@ class DoublePointWithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
-    def __init__(self, ioa, value, quality, timestamp):
+    def __init__(self, ioa, value, quality, timestamp=None):
+        timestamp = timestamp or CP24Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.doublePointWithCP24Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_DP_TA_1.c_value
         self.create(ioa, value, quality, timestamp)
@@ -396,7 +399,8 @@ class StepPositionWithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
-    def __init__(self, ioa, value, isTransient, quality, timestamp):
+    def __init__(self, ioa, value, isTransient, quality, timestamp=None):
+        timestamp = timestamp or CP24Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.stepPositionWithCP24Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_ST_TA_1.c_value
         self.create(ioa, value, isTransient, quality, timestamp)
@@ -478,7 +482,8 @@ class Bitstring32WithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
-    def __init__(self, ioa, value, timestamp):
+    def __init__(self, ioa, value, timestamp=None):
+        timestamp = timestamp or CP24Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.bitstring32WithCP24Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_BO_TA_1.c_value
         self.create(ioa, value, timestamp)
@@ -556,7 +561,8 @@ class MeasuredValueNormalizedWithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
-    def __init__(self, ioa, value, quality, timestamp):
+    def __init__(self, ioa, value, quality, timestamp=None):
+        timestamp = timestamp or CP24Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.measuredValueNormalizedWithCP24Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_ME_TA_1.c_value
         self.create(ioa, value, quality, timestamp)
@@ -650,7 +656,8 @@ class MeasuredValueScaledWithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
-    def __init__(self, ioa, value, quality, timestamp):
+    def __init__(self, ioa, value, quality, timestamp=None):
+        timestamp = timestamp or CP24Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.measuredValueScaledWithCP24Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_ME_TB_1.c_value
         self.create(ioa, value, quality, timestamp)
@@ -744,7 +751,8 @@ class MeasuredValueShortWithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
-    def __init__(self, ioa, value, quality, timestamp):
+    def __init__(self, ioa, value, quality, timestamp=None):
+        timestamp = timestamp or CP24Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.measuredValueShortWithCP24Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_ME_TC_1.c_value
         self.create(ioa, value, quality, timestamp)
@@ -825,7 +833,8 @@ class IntegratedTotalsWithCP24Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP24Time2a)
         ]
 
-    def __init__(self, ioa, value, timestamp):
+    def __init__(self, ioa, value, timestamp=None):
+        timestamp = timestamp or CP24Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.integratedTotalsWithCP24Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_IT_TA_1.c_value
         self.create(ioa, value, timestamp)
@@ -1066,7 +1075,8 @@ class SinglePointWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, quality, timestamp):
+    def __init__(self, ioa, value, quality, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.singlePointWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_SP_TB_1.c_value
         self.create(ioa, value, quality, timestamp)
@@ -1106,7 +1116,8 @@ class DoublePointWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, quality, timestamp):
+    def __init__(self, ioa, value, quality, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.doublePointWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_DP_TB_1.c_value
         self.create(ioa, value, quality, timestamp)
@@ -1146,7 +1157,8 @@ class StepPositionWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, isTransient, quality, timestamp):
+    def __init__(self, ioa, value, isTransient, quality, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.stepPositionWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_ST_TB_1.c_value
         self.create(ioa, value, isTransient, quality, timestamp)
@@ -1195,7 +1207,8 @@ class Bitstring32WithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, timestamp):
+    def __init__(self, ioa, value, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.bitstring32WithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_BO_TB_1.c_value
         self.create(ioa, value, timestamp)
@@ -1225,7 +1238,8 @@ class MeasuredValueNormalizedWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, quality, timestamp):
+    def __init__(self, ioa, value, quality, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.measuredValueNormalizedWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_ME_TD_1.c_value
         self.create(ioa, value, quality, timestamp)
@@ -1275,7 +1289,8 @@ class MeasuredValueScaledWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, quality, timestamp):
+    def __init__(self, ioa, value, quality, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.measuredValueScaledWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_ME_TE_1.c_value
         self.create(ioa, value, quality, timestamp)
@@ -1330,7 +1345,8 @@ class MeasuredValueShortWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, quality, timestamp):
+    def __init__(self, ioa, value, quality, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.measuredValueShortWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_ME_TF_1.c_value
         self.create(ioa, value, quality, timestamp)
@@ -1379,7 +1395,8 @@ class IntegratedTotalsWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, timestamp):
+    def __init__(self, ioa, value, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.integratedTotalsWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_IT_TB_1.c_value
         self.create(ioa, value, timestamp)
@@ -1423,7 +1440,8 @@ class EventOfProtectionEquipmentWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, event, elapsedTime, timestamp):
+    def __init__(self, ioa, event, elapsedTime, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.eventOfProtectionEquipmentWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_EP_TD_1.c_value
         self.create(ioa, event, elapsedTime, timestamp)
@@ -1463,7 +1481,8 @@ class PackedStartEventsOfProtectionEquipmentWithCP56Time2a(ctypes.Structure, IOB
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, event, qdp, elapsedTime, timestamp):
+    def __init__(self, ioa, event, qdp, elapsedTime, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.packedStartEventsOfProtectionEquipmentWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_EP_TE_1.c_value
         self.create(ioa, event, qdp, elapsedTime, timestamp)
@@ -1509,7 +1528,8 @@ class PackedOutputCircuitInfoWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, oci, qdp, operatingTime, timestamp):
+    def __init__(self, ioa, oci, qdp, operatingTime, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.packedOutputCircuitInfoWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.M_EP_TF_1.c_value
         self.create(ioa, oci, qdp, operatingTime, timestamp)
@@ -1814,7 +1834,8 @@ class SingleCommandWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, command, selectCommand, qu, timestamp):
+    def __init__(self, ioa, command, selectCommand, qu, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.singleCommandWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.C_SC_TA_1.c_value
         self.create(ioa, command, selectCommand, qu, timestamp)
@@ -1860,7 +1881,8 @@ class DoubleCommandWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, command, selectCommand, qu, timestamp):
+    def __init__(self, ioa, command, selectCommand, qu, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.doubleCommandWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.C_DC_TA_1.c_value
         self.create(ioa, command, selectCommand, qu, timestamp)
@@ -1902,7 +1924,8 @@ class StepCommandWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, command, selectCommand, qu, timestamp):
+    def __init__(self, ioa, command, selectCommand, qu, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.stepCommandWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.C_RC_TA_1.c_value
         self.create(ioa, command, selectCommand, qu, timestamp)
@@ -1945,7 +1968,8 @@ class SetpointCommandNormalizedWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, selectCommand, ql, timestamp):
+    def __init__(self, ioa, value, selectCommand, ql, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.setpointCommandNormalizedWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.C_SE_TA_1.c_value
         self.create(ioa, value, selectCommand, ql, timestamp)
@@ -1985,7 +2009,8 @@ class SetpointCommandScaledWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, selectCommand, ql, timestamp):
+    def __init__(self, ioa, value, selectCommand, ql, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.setpointCommandScaledWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.C_SE_TB_1.c_value
         self.create(ioa, value, selectCommand, ql, timestamp)
@@ -2025,7 +2050,8 @@ class SetpointCommandShortWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, selectCommand, ql, timestamp):
+    def __init__(self, ioa, value, selectCommand, ql, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.setpointCommandShortWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.C_SE_TC_1.c_value
         self.create(ioa, value, selectCommand, ql, timestamp)
@@ -2064,7 +2090,8 @@ class Bitstring32CommandWithCP56Time2a(ctypes.Structure, IOBase):
         ('timestamp', CP56Time2a)
         ]
 
-    def __init__(self, ioa, value, timestamp):
+    def __init__(self, ioa, value, timestamp=None):
+        timestamp = timestamp or CP56Time2a()
         self.virtualFunctionTable = ctypes.cast(lib.bitstring32CommandWithCP56Time2aVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.C_BO_TA_1.c_value
         self.create(ioa, value, timestamp)

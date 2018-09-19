@@ -211,8 +211,9 @@ class SinglePointWithCP56Time2aTest(unittest.TestCase):
         ioa = 400
         value = 0
         quality = QualityDescriptor.IEC60870_QUALITY_GOOD
-        timestamp = CP56Time2a()
-        self.sut = SinglePointWithCP56Time2a(ioa, value, quality, timestamp)
+        self.timestamp = CP56Time2a()
+        #self.sut = SinglePointWithCP56Time2a(ioa, value, quality, timestamp)
+        self.sut = SinglePointWithCP56Time2a(ioa, value, quality)
 
     def test_init(self):
         pass
@@ -225,7 +226,7 @@ class SinglePointWithCP56Time2aTest(unittest.TestCase):
         self.assertEqual(self.sut.get_object_address(), 400)
         self.assertEqual(self.sut.get_value(), 0)
         self.assertEqual(self.sut.get_quality(), QualityDescriptor.IEC60870_QUALITY_GOOD)
-        self.assertEqual(self.sut.get_timestamp(), CP56Time2a())
+        self.assertEqual(self.sut.get_timestamp(), self.timestamp)
 
     def test_clone(self):
         clone = self.sut.clone()

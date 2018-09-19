@@ -2,6 +2,7 @@ import logging
 from lib60870 import lib60870
 import ctypes
 from ctypes import c_int, c_uint64, c_void_p, c_bool, c_uint8
+import time
 
 lib = lib60870.get_library()
 
@@ -13,8 +14,9 @@ class CP56Time2a(ctypes.Structure):
 
     def __init__(self, ms_timestamp=None):
         self.encodedValue = (c_uint8 * 7)()
-        if ms_timestamp is not None:
-            self.from_timestamp(ms_timestamp)
+        if ms_timestamp is None:
+            ms_timestamp =  int(time.time() * 1000)
+        self.from_timestamp(ms_timestamp)
 
     def __eq__(self, other):
         a = self.encodedValue
@@ -25,7 +27,7 @@ class CP56Time2a(ctypes.Structure):
         lib.CP56Time2a_setFromMsTimestamp(pCP56Time2a(self), c_uint64(ms_timestamp))
 
     def __repr__(self):
-        return "CP56Time2a({})".format(self.to_ms_timestamp())
+        return "{}({})".format(type(self).__name__, self.to_ms_timestamp())
 
     def __str__(self):
         return "{:02}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}{}{}{}".format(
@@ -135,5 +137,6 @@ class CP56Time2a(ctypes.Structure):
     @property
     def pointer(self):
         return pCP56Time2a(self)
+
 
 pCP56Time2a = ctypes.POINTER(CP56Time2a)
