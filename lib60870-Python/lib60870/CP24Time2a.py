@@ -20,7 +20,7 @@ class CP24Time2a(ctypes.Structure):
         return len(a) == len(b) and all(x == y for x, y in zip(a,b))
 
     def __repr__(self):
-        return "CP24Time2a({})".format(self.to_ms_timestamp())
+        return "{}({})".format(type(self).__name__, self.to_ms_timestamp())
 
     def __str__(self):
         return "{:02}:{:02}.{:03}{}{}".format(

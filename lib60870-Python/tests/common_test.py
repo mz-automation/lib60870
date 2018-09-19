@@ -88,6 +88,15 @@ class CP16Time2aTest(unittest.TestCase):
         sut.set_millisecond(50000)
         self.assertEqual(50000, sut.get_millisecond())
 
+    def test_str(self):
+        sut = CP16Time2a()
+        sut.set_millisecond(50000)
+        self.assertEqual(sut.__str__(), "50000")
+
+    def test_repr(self):
+        sut = CP16Time2a()
+        sut.set_millisecond(50000)
+        self.assertEqual(sut.__repr__(), "CP16Time2a(50000)")
 
 class CPxxTime2aCompare(unittest.TestCase):
     def test_compare_56_to_56(self):

@@ -20,15 +20,11 @@ class CP16Time2a(ctypes.Structure):
         return len(a) == len(b) and all(x == y for x, y in zip(a,b))
 
     def __repr__(self):
-        return "CP24Time2a({})".format(self.get_millisecond())
+        return "{}({})".format(type(self).__name__, self.get_millisecond())
 
     def __str__(self):
         return "{:5}".format(
-            self.get_minute(),
-            self.get_second(),
-            self.get_millisecond(),
-            "I" if self.is_invalid() else "",
-            "S" if self.is_substituted() else "")
+            self.get_millisecond())
 
     def get_millisecond(self):
         lib.CP16Time2a_getEplapsedTimeInMs.restype = c_int
