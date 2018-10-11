@@ -181,7 +181,7 @@ SerialPort_open(SerialPort self)
         tios.c_iflag |= INPCK;
     }
 
-    tios.c_iflag &= ~(IXON | IXOFF | IXANY);
+    tios.c_iflag &= ~(IXON | IXOFF | IXANY | ICRNL);
     tios.c_iflag |= IGNBRK; /* Set ignore break to allow 0xff characters */
     tios.c_iflag |= IGNPAR;
     tios.c_oflag &=~ OPOST;
