@@ -21,7 +21,7 @@
  * - \ref CONFIG_CS104_MAX_K_BUFFER_SIZE (size of k-buffer - restricts the maximum value of the k parameter!)
  *
  */
-#define CONFIG_CS104_SLAVE_POOL 1
+#define CONFIG_CS104_SLAVE_POOL 0
 
 /**
  * Define the number of slave instances that are available in the pool
@@ -88,6 +88,11 @@
  * Compile library with support for SINGLE_REDUNDANCY_GROUP server mode (only CS104 server)
  */
 #define CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP 1
+
+/**
+ * Compile library with support for MULTIPLE_REDUNDANCY_GROUPS server mode (only CS104 server)
+ */
+#define CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS 1
 
 /**
  * Compile library with support for CONNECTION_IS_REDUNDANCY_GROUP server mode (only CS104 server)

@@ -51,8 +51,17 @@ typedef struct sCS104_Slave* CS104_Slave;
 
 typedef enum {
     CS104_MODE_SINGLE_REDUNDANCY_GROUP,
-    CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP
+    CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP,
+    CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS
 } CS104_ServerMode;
+
+typedef enum
+{
+    IP_ADDRESS_TYPE_IPV4,
+    IP_ADDRESS_TYPE_IPV6
+} eCS104_IPAddressType;
+
+typedef struct sCS104_RedundancyGroup* CS104_RedundancyGroup;
 
 /**
  * \brief Connection request handler is called when a client tries to connect to the server.
@@ -221,9 +230,15 @@ CS104_Slave_setClockSyncHandler(CS104_Slave self, CS101_ClockSynchronizationHand
 void
 CS104_Slave_setRawMessageHandler(CS104_Slave self, CS104_SlaveRawMessageHandler handler, void* parameter);
 
+/**
+ * \brief Get the APCI parameters instance. APCI parameters are CS 104 specific parameters.
+ */
 CS104_APCIParameters
 CS104_Slave_getConnectionParameters(CS104_Slave self);
 
+/**
+ * \brief Get the application layer parameters instance..
+ */
 CS101_AppLayerParameters
 CS104_Slave_getAppLayerParameters(CS104_Slave self);
 
@@ -238,16 +253,42 @@ CS104_Slave_start(CS104_Slave self);
 bool
 CS104_Slave_isRunning(CS104_Slave self);
 
+/**
+ * \brief Stop the server.
+ *
+ * Stop listening to incoming TCP/IP connections and close all open connections.
+ * Event buffers will be deactivated.
+ */
 void
 CS104_Slave_stop(CS104_Slave self);
 
-
+/**
+ * \brief Start the slave (server) in non-threaded mode.
+ *
+ * Start listening to incoming TCP/IP connections.
+ *
+ * NOTE: Server should only be started after all configuration is done.
+ */
 void
 CS104_Slave_startThreadless(CS104_Slave self);
 
+/**
+ * \brief Stop the server in non-threaded mode
+ *
+ * Stop listening to incoming TCP/IP connections and close all open connections.
+ * Event buffers will be deactivated.
+ */
 void
 CS104_Slave_stopThreadless(CS104_Slave self);
 
+/**
+ * \brief Protocol stack tick function for non-threaded mode.
+ *
+ * Handle incoming connection requests and messages, send buffered events, and
+ * handle periodic tasks.
+ *
+ * NOTE: This function has to be called periodically by the application.
+ */
 void
 CS104_Slave_tick(CS104_Slave self);
 
@@ -259,8 +300,51 @@ CS104_Slave_tick(CS104_Slave self);
 void
 CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu);
 
+/**
+ * \brief Add a new redundancy group to the server.
+ *
+ * A redundancy group is a group of clients that share the same event queue. This function can
+ * only be used with server mode CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS.
+ *
+ * NOTE: Has to be called before the server is started!
+ *
+ * \param redundancyGroup the new redundancy group
+ */
+void
+CS104_Slave_addRedundancyGroup(CS104_Slave self, CS104_RedundancyGroup redundancyGroup);
+
+/**
+ * \brief Delete the slave instance. Release all resources.
+ */
 void
 CS104_Slave_destroy(CS104_Slave self);
+
+/**
+ * \brief Create a new redundancy group.
+ *
+ * A redundancy group is a group of clients that share the same event queue. Redundancy groups can
+ * only be used with server mode CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS.
+ */
+CS104_RedundancyGroup
+CS104_RedundancyGroup_create(const char* name);
+
+/**
+ * \brief Add an allowed client to the redundancy group
+ *
+ * \param ipAddress the IP address of the client as C string (can be IPv4 or IPv6 address).
+ */
+void
+CS104_RedundancyGroup_addAllowedClient(CS104_RedundancyGroup self, const char* ipAddress);
+
+/**
+ * \brief Add an allowed client to the redundancy group
+ *
+ * \param ipAddress the IP address as byte buffer (4 byte for IPv4, 16 byte for IPv6)
+ * \param addressType type of the IP address (either IP_ADDRESS_TYPE_IPV4 or IP_ADDRESS_TYPE_IPV6)
+ */
+void
+CS104_RedundancyGroup_addAllowedClientEx(CS104_RedundancyGroup self, uint8_t* ipAddress, eCS104_IPAddressType addressType);
+
 
 /**
  * @}

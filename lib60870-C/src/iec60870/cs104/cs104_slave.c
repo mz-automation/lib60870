@@ -46,8 +46,8 @@
 #include "tls_socket.h"
 #endif
 
-#if ((CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP != 1) && (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP != 1))
-#error Illegal configuration: Define either CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP or CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP
+#if ((CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP != 1) && (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP != 1) && (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS != 1))
+#error Illegal configuration: Define either CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP or CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP or CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS
 #endif
 
 typedef struct sMasterConnection* MasterConnection;
@@ -724,6 +724,223 @@ HighPriorityASDUQueue_resetConnectionQueue(HighPriorityASDUQueue self)
 #endif
 }
 
+/***************************************************
+ * RedundancyGroup
+ ***************************************************/
+
+typedef struct sCS104_IPAddress* CS104_IPAddress;
+
+struct sCS104_IPAddress
+{
+    uint8_t address[16];
+    eCS104_IPAddressType type;
+};
+
+static void
+CS104_IPAddress_setFromString(CS104_IPAddress self, const char* ipAddrStr)
+{
+    if (strchr(ipAddrStr, '.') != NULL) {
+        /* parse IPv4 string */
+        self->type = IP_ADDRESS_TYPE_IPV4;
+
+        int i;
+
+        for (i = 0; i < 4; i++) {
+            self->address[i] = strtoul(ipAddrStr, NULL, 10);
+
+            ipAddrStr = strchr(ipAddrStr, '.');
+
+            if ((ipAddrStr == NULL) || (*ipAddrStr == 0))
+                break;
+
+            ipAddrStr++;
+        }
+    }
+    else {
+        self->type = IP_ADDRESS_TYPE_IPV6;
+
+        int i;
+
+        for (i = 0; i < 8; i++) {
+            uint32_t val = strtoul(ipAddrStr, NULL, 16);
+
+            self->address[i * 2] = val / 0x100;
+            self->address[i * 2 + 1] = val % 0x100;
+
+            ipAddrStr = strchr(ipAddrStr, ':');
+
+            if ((ipAddrStr == NULL) || (*ipAddrStr == 0))
+                break;
+
+            ipAddrStr++;
+        }
+    }
+}
+
+static bool
+CS104_IPAddress_equals(CS104_IPAddress self, CS104_IPAddress other)
+{
+    if (self->type != other->type)
+        return false;
+
+    int size;
+
+    if (self->type == IP_ADDRESS_TYPE_IPV4)
+        size = 4;
+    else
+        size = 16;
+
+    int i;
+
+    for (i = 0; i < size; i++) {
+        if (self->address[i] != other->address[i])
+            return false;
+    }
+
+    return true;
+}
+
+struct sCS104_RedundancyGroup {
+
+    char* name; /**< name of the group to be shown in debug messages, or NULL */
+
+    MessageQueue asduQueue; /**< low priority ASDU queue and buffer */
+    HighPriorityASDUQueue connectionAsduQueue; /**< high priority ASDU queue */
+
+    LinkedList allowedClients;
+};
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+static void
+CS104_RedundancyGroup_initializeMessageQueues(CS104_RedundancyGroup self, int lowPrioMaxQueueSize, int highPrioMaxQueueSize)
+{
+    /* initialized low priority queue */
+
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    if (lowPrioMaxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_SIZE)
+        lowPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_SIZE;
+#else
+    if (lowPrioMaxQueueSize < 1)
+        lowPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_SIZE;
+#endif
+
+    self->asduQueue = MessageQueue_create(lowPrioMaxQueueSize);
+
+    /* initialize high priority queue */
+
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    if (highPrioMaxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE)
+        highPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE;
+#else
+    if (highPrioMaxQueueSize < 1)
+        highPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE;
+#endif
+
+    self->connectionAsduQueue = HighPriorityASDUQueue_create(highPrioMaxQueueSize);
+}
+#endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
+
+CS104_RedundancyGroup
+CS104_RedundancyGroup_create(const char* name)
+{
+    CS104_RedundancyGroup self = (CS104_RedundancyGroup) GLOBAL_MALLOC(sizeof(struct sCS104_RedundancyGroup));
+
+    if (self) {
+        if (name)
+            self->name = strdup(name);
+        else
+            self->name = NULL;
+
+        self->asduQueue = NULL;
+        self->connectionAsduQueue = NULL;
+
+        self->allowedClients = NULL;
+    }
+
+    return self;
+}
+
+static void
+CS104_RedundancyGroup_destroy(CS104_RedundancyGroup self)
+{
+    if (self) {
+        if (self->name)
+            GLOBAL_FREEMEM(self->name);
+
+        MessageQueue_destroy(self->asduQueue);
+        HighPriorityASDUQueue_destroy(self->connectionAsduQueue);
+
+        if (self->allowedClients)
+            LinkedList_destroy(self->allowedClients);
+
+        GLOBAL_FREEMEM(self);
+    }
+}
+
+void
+CS104_RedundancyGroup_addAllowedClient(CS104_RedundancyGroup self, const char* ipAddress)
+{
+    struct sCS104_IPAddress ipAddr;
+
+    CS104_IPAddress_setFromString(&ipAddr, ipAddress);
+
+    CS104_RedundancyGroup_addAllowedClientEx(self, ipAddr.address, ipAddr.type);
+}
+
+void
+CS104_RedundancyGroup_addAllowedClientEx(CS104_RedundancyGroup self, uint8_t* ipAddress, eCS104_IPAddressType addressType)
+{
+    if (self->allowedClients == NULL)
+        self->allowedClients = LinkedList_create();
+
+    CS104_IPAddress ipAddr = (CS104_IPAddress) GLOBAL_MALLOC(sizeof(struct sCS104_IPAddress));
+
+    ipAddr->type = addressType;
+
+    int size;
+
+    if (addressType == IP_ADDRESS_TYPE_IPV4)
+        size = 4;
+    else
+        size = 16;
+
+    int i;
+
+    for (i = 0; i < size; i++)
+        ipAddr->address[i] = ipAddress[i];
+
+    LinkedList_add(self->allowedClients, ipAddr);
+}
+
+static bool
+CS104_RedundancyGroup_matches(CS104_RedundancyGroup self, CS104_IPAddress ipAddress)
+{
+    if (self->allowedClients == NULL)
+        return false;
+
+    LinkedList element = LinkedList_getNext(self->allowedClients);
+
+    while (element) {
+
+        CS104_IPAddress allowedAddress = (CS104_IPAddress) LinkedList_getData(element);
+
+        if (CS104_IPAddress_equals(ipAddress, allowedAddress))
+            return true;
+
+        element = LinkedList_getNext(element);
+    }
+
+    return false;
+}
+
+static bool
+CS104_RedundancyGroup_isCatchAll(CS104_RedundancyGroup self)
+{
+    if (self->allowedClients)
+        return false;
+    else
+        return true;
+}
 
 
 /***************************************************
@@ -796,6 +1013,10 @@ struct sCS104_Slave {
 
     int tcpPort;
 
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS)
+    LinkedList redundancyGroups;
+#endif
+
     CS104_ServerMode serverMode;
 
 #if (CONFIG_CS104_SLAVE_POOL == 1)
@@ -806,6 +1027,69 @@ struct sCS104_Slave {
     Thread listeningThread;
 
     ServerSocket serverSocket;
+};
+
+typedef struct {
+    /* required to identify message in server (low-priority) queue */
+    uint64_t entryTime;
+    int queueIndex; /* -1 if ASDU is not from low-priority queue */
+
+    /* required for T1 timeout */
+    uint64_t sentTime;
+    int seqNo;
+} SentASDUSlave;
+
+struct sMasterConnection {
+
+    Socket socket;
+
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+    TLSSocket tlsSocket;
+#endif
+
+    struct sIMasterConnection iMasterConnection;
+
+    CS104_Slave slave;
+    bool isActive;
+    bool isRunning;
+
+    int sendCount;     /* sent messages - sequence counter */
+    int receiveCount;  /* received messages - sequence counter */
+
+    int unconfirmedReceivedIMessages; /* number of unconfirmed messages received */
+
+    /* timeout T2 handling */
+    uint64_t lastConfirmationTime; /* timestamp when the last confirmation message (for I messages) was sent */
+    bool timeoutT2Triggered;
+
+    uint64_t nextT3Timeout;
+    int outstandingTestFRConMessages;
+
+    int maxSentASDUs;
+    int oldestSentASDU;
+    int newestSentASDU;
+
+#if (CONFIG_CS104_SLAVE_POOL == 1)
+    SentASDUSlave sentASDUs[CONFIG_CS104_MAX_K_BUFFER_SIZE];
+#else
+    SentASDUSlave* sentASDUs;
+#endif
+
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore sentASDUsLock;
+#endif
+
+    HandleSet handleSet;
+
+    uint8_t buffer[260];
+
+    MessageQueue lowPrioQueue;
+    HighPriorityASDUQueue highPrioQueue;
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+    CS104_RedundancyGroup redundancyGroup;
+#endif
 };
 
 #if (CONFIG_CS104_SLAVE_POOL == 1)
@@ -908,7 +1192,6 @@ initializeMessageQueues(CS104_Slave self, int lowPrioMaxQueueSize, int highPrioM
 }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
-
 static CS104_Slave
 createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 {
@@ -965,6 +1248,10 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         self->tlsConfig = NULL;
+#endif
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+        self->redundancyGroups = NULL;
 #endif
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
@@ -1118,7 +1405,7 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
             MasterConnection con = self->masterConnections[i];
 
             if (con) {
-                if (con!= connectionToActivate)
+                if (con != connectionToActivate)
                     MasterConnection_deactivate(con);
             }
 
@@ -1130,6 +1417,37 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
 
     }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+
+    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
+
+        /* Deactivate all other connections of the same redundancy group */
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_wait(self->openConnectionsLock);
+#endif
+
+        int i;
+
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+            MasterConnection con = self->masterConnections[i];
+
+            if (con) {
+                if (con->redundancyGroup == connectionToActivate->redundancyGroup) {
+                    if (con != connectionToActivate)
+                        MasterConnection_deactivate(con);
+                }
+            }
+
+        }
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_post(self->openConnectionsLock);
+#endif
+
+    }
+
+#endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
 
     MasterConnection_activate(connectionToActivate);
 }
@@ -1191,66 +1509,6 @@ CS104_Slave_getAppLayerParameters(CS104_Slave self)
 /********************************************************
  * MasterConnection
  *********************************************************/
-
-typedef struct {
-    /* required to identify message in server (low-priority) queue */
-    uint64_t entryTime;
-    int queueIndex; /* -1 if ASDU is not from low-priority queue */
-
-    /* required for T1 timeout */
-    uint64_t sentTime;
-    int seqNo;
-} SentASDUSlave;
-
-struct sMasterConnection {
-
-    Socket socket;
-
-#if (CONFIG_CS104_SUPPORT_TLS == 1)
-    TLSSocket tlsSocket;
-#endif
-
-    struct sIMasterConnection iMasterConnection;
-
-    CS104_Slave slave;
-    bool isActive;
-    bool isRunning;
-
-    int sendCount;     /* sent messages - sequence counter */
-    int receiveCount;  /* received messages - sequence counter */
-
-    int unconfirmedReceivedIMessages; /* number of unconfirmed messages received */
-
-    /* timeout T2 handling */
-    uint64_t lastConfirmationTime; /* timestamp when the last confirmation message (for I messages) was sent */
-    bool timeoutT2Triggered;
-
-    uint64_t nextT3Timeout;
-    int outstandingTestFRConMessages;
-
-    int maxSentASDUs;
-    int oldestSentASDU;
-    int newestSentASDU;
-
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    SentASDUSlave sentASDUs[CONFIG_CS104_MAX_K_BUFFER_SIZE];
-#else
-    SentASDUSlave* sentASDUs;
-#endif
-
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore sentASDUsLock;
-#endif
-
-    HandleSet handleSet;
-
-    uint8_t buffer[260];
-
-    MessageQueue lowPrioQueue;
-    HighPriorityASDUQueue highPrioQueue;
-};
-
 
 #if (CONFIG_CS104_SLAVE_POOL == 1)
 
@@ -2396,6 +2654,20 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
     return self;
 }
 
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+static MasterConnection
+MasterConnection_createEx(CS104_Slave slave, Socket socket, CS104_RedundancyGroup redGroup)
+{
+    MasterConnection self = MasterConnection_create(slave, socket, redGroup->asduQueue, redGroup->connectionAsduQueue);
+
+    if (self)
+        self->redundancyGroup = redGroup;
+
+    return self;
+}
+#endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
+
+
 static void
 MasterConnection_start(MasterConnection self)
 {
@@ -2556,12 +2828,88 @@ handleClientConnections(CS104_Slave self)
 
 }
 
+static char*
+getPeerAddress(Socket socket, char* ipAddress)
+{
+    char* ipAddrStr;
+
+    Socket_getPeerAddressStatic(socket, ipAddress);
+
+    /* remove TCP port part */
+    if (ipAddress[0] == '[') {
+        /* IPV6 address */
+        ipAddrStr = ipAddress + 1;
+
+        char* separator = strchr(ipAddrStr, ']');
+
+        if (separator != NULL)
+            *separator = 0;
+
+    }
+    else {
+        /* IPV4 address */
+        ipAddrStr = ipAddress;
+
+        char* separator = strchr(ipAddrStr, ':');
+
+        if (separator != NULL)
+            *separator = 0;
+    }
+
+    return ipAddrStr;
+}
+
+static bool
+callConnectionRequestHandler(CS104_Slave self, Socket newSocket)
+{
+    if (self->connectionRequestHandler != NULL) {
+        char ipAddress[60];
+
+        char* ipAddrStr = getPeerAddress(newSocket, ipAddress);
+
+        return self->connectionRequestHandler(self->connectionRequestHandlerParameter,
+                ipAddrStr);
+    }
+    else
+        return true;
+}
+
+static CS104_RedundancyGroup
+getMatchingRedundancyGroup(CS104_Slave self, char* ipAddrStr)
+{
+    struct sCS104_IPAddress ipAddress;
+
+    CS104_IPAddress_setFromString(&ipAddress, ipAddrStr);
+
+    CS104_RedundancyGroup catchAllGroup = NULL;
+    CS104_RedundancyGroup matchingGroup = NULL;
+
+    LinkedList element = LinkedList_getNext(self->redundancyGroups);
+
+    while (element) {
+        CS104_RedundancyGroup redGroup = (CS104_RedundancyGroup) LinkedList_getData(element);
+
+        if (CS104_RedundancyGroup_matches(redGroup, &ipAddress)) {
+            matchingGroup = redGroup;
+            break;
+        }
+
+        if (CS104_RedundancyGroup_isCatchAll(redGroup))
+            catchAllGroup = redGroup;
+
+        element = LinkedList_getNext(element);
+    }
+
+    if (matchingGroup == NULL)
+        matchingGroup = catchAllGroup;
+
+    return matchingGroup;
+}
+
 /* handle TCP connections in non-threaded mode */
 static void
 handleConnectionsThreadless(CS104_Slave self)
 {
-
-
     if ((self->maxOpenConnections < 1) || (self->openConnections < self->maxOpenConnections)) {
 
         Socket newSocket = ServerSocket_accept(self->serverSocket);
@@ -2570,19 +2918,8 @@ handleConnectionsThreadless(CS104_Slave self)
 
             bool acceptConnection = true;
 
-            if (acceptConnection && (self->connectionRequestHandler != NULL)) {
-                char ipAddress[60];
-
-                Socket_getPeerAddressStatic(newSocket, ipAddress);
-
-                /* remove TCP port part */
-                char* separator = strchr(ipAddress, ':');
-                if (separator != NULL)
-                    *separator = 0;
-
-                acceptConnection = self->connectionRequestHandler(self->connectionRequestHandlerParameter,
-                        ipAddress);
-            }
+            if (acceptConnection)
+                acceptConnection = callConnectionRequestHandler(self, newSocket);
 
             if (acceptConnection) {
 
@@ -2602,9 +2939,36 @@ handleConnectionsThreadless(CS104_Slave self)
                     highPrioQueue = HighPriorityASDUQueue_create(self->maxHighPrioQueueSize);
                 }
 #endif
+                MasterConnection connection = NULL;
 
-                MasterConnection connection =
-                        MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+                if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
+
+                    char ipAddress[60];
+
+                    char* ipAddrStr = getPeerAddress(newSocket, ipAddress);
+
+                    CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
+
+                    if (matchingGroup != NULL) {
+                        connection = MasterConnection_createEx(self, newSocket, matchingGroup);
+
+                        if (matchingGroup->name) {
+                            DEBUG_PRINT("Add connection to group: %s\n", matchingGroup->name);
+                        }
+                    }
+                    else {
+                        DEBUG_PRINT("Found no matching redundancy group -> close connection\n");
+                    }
+
+
+                }
+                else {
+                    connection = MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+                }
+#else
+                connection = MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+#endif
 
                 if (connection) {
 
@@ -2616,8 +2980,10 @@ handleConnectionsThreadless(CS104_Slave self)
                         self->connectionEventHandler(self->connectionEventHandlerParameter, &(connection->iMasterConnection), CS104_CON_EVENT_CONNECTION_OPENED);
                     }
                 }
-                else
-                    DEBUG_PRINT("Connection attempt failed!");
+                else {
+                    Socket_destroy(newSocket);
+                    DEBUG_PRINT("Connection attempt failed!\n");
+                }
 
             }
             else {
@@ -2664,19 +3030,8 @@ serverThread (void* parameter)
                     acceptConnection = false;
             }
 
-            if (acceptConnection && (self->connectionRequestHandler != NULL)) {
-                char ipAddress[60];
-
-                Socket_getPeerAddressStatic(newSocket, ipAddress);
-
-                /* remove TCP port part */
-                char* separator = strchr(ipAddress, ':');
-                if (separator != NULL)
-                    *separator = 0;
-
-                acceptConnection = self->connectionRequestHandler(self->connectionRequestHandlerParameter,
-                        ipAddress);
-            }
+            if (acceptConnection)
+                acceptConnection = callConnectionRequestHandler(self, newSocket);
 
             if (acceptConnection) {
 
@@ -2697,8 +3052,36 @@ serverThread (void* parameter)
                 }
 #endif
 
-                MasterConnection connection =
-                        MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+                MasterConnection connection = NULL;
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+                if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
+
+                    char ipAddress[60];
+
+                    char* ipAddrStr = getPeerAddress(newSocket, ipAddress);
+
+                    CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
+
+                    if (matchingGroup != NULL) {
+                        connection = MasterConnection_createEx(self, newSocket, matchingGroup);
+
+                        if (matchingGroup->name) {
+                            DEBUG_PRINT("Add connection to group: %s\n", matchingGroup->name);
+                        }
+                    }
+                    else {
+                        DEBUG_PRINT("Found no matching redundancy group -> close connection\n");
+                    }
+
+
+                }
+                else {
+                    connection = MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+                }
+#else
+                connection = MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+#endif
 
                 if (connection) {
 
@@ -2737,6 +3120,28 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
         MessageQueue_enqueueASDU(self->asduQueue, asdu);
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+
+    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
+
+        /************************************************
+         * Dispatch event to all redundancy groups
+         ************************************************/
+
+        LinkedList element = LinkedList_getNext(self->redundancyGroups);
+
+        while (element) {
+
+            CS104_RedundancyGroup group = (CS104_RedundancyGroup) LinkedList_getData(element);
+
+            MessageQueue_enqueueASDU(group->asduQueue, asdu);
+
+            element = LinkedList_getNext(element);
+        }
+    }
+
+#endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
+
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
     if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
 
@@ -2767,6 +3172,44 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
 }
 
 void
+CS104_Slave_addRedundancyGroup(CS104_Slave self, CS104_RedundancyGroup redundancyGroup)
+{
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
+
+        if (self->redundancyGroups == NULL)
+            self->redundancyGroups = LinkedList_create();
+
+        LinkedList_add(self->redundancyGroups, redundancyGroup);
+    }
+
+#endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
+}
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+static void
+initializeRedundancyGroups(CS104_Slave self, int lowPrioMaxQueueSize, int highPrioMaxQueueSize)
+{
+    if (self->redundancyGroups == NULL) {
+        CS104_RedundancyGroup redGroup = CS104_RedundancyGroup_create(NULL);
+        CS104_Slave_addRedundancyGroup(self, redGroup);
+    }
+
+    LinkedList element = LinkedList_getNext(self->redundancyGroups);
+
+    while (element) {
+
+        CS104_RedundancyGroup redGroup = (CS104_RedundancyGroup) LinkedList_getData(element);
+
+        if (redGroup->asduQueue == NULL)
+            CS104_RedundancyGroup_initializeMessageQueues(redGroup, lowPrioMaxQueueSize, highPrioMaxQueueSize);
+
+        element = LinkedList_getNext(element);
+    }
+}
+#endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
+
+void
 CS104_Slave_start(CS104_Slave self)
 {
     if (self->isRunning == false) {
@@ -2778,6 +3221,12 @@ CS104_Slave_start(CS104_Slave self)
         if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
             initializeMessageQueues(self, self->maxLowPrioQueueSize, self->maxHighPrioQueueSize);
 #endif
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+        if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
+            initializeRedundancyGroups(self, self->maxLowPrioQueueSize, self->maxHighPrioQueueSize);
+#endif
+
         self->listeningThread = Thread_create(serverThread, (void*) self, false);
 
         Thread_start(self->listeningThread);
@@ -2799,6 +3248,11 @@ CS104_Slave_startThreadless(CS104_Slave self)
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
         if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
             initializeMessageQueues(self, self->maxLowPrioQueueSize, self->maxHighPrioQueueSize);
+#endif
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+        if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
+            initializeRedundancyGroups(self, self->maxLowPrioQueueSize, self->maxHighPrioQueueSize);
 #endif
 
         if (self->localAddress)
@@ -2941,6 +3395,16 @@ CS104_Slave_destroy(CS104_Slave self)
         HighPriorityASDUQueue_destroy(self->connectionAsduQueue);
     }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+
+    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
+
+        if (self->redundancyGroups)
+            LinkedList_destroyDeep(self->redundancyGroups, (LinkedListValueDeleteFunction) CS104_RedundancyGroup_destroy);
+    }
+
+#endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
 
 #if (CONFIG_CS104_SLAVE_POOL == 1)
     ReleaseSlave(self);
