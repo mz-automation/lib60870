@@ -1139,6 +1139,10 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                     self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 
         break;
+
+    default:
+    	DEBUG_PRINT("type %d not supported\n", CS101_ASDU_getTypeID(self));
+    	break;
     }
 
     return retVal;
