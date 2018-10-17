@@ -799,6 +799,10 @@ handleConnection(void* parameter)
 void
 CS104_Connection_connectAsync(CS104_Connection self)
 {
+    self->running = false;
+    self->failure = false;
+    self->close = false;
+
 #if (CONFIG_USE_THREADS == 1)
     self->connectionHandlingThread = Thread_create(handleConnection, (void*) self, false);
 
@@ -810,6 +814,10 @@ CS104_Connection_connectAsync(CS104_Connection self)
 bool
 CS104_Connection_connect(CS104_Connection self)
 {
+    self->running = false;
+    self->failure = false;
+    self->close = false;
+
     CS104_Connection_connectAsync(self);
 
     while ((self->running == false) && (self->failure == false))
