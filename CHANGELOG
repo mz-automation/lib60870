@@ -1,5 +1,6 @@
 Changes to version 2.1.0
 ------------------------
+- CS104 slave: added support for multiple redundancy groups
 - added non-threaded moded for CS 104 slave
 - separated thread and semaphore support for CS 104 slave
 - CS101 unbalanced link layer (master): automatically send request UD 1 when ACD bit is set in received frame

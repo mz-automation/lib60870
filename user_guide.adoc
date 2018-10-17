@@ -1,4 +1,4 @@
-= lib60870-C 2.0.0 User Guide
+= lib60870-C 2.1.0 User Guide
 Copyright 2018 MZ Automation GmbH
 
 == Introduction
@@ -13,6 +13,7 @@ Here is a list of supported features:
 * CS 104 (IEC 60870-5-104) client and server TCP/IP communication
 * CS 104 supports encrypted and authenticated TLS communication
 * CS 104 uses the CS 101 application layer
+* CS 104 slave: support for redundancy groups
 * Master/Client supports sending system commands, process commands, parameter commands, and data messages in reverse direction.
 * Slave/Server supports sending data messages in monitoring direction and commands in reverse direction
 * The list of supported ASDU types can be found in the annex
@@ -369,6 +370,58 @@ To configure and setup an IEC 60870-5-104 server/slave an instance of the _CS104
   CS104_Slave slave = CS104_Slave_create(100, 100);
 
 After the server instance is created it can be configured
+
+=== CS104 Server mode
+
+The server provides three different modes concerning the support of redundant connections and event queue handling:
+
+The default mode (_CS104_MODE_SINGLE_REDUNDANCY_GROUP_) allows only a *single active client connection*. An active client connection is a connection
+where ASDUs (application data units) are sent. All other connections are only standby connections that don't send application layer data.
+There is a single queue for events. Events are also stored when no client is connected or when no connection is active.
+
+
+The second mode (_CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP_) allows *multiple active client connections*. Every connection has its own event queue.
+The event queue will be deleted when the client connection is closed. This mode can be used when more than one client has to access the
+application data. This mode is easy to use. But the drawback of this mode is that events are lost when no client is connected.
+
+The third mode (_CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS_) allows *multiple active client connections* while preserving events when no client is
+connected. In this mode clients can be assigned to specific redundancy groups. The assignment is based on the IP address of the client.
+A redundancy group can have multiple simultaneous connections but only one of these connections can be active. The number of activated
+connections is restricted by the number of redundancy groups. Each redundancy group has a dedicated event queue.
+
+
+The server mode can be set with the _CS104_Slave_setServerMode_ function:
+
+  CS104_Slave_setServerMode(slave, CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS);
+
+=== CS104: Defining multiple redundancy groups
+
+Redundancy groups only have to be created explicitly when using the servermode _CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS_. You can assign multiple
+IP addresses to a redundancy group. Incoming connections from one of these IP addresses will then automatically be assigned to this specific
+redundancy group.
+
+When a redundancy group has no assigned IP address it works as a "catch all" group. This means that all incoming connections that
+are not assigned to one of the other groups will end up in this group.
+
+[[app-listing]]
+[source, c]
+.Example how to define multipe redundancy groups
+----
+CS104_Slave_setServerMode(slave, CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS);
+
+CS104_RedundancyGroup redGroup1 = CS104_RedundancyGroup_create("red-group-1");
+CS104_RedundancyGroup_addAllowedClient(redGroup1, "192.168.2.9");
+
+CS104_RedundancyGroup redGroup2 = CS104_RedundancyGroup_create("red-group-2");
+CS104_RedundancyGroup_addAllowedClient(redGroup2, "192.168.2.223");
+CS104_RedundancyGroup_addAllowedClient(redGroup2, "192.168.2.222");
+
+CS104_RedundancyGroup redGroup3 = CS104_RedundancyGroup_create("catch-all");
+
+CS104_Slave_addRedundancyGroup(slave, redGroup1);
+CS104_Slave_addRedundancyGroup(slave, redGroup2);
+CS104_Slave_addRedundancyGroup(slave, redGroup3);
+----
 
 === CS101 (serial) slave configuration and setup
 

@@ -7,7 +7,9 @@ The current implementation contains code for the IEC 60870-5-101 (application la
 Features:
 - support for all application layer message types
 - master and slave
-- balanced and unbalanced link layers
+- balanced and unbalanced link layers (for CS 101 serial communication)
+- client/server for CS 104 TCP/IP communication
+- CS 104 redundancy group support
 - portable C99 code
 
 Please also consider the User Guide.
@@ -38,7 +40,7 @@ the project folder and run cmake to create the build files:
 ## Building without common code and HAL
 
 The library contains some common code and a platform abstraction layer (HAL) that is shared with
-other protocol libraries of MZ Automation (e.g. libiec61850). In order to simplify using these 
+other protocol libraries of MZ Automation (e.g. libiec61850). In order to simplify using these
 protocol libraries together it is possible to compile the library without the common parts.
 
 This can be done by using the *WITHOUT_HAL* and *WITHOUT_COMMON* defines when calling make:
