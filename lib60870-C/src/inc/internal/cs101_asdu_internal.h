@@ -33,24 +33,11 @@
 #include "lib60870_internal.h"
 
 struct sCS101_ASDU {
-    bool stackCreated;
     CS101_AppLayerParameters parameters;
     uint8_t* asdu;
     int asduHeaderLength;
     uint8_t* payload;
     int payloadSize;
-};
-
-typedef struct sCS101_StaticASDU* CS101_StaticASDU;
-
-struct sCS101_StaticASDU {
-    bool stackCreated;
-    CS101_AppLayerParameters parameters;
-    uint8_t* asdu;
-    int asduHeaderLength;
-    uint8_t* payload;
-    int payloadSize;
-    uint8_t encodedData[256];
 };
 
 /**
@@ -60,12 +47,5 @@ struct sCS101_StaticASDU {
  */
 CS101_ASDU
 CS101_ASDU_createFromBuffer(CS101_AppLayerParameters parameters, uint8_t* msg, int msgLength);
-
-CS101_ASDU
-CS101_ASDU_initializeStatic(CS101_StaticASDU self, CS101_AppLayerParameters parameters, bool isSequence, CS101_CauseOfTransmission cot, int oa, int ca,
-        bool isTest, bool isNegative);
-
-bool
-CS101_ASDU_isStackCreated(CS101_ASDU self);
 
 #endif /* SRC_INC_INTERNAL_CS101_ASDU_INTERNAL_H_ */

@@ -46,7 +46,7 @@ CS101_Queue_initialize(CS101_Queue self, int maxQueueSize)
 
     BufferFrame_initialize(&(self->encodeFrame), NULL, 0);
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     self->queueLock = Semaphore_create(1);
 #endif
 }
@@ -54,7 +54,7 @@ CS101_Queue_initialize(CS101_Queue self, int maxQueueSize)
 void
 CS101_Queue_dispose(CS101_Queue self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_destroy(self->queueLock);
 #endif
 }
@@ -62,7 +62,7 @@ CS101_Queue_dispose(CS101_Queue self)
 inline void
 CS101_Queue_lock(CS101_Queue self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 }
@@ -70,7 +70,7 @@ CS101_Queue_lock(CS101_Queue self)
 inline void
 CS101_Queue_unlock(CS101_Queue self)
 {
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
 #endif
 }

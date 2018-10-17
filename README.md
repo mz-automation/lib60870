@@ -35,6 +35,16 @@ the project folder and run cmake to create the build files:
 `cd build`
 `cmake ..`
 
+## Building without common code and HAL
+
+The library contains some common code and a platform abstraction layer (HAL) that is shared with
+other protocol libraries of MZ Automation (e.g. libiec61850). In order to simplify using these 
+protocol libraries together it is possible to compile the library without the common parts.
+
+This can be done by using the *WITHOUT_HAL* and *WITHOUT_COMMON* defines when calling make:
+
+`make WITHOUT_HAL=1 WITHOUT_COMMON=1`
+
 ## Building with TLS support
 
 The library can be build with support for TLS. In order to do so you have to download mbedtls version 2.6.0.
@@ -49,7 +59,7 @@ The cmake build system will automatically detect the mbedtls source and build th
 
 When using make you have to call make with WITH_MBEDTLS=1
 
-make WITH_MBEDTLS=1
+`make WITH_MBEDTLS=1`
 
 ## Contact:
 

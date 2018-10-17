@@ -216,10 +216,23 @@ main(int argc, char** argv)
 
     CS104_Slave_setLocalAddress(slave, "0.0.0.0");
 
-    /* Set mode to a single redundancy group
+    /* Set mode to a multiple redundancy groups
      * NOTE: library has to be compiled with CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP enabled (=1)
      */
-    CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
+    CS104_Slave_setServerMode(slave, CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS);
+
+    CS104_RedundancyGroup redGroup1 = CS104_RedundancyGroup_create("red-group-1");
+    CS104_RedundancyGroup_addAllowedClient(redGroup1, "192.168.2.9");
+
+    CS104_RedundancyGroup redGroup2 = CS104_RedundancyGroup_create("red-group-2");
+    CS104_RedundancyGroup_addAllowedClient(redGroup2, "192.168.2.223");
+    CS104_RedundancyGroup_addAllowedClient(redGroup2, "192.168.2.222");
+
+    CS104_RedundancyGroup redGroup3 = CS104_RedundancyGroup_create("catch-all");
+
+    CS104_Slave_addRedundancyGroup(slave, redGroup1);
+    CS104_Slave_addRedundancyGroup(slave, redGroup2);
+    CS104_Slave_addRedundancyGroup(slave, redGroup3);
 
     /* get the connection parameters - we need them to create correct ASDUs */
     CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);

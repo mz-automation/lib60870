@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-#if (CONFIG_USE_THREADS == 1)
+#if ((CONFIG_USE_THREADS == 1) || (CONFIG_USE_SEMAPHORES == 1))
 #include "hal_thread.h"
 #endif
 
@@ -58,7 +58,7 @@ struct sCS101_Queue {
 
     struct sCS101_QueueElement elements[CS101_MAX_QUEUE_SIZE];
 
-#if (CONFIG_USE_THREADS == 1)
+#if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore queueLock;
 #endif
 };

@@ -11,8 +11,8 @@ project(lib60870-C)
 ENABLE_TESTING()
 
 set(LIB_VERSION_MAJOR "2")
-set(LIB_VERSION_MINOR "0")
-set(LIB_VERSION_PATCH "2")
+set(LIB_VERSION_MINOR "1")
+set(LIB_VERSION_PATCH "0")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/third_party/cmake/modules/")
 
@@ -28,12 +28,19 @@ check_library_exists(rt clock_gettime "time.h" CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
 include (TestBigEndian)
 test_big_endian(PLATFORM_IS_BIGENDIAN)
 
+option(BUILD_HAL "Build the platform abstraction layer (HAL)" ON)
+option(BUILD_COMMON "Build common code (shared with other libraries - e.g. libiec61850)" ON)
+
+option(BUILD_EXAMPLES "Build the examples" ON)
+option(BUILD_TESTS "Build the tests" ON)
+
+if(BUILD_HAL)
+
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.6.0)
 set(WITH_MBEDTLS 1)
 endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.6.0)
 
-option(BUILD_EXAMPLES "Build the examples" ON)
-option(BUILD_TESTS "Build the tests" ON)
+endif(BUILD_HAL)
 
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/config
@@ -41,12 +48,11 @@ include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/src/inc/internal
     ${CMAKE_CURRENT_LIST_DIR}/src/common/inc
     ${CMAKE_CURRENT_LIST_DIR}/src/hal/inc
-    ${CMAKE_CURRENT_LIST_DIR}/src/tls
 )
 
 if(WITH_MBEDTLS)
 include_directories(
-    ${CMAKE_CURRENT_LIST_DIR}/src/tls/mbedtls
+    ${CMAKE_CURRENT_LIST_DIR}/src/hal/tls/mbedtls
     ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.6.0/include
 )
 
@@ -63,6 +69,7 @@ set(API_HEADERS
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_thread.h
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_socket.h
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_serial.h
+	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/tls_config.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_master.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_slave.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs104_slave.h
@@ -72,7 +79,6 @@ set(API_HEADERS
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_information_objects.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs104_connection.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/link_layer_parameters.h
-	${CMAKE_CURRENT_LIST_DIR}/src/tls/tls_api.h
 )
 
 

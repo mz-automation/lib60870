@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016, 2017 MZ Automation GmbH
+ *  Copyright 2016-2018 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "iec60870_common.h"
-#include "tls_api.h"
+#include "tls_config.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -147,6 +147,16 @@ typedef bool (*CS101_ReadHandler) (void* parameter, IMasterConnection connection
 
 /**
  * \brief Handler for clock synchronization command (C_CS_NA_1 - 103)
+ *
+ * This handler will be called whenever a time synchronization command is received.
+ * NOTE: The \ref CS104_Slave instance will automatically send an ACT-CON message for the received time sync command.
+ *
+ * \param[in] parameter user provided parameter
+ * \param[in] connection represents the (TCP) connection that received the time sync command
+ * \param[in] asdu the received ASDU
+ * \param[in,out] the time received with the time sync message. The user can update this time for the ACT-CON message
+ *
+ * \return true when time synchronization has been successful, false otherwise
  */
 typedef bool (*CS101_ClockSynchronizationHandler) (void* parameter, IMasterConnection connection, CS101_ASDU asdu, CP56Time2a newTime);
 

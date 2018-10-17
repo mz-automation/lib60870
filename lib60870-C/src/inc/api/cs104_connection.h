@@ -24,7 +24,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "tls_api.h"
+
+#include "tls_socket.h"
 #include "iec60870_master.h"
 
 #ifdef __cplusplus
