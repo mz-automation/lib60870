@@ -1844,8 +1844,6 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                 if (slave->counterInterrogationHandler(slave->counterInterrogationHandlerParameter,
                         &(self->iMasterConnection), asdu, CounterInterrogationCommand_getQCC(cic)))
                     messageHandled = true;
-
-                CounterInterrogationCommand_destroy(cic);
             }
         }
         else
