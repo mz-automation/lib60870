@@ -22,8 +22,6 @@
 #ifndef ENDIAN_H_
 #define ENDIAN_H_
 
-#include "stack_config.h"
-
 #ifndef PLATFORM_IS_BIGENDIAN
 #ifdef __GNUC__
 #ifdef __BYTE_ORDER__
