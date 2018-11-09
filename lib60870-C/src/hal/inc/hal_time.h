@@ -26,6 +26,8 @@
 extern "C" {
 #endif
 
+#include <stdint.h>
+
 /**
  * \file hal_time.h
  * \brief Abstraction layer for system time access

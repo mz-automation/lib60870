@@ -1,14 +1,28 @@
 /*
- * information_objects_internal.h
+ *  Copyright 2016 MZ Automation GmbH
  *
- *  Created on: Aug 5, 2016
- *      Author: mzillgit
+ *  This file is part of lib60870-C
+ *
+ *  lib60870-C is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  lib60870-C is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with lib60870-C.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  See COPYING file for the complete license text.
  */
 
 #ifndef SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_
 #define SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_
 
-#include "../api/cs101_information_objects.h"
+#include "cs101_information_objects.h"
 #include "frame.h"
 
 typedef struct sInformationObjectVFT* InformationObjectVFT;
@@ -18,9 +32,6 @@ InformationObject_encode(InformationObject self, Frame frame, CS101_AppLayerPara
 
 void
 InformationObject_setObjectAddress(InformationObject self, int ioa);
-
-TypeID
-InformationObject_getType(InformationObject self);
 
 int
 InformationObject_ParseObjectAddress(CS101_AppLayerParameters parameters, uint8_t* msg, int startIndex);
