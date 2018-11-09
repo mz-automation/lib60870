@@ -772,7 +772,7 @@ LinkLayerSecondaryBalanced_checkFCB(LinkLayerSecondaryBalanced self, bool fcb)
 {
     if (fcb != self->expectedFcb) {
         DEBUG_PRINT ("ERROR: Frame count bit (FCB) invalid!\n");
-        //TODO change link status
+        /* TODO change link status */
         return false;
     } else {
         self->expectedFcb = !(self->expectedFcb);
@@ -1086,7 +1086,7 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 void
 LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
 {
-    //TODO make timeouts dealing with time adjustments (time moves to past)
+    /* TODO make timeouts dealing with time adjustments (time moves to past) */
     uint64_t currentTime = Hal_getTimeInMs();
 
     PrimaryLinkLayerState primaryState = self->primaryState;
@@ -1237,7 +1237,6 @@ struct sLinkLayerBalanced {
     IBalancedApplicationLayer applicationLayer;
     void* appLayerParameter;
 
-    //LinkLayerParameters linkLayerParameters;
     struct sLinkLayer _linkLayer;
 
     struct sLinkLayerPrimaryBalanced primaryLinkLayer;
@@ -1260,8 +1259,6 @@ LinkLayerBalanced_create(
         self->linkLayer = LinkLayer_init(&(self->_linkLayer), linkLayerAddress, transceiver, linkLayerParameters);
         self->applicationLayer = applicationLayer;
         self->appLayerParameter = applicationLayerParameter;
-
-        //self->linkLayerParameters = linkLayerParameters;
 
         LinkLayerPrimaryBalanced_init(&(self->primaryLinkLayer), self->linkLayer, applicationLayer, applicationLayerParameter);
         LinkLayerSecondaryBalanced_init(&(self->secondaryLinkLayer), self->linkLayer, applicationLayer, applicationLayerParameter);
@@ -1442,7 +1439,6 @@ struct sLinkLayerSlaveConnection {
     uint64_t lastSendTime;
     uint64_t originalSendTime;
 
-    //bool resetCu;
     bool requestClass1Data;
     bool requestClass2Data;
 
@@ -1705,7 +1701,7 @@ llsc_isMessageWaitingToSend(LinkLayerSlaveConnection self)
 static void
 LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
 {
-    //TODO make timeouts dealing with time adjustments (time moves to past)
+    /* TODO make timeouts dealing with time adjustments (time moves to past) */
     uint64_t currentTime = Hal_getTimeInMs();
 
     PrimaryLinkLayerState primaryState = self->primaryState;
@@ -1944,7 +1940,7 @@ LinkLayerPrimaryUnbalanced_resetCU(LinkLayerPrimaryUnbalanced self, int slaveAdd
     LinkLayerSlaveConnection slave = LinkLayerPrimaryUnbalanced_getSlaveConnection(self, slaveAddress);
 
     if (slave) {
-        //slave->resetCU = true;
+        /* slave->resetCU = true; */
     }
 }
 

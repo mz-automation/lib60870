@@ -233,9 +233,7 @@ CP24Time2a_setSubstituted(CP24Time2a self, bool value)
 }
 
 #if 0
-
-
-// function found here: http://stackoverflow.com/questions/530519/stdmktime-and-timezone-info
+/* function found here: http://stackoverflow.com/questions/530519/stdmktime-and-timezone-info */
 time_t my_timegm(register struct tm * t)
 /* struct tm to seconds since Unix epoch */
 {
@@ -268,27 +266,28 @@ time_t my_timegm(register struct tm * t)
 }
 #endif
 
-// Conversion from UTC date to second, unsigned 32-bit Unix epoch version.
-// Written by François Grieu, 2015-07-21; public domain.
-//
-// my_mktime  converts from  struct tm  UTC to non-leap seconds since
-// 00:00:00 on the first UTC day of year 1970 (fixed).
-// It works from 1970 to 2105 inclusive. It strives to be compatible
-// with C compilers supporting // comments and claiming C89 conformance.
-//
-// input:   Pointer to a  struct tm  with field tm_year, tm_mon, tm_mday,
-//          tm_hour, tm_min, tm_sec set per  mktime  convention; thus
-//          - tm_year is year minus 1900
-//          - tm_mon is [0..11] for January to December, but [-2..14]
-//            works for November of previous year to February of next year
-//          - tm_mday, tm_hour, tm_min, tm_sec similarly can be offset to
-//            the full range [-32767 to 32768], as long as the combination
-//            with tm_year gives a result within years [1970..2105], and
-//            tm_year>0.
-// output:  Number of non-leap seconds since beginning of the first UTC
-//          day of year 1970, as an unsigned at-least-32-bit integer.
-//          The input is not changed (in particular, fields tm_wday,
-//          tm_yday, and tm_isdst are unchanged and ignored).
+/* Conversion from UTC date to second, unsigned 32-bit Unix epoch version.
+ * Written by François Grieu, 2015-07-21; public domain.
+ *
+ * my_mktime  converts from  struct tm  UTC to non-leap seconds since
+ * 00:00:00 on the first UTC day of year 1970 (fixed).
+ * It works from 1970 to 2105 inclusive. It strives to be compatible
+ * with C compilers supporting // comments and claiming C89 conformance.
+ *
+ * input:   Pointer to a  struct tm  with field tm_year, tm_mon, tm_mday,
+ *          tm_hour, tm_min, tm_sec set per  mktime  convention; thus
+ *          - tm_year is year minus 1900
+ *          - tm_mon is [0..11] for January to December, but [-2..14]
+ *            works for November of previous year to February of next year
+ *          - tm_mday, tm_hour, tm_min, tm_sec similarly can be offset to
+ *            the full range [-32767 to 32768], as long as the combination
+ *            with tm_year gives a result within years [1970..2105], and
+ *            tm_year>0.
+ * output:  Number of non-leap seconds since beginning of the first UTC
+ *          day of year 1970, as an unsigned at-least-32-bit integer.
+ *          The input is not changed (in particular, fields tm_wday,
+ *          tm_yday, and tm_isdst are unchanged and ignored).
+ */
 static time_t
 my_mktime(const struct tm * ptm)
 {
@@ -483,7 +482,7 @@ CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
 
     struct tm tmTime;
 
-    //TODO replace with portable implementation
+    /* TODO replace with portable implementation */
 #ifdef _WIN32
 	gmtime_s(&tmTime, &timeVal);
 #else

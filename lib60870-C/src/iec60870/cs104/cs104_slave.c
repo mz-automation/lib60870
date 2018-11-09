@@ -1594,7 +1594,7 @@ printSendBuffer(MasterConnection self)
 }
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
-static inline int
+static int
 receiveMessageTlsSocket(TLSSocket socket, uint8_t* buffer)
 {
     int readFirst = TLSSocket_read(socket, buffer, 1);
@@ -1618,7 +1618,7 @@ receiveMessageTlsSocket(TLSSocket socket, uint8_t* buffer)
 }
 #endif /*  (CONFIG_CS104_SUPPORT_TLS == 1) */
 
-static inline int
+static int
 receiveMessageSocket(Socket socket, uint8_t* buffer)
 {
     int readFirst = Socket_read(socket, buffer, 1);
@@ -1654,7 +1654,7 @@ receiveMessage(MasterConnection self, uint8_t* buffer)
 #endif
 }
 
-static inline int
+static int
 writeToSocket(MasterConnection self, uint8_t* buf, int size)
 {
     if (self->slave->rawMessageHandler)

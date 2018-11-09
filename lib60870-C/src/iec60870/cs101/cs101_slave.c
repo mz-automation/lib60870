@@ -445,7 +445,7 @@ CS101_Slave_run(CS101_Slave self)
     else
         LinkLayerBalanced_run(self->balancedLinkLayer);
 
-    //TODO handle file transmission
+    /* TODO handle file transmission */
 }
 
 #if (CONFIG_USE_THREADS == 1)
@@ -660,7 +660,12 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
                         &(self->iMasterConnection), asdu, ClockSynchronizationCommand_getTime(csc)))
                     messageHandled = true;
 
-                //TODO send ACT-CON message
+                if (messageHandled) {
+                    /* send ACT-CON message */
+                    CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+
+                    CS101_Slave_enqueueUserDataClass1(self, asdu);
+                }
             }
         }
         else

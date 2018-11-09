@@ -172,7 +172,7 @@ CS101_ASDU_createFromBuffer(CS101_AppLayerParameters parameters, uint8_t* msg, i
     return self;
 }
 
-static inline int
+static int
 getFirstIOA(CS101_ASDU self)
 {
     int startIndex = self->asduHeaderLength;

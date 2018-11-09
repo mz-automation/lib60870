@@ -40,7 +40,7 @@ struct sT104Frame {
     int msgSize;
 
 #if (CONFIG_LIB60870_STATIC_FRAMES == 1)
-    //TODO move to base class?
+    /* TODO move to base class? */
     uint8_t allocated;
 #endif
 };

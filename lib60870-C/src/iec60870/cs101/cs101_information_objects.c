@@ -275,7 +275,7 @@ SinglePointInformation
 SinglePointInformation_getFromBuffer(SinglePointInformation self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
+    /* TODO check message size */
 
     if (self == NULL)
 		self = (SinglePointInformation) GLOBAL_MALLOC(sizeof(struct sSinglePointInformation));
@@ -417,8 +417,6 @@ StepPositionInformation
 StepPositionInformation_getFromBuffer(StepPositionInformation self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (StepPositionInformation) GLOBAL_MALLOC(sizeof(struct sStepPositionInformation));
 
@@ -526,8 +524,6 @@ StepPositionWithCP56Time2a
 StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (StepPositionWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP56Time2a));
 
@@ -638,8 +634,6 @@ StepPositionWithCP24Time2a
 StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (StepPositionWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP24Time2a));
 
@@ -738,8 +732,6 @@ DoublePointInformation
 DoublePointInformation_getFromBuffer(DoublePointInformation self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (DoublePointInformation) GLOBAL_MALLOC(sizeof(struct sDoublePointInformation));
 
@@ -838,8 +830,6 @@ DoublePointWithCP24Time2a
 DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (DoublePointWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP24Time2a));
 
@@ -943,8 +933,6 @@ DoublePointWithCP56Time2a
 DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (DoublePointWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP56Time2a));
 
@@ -1046,8 +1034,6 @@ SinglePointWithCP24Time2a
 SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (SinglePointWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP24Time2a));
 
@@ -1152,8 +1138,6 @@ SinglePointWithCP56Time2a
 SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (SinglePointWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP56Time2a));
 
@@ -1258,8 +1242,6 @@ BitString32
 BitString32_getFromBuffer(BitString32 self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (BitString32) GLOBAL_MALLOC(sizeof(struct sBitString32));
 
@@ -1361,8 +1343,6 @@ Bitstring32WithCP24Time2a
 Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (Bitstring32WithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32WithCP24Time2a));
 
@@ -1468,8 +1448,6 @@ Bitstring32WithCP56Time2a
 Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (Bitstring32WithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32WithCP56Time2a));
 
@@ -1619,8 +1597,6 @@ MeasuredValueNormalized
 MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (MeasuredValueNormalized) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalized));
 
@@ -1775,8 +1751,6 @@ MeasuredValueNormalizedWithoutQuality
 MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWithoutQuality self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
         self = (MeasuredValueNormalizedWithoutQuality) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithoutQuality));
 
@@ -1876,8 +1850,6 @@ MeasuredValueNormalizedWithCP24Time2a
 MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithCP24Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (MeasuredValueNormalizedWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP24Time2a));
 
@@ -1983,8 +1955,6 @@ MeasuredValueNormalizedWithCP56Time2a
 MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (MeasuredValueNormalizedWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP56Time2a));
 
@@ -2087,8 +2057,6 @@ MeasuredValueScaled
 MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (MeasuredValueScaled) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaled));
 
@@ -2239,8 +2207,6 @@ MeasuredValueScaledWithCP24Time2a
 MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (MeasuredValueScaledWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP24Time2a));
 
@@ -2344,8 +2310,6 @@ MeasuredValueScaledWithCP56Time2a
 MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (MeasuredValueScaledWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP56Time2a));
 
@@ -2459,8 +2423,6 @@ MeasuredValueShort
 MeasuredValueShort_getFromBuffer(MeasuredValueShort self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (MeasuredValueShort) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShort));
 
@@ -2621,8 +2583,6 @@ MeasuredValueShortWithCP24Time2a
 MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (MeasuredValueShortWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP24Time2a));
 
@@ -2735,8 +2695,6 @@ MeasuredValueShortWithCP56Time2a
 MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (MeasuredValueShortWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP56Time2a));
 
@@ -2846,8 +2804,6 @@ IntegratedTotals
 IntegratedTotals_getFromBuffer(IntegratedTotals self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (IntegratedTotals) GLOBAL_MALLOC(sizeof(struct sIntegratedTotals));
 
@@ -2947,8 +2903,6 @@ IntegratedTotalsWithCP24Time2a
 IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (IntegratedTotalsWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP24Time2a));
 
@@ -3051,8 +3005,6 @@ IntegratedTotalsWithCP56Time2a
 IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
-    //TODO check message size
-
     if (self == NULL)
 		self = (IntegratedTotalsWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP56Time2a));
 
@@ -6096,8 +6048,6 @@ ParameterActivation
 ParameterActivation_getFromBuffer(ParameterActivation self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex)
 {
-    //TODO check message size
-
     if (self == NULL)
         self = (ParameterActivation) GLOBAL_MALLOC(sizeof(struct sParameterActivation));
 

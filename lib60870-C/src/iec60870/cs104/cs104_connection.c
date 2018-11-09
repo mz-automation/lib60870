@@ -139,7 +139,7 @@ static uint8_t STOPDT_ACT_MSG[] = { 0x68, 0x04, 0x13, 0x00, 0x00, 0x00 };
 static uint8_t STARTDT_CON_MSG[] = { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
 #define STARTDT_CON_MSG_SIZE 6
 
-static inline int
+static int
 writeToSocket(CS104_Connection self, uint8_t* buf, int size)
 {
     if (self->rawMessageHandler)
@@ -460,7 +460,7 @@ CS104_Connection_getAPCIParameters(CS104_Connection self)
 }
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
-static inline int
+static int
 receiveMessageTlsSocket(TLSSocket socket, uint8_t* buffer)
 {
     int readFirst = TLSSocket_read(socket, buffer, 1);
@@ -484,7 +484,7 @@ receiveMessageTlsSocket(TLSSocket socket, uint8_t* buffer)
 }
 #endif /*  (CONFIG_CS104_SUPPORT_TLS == 1) */
 
-static inline int
+static int
 receiveMessageSocket(Socket socket, uint8_t* buffer)
 {
     int readFirst = Socket_read(socket, buffer, 1);

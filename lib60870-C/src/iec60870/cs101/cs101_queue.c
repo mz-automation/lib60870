@@ -59,7 +59,7 @@ CS101_Queue_dispose(CS101_Queue self)
 #endif
 }
 
-inline void
+void
 CS101_Queue_lock(CS101_Queue self)
 {
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -67,7 +67,7 @@ CS101_Queue_lock(CS101_Queue self)
 #endif
 }
 
-inline void
+void
 CS101_Queue_unlock(CS101_Queue self)
 {
 #if (CONFIG_USE_SEMAPHORES == 1)
