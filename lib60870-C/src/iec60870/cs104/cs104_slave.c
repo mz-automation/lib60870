@@ -1986,6 +1986,7 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
     if (messageHandled == false) {
         /* send error response */
         CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_TYPE_ID);
+        CS101_ASDU_setNegative(asdu, true);
         sendASDUInternal(self, asdu);
     }
 }

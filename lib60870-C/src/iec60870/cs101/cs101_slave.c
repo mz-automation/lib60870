@@ -747,6 +747,7 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
     if (messageHandled == false) {
         /* send error response */
         CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_TYPE_ID);
+        CS101_ASDU_setNegative(asdu, true);
         CS101_Slave_enqueueUserDataClass1(self, asdu);
     }
 }
