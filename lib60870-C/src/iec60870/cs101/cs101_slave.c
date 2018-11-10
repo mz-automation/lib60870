@@ -562,6 +562,7 @@ responseCOTUnknown(CS101_ASDU asdu, IMasterConnection self)
 {
     DEBUG_PRINT("  with unknown COT\n");
     CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
+    CS101_ASDU_setNegative(asdu, true);
     sendASDU(self, asdu);
 }
 
@@ -677,8 +678,10 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
         DEBUG_PRINT("Rcvd test command C_TS_NA_1\n");
 
-        if (cot != CS101_COT_ACTIVATION)
+        if (cot != CS101_COT_ACTIVATION) {
             CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
+            CS101_ASDU_setNegative(asdu, true);
+        }
         else
             CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
 
