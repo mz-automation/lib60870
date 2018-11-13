@@ -544,6 +544,12 @@ MeasuredValueNormalized_getValue(MeasuredValueNormalized self);
 void
 MeasuredValueNormalized_setValue(MeasuredValueNormalized self, float value);
 
+int
+MeasuredValueNormalized_getScaledValue(MeasuredValueNormalized self);
+
+void
+MeasuredValueNormalized_setScaledValue(MeasuredValueNormalized self, int value);
+
 QualityDescriptor
 MeasuredValueNormalized_getQuality(MeasuredValueNormalized self);
 
@@ -994,8 +1000,14 @@ SetpointCommandNormalized_destroy(SetpointCommandNormalized self);
 SetpointCommandNormalized
 SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float value, bool selectCommand, int ql);
 
+SetpointCommandNormalized
+SetpointCommandNormalized_create_scaled(SetpointCommandNormalized self, int ioa, int value, bool selectCommand, int ql);
+
 float
 SetpointCommandNormalized_getValue(SetpointCommandNormalized self);
+
+int
+SetpointCommandNormalized_getScaledValue(SetpointCommandNormalized self);
 
 int
 SetpointCommandNormalized_getQL(SetpointCommandNormalized self);
@@ -1308,6 +1320,9 @@ SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56
 
 float
 SetpointCommandNormalizedWithCP56Time2a_getValue(SetpointCommandNormalizedWithCP56Time2a self);
+
+int
+SetpointCommandNormalizedWithCP56Time2a_getScaledValue(SetpointCommandNormalizedWithCP56Time2a self);
 
 int
 SetpointCommandNormalizedWithCP56Time2a_getQL(SetpointCommandNormalizedWithCP56Time2a self);

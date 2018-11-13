@@ -1784,6 +1784,19 @@ MeasuredValueNormalized_create(MeasuredValueNormalized self, int ioa, float valu
     return self;
 }
 
+int
+MeasuredValueNormalized_getScaledValue(MeasuredValueNormalized self)
+{
+    int nv = getScaledValue(self->encodedValue);
+    return nv;
+}
+
+void
+MeasuredValueNormalized_setScaledValue(MeasuredValueNormalized self, int value)
+{
+    setScaledValue(self->encodedValue, value);
+}
+
 float
 MeasuredValueNormalized_getValue(MeasuredValueNormalized self)
 {
@@ -5207,10 +5220,43 @@ SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float 
     return self;
 }
 
+SetpointCommandNormalized
+SetpointCommandNormalized_create_scaled(SetpointCommandNormalized self, int ioa, int value, bool selectCommand, int ql)
+{
+    if (self == NULL) {
+        self = (SetpointCommandNormalized) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
+
+        if (self == NULL)
+            return NULL;
+        else
+            SetpointCommandNormalized_initialize(self);
+    }
+
+    self->objectAddress = ioa;
+
+    setScaledValue(self->encodedValue, value);
+
+    uint8_t qos = ql;
+
+    if (selectCommand) qos |= 0x80;
+
+    self->qos = qos;
+
+    return self;
+}
+
 float
 SetpointCommandNormalized_getValue(SetpointCommandNormalized self)
 {
     float nv = ((float) getScaledValue(self->encodedValue) + 0.5) / 32767.5;
+
+    return nv;
+}
+
+int
+SetpointCommandNormalized_getScaledValue(SetpointCommandNormalized self)
+{
+    int nv =getScaledValue(self->encodedValue);
 
     return nv;
 }
@@ -5342,6 +5388,12 @@ float
 SetpointCommandNormalizedWithCP56Time2a_getValue(SetpointCommandNormalizedWithCP56Time2a self)
 {
     return SetpointCommandNormalized_getValue((SetpointCommandNormalized) self);
+}
+
+int
+SetpointCommandNormalizedWithCP56Time2a_getScaledValue(SetpointCommandNormalizedWithCP56Time2a self)
+{
+    return SetpointCommandNormalized_getScaledValue((SetpointCommandNormalized) self);
 }
 
 int
