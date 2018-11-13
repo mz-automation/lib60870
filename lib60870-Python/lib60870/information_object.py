@@ -534,14 +534,23 @@ class MeasuredValueNormalized(ctypes.Structure, IOBase):
             c_float(value),
             c_int(quality)).contents
 
-    def get_value(self):
-        lib.MeasuredValueNormalized_getValue.restype = c_float
-        return lib.MeasuredValueNormalized_getValue(pMeasuredValueNormalized(self))
+    def get_value(self, as_scaled=False):
+        if not as_scaled:
+            lib.MeasuredValueNormalized_getValue.restype = c_float
+            return lib.MeasuredValueNormalized_getValue(pMeasuredValueNormalized(self))
+        else:
+            lib.MeasuredValueNormalized_getValue.restype = c_int
+            return lib.MeasuredValueNormalized_getScaledValue(pMeasuredValueNormalized(self))
 
-    def set_value(self, value):
-        lib.MeasuredValueNormalized_setValue(
-            pMeasuredValueNormalized(self),
-            c_float(value))
+    def set_value(self, value, as_scaled=False):
+        if not as_scaled:
+            lib.MeasuredValueNormalized_setValue(
+                pMeasuredValueNormalized(self),
+                c_float(value))
+        else:
+            lib.MeasuredValueNormalized_setScaledValue(
+                pMeasuredValueNormalized(self),
+                c_int(value))
 
     def get_quality(self):
         lib.MeasuredValueNormalized_getQuality.restype = c_uint8
@@ -585,14 +594,23 @@ class MeasuredValueNormalizedWithCP24Time2a(ctypes.Structure, IOBase):
             pMeasuredValueNormalizedWithCP24Time2a(self),
             pCP24Time2a(value))
 
-    def get_value(self):
-        lib.MeasuredValueNormalized_getValue.restype = c_float
-        return lib.MeasuredValueNormalized_getValue(pMeasuredValueNormalized(self))
+    def get_value(self, as_scaled=False):
+        if not as_scaled:
+            lib.MeasuredValueNormalized_getValue.restype = c_float
+            return lib.MeasuredValueNormalized_getValue(pMeasuredValueNormalized(self))
+        else:
+            lib.MeasuredValueNormalized_getValue.restype = c_int
+            return lib.MeasuredValueNormalized_getScaledValue(pMeasuredValueNormalized(self))
 
-    def set_value(self, value):
-        lib.MeasuredValueNormalized_setValue(
-            pMeasuredValueNormalized(self),
-            c_float(value))
+    def set_value(self, value, as_scaled=False):
+        if not as_scaled:
+            lib.MeasuredValueNormalized_setValue(
+                pMeasuredValueNormalized(self),
+                c_float(value))
+        else:
+            lib.MeasuredValueNormalized_setScaledValue(
+                pMeasuredValueNormalized(self),
+                c_int(value))
 
     def get_quality(self):
         lib.MeasuredValueNormalized_getQuality.restype = c_uint8
@@ -1262,14 +1280,23 @@ class MeasuredValueNormalizedWithCP56Time2a(ctypes.Structure, IOBase):
             pMeasuredValueNormalizedWithCP56Time2a(self),
             pCP56Time2a(value))
 
-    def get_value(self):
-        lib.MeasuredValueNormalized_getValue.restype = c_float
-        return lib.MeasuredValueNormalized_getValue(pMeasuredValueNormalized(self))
+    def get_value(self, as_scaled=False):
+        if not as_scaled:
+            lib.MeasuredValueNormalized_getValue.restype = c_float
+            return lib.MeasuredValueNormalized_getValue(pMeasuredValueNormalized(self))
+        else:
+            lib.MeasuredValueNormalized_getValue.restype = c_int
+            return lib.MeasuredValueNormalized_getScaledValue(pMeasuredValueNormalized(self))
 
-    def set_value(self, value):
-        lib.MeasuredValueNormalized_setValue(
-            pMeasuredValueNormalized(self),
-            c_float(value))
+    def set_value(self, value, as_scaled=False):
+        if not as_scaled:
+            lib.MeasuredValueNormalized_setValue(
+                pMeasuredValueNormalized(self),
+                c_float(value))
+        else:
+            lib.MeasuredValueNormalized_setScaledValue(
+                pMeasuredValueNormalized(self),
+                c_int(value))
 
     def get_quality(self):
         lib.MeasuredValueNormalized_getQuality.restype = c_uint8
@@ -1693,10 +1720,13 @@ class SetpointCommandNormalized(ctypes.Structure, IOBase):
         ('qos', c_uint8)
         ]
 
-    def __init__(self, ioa, value, selectCommand, ql):
+    def __init__(self, ioa, value, selectCommand, ql, as_scaled=False):
         self.virtualFunctionTable = ctypes.cast(lib.setpointCommandNormalizedVFT, pInformationObjectVFT)
         self.type = lib60870.TypeID.C_SE_NA_1.c_value
-        self.create(ioa, value, selectCommand, ql)
+        if not as_scaled:
+            self.create(ioa, value, selectCommand, ql)
+        else:
+            self.create_scaled(ioa, value, selectCommand, ql)
 
     def create(self, ioa, value, selectCommand, ql):
         lib.SetpointCommandNormalized_create.restype = pSetpointCommandNormalized
@@ -1707,9 +1737,22 @@ class SetpointCommandNormalized(ctypes.Structure, IOBase):
             c_bool(selectCommand),
             c_int(ql)).contents
 
-    def get_value(self):
-        lib.SetpointCommandNormalized_getValue.restype = c_float
-        return lib.SetpointCommandNormalized_getValue(pSetpointCommandNormalized(self))
+    def create_scaled(self, ioa, value, selectCommand, ql):
+        lib.SetpointCommandNormalized_create_scaled.restype = pSetpointCommandNormalized
+        return lib.SetpointCommandNormalized_create_scaled(
+            pSetpointCommandNormalized(self),
+            c_int(ioa),
+            c_int(value),
+            c_bool(selectCommand),
+            c_int(ql)).contents
+
+    def get_value(self, as_scaled=False):
+        if not as_scaled:
+            lib.SetpointCommandNormalized_getValue.restype = c_float
+            return lib.SetpointCommandNormalized_getValue(pSetpointCommandNormalized(self))
+        else:
+            lib.SetpointCommandNormalized_getValue.restype = c_int
+            return lib.SetpointCommandNormalized_getScaledValue(pSetpointCommandNormalized(self))
 
     def get_ql(self):
         lib.SetpointCommandNormalized_getQL.restype = c_int

@@ -234,6 +234,19 @@ class SinglePointWithCP56Time2aTest(unittest.TestCase):
         self.assertIsNot(clone, self.sut)
 
 
+class SetpointCommandNormalizedTest(unittest.TestCase):
+    def setUp(self):
+        ioa = 2400
+        value = 10
+        ql = QualityDescriptor.IEC60870_QUALITY_GOOD
+        self.sut = SetpointCommandNormalized(ioa, value, selectCommand=False, ql=ql, as_scaled=True)
+
+    def test_get_scaled(self):
+        val = self.sut.get_value(as_scaled=True)
+        self.assertEqual(val, 10)
+
+
+
 class MeasuredValueNormalizedTest(unittest.TestCase):
     def setUp(self):
         ioa = 2400
@@ -256,13 +269,18 @@ class MeasuredValueNormalizedTest(unittest.TestCase):
         self.assertEqual(clone, self.sut)
         self.assertIsNot(clone, self.sut)
 
+    def test_scaled(self):
+        self.sut.set_value(200, as_scaled=True)
+        val = self.sut.get_value(as_scaled=True)
+        self.assertEqual(val, 200)
+
 
 class SetpointCommandScaledTest(unittest.TestCase):
     def setUp(self):
         ioa = 400
         value = -100
         quality = QualityDescriptor.IEC60870_QUALITY_GOOD
-        self.sut = SetpointCommandScaled(ioa, value, quality, ql=0)
+        self.sut = SetpointCommandScaled(ioa, value, selectCommand=False, ql=quality)
 
     def test_init(self):
         pass
