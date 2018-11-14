@@ -6,7 +6,6 @@ from lib60870.lib60870 import IEC60870ConnectionEvent, CauseOfTransmission
 from lib60870.T104Connection import T104Connection
 from lib60870.information_object import ClockSynchronizationCommand, InformationObject, SingleCommand
 
-logging.basicConfig(format='%(asctime)s %(name)s:%(levelname)s:%(message)s', level=logging.INFO)
 
 ip = b"localhost"
 
@@ -34,12 +33,12 @@ def asdu_received_handler(asdu):
 
 
 def main():
+    logging.debug("start")
     client = T104Connection(ip)
     client.set_connection_handler(connection_handler)
     client.set_asdu_received_handler(asdu_received_handler)
 
-
-    if client.connect():
+    with client.connect():
         client.send_start_dt()
         time.sleep(5)
         client.send_interrogation_command(ca=1)
@@ -48,9 +47,9 @@ def main():
         client.send_control_command(cot=CauseOfTransmission.ACTIVATION, ca=1, command=command)
         client.send_clock_sync_command(ca=1)
         time.sleep(1)
-        client.disconnect()
-    else:
-        logging.info("Not connected")
+    # else:
+    logging.info("Not connected")
 
 if __name__ == "__main__":
+    logging.basicConfig(format='%(asctime)s %(name)s:%(levelname)s:%(message)s', level=logging.DEBUG)
     main()

@@ -8,6 +8,7 @@ from lib60870.CP56Time2a import CP56Time2a
 from lib60870.asdu import ASDU, pASDU
 from lib60870.information_object import pInformationObject
 from lib60870 import lib60870
+from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 lib = lib60870.get_library()
@@ -15,7 +16,6 @@ lib = lib60870.get_library()
 # type aliases
 pT104Connection = ctypes.c_void_p
 c_enum = c_int
-
 
 class T104Connection():
     def __init__(self, ip, port=lib60870.IEC_60870_5_104_DEFAULT_PORT):
@@ -32,13 +32,18 @@ class T104Connection():
         self.destroy()
 
     def destroy(self):
-        logger.debug("calling T104Connection_destroy()")
         lib.T104Connection_destroy(self.con)
 
+    @contextmanager
     def connect(self):
-        logger.debug("calling T104Connection_connect()")
-        lib.T104Connection_connect.restype = c_bool
-        return lib.T104Connection_connect(self.con)
+        try:
+            logger.debug("calling T104Connection_connect()")
+            lib.T104Connection_connect.restype = c_bool
+            if lib.T104Connection_connect(self.con):
+                yield self.con
+            #RuntimeError("Connection failed")
+        finally:
+            self.close()
 
     def disconnect(self):
         self.close()
