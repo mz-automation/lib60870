@@ -443,7 +443,10 @@ receiveMessageSocket(Socket socket, uint8_t* buffer)
     int read_len = 0;
     while (read_len < length)
     {
-        read_len += Socket_read(socket, buffer + 2 + read_len, length - read_len);
+        int part_len = Socket_read(socket, buffer + 2 + read_len, length - read_len);
+        if part_len < 0: // indicates error
+            return -2
+        read_len += part_len;
     }
 
     if (read_len != length)
