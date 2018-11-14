@@ -435,13 +435,19 @@ receiveMessageSocket(Socket socket, uint8_t* buffer)
         return -1; /* message error */
 
     if (Socket_read(socket, buffer + 1, 1) != 1)
-        return -1;
+        return -2;
 
     int length = buffer[1];
 
     /* read remaining frame */
-    if (Socket_read(socket, buffer + 2, length) != length)
-        return -1;
+    int read_len = 0;
+    while (read_len < length)
+    {
+        read_len += Socket_read(socket, buffer + 2 + read_len, length - read_len);
+    }
+
+    if (read_len != length)
+        return -3;
 
     return length + 2;
 }
@@ -674,7 +680,7 @@ handleConnection(void* parameter)
                 if (Handleset_waitReady(handleSet, 100)) {
                     int bytesRec = receiveMessage(self, buffer);
 
-                    if (bytesRec == -1) {
+                    if (bytesRec <= -1) {
                         loopRunning = false;
                         self->failure = true;
                     }
