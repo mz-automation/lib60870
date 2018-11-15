@@ -54,3 +54,11 @@ IMasterConnection_close(IMasterConnection self)
         self->close(self);
 }
 
+int
+IMasterConnection_getPeerAddress(IMasterConnection self, char* addrBuf, int addrBufSize)
+{
+    if (self->getPeerAddress)
+        return self->getPeerAddress(self, addrBuf, addrBufSize);
+    else
+        return 0;
+}

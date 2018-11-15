@@ -2578,6 +2578,28 @@ _IMasterConnection_close(IMasterConnection self)
     MasterConnection_close(con);
 }
 
+static int
+_IMasterConnection_getPeerAddress(IMasterConnection self, char* addrBuf, int addrBufSize)
+{
+    MasterConnection con = (MasterConnection) self->object;
+
+    char buf[50];
+
+    char* addrStr = Socket_getPeerAddressStatic(con->socket, buf);
+
+    if (addrStr == NULL)
+        return 0;
+
+    int len = strlen(buf);
+
+    if (len < addrBufSize) {
+        strcpy(addrBuf, buf);
+        return len;
+    }
+    else
+        return 0;
+}
+
 static CS101_AppLayerParameters
 _IMasterConnection_getApplicationLayerParameters(IMasterConnection self)
 {
@@ -2632,6 +2654,7 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
         self->iMasterConnection.sendACT_CON = _IMasterConnection_sendACT_CON;
         self->iMasterConnection.sendACT_TERM = _IMasterConnection_sendACT_TERM;
         self->iMasterConnection.close = _IMasterConnection_close;
+        self->iMasterConnection.getPeerAddress = _IMasterConnection_getPeerAddress;
 
         resetT3Timeout(self);
 

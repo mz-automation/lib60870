@@ -67,6 +67,7 @@ struct sIMasterConnection {
     void (*sendACT_CON) (IMasterConnection self, CS101_ASDU asdu, bool negative);
     void (*sendACT_TERM) (IMasterConnection self, CS101_ASDU asdu);
     void (*close) (IMasterConnection self);
+    int (*getPeerAddress) (IMasterConnection self, char* addrBuf, int addrBufSize);
     CS101_AppLayerParameters (*getApplicationLayerParameters) (IMasterConnection self);
     void* object;
 };
@@ -104,6 +105,17 @@ IMasterConnection_sendACT_CON(IMasterConnection self, CS101_ASDU asdu, bool nega
  */
 void
 IMasterConnection_sendACT_TERM(IMasterConnection self, CS101_ASDU asdu);
+
+/**
+ * \brief Get the peer address of the master (only for CS 104)
+ *
+ * \param addrBuf buffer where to store the IP address as string
+ * \param addrBufSize the size of the buffer where to store the IP address
+ *
+ * \return the number of bytes written to the buffer, 0 if function not supported
+ */
+int
+IMasterConnection_getPeerAddress(IMasterConnection self, char* addrBuf, int addrBufSize);
 
 /**
  * \brief Close the master connection (only for CS 104)
