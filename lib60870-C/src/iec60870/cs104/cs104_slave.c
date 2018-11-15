@@ -860,7 +860,7 @@ CS104_RedundancyGroup_create(const char* name)
     return self;
 }
 
-static void
+void
 CS104_RedundancyGroup_destroy(CS104_RedundancyGroup self)
 {
     if (self) {

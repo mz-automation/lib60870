@@ -345,6 +345,16 @@ CS104_RedundancyGroup_addAllowedClient(CS104_RedundancyGroup self, const char* i
 void
 CS104_RedundancyGroup_addAllowedClientEx(CS104_RedundancyGroup self, uint8_t* ipAddress, eCS104_IPAddressType addressType);
 
+/**
+ * \brief Destroy the instance and release all resources.
+ *
+ * NOTE: This function will be called by \ref CS104_Slave_destroy. After using
+ * the \ref CS104_Slave_addRedundancyGroup function the redundancy group object must
+ * not be destroyed manually.
+ */
+void
+CS104_RedundancyGroup_destroy(CS104_RedundancyGroup self);
+
 
 /**
  * @}
