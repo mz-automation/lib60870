@@ -1,3 +1,12 @@
+Changes to version 2.1.1
+------------------------
+- CS 104 slave: added functions IMasterConnection_getPeerAddress and IMasterConnection_close
+- CS 101/CS 104 slave: set P/N=1 (negative) when sending COT=44 or COT=45
+- improved compatibility with VxWorks
+- CS 104 slave: fixed bug in counter interrogation command handling - free stack allocated memory
+- fixed some include file problems
+
+
 Changes to version 2.1.0
 ------------------------
 - CS104 slave: added support for multiple redundancy groups
@@ -9,6 +18,7 @@ Changes to version 2.1.0
 - fixed length check when parsing M_EP_TD_1
 - CS101 unbalanced master: fixed state machine problem with multiple slaves (some responses don't change state and master keeps locked on the slave)
 - optionally compile library without HAL to simply using together with libiec61850
+
 
 Changes to version 2.0.2
 ------------------------
