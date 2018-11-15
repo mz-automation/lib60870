@@ -331,6 +331,7 @@ CS101_Slave_create(SerialPort serialPort, LinkLayerParameters llParameters, CS10
         self->iMasterConnection.sendACT_CON = sendACT_CON;
         self->iMasterConnection.sendACT_TERM = sendACT_TERM;
         self->iMasterConnection.getApplicationLayerParameters = getApplicationLayerParameters;
+        self->iMasterConnection.close = NULL;
         self->iMasterConnection.object = self;
 
         CS101_Queue_initialize(&(self->userDataClass1Queue), CS101_MAX_QUEUE_SIZE);

@@ -66,6 +66,7 @@ struct sIMasterConnection {
     void (*sendASDU) (IMasterConnection self, CS101_ASDU asdu);
     void (*sendACT_CON) (IMasterConnection self, CS101_ASDU asdu, bool negative);
     void (*sendACT_TERM) (IMasterConnection self, CS101_ASDU asdu);
+    void (*close) (IMasterConnection self);
     CS101_AppLayerParameters (*getApplicationLayerParameters) (IMasterConnection self);
     void* object;
 };
@@ -103,6 +104,14 @@ IMasterConnection_sendACT_CON(IMasterConnection self, CS101_ASDU asdu, bool nega
  */
 void
 IMasterConnection_sendACT_TERM(IMasterConnection self, CS101_ASDU asdu);
+
+/**
+ * \brief Close the master connection (only for CS 104)
+ *
+ * Allows the slave to actively close a master connection (e.g. when some exception occurs)
+ */
+void
+IMasterConnection_close(IMasterConnection self);
 
 /**
  * \brief Get the application layer parameters used by this connection

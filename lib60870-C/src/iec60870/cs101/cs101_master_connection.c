@@ -46,3 +46,11 @@ IMasterConnection_getApplicationLayerParameters(IMasterConnection self)
 {
     return self->getApplicationLayerParameters(self);
 }
+
+void
+IMasterConnection_close(IMasterConnection self)
+{
+    if (self->close)
+        self->close(self);
+}
+

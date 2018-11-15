@@ -2545,7 +2545,7 @@ connectionHandlingThread(void* parameter)
  *******************************************/
 
 static void
-_sendASDU(IMasterConnection self, CS101_ASDU asdu)
+_IMasterConnection_sendASDU(IMasterConnection self, CS101_ASDU asdu)
 {
     MasterConnection con = (MasterConnection) self->object;
 
@@ -2553,25 +2553,33 @@ _sendASDU(IMasterConnection self, CS101_ASDU asdu)
 }
 
 static void
-_sendACT_CON(IMasterConnection self, CS101_ASDU asdu, bool negative)
+_IMasterConnection_sendACT_CON(IMasterConnection self, CS101_ASDU asdu, bool negative)
 {
     CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
     CS101_ASDU_setNegative(asdu, negative);
 
-    _sendASDU(self, asdu);
+    _IMasterConnection_sendASDU(self, asdu);
 }
 
 static void
-_sendACT_TERM(IMasterConnection self, CS101_ASDU asdu)
+_IMasterConnection_sendACT_TERM(IMasterConnection self, CS101_ASDU asdu)
 {
     CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_TERMINATION);
     CS101_ASDU_setNegative(asdu, false);
 
-    _sendASDU(self, asdu);
+    _IMasterConnection_sendASDU(self, asdu);
+}
+
+static void
+_IMasterConnection_close(IMasterConnection self)
+{
+    MasterConnection con = (MasterConnection) self->object;
+
+    MasterConnection_close(con);
 }
 
 static CS101_AppLayerParameters
-_getApplicationLayerParameters(IMasterConnection self)
+_IMasterConnection_getApplicationLayerParameters(IMasterConnection self)
 {
     MasterConnection con = (MasterConnection) self->object;
 
@@ -2619,10 +2627,11 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
 #endif
 
         self->iMasterConnection.object = self;
-        self->iMasterConnection.getApplicationLayerParameters = _getApplicationLayerParameters;
-        self->iMasterConnection.sendASDU = _sendASDU;
-        self->iMasterConnection.sendACT_CON = _sendACT_CON;
-        self->iMasterConnection.sendACT_TERM = _sendACT_TERM;
+        self->iMasterConnection.getApplicationLayerParameters = _IMasterConnection_getApplicationLayerParameters;
+        self->iMasterConnection.sendASDU = _IMasterConnection_sendASDU;
+        self->iMasterConnection.sendACT_CON = _IMasterConnection_sendACT_CON;
+        self->iMasterConnection.sendACT_TERM = _IMasterConnection_sendACT_TERM;
+        self->iMasterConnection.close = _IMasterConnection_close;
 
         resetT3Timeout(self);
 
