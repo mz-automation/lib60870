@@ -444,8 +444,8 @@ receiveMessageSocket(Socket socket, uint8_t* buffer)
     while (read_len < length)
     {
         int part_len = Socket_read(socket, buffer + 2 + read_len, length - read_len);
-        if part_len < 0: // indicates error
-            return -2
+        if (part_len < 0)  // indicates error
+            return -2;
         read_len += part_len;
     }
 
