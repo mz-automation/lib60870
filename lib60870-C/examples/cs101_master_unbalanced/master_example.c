@@ -173,39 +173,61 @@ main(int argc, char** argv)
         if (cycleCounter == 10) {
 
             /* Send a general interrogation to a specific slave */
-            CS101_Master_useSlaveAddress(master, 1);
-            CS101_Master_sendInterrogationCommand(master, CS101_COT_ACTIVATION, 1, IEC60870_QOI_STATION);
+            if (CS101_Master_isChannelReady(master, 1)) {
+                CS101_Master_useSlaveAddress(master, 1);
+                CS101_Master_sendInterrogationCommand(master, CS101_COT_ACTIVATION, 1, IEC60870_QOI_STATION);
+                CS101_Master_run(master);
+            }
+            else
+                cycleCounter--;
         }
 
         if (cycleCounter == 30) {
 
             /* Send a read request */
-            CS101_Master_useSlaveAddress(master, 1);
-            CS101_Master_sendReadCommand(master, 1, 102);
+            if (CS101_Master_isChannelReady(master, 1)) {
+                CS101_Master_useSlaveAddress(master, 1);
+                CS101_Master_sendReadCommand(master, 1, 102);
+                CS101_Master_run(master);
+            }
+            else
+                cycleCounter--;
         }
 
         if (cycleCounter == 50) {
 
-            printf("Send control command C_SC_NA_1\n");
+            if (CS101_Master_isChannelReady(master, 1)) {
 
-            InformationObject sc = (InformationObject)
-                    SingleCommand_create(NULL, 5000, true, false, 0);
+                printf("Send control command C_SC_NA_1\n");
 
-            CS101_Master_useSlaveAddress(master, 1);
-            CS101_Master_sendProcessCommand(master, CS101_COT_ACTIVATION, 1, sc);
+                InformationObject sc = (InformationObject)
+                        SingleCommand_create(NULL, 5000, true, false, 0);
 
-            InformationObject_destroy(sc);
+                CS101_Master_useSlaveAddress(master, 1);
+                CS101_Master_sendProcessCommand(master, CS101_COT_ACTIVATION, 1, sc);
+                CS101_Master_run(master);
+
+                InformationObject_destroy(sc);
+            }
+            else
+                cycleCounter--;
         }
 
         if (cycleCounter == 80) {
             /* Send clock synchronization command */
-            struct sCP56Time2a newTime;
 
-            CP56Time2a_createFromMsTimestamp(&newTime, Hal_getTimeInMs());
+            if (CS101_Master_isChannelReady(master, 1)) {
+                struct sCP56Time2a newTime;
 
-            printf("Send time sync command\n");
-            CS101_Master_useSlaveAddress(master, 1);
-            CS101_Master_sendClockSyncCommand(master, 1, &newTime);
+                CP56Time2a_createFromMsTimestamp(&newTime, Hal_getTimeInMs());
+
+                printf("Send time sync command\n");
+                CS101_Master_useSlaveAddress(master, 1);
+                CS101_Master_sendClockSyncCommand(master, 1, &newTime);
+                CS101_Master_run(master);
+            }
+            else
+                cycleCounter--;
         }
 
         Thread_sleep(100);
