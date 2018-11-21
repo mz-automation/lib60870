@@ -1,7 +1,7 @@
 /*
  *  cs101_queue.c
  *
- *  Copyright 2017 MZ Automation GmbH
+ *  Copyright 2017-2018 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -46,6 +46,16 @@ CS101_Queue_initialize(CS101_Queue self, int maxQueueSize)
 
     BufferFrame_initialize(&(self->encodeFrame), NULL, 0);
 
+#if (CS101_MAX_QUEUE_SIZE == -1)
+    int queueSize = maxQueueSize;
+
+    if (maxQueueSize == -1)
+        queueSize = 100;
+
+    self->elements = (CS101_QueueElement) GLOBAL_CALLOC(queueSize, sizeof(struct sCS101_QueueElement));
+#endif
+
+
 #if (CONFIG_USE_SEMAPHORES == 1)
     self->queueLock = Semaphore_create(1);
 #endif
@@ -56,6 +66,10 @@ CS101_Queue_dispose(CS101_Queue self)
 {
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_destroy(self->queueLock);
+#endif
+
+#if (CS101_MAX_QUEUE_SIZE == -1)
+    GLOBAL_FREEMEM(self->elements);
 #endif
 }
 

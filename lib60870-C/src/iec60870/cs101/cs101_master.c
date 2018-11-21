@@ -165,7 +165,8 @@ static struct sIPrimaryApplicationLayer cs101UnbalancedAppLayerInterface = {
  ********************************************/
 
 CS101_Master
-CS101_Master_create(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode)
+CS101_Master_createEx(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode,
+        int queueSize)
 {
     CS101_Master self = (CS101_Master) GLOBAL_MALLOC(sizeof(struct sCS101_Master));
 
@@ -197,7 +198,7 @@ CS101_Master_create(SerialPort serialPort, LinkLayerParameters llParameters, CS1
                     &(self->linkLayerParameters), &cs101UnbalancedAppLayerInterface, self);
         }
         else {
-            CS101_Queue_initialize(&(self->userDataQueue), CS101_MAX_QUEUE_SIZE);
+            CS101_Queue_initialize(&(self->userDataQueue), queueSize);
 
             self->unbalancedLinkLayer = NULL;
 
@@ -218,6 +219,12 @@ CS101_Master_create(SerialPort serialPort, LinkLayerParameters llParameters, CS1
     }
 
     return self;
+}
+
+CS101_Master
+CS101_Master_create(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode)
+{
+    return CS101_Master_createEx(serialPort, llParameters, alParameters, linkLayerMode, CS101_MAX_QUEUE_SIZE);
 }
 
 void

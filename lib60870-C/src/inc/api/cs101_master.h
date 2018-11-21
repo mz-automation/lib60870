@@ -68,6 +68,21 @@ CS101_Master
 CS101_Master_create(SerialPort port, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode mode);
 
 /**
+ * \brief Create a new master instance and specify message queue size (for balanced mode)
+ *
+ * \param port the serial port to use
+ * \param llParameters the link layer parameters to use
+ * \param alParameters the application layer parameters to use
+ * \param mode the link layer mode (either IEC60870_LINK_LAYER_BALANCED or IEC60870_LINK_LAYER_UNBALANCED)
+ * \param queueSize set the message queue size (only for balanced mode)
+ *
+ * \return the new CS101_Master instance
+ */
+CS101_Master
+CS101_Master_createEx(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode,
+        int queueSize);
+
+/**
  * \brief Receive a new message and run the protocol state machine(s).
  *
  * NOTE: This function has to be called frequently in order to send and

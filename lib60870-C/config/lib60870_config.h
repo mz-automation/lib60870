@@ -29,6 +29,13 @@
 #define CONFIG_CS104_SLAVE_POOL_SIZE 1
 
 /**
+ * Define the maximum slave message queue size (for CS 101)
+ *
+ * When set to -1 the message queue size is not limited can be set by the application
+ */
+#define CONFIG_SLAVE_MESSAGE_QUEUE_SIZE -1
+
+/**
  * Define the number of message queues in the pool to be shared between different slaves
  */
 #define CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE 1

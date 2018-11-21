@@ -56,7 +56,11 @@ struct sCS101_Queue {
 
     struct sBufferFrame encodeFrame;
 
+#if (CS101_MAX_QUEUE_SIZE == -1)
+    struct sCS101_QueueElement* elements;
+#else
     struct sCS101_QueueElement elements[CS101_MAX_QUEUE_SIZE];
+#endif
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore queueLock;

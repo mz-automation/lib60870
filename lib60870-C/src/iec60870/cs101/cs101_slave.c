@@ -269,8 +269,85 @@ static struct sCS101_AppLayerParameters defaultAppLayerParameters = {
 };
 
 CS101_Slave
+CS101_Slave_createEx(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode,
+        int class1QueueSize, int class2QueueSize)
+{
+    CS101_Slave self = (CS101_Slave) GLOBAL_MALLOC(sizeof(struct sCS101_Slave));
+
+    if (self != NULL) {
+
+        self->asduHandler = NULL;
+        self->interrogationHandler = NULL;
+        self->counterInterrogationHandler = NULL;
+        self->readHandler = NULL;
+        self->clockSyncHandler = NULL;
+        self->resetProcessHandler = NULL;
+        self->delayAcquisitionHandler = NULL;
+        self->resetCUHandler = NULL;
+
+#if (CONFIG_USE_THREADS == 1)
+        self->isRunning = false;
+        self->workerThread = NULL;
+#endif
+
+        if (llParameters)
+            self->linkLayerParameters = *llParameters;
+        else {
+            self->linkLayerParameters.addressLength = 1;
+            self->linkLayerParameters.timeoutForAck = 200;
+            self->linkLayerParameters.timeoutRepeat = 1000;
+            self->linkLayerParameters.useSingleCharACK = true;
+        }
+
+        if (alParameters)
+            self->alParameters = *alParameters;
+        else {
+            self->alParameters = defaultAppLayerParameters;
+        }
+
+        self->transceiver = SerialTransceiverFT12_create(serialPort,  &(self->linkLayerParameters));
+
+        self->linkLayerMode = linkLayerMode;
+
+        if (linkLayerMode == IEC60870_LINK_LAYER_UNBALANCED) {
+
+            self->balancedLinkLayer = NULL;
+
+            self->unbalancedLinkLayer = LinkLayerSecondaryUnbalanced_create(0, self->transceiver,
+                    &(self->linkLayerParameters),
+                    &cs101UnbalancedAppLayerInterface, self);
+
+        }
+        else {
+
+            self->unbalancedLinkLayer = NULL;
+
+            self->balancedLinkLayer = LinkLayerBalanced_create(0, self->transceiver,
+                    &(self->linkLayerParameters),
+                    &cs101BalancedAppLayerInterface, self);
+
+        }
+
+        self->iMasterConnection.sendASDU = sendASDU;
+        self->iMasterConnection.sendACT_CON = sendACT_CON;
+        self->iMasterConnection.sendACT_TERM = sendACT_TERM;
+        self->iMasterConnection.getApplicationLayerParameters = getApplicationLayerParameters;
+        self->iMasterConnection.close = NULL;
+        self->iMasterConnection.getPeerAddress = NULL;
+        self->iMasterConnection.object = self;
+
+        CS101_Queue_initialize(&(self->userDataClass1Queue), class1QueueSize);
+        CS101_Queue_initialize(&(self->userDataClass2Queue), class2QueueSize);
+    }
+
+    return self;
+}
+
+CS101_Slave
 CS101_Slave_create(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode)
 {
+    return CS101_Slave_createEx(serialPort, llParameters, alParameters, linkLayerMode, CS101_MAX_QUEUE_SIZE, CS101_MAX_QUEUE_SIZE);
+
     CS101_Slave self = (CS101_Slave) GLOBAL_MALLOC(sizeof(struct sCS101_Slave));
 
     if (self != NULL) {
