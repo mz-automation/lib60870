@@ -522,12 +522,15 @@ receiveMessage(CS104_Connection self, uint8_t* buffer)
 
 
 static bool
-checkConfirmTimeout(CS104_Connection self, long currentTime)
+checkConfirmTimeout(CS104_Connection self, uint64_t currentTime)
 {
-    if ((currentTime - self->lastConfirmationTime) >= (uint32_t) (self->parameters.t2 * 1000))
-        return true;
-    else
-        return false;
+    if (currentTime > self->lastConfirmationTime) {
+        if ((currentTime - self->lastConfirmationTime) >= (uint32_t) (self->parameters.t2 * 1000)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 static bool
@@ -673,9 +676,11 @@ handleTimeouts(CS104_Connection self)
     Semaphore_wait(self->sentASDUsLock);
 #endif
     if (self->oldestSentASDU != -1) {
-        if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->parameters.t1 * 1000)) {
-            DEBUG_PRINT("I message timeout\n");
-            retVal = false;
+        if (currentTime > self->sentASDUs[self->oldestSentASDU].sentTime) {
+            if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->parameters.t1 * 1000)) {
+                DEBUG_PRINT("I message timeout\n");
+                retVal = false;
+            }
         }
     }
 #if (CONFIG_USE_SEMAPHORES == 1)

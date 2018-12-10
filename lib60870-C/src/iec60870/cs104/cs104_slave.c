@@ -2381,11 +2381,13 @@ handleTimeouts(MasterConnection self)
 
     /* check timeout for others station I messages */
     if (self->unconfirmedReceivedIMessages > 0) {
-        if ((currentTime - self->lastConfirmationTime) >= (uint64_t) (self->slave->conParameters.t2 * 1000)) {
-            self->lastConfirmationTime = currentTime;
-            self->unconfirmedReceivedIMessages = 0;
-            self->timeoutT2Triggered = false;
-            sendSMessage(self);
+        if (currentTime > self->lastConfirmationTime) {
+            if ((currentTime - self->lastConfirmationTime) >= (uint64_t) (self->slave->conParameters.t2 * 1000)) {
+                self->lastConfirmationTime = currentTime;
+                self->unconfirmedReceivedIMessages = 0;
+                self->timeoutT2Triggered = false;
+                sendSMessage(self);
+            }
         }
     }
 
