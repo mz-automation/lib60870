@@ -220,30 +220,43 @@ static struct sIBalancedApplicationLayer cs101BalancedAppLayerInterface = {
  * IMasterConnection
  *******************************************/
 
-static void
+static bool
+isReady(IMasterConnection self)
+{
+    CS101_Slave slave = (CS101_Slave) self->object;
+
+    if (CS101_Slave_isClass1QueueFull(slave))
+        return false;
+    else
+        return true;
+}
+
+static bool
 sendASDU(IMasterConnection self, CS101_ASDU asdu)
 {
     CS101_Slave slave = (CS101_Slave) self->object;
 
     CS101_Slave_enqueueUserDataClass1(slave, asdu);
+
+    return true;
 }
 
-static void
+static bool
 sendACT_CON(IMasterConnection self, CS101_ASDU asdu, bool negative)
 {
     CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
     CS101_ASDU_setNegative(asdu, negative);
 
-    sendASDU(self, asdu);
+    return sendASDU(self, asdu);
 }
 
-static void
+static bool
 sendACT_TERM(IMasterConnection self, CS101_ASDU asdu)
 {
     CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_TERMINATION);
     CS101_ASDU_setNegative(asdu, false);
 
-    sendASDU(self, asdu);
+    return sendASDU(self, asdu);
 }
 
 static CS101_AppLayerParameters
@@ -328,6 +341,7 @@ CS101_Slave_createEx(SerialPort serialPort, LinkLayerParameters llParameters, CS
 
         }
 
+        self->iMasterConnection.isReady = isReady;
         self->iMasterConnection.sendASDU = sendASDU;
         self->iMasterConnection.sendACT_CON = sendACT_CON;
         self->iMasterConnection.sendACT_TERM = sendACT_TERM;

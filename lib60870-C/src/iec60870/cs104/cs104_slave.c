@@ -656,6 +656,15 @@ HighPriorityASDUQueue_getNextASDU(HighPriorityASDUQueue self)
 }
 
 static bool
+HighPriorityASDUQueue_isFull(HighPriorityASDUQueue self)
+{
+    if (self->entryCounter == self->size)
+        return true;
+    else
+        return false;
+}
+
+static bool
 HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, CS101_ASDU asdu)
 {
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -2546,30 +2555,48 @@ connectionHandlingThread(void* parameter)
  * IMasterConnection
  *******************************************/
 
-static void
+static bool
+_IMasterConnection_isReady(IMasterConnection self)
+{
+    MasterConnection con = (MasterConnection) self->object;
+
+    if (con->isActive) {
+        if (isSentBufferFull(con) == false)
+            return true;
+
+        if (HighPriorityASDUQueue_isFull(con->highPrioQueue))
+            return false;
+
+        return true;
+    }
+    else
+        return false;
+}
+
+static bool
 _IMasterConnection_sendASDU(IMasterConnection self, CS101_ASDU asdu)
 {
     MasterConnection con = (MasterConnection) self->object;
 
-    sendASDUInternal(con, asdu);
+    return sendASDUInternal(con, asdu);
 }
 
-static void
+static bool
 _IMasterConnection_sendACT_CON(IMasterConnection self, CS101_ASDU asdu, bool negative)
 {
     CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
     CS101_ASDU_setNegative(asdu, negative);
 
-    _IMasterConnection_sendASDU(self, asdu);
+    return _IMasterConnection_sendASDU(self, asdu);
 }
 
-static void
+static bool
 _IMasterConnection_sendACT_TERM(IMasterConnection self, CS101_ASDU asdu)
 {
     CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_TERMINATION);
     CS101_ASDU_setNegative(asdu, false);
 
-    _IMasterConnection_sendASDU(self, asdu);
+    return _IMasterConnection_sendASDU(self, asdu);
 }
 
 static void
@@ -2652,6 +2679,7 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
 
         self->iMasterConnection.object = self;
         self->iMasterConnection.getApplicationLayerParameters = _IMasterConnection_getApplicationLayerParameters;
+        self->iMasterConnection.isReady = _IMasterConnection_isReady;
         self->iMasterConnection.sendASDU = _IMasterConnection_sendASDU;
         self->iMasterConnection.sendACT_CON = _IMasterConnection_sendACT_CON;
         self->iMasterConnection.sendACT_TERM = _IMasterConnection_sendACT_TERM;

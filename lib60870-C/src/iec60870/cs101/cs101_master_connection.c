@@ -23,22 +23,28 @@
 
 #include "iec60870_slave.h"
 
-void
+bool
+IMasterConnection_isReady(IMasterConnection self)
+{
+    return self->isReady(self);
+}
+
+bool
 IMasterConnection_sendASDU(IMasterConnection self, CS101_ASDU asdu)
 {
-    self->sendASDU(self, asdu);
+    return self->sendASDU(self, asdu);
 }
 
-void
+bool
 IMasterConnection_sendACT_CON(IMasterConnection self, CS101_ASDU asdu, bool negative)
 {
-    self->sendACT_CON(self, asdu, negative);
+    return self->sendACT_CON(self, asdu, negative);
 }
 
-void
+bool
 IMasterConnection_sendACT_TERM(IMasterConnection self, CS101_ASDU asdu)
 {
-    self->sendACT_TERM(self, asdu);
+    return self->sendACT_TERM(self, asdu);
 }
 
 CS101_AppLayerParameters
