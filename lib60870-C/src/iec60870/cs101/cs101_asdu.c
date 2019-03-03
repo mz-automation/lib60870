@@ -198,11 +198,10 @@ CS101_ASDU_addInformationObject(CS101_ASDU self, InformationObject io)
 
     bool encoded = false;
 
-
     int numberOfElements = CS101_ASDU_getNumberOfElements(self);
 
     if (numberOfElements == 0) {
-        ((CS101_StaticASDU)self)->encodedData[0] = (uint8_t) InformationObject_getType(io);
+        self->asdu[0] = (uint8_t) InformationObject_getType(io);
 
         encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);
     }
