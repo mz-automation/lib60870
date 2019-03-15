@@ -2256,6 +2256,13 @@ MasterConnection_destroy(MasterConnection self)
 
         Handleset_destroy(self->handleSet);
 
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+    if (self->slave->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
+        MessageQueue_destroy(self->lowPrioQueue);
+        HighPriorityASDUQueue_destroy(self->highPrioQueue);
+    }
+#endif
+
 #if (CONFIG_CS104_SLAVE_POOL == 1)
         ReleaseConnectionMemory(self);
 #else
@@ -2538,13 +2545,6 @@ connectionHandlingThread(void* parameter)
     DEBUG_PRINT("Connection closed\n");
 
     self->isRunning = false;
-
-#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
-    if (self->slave->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
-        MessageQueue_destroy(self->lowPrioQueue);
-        HighPriorityASDUQueue_destroy(self->highPrioQueue);
-    }
-#endif
 
     CS104_Slave_removeConnection(self->slave, self);
 
