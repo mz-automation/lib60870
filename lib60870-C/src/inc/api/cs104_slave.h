@@ -243,13 +243,23 @@ CS101_AppLayerParameters
 CS104_Slave_getAppLayerParameters(CS104_Slave self);
 
 /**
- * \brief State the CS 104 slave. The slave (server) will listen on the configured TCP/IP port
+ * \brief Start the CS 104 slave. The slave (server) will listen on the configured TCP/IP port
+ *
+ * NOTE: This function will start a thread that handles the incoming client connections.
+ * This function requires CONFIG_USE_THREADS = 1 and CONFIG_USE_SEMAPHORES == 1 in lib60870_config.h
  *
  * \param self CS104_Slave instance
  */
 void
 CS104_Slave_start(CS104_Slave self);
 
+/**
+ * \brief Check if slave is running
+ *
+ * \param self CS104_Slave instance
+ *
+ * \return true when slave is running, false otherwise
+ */
 bool
 CS104_Slave_isRunning(CS104_Slave self);
 

@@ -459,67 +459,41 @@ CS104_Connection_getAPCIParameters(CS104_Connection self)
     return &(self->parameters);
 }
 
+static int
+readFromSocket(CS104_Connection self, uint8_t* buffer, int size)
+{
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
-static int
-receiveMessageTlsSocket(TLSSocket socket, uint8_t* buffer)
-{
-    int readFirst = TLSSocket_read(socket, buffer, 1);
-
-    if (readFirst < 1)
-        return readFirst;
-
-    if (buffer[0] != 0x68)
-        return -1; /* message error */
-
-    if (TLSSocket_read(socket, buffer + 1, 1) != 1)
-        return -1;
-
-    int length = buffer[1];
-
-    /* read remaining frame */
-    if (TLSSocket_read(socket, buffer + 2, length) != length)
-        return -1;
-
-    return length + 2;
-}
-#endif /*  (CONFIG_CS104_SUPPORT_TLS == 1) */
-
-static int
-receiveMessageSocket(Socket socket, uint8_t* buffer)
-{
-    int readFirst = Socket_read(socket, buffer, 1);
-
-    if (readFirst < 1)
-        return readFirst;
-
-    if (buffer[0] != 0x68)
-        return -1; /* message error */
-
-    if (Socket_read(socket, buffer + 1, 1) != 1)
-        return -1;
-
-    int length = buffer[1];
-
-    /* read remaining frame */
-    if (Socket_read(socket, buffer + 2, length) != length)
-        return -1;
-
-    return length + 2;
+    if (self->tlsSocket != NULL)
+        return TLSSocket_read(self->tlsSocket, buffer, size);
+    else
+        return Socket_read(self->socket, buffer, size);
+#else
+    return Socket_read(self->socket, buffer, size);
+#endif
 }
 
 static int
 receiveMessage(CS104_Connection self, uint8_t* buffer)
 {
-#if (CONFIG_CS104_SUPPORT_TLS == 1)
-    if (self->tlsSocket != NULL)
-        return receiveMessageTlsSocket(self->tlsSocket, buffer);
-    else
-        return receiveMessageSocket(self->socket, buffer);
-#else
-    return receiveMessageSocket(self->socket, buffer);
-#endif
-}
+    int readFirst = readFromSocket(self, buffer, 1);
 
+    if (readFirst < 1)
+        return readFirst;
+
+    if (buffer[0] != 0x68)
+        return -1; /* message error */
+
+    if (readFromSocket(self, buffer + 1, 1) != 1)
+        return -1;
+
+    int length = buffer[1];
+
+    /* read remaining frame */
+    if (readFromSocket(self, buffer + 2, length) != length)
+        return -1;
+
+    return length + 2;
+}
 
 static bool
 checkConfirmTimeout(CS104_Connection self, uint64_t currentTime)

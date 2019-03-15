@@ -12,6 +12,8 @@
 /**
  * Configure CS104 slave to allocate memory from static memory pool (don't use dynamic memory)
  *
+ * \deprecated Use static variables to create ASDUs and information objects instead!
+ *
  * Note: This setting will create different memory pools for objects like client connections,
  * ASDU queues, and slave instances. The following settings have to be defined also:
  * - \ref CONFIG_CS104_SLAVE_POOL_SIZE (number of slave instances)

@@ -3276,6 +3276,7 @@ initializeRedundancyGroups(CS104_Slave self, int lowPrioMaxQueueSize, int highPr
 void
 CS104_Slave_start(CS104_Slave self)
 {
+#if ((CONFIG_USE_THREADS == 1) && (CONFIG_USE_SEMAPHORES == 1))
     if (self->isRunning == false) {
 
         self->isStarting = true;
@@ -3298,6 +3299,9 @@ CS104_Slave_start(CS104_Slave self)
         while (self->isStarting)
             Thread_sleep(1);
     }
+#else
+    DEBUG_PRINT("ERROR: CS104_Slave_start not supported when CONFIG_USE_TREADS = 0 or CONFIG_USE_SEMAPHORES = 0!\n");
+#endif
 }
 
 void
