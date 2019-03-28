@@ -962,11 +962,18 @@ struct sMasterConnection {
     TLSSocket tlsSocket;
 #endif
 
+    /* can be moved to CS104_Slave struct */
     struct sIMasterConnection iMasterConnection;
 
     CS104_Slave slave;
-    bool isActive;
-    bool isRunning;
+
+    unsigned int isActive:1;
+    unsigned int isRunning:1;
+    unsigned int timeoutT2Triggered:1;
+    unsigned int outstandingTestFRConMessages:3;
+    unsigned int maxSentASDUs:16; /* k-parameter */
+    int oldestSentASDU:16; /* oldest sent ASDU in k-buffer */
+    int newestSentASDU:16; /* newest sent ASDU in k-buffer */
 
     int sendCount;     /* sent messages - sequence counter */
     int receiveCount;  /* received messages - sequence counter */
@@ -975,14 +982,8 @@ struct sMasterConnection {
 
     /* timeout T2 handling */
     uint64_t lastConfirmationTime; /* timestamp when the last confirmation message (for I messages) was sent */
-    bool timeoutT2Triggered;
 
     uint64_t nextT3Timeout;
-    int outstandingTestFRConMessages;
-
-    int maxSentASDUs;
-    int oldestSentASDU;
-    int newestSentASDU;
 
     SentASDUSlave* sentASDUs;
 
@@ -2050,13 +2051,11 @@ sendNextLowPriorityASDU(MasterConnection self)
     asduBuffer = MessageQueue_getNextWaitingASDU(self->lowPrioQueue, &timestamp, &queueEntry, &msgSize);
 
     if (asduBuffer) {
-        uint8_t msgBuf[256];
-
-        memcpy(msgBuf + IEC60870_5_104_APCI_LENGTH, asduBuffer, msgSize);
+        memcpy(self->buffer + IEC60870_5_104_APCI_LENGTH, asduBuffer, msgSize);
 
         msgSize += IEC60870_5_104_APCI_LENGTH;
 
-        sendASDU(self, msgBuf, msgSize, timestamp, queueEntry);
+        sendASDU(self, self->buffer, msgSize, timestamp, queueEntry);
     }
 
     MessageQueue_unlock(self->lowPrioQueue);
@@ -2088,13 +2087,11 @@ sendNextHighPriorityASDU(MasterConnection self)
     uint8_t* buffer = HighPriorityASDUQueue_getNextASDU(self->highPrioQueue, &msgSize);
 
     if (buffer) {
-        uint8_t msgBuf[256];
-
-        memcpy(msgBuf + IEC60870_5_104_APCI_LENGTH, buffer, msgSize);
+        memcpy(self->buffer + IEC60870_5_104_APCI_LENGTH, buffer, msgSize);
 
         msgSize += IEC60870_5_104_APCI_LENGTH;
 
-        sendASDU(self, msgBuf, msgSize, 0, NULL);
+        sendASDU(self, self->buffer, msgSize, 0, NULL);
 
         retVal = true;
     }
