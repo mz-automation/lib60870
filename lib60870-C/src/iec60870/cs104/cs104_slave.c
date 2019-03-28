@@ -93,14 +93,6 @@ typedef enum  {
     QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED
 } QueueEntryState;
 
-struct sASDUQueueEntry {
-    uint64_t entryTimestamp;
-    FrameBuffer asdu;
-    QueueEntryState state;
-};
-
-typedef struct sASDUQueueEntry* ASDUQueueEntry;
-
 /***************************************************
  * MessageQueue
  ***************************************************/
@@ -129,60 +121,6 @@ struct sMessageQueue {
 
 typedef struct sMessageQueue* MessageQueue;
 
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-
-struct sMessageQueuePool {
-    struct sMessageQueue msgQueue;
-    bool used;
-};
-
-static bool messageQueuePoolInitialized = false;
-
-static struct sMessageQueuePool msgQueuePool[CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE];
-
-static MessageQueue
-AllocateMessageQueueMemory(void)
-{
-    int i;
-
-    if (!messageQueuePoolInitialized) {
-        for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++)
-            msgQueuePool[i].used = false;
-
-        messageQueuePoolInitialized = true;
-    }
-
-    for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++) {
-        if (msgQueuePool[i].used == false) {
-            msgQueuePool[i].used = true;
-            return &(msgQueuePool[i].msgQueue);
-        }
-    }
-
-    DEBUG_PRINT("AllocateMessageQueueMemory: failed\n");
-
-    return NULL;
-}
-
-static void
-ReleaseMessageQueueMemory(MessageQueue queue)
-{
-    int i;
-
-    for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++) {
-        if (msgQueuePool[i].used == true) {
-            if (&(msgQueuePool[i].msgQueue) == queue) {
-                msgQueuePool[i].used = false;
-                return;
-            }
-        }
-    }
-
-    DEBUG_PRINT("ReleaseMessageQueueMemory: failed\n");
-}
-
-#endif /* (CONFIG_CS104_SLAVE_POOL == 1) */
-
 static void
 MessageQueue_initialize(MessageQueue self, int maxQueueSize)
 {
@@ -198,13 +136,6 @@ MessageQueue_initialize(MessageQueue self, int maxQueueSize)
     self->lastEntry = NULL;
     self->lastInBufferEntry = NULL;
 
-
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    if (maxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_SIZE)
-        self->size = CONFIG_CS104_MESSAGE_QUEUE_SIZE;
-#endif
-
-
 #if (CONFIG_USE_SEMAPHORES == 1)
     self->queueLock = Semaphore_create(1);
 #endif
@@ -213,11 +144,7 @@ MessageQueue_initialize(MessageQueue self, int maxQueueSize)
 static MessageQueue
 MessageQueue_create(int maxQueueSize)
 {
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    MessageQueue self = AllocateMessageQueueMemory();
-#else
     MessageQueue self = (MessageQueue) GLOBAL_MALLOC(sizeof(struct sMessageQueue));
-#endif
 
     if (self != NULL)
         MessageQueue_initialize(self, maxQueueSize);
@@ -475,11 +402,7 @@ struct sHighPriorityASDUQueue {
     int lastMsgIndex;
     int firstMsgIndex;
 
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    FrameBuffer asdus[CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE];
-#else
     FrameBuffer* asdus;
-#endif
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore queueLock;
@@ -488,78 +411,16 @@ struct sHighPriorityASDUQueue {
 
 typedef struct sHighPriorityASDUQueue* HighPriorityASDUQueue;
 
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-
-struct sHighPrioQueuePool {
-    struct sHighPriorityASDUQueue msgQueue;
-    bool used;
-};
-
-static bool highPrioQueuePoolInitialized = false;
-
-static struct sHighPrioQueuePool highPrioQueuePool[CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE];
-
-static HighPriorityASDUQueue
-AllocateHighPrioQueueMemory(void)
-{
-    int i;
-
-    if (!highPrioQueuePoolInitialized) {
-        for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++)
-            highPrioQueuePool[i].used = false;
-
-        highPrioQueuePoolInitialized = true;
-    }
-
-    for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++) {
-        if (highPrioQueuePool[i].used == false) {
-            highPrioQueuePool[i].used = true;
-            return &(highPrioQueuePool[i].msgQueue);
-        }
-    }
-
-    DEBUG_PRINT("AllocateHighPrioQueueMemory: failed\n");
-
-    return NULL;
-}
-
-static void
-ReleaseHighPrioQueueMemory(HighPriorityASDUQueue queue)
-{
-    int i;
-
-    for (i = 0; i < CONFIG_CS104_MESSAGE_QUEUE_POOL_SIZE; i++) {
-        if (highPrioQueuePool[i].used == true) {
-            if (&(highPrioQueuePool[i].msgQueue) == queue) {
-                highPrioQueuePool[i].used = false;
-                return;
-            }
-        }
-    }
-
-    DEBUG_PRINT("ReleaseHighPrioQueueMemory: failed\n");
-}
-
-#endif /* (CONFIG_CS104_SLAVE_POOL == 1) */
-
 static void
 HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self, int maxQueueSize)
 {
-#if (CONFIG_CS104_SLAVE_POOL != 1)
     self->asdus = (FrameBuffer*) GLOBAL_CALLOC(maxQueueSize, sizeof(FrameBuffer));
-#endif
 
     self->entryCounter = 0;
     self->firstMsgIndex = 0;
     self->lastMsgIndex = 0;
 
     self->size = maxQueueSize;
-
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    if (maxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE)
-        self->size = CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE;
-#endif
-
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     self->queueLock = Semaphore_create(1);
@@ -569,11 +430,7 @@ HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self, int maxQueueSize)
 static HighPriorityASDUQueue
 HighPriorityASDUQueue_create(int maxQueueSize)
 {
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    HighPriorityASDUQueue self = AllocateHighPrioQueueMemory();
-#else
     HighPriorityASDUQueue self = (HighPriorityASDUQueue) GLOBAL_MALLOC(sizeof(struct sHighPriorityASDUQueue));
-#endif
 
     if (self != NULL)
         HighPriorityASDUQueue_initialize(self, maxQueueSize);
@@ -584,20 +441,13 @@ HighPriorityASDUQueue_create(int maxQueueSize)
 static void
 HighPriorityASDUQueue_destroy(HighPriorityASDUQueue self)
 {
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-#else
     GLOBAL_FREEMEM(self->asdus);
-#endif
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_destroy(self->queueLock);
 #endif
 
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    ReleaseHighPrioQueueMemory(self);
-#else
     GLOBAL_FREEMEM(self);
-#endif
 }
 
 static void
@@ -831,26 +681,14 @@ static void
 CS104_RedundancyGroup_initializeMessageQueues(CS104_RedundancyGroup self, int lowPrioMaxQueueSize, int highPrioMaxQueueSize)
 {
     /* initialized low priority queue */
-
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    if (lowPrioMaxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_SIZE)
-        lowPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_SIZE;
-#else
     if (lowPrioMaxQueueSize < 1)
         lowPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_SIZE;
-#endif
 
     self->asduQueue = MessageQueue_create(lowPrioMaxQueueSize);
 
     /* initialize high priority queue */
-
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    if (highPrioMaxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE)
-        highPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE;
-#else
     if (highPrioMaxQueueSize < 1)
         highPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE;
-#endif
 
     self->connectionAsduQueue = HighPriorityASDUQueue_create(highPrioMaxQueueSize);
 }
@@ -1035,10 +873,6 @@ struct sCS104_Slave {
 
     CS104_ServerMode serverMode;
 
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    char _localAddress[60];
-#endif
-
     char* localAddress;
     Thread listeningThread;
 
@@ -1085,12 +919,7 @@ struct sMasterConnection {
     int oldestSentASDU;
     int newestSentASDU;
 
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    SentASDUSlave sentASDUs[CONFIG_CS104_MAX_K_BUFFER_SIZE];
-#else
     SentASDUSlave* sentASDUs;
-#endif
-
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore sentASDUsLock;
@@ -1107,60 +936,6 @@ struct sMasterConnection {
     CS104_RedundancyGroup redundancyGroup;
 #endif
 };
-
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-
-struct sCS104_Slave_PoolEntry {
-    struct sCS104_Slave slave;
-    bool used;
-};
-
-static struct sCS104_Slave_PoolEntry slavePool[CONFIG_CS104_SLAVE_POOL_SIZE];
-static bool slavePoolInitialized = false;
-
-static CS104_Slave
-AllocateSlave(void)
-{
-    int i;
-
-    if (!slavePoolInitialized) {
-
-        for (i = 0; i < CONFIG_CS104_SLAVE_POOL_SIZE; i++)
-            slavePool[i].used = false;
-
-        slavePoolInitialized = true;
-    }
-
-    for (i = 0; i < CONFIG_CS104_SLAVE_POOL_SIZE; i++) {
-        if (slavePool[i].used == false) {
-            slavePool[i].used = true;
-            return &(slavePool[i].slave);
-        }
-    }
-
-    DEBUG_PRINT("AllocateSlave: failed\n");
-
-    return NULL;
-}
-
-static void
-ReleaseSlave(CS104_Slave slave)
-{
-    int i;
-
-    for (i = 0; i < CONFIG_CS104_SLAVE_POOL_SIZE; i++) {
-        if (slavePool[i].used == true) {
-            if (&(slavePool[i].slave) == slave) {
-                slavePool[i].used = false;
-                return;
-            }
-        }
-    }
-
-    DEBUG_PRINT("ReleaseSlave: failed\n");
-}
-
-#endif /* (CONFIG_CS104_SLAVE_POOL == 1) */
 
 static uint8_t STARTDT_CON_MSG[] = { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
 
@@ -1183,26 +958,14 @@ static void
 initializeMessageQueues(CS104_Slave self, int lowPrioMaxQueueSize, int highPrioMaxQueueSize)
 {
     /* initialized low priority queue */
-
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    if (lowPrioMaxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_SIZE)
-        lowPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_SIZE;
-#else
     if (lowPrioMaxQueueSize < 1)
         lowPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_SIZE;
-#endif
 
     self->asduQueue = MessageQueue_create(lowPrioMaxQueueSize);
 
     /* initialize high priority queue */
-
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    if (highPrioMaxQueueSize > CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE)
-        highPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE;
-#else
     if (highPrioMaxQueueSize < 1)
         highPrioMaxQueueSize = CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE;
-#endif
 
     self->connectionAsduQueue = HighPriorityASDUQueue_create(highPrioMaxQueueSize);
 }
@@ -1211,11 +974,7 @@ initializeMessageQueues(CS104_Slave self, int lowPrioMaxQueueSize, int highPrioM
 static CS104_Slave
 createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 {
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    CS104_Slave self = AllocateSlave();
-#else
     CS104_Slave self = (CS104_Slave) GLOBAL_MALLOC(sizeof(struct sCS104_Slave));
-#endif
 
     if (self != NULL) {
 
@@ -1312,15 +1071,6 @@ CS104_Slave_setServerMode(CS104_Slave self, CS104_ServerMode serverMode)
 void
 CS104_Slave_setLocalAddress(CS104_Slave self, const char* ipAddress)
 {
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    if (ipAddress) {
-        self->localAddress = self->_localAddress;
-        strncpy(self->_localAddress, ipAddress, sizeof(self->_localAddress));
-    }
-    else
-        self->localAddress = NULL;
-
-#else
     if (self->localAddress)
         GLOBAL_FREEMEM(self->localAddress);
 
@@ -1328,7 +1078,6 @@ CS104_Slave_setLocalAddress(CS104_Slave self, const char* ipAddress)
 
     if (self->localAddress)
         strcpy(self->localAddress, ipAddress);
-#endif
 }
 
 void
@@ -1525,60 +1274,6 @@ CS104_Slave_getAppLayerParameters(CS104_Slave self)
 /********************************************************
  * MasterConnection
  *********************************************************/
-
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-
-struct sMasterConnectionPool {
-    struct sMasterConnection con;
-    bool used;
-};
-
-static bool conPoolInitialized = false;
-
-static struct sMasterConnectionPool conPool[CONFIG_CS104_MAX_CLIENT_CONNECTIONS * CONFIG_CS104_SLAVE_POOL_SIZE];
-
-static MasterConnection
-AllocateConnectionMemory(void)
-{
-    int i;
-
-    if (!conPoolInitialized) {
-        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS * CONFIG_CS104_SLAVE_POOL_SIZE; i++)
-            conPool[i].used = false;
-
-        conPoolInitialized = true;
-    }
-
-    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS * CONFIG_CS104_SLAVE_POOL_SIZE; i++) {
-        if (conPool[i].used == false) {
-            conPool[i].used = true;
-            return &(conPool[i].con);
-        }
-    }
-
-    DEBUG_PRINT("AllocateConnectionMemory: failed\n");
-
-    return NULL;
-}
-
-static void
-ReleaseConnectionMemory(MasterConnection con)
-{
-    int i;
-
-    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS * CONFIG_CS104_SLAVE_POOL_SIZE; i++) {
-        if (conPool[i].used == true) {
-            if (&(conPool[i].con) == con) {
-                conPool[i].used = false;
-                return;
-            }
-        }
-    }
-
-    DEBUG_PRINT("ReleaseConnectionMemory: failed\n");
-}
-
-#endif /* (CONFIG_CS104_SLAVE_POOL == 1) */
 
 static void
 printSendBuffer(MasterConnection self)
@@ -2010,8 +1705,6 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
     }
 }
 
-
-
 static bool
 checkSequenceNumber(MasterConnection self, int seqNo)
 {
@@ -2223,8 +1916,6 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
     return true;
 }
 
-
-
 static void
 sendSMessage(MasterConnection self)
 {
@@ -2247,15 +1938,13 @@ MasterConnection_destroy(MasterConnection self)
     if (self) {
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
-      if (self->tlsSocket != NULL)
-          TLSSocket_close(self->tlsSocket);
+        if (self->tlsSocket != NULL)
+            TLSSocket_close(self->tlsSocket);
 #endif
 
         Socket_destroy(self->socket);
 
-#if (CONFIG_CS104_SLAVE_POOL != 1)
         GLOBAL_FREEMEM(self->sentASDUs);
-#endif
 
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_destroy(self->sentASDUsLock);
@@ -2264,17 +1953,13 @@ MasterConnection_destroy(MasterConnection self)
         Handleset_destroy(self->handleSet);
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
-    if (self->slave->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
-        MessageQueue_destroy(self->lowPrioQueue);
-        HighPriorityASDUQueue_destroy(self->highPrioQueue);
-    }
+        if (self->slave->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
+            MessageQueue_destroy(self->lowPrioQueue);
+            HighPriorityASDUQueue_destroy(self->highPrioQueue);
+        }
 #endif
 
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-        ReleaseConnectionMemory(self);
-#else
         GLOBAL_FREEMEM(self);
-#endif
     }
 }
 
@@ -2440,9 +2125,7 @@ handleTimeouts(MasterConnection self)
                 DEBUG_PRINT("I message timeout for %i seqNo: %i\n", self->oldestSentASDU,
                         self->sentASDUs[self->oldestSentASDU].seqNo);
             }
-
         }
-
     }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -2475,8 +2158,6 @@ CS104_Slave_removeConnection(CS104_Slave self, MasterConnection connection)
 #if (CONFIG_USE_SEMAPHORES)
     Semaphore_post(self->openConnectionsLock);
 #endif
-
-
 }
 
 static void*
@@ -2660,11 +2341,7 @@ _IMasterConnection_getApplicationLayerParameters(IMasterConnection self)
 static MasterConnection
 MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQueue, HighPriorityASDUQueue highPrioQueue)
 {
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    MasterConnection self = AllocateConnectionMemory();
-#else
     MasterConnection self = (MasterConnection) GLOBAL_MALLOC(sizeof(struct sMasterConnection));
-#endif
 
     if (self != NULL) {
 
@@ -2684,14 +2361,7 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
         self->oldestSentASDU = -1;
         self->newestSentASDU = -1;
 
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-        if (slave->conParameters.k > CONFIG_CS104_MAX_K_BUFFER_SIZE) {
-            DEBUG_PRINT("Parameter k is to large!\n");
-            self->maxSentASDUs = CONFIG_CS104_MAX_K_BUFFER_SIZE;
-        }
-#else
         self->sentASDUs = (SentASDUSlave*) GLOBAL_MALLOC(sizeof(SentASDUSlave) * self->maxSentASDUs);
-#endif
 
         self->iMasterConnection.object = self;
         self->iMasterConnection.getApplicationLayerParameters = _IMasterConnection_getApplicationLayerParameters;
@@ -2818,7 +2488,6 @@ MasterConnection_handleTcpConnection(MasterConnection self)
             sendSMessage(self);
         }
     }
-
 }
 
 static void
@@ -3422,10 +3091,8 @@ CS104_Slave_destroy(CS104_Slave self)
         MessageQueue_releaseAllQueuedASDUs(self->asduQueue);
 #endif
 
-#if (CONFIG_CS104_SLAVE_POOL != 1)
     if (self->localAddress != NULL)
         GLOBAL_FREEMEM(self->localAddress);
-#endif
 
     /*
      * Stop all connections
@@ -3490,10 +3157,5 @@ CS104_Slave_destroy(CS104_Slave self)
 
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
 
-#if (CONFIG_CS104_SLAVE_POOL == 1)
-    ReleaseSlave(self);
-#else
     GLOBAL_FREEMEM(self);
-#endif
-
 }
