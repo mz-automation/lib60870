@@ -212,7 +212,7 @@ main(int argc, char** argv)
 
     /* create a new slave/server instance with default connection parameters and
      * default message queue size */
-    CS104_Slave slave = CS104_Slave_create(1, 10);
+    CS104_Slave slave = CS104_Slave_create(10, 10);
 
     CS104_Slave_setLocalAddress(slave, "0.0.0.0");
 

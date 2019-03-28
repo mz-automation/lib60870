@@ -7,7 +7,7 @@
 
 
 /* print debugging information with printf if set to 1 */
-#define CONFIG_DEBUG_OUTPUT 1
+#define CONFIG_DEBUG_OUTPUT 0
 
 /**
  * Define the maximum slave message queue size (for CS 101)

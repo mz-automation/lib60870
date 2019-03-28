@@ -24,7 +24,6 @@
 #include <string.h>
 
 #include "cs104_slave.h"
-
 #include "cs104_frame.h"
 #include "frame.h"
 #include "hal_socket.h"
@@ -397,12 +396,14 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_
  ***************************************************/
 
 struct sHighPriorityASDUQueue {
-    int size;
-    int entryCounter;
-    int lastMsgIndex;
-    int firstMsgIndex;
+    int size; /* size of buffer in bytes */
+    int entryCounter; /* number of messages (ASDU) in the queue */
 
-    FrameBuffer* asdus;
+    uint8_t* firstEntry;
+    uint8_t* lastEntry;
+    uint8_t* lastInBufferEntry;
+
+    uint8_t* buffer;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore queueLock;
@@ -414,13 +415,13 @@ typedef struct sHighPriorityASDUQueue* HighPriorityASDUQueue;
 static void
 HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self, int maxQueueSize)
 {
-    self->asdus = (FrameBuffer*) GLOBAL_CALLOC(maxQueueSize, sizeof(FrameBuffer));
+    self->size = maxQueueSize * (sizeof(uint16_t) + 256);
 
-    self->entryCounter = 0;
-    self->firstMsgIndex = 0;
-    self->lastMsgIndex = 0;
+    self->buffer = GLOBAL_CALLOC(1, self->size);
 
-    self->size = maxQueueSize;
+    self->firstEntry = NULL;
+    self->lastEntry = NULL;
+    self->lastInBufferEntry = NULL;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     self->queueLock = Semaphore_create(1);
@@ -441,7 +442,7 @@ HighPriorityASDUQueue_create(int maxQueueSize)
 static void
 HighPriorityASDUQueue_destroy(HighPriorityASDUQueue self)
 {
-    GLOBAL_FREEMEM(self->asdus);
+    GLOBAL_FREEMEM(self->buffer);
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_destroy(self->queueLock);
@@ -487,85 +488,148 @@ HighPriorityASDUQueue_isAsduAvailable(HighPriorityASDUQueue self)
     return retVal;
 }
 
-static FrameBuffer*
-HighPriorityASDUQueue_getNextASDU(HighPriorityASDUQueue self)
+static uint8_t*
+HighPriorityASDUQueue_getNextASDU(HighPriorityASDUQueue self, int* size)
 {
-    FrameBuffer* buffer = NULL;
+    uint8_t* buffer = NULL;
 
-    if (self->entryCounter != 0)  {
-        int currentIndex = self->firstMsgIndex;
+    if (self->entryCounter > 0)  {
 
-        if (self->entryCounter == 1) {
-            self->entryCounter = 0;
-            self->firstMsgIndex = -1;
-            self->lastMsgIndex = -1;
+        self->entryCounter--;
+
+        uint16_t msgSize;
+
+        memcpy(&msgSize, self->firstEntry, 2);
+        *size = (int) msgSize;
+
+        buffer = self->firstEntry + 2;
+
+        if (self->entryCounter > 0) {
+
+            if (self->firstEntry == self->lastEntry) {
+                self->firstEntry = NULL;
+                self->lastEntry = NULL;
+                self->lastInBufferEntry = NULL;
+            }
+            else {
+
+                if (self->firstEntry == self->lastInBufferEntry) {
+                    self->firstEntry = self->buffer;
+                    self->lastInBufferEntry = self->lastEntry;
+                }
+                else {
+                    self->firstEntry = self->firstEntry + 2 + msgSize;
+                }
+
+            }
         }
-        else {
-            self->firstMsgIndex = (self->firstMsgIndex + 1) % (self->size);
-
-            self->entryCounter--;
-        }
-
-        buffer = &(self->asdus[currentIndex]);
     }
 
     return buffer;
 }
 
+/* Depends on ASDU size! */
 static bool
 HighPriorityASDUQueue_isFull(HighPriorityASDUQueue self)
 {
-    if (self->entryCounter == self->size)
-        return true;
-    else
-        return false;
+    bool full = false;
+
+    int entrySize = sizeof(uint16_t) + (256 - IEC60870_5_104_APCI_LENGTH);
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+
+    uint16_t msgSize;
+
+    uint8_t* nextMsgPtr;
+
+    if (self->entryCounter > 0) {
+        memcpy(&msgSize, self->lastEntry, sizeof(uint16_t));
+        nextMsgPtr = self->lastEntry + sizeof(uint16_t) + msgSize;
+
+        if (nextMsgPtr + entrySize > self->buffer + self->size) {
+            nextMsgPtr = self->buffer;
+        }
+
+        if (nextMsgPtr <= self->firstEntry) {
+            if (nextMsgPtr + entrySize > self->firstEntry) {
+                full = true;
+            }
+        }
+    }
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->queueLock);
+#endif
+
+    return full;
 }
 
 static bool
 HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, CS101_ASDU asdu)
 {
+    int asduSize = asdu->asduHeaderLength + asdu->payloadSize;
+
+    if (asduSize > 256 - IEC60870_5_104_APCI_LENGTH) {
+        DEBUG_PRINT("ASDU too large!\n");
+        return false;
+    }
+
+    int entrySize = sizeof(uint16_t) + asduSize;
+
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 
-    Frame frame;
+    bool enqueued = true;
 
-    bool enqueued = false;
+    uint16_t msgSize;
 
-    if (self->entryCounter == self->size)
-        goto exit_function;
-
-    int nextIndex;
+    uint8_t* nextMsgPtr;
 
     if (self->entryCounter == 0) {
-        self->firstMsgIndex = 0;
-        nextIndex = 0;
+        self->firstEntry = self->buffer;
+        self->lastInBufferEntry = self->firstEntry;
+        nextMsgPtr = self->buffer;
     }
-    else
-        nextIndex = self->lastMsgIndex + 1;
+    else {
+        memcpy(&msgSize, self->lastEntry, sizeof(uint16_t));
+        nextMsgPtr = self->lastEntry + sizeof(uint16_t) + msgSize;
+    }
 
-    if (nextIndex == self->size)
-        nextIndex = 0;
+    if (nextMsgPtr + entrySize > self->buffer + self->size) {
+        nextMsgPtr = self->buffer;
+        self->lastInBufferEntry = self->lastEntry;
+    }
 
-    DEBUG_PRINT("HighPrio AsduQueue: add entry (nextIndex:%i)\n", nextIndex);
-    self->lastMsgIndex = nextIndex;
-    self->entryCounter++;
+    if (self->entryCounter > 0) {
+        if (nextMsgPtr <= self->firstEntry) {
+            if (nextMsgPtr + entrySize > self->firstEntry) {
+                enqueued = false;
+            }
+        }
+        else {
+            self->lastInBufferEntry = nextMsgPtr;
+        }
+    }
 
-    struct sBufferFrame bufferFrame;
+    if (enqueued) {
+        self->lastEntry = nextMsgPtr;
+        self->entryCounter++;
 
-    frame = BufferFrame_initialize(&bufferFrame, self->asdus[nextIndex].msg,
-                                            IEC60870_5_104_APCI_LENGTH);
+        struct sBufferFrame bufferFrame;
 
-    CS101_ASDU_encode(asdu, frame);
+        Frame frame = BufferFrame_initialize(&bufferFrame, nextMsgPtr + sizeof(uint16_t), 0);
+        CS101_ASDU_encode(asdu, frame);
 
-    self->asdus[nextIndex].msgSize = Frame_getMsgSize(frame);
+        msgSize = asduSize;
 
-    DEBUG_PRINT("ASDUs in HighPrio FIFO: %i (first: %i, last: %i)\n", self->entryCounter,
-            self->firstMsgIndex, self->lastMsgIndex);
+        memcpy(nextMsgPtr, &msgSize, sizeof(uint16_t));
 
-    enqueued = true;
-
-exit_function:
+        DEBUG_PRINT("ASDUs in PRIO-FIFO: %i (new(size=%i/%i): %p, first: %p, last: %p lastInBuf: %p)\n", self->entryCounter, entrySize, asduSize, nextMsgPtr,
+                self->firstEntry, self->lastEntry, self->lastInBufferEntry);
+    }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
@@ -581,8 +645,9 @@ HighPriorityASDUQueue_resetConnectionQueue(HighPriorityASDUQueue self)
     Semaphore_wait(self->queueLock);
 #endif
 
-    self->firstMsgIndex = 0;
-    self->lastMsgIndex = 0;
+    self->firstEntry = 0;
+    self->lastEntry = 0;
+    self->lastInBufferEntry = 0;
     self->entryCounter = 0;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -1991,7 +2056,6 @@ sendNextLowPriorityASDU(MasterConnection self)
 
         msgSize += IEC60870_5_104_APCI_LENGTH;
 
-
         sendASDU(self, msgBuf, msgSize, timestamp, queueEntry);
     }
 
@@ -2011,8 +2075,6 @@ sendNextHighPriorityASDU(MasterConnection self)
 {
     bool retVal = false;
 
-    FrameBuffer* msg;
-
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->sentASDUsLock);
 #endif
@@ -2022,10 +2084,18 @@ sendNextHighPriorityASDU(MasterConnection self)
 
     HighPriorityASDUQueue_lock(self->highPrioQueue);
 
-    msg = HighPriorityASDUQueue_getNextASDU(self->highPrioQueue);
+    int msgSize;
+    uint8_t* buffer = HighPriorityASDUQueue_getNextASDU(self->highPrioQueue, &msgSize);
 
-    if (msg != NULL) {
-        sendASDU(self, msg->msg, msg->msgSize, 0, NULL);
+    if (buffer) {
+        uint8_t msgBuf[256];
+
+        memcpy(msgBuf + IEC60870_5_104_APCI_LENGTH, buffer, msgSize);
+
+        msgSize += IEC60870_5_104_APCI_LENGTH;
+
+        sendASDU(self, msgBuf, msgSize, 0, NULL);
+
         retVal = true;
     }
 

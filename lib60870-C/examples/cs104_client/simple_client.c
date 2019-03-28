@@ -122,12 +122,13 @@ main(int argc, char** argv)
 
         CS104_Connection_sendStartDT(con);
 
-        Thread_sleep(5000);
+        Thread_sleep(2000);
 
         CS104_Connection_sendInterrogationCommand(con, CS101_COT_ACTIVATION, 1, IEC60870_QOI_STATION);
 
         Thread_sleep(5000);
 
+#if 0
         InformationObject sc = (InformationObject)
                 SingleCommand_create(NULL, 5000, true, false, 0);
 
@@ -143,6 +144,9 @@ main(int argc, char** argv)
 
         printf("Send time sync command\n");
         CS104_Connection_sendClockSyncCommand(con, 1, &newTime);
+#endif
+
+        printf("Wait ...\n");
 
         Thread_sleep(1000);
     }

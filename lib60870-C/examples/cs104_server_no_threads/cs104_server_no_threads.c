@@ -110,6 +110,16 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 
         IMasterConnection_sendASDU(connection, newAsdu);
 
+        for (int i = 0; i < 30; i++) {
+            newAsdu = CS101_ASDU_initializeStatic(&_asdu, alParams, true, CS101_COT_INTERROGATED_BY_STATION,
+                    0, 1, false, false);
+
+            CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) &ioBuf, 400 +
+                     i, true, IEC60870_QUALITY_GOOD));
+
+            IMasterConnection_sendASDU(connection, newAsdu);
+        }
+
         IMasterConnection_sendACT_TERM(connection, asdu);
     }
     else {
@@ -195,7 +205,8 @@ main(int argc, char** argv)
     signal(SIGINT, sigint_handler);
 
     /* create a new slave/server instance with default connection parameters and
-     * default message queue size */
+     * default message queue size (will provide space for 100 messages of the maximum
+     * message size or more messages for smaller messages */
     CS104_Slave slave = CS104_Slave_create(100, 100);
 
     CS104_Slave_setLocalAddress(slave, "0.0.0.0");

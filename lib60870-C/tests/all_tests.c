@@ -378,7 +378,6 @@ struct stest_CS104SlaveEventQueue1 {
     int asduHandlerCalled;
     int spontCount;
     int16_t lastScaledValue;
-    int16_t
 };
 
 static bool
@@ -454,8 +453,6 @@ test_CS104SlaveEventQueue1()
 
     CS104_Connection_close(con);
 
-//    TEST_ASSERT_EQUAL_INT(10, info.asduHandlerCalled);
-//    TEST_ASSERT_EQUAL_INT(10, info.spontCount);
     TEST_ASSERT_EQUAL_INT(14, info.lastScaledValue);
 
     result = CS104_Connection_connect(con);
@@ -485,8 +482,8 @@ test_CS104SlaveEventQueue1()
 
     CS104_Connection_close(con);
 
-    TEST_ASSERT_EQUAL_INT(25, info.asduHandlerCalled);
-    TEST_ASSERT_EQUAL_INT(25, info.spontCount);
+    TEST_ASSERT_EQUAL_INT(30, info.asduHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(30, info.spontCount);
     TEST_ASSERT_EQUAL_INT(29, info.lastScaledValue);
 
     CS104_Connection_destroy(con);
