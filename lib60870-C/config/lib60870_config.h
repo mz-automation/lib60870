@@ -46,21 +46,6 @@
 #define CONFIG_USE_SEMAPHORES 1
 
 /**
- * Use a separate thread to call the callback functions. This allows the user
- * to have a more natural program flow in the callback function. Otherwise callback
- * functions have to return immediately and send functions called from the callback
- * may not work when the send message queue is full.
- */
-#define CONFIG_SLAVE_USE_SEPARATE_CALLBACK_THREAD 0
-
-/**
- * Queue to store received ASDUs before passing them to the user provided callback.
- */
-#define CONFIG_SLAVE_SEPARATE_CALLBACK_THREAD_QUEUE_SIZE 12
-
-
-
-/**
  * Compile library with support for SINGLE_REDUNDANCY_GROUP server mode (only CS104 server)
  */
 #define CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP 1
