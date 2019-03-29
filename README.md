@@ -63,6 +63,21 @@ When using make you have to call make with WITH_MBEDTLS=1
 
 `make WITH_MBEDTLS=1`
 
+## Library configuration
+
+There are different runtime and compile-time configuration options.
+
+Compile time configuration options can be used to shrink down the library for small embedded systems. Compile time configuration can be changed by modifying the file _config/lib60870_config.h_.
+
+## Memory allocation
+
+The library uses dynamic memory allocation (malloc/calloc wrapped by own functions that can be replaced when required).
+
+The CS104 slave uses dynamic memory allocation only at setup time (when calling the function _CS104_Slave_create_ and
+_CS104_Slave_start_/_CS104_Slave_startThreadless_.
+
+For details please have a look at the _User Guide_.
+
 ## Contact:
 
 The library is developed and supported my MZ Automation GmbH.
@@ -73,10 +88,11 @@ For bug reports, hints or support please contact info@mz-automation.de
 
 This software can be dual licensed under the GPLv3 (https://www.gnu.org/licenses/gpl-3.0.en.html) and a commercial license agreement.
 
+When using the library in commercial and non-GPL applications you should buy a commercial license.
+
 ## Commercial licenses and support
 
 Support and commercial license options are provided by MZ Automation GmbH. Please contact info@mz-automation.de for more details.
-
 
 ## Contributing
 

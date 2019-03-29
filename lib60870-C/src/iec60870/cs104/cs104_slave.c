@@ -348,7 +348,36 @@ MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* timestamp, uint8_t*
     return buffer;
 }
 
-#if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+static void
+MessageQueue_setWaitingForTransmissionWhenNotConfirmed(MessageQueue self)
+{
+    if (self->entryCounter != 0) {
+
+        uint8_t* entryPtr = self->firstEntry;
+
+        struct sMessageQueueEntryInfo entryInfo;
+
+        memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
+
+        while (entryPtr) {
+
+            if (entryInfo.entryState == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED)
+                entryInfo.entryState = QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION;
+
+            if (entryPtr == self->lastEntry)
+                break;
+
+            /* move to next entry */
+            if (entryPtr == self->lastInBufferEntry)
+                entryPtr = self->buffer;
+            else
+                entryPtr = entryPtr + sizeof(struct sMessageQueueEntryInfo) + entryInfo.size;
+
+            memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
+        }
+    }
+}
+
 static void
 MessageQueue_releaseAllQueuedASDUs(MessageQueue self)
 {
@@ -365,7 +394,6 @@ MessageQueue_releaseAllQueuedASDUs(MessageQueue self)
     Semaphore_post(self->queueLock);
 #endif
 }
-#endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
 static void
 MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_t timestamp)
@@ -967,6 +995,7 @@ struct sMasterConnection {
 
     CS104_Slave slave;
 
+    unsigned int isUsed:1;
     unsigned int isActive:1;
     unsigned int isRunning:1;
     unsigned int timeoutT2Triggered:1;
@@ -974,9 +1003,8 @@ struct sMasterConnection {
     unsigned int maxSentASDUs:16; /* k-parameter */
     int oldestSentASDU:16; /* oldest sent ASDU in k-buffer */
     int newestSentASDU:16; /* newest sent ASDU in k-buffer */
-
-    int sendCount;     /* sent messages - sequence counter */
-    int receiveCount;  /* received messages - sequence counter */
+    unsigned int sendCount:16;     /* sent messages - sequence counter */
+    unsigned int receiveCount:16;  /* received messages - sequence counter */
 
     int unconfirmedReceivedIMessages; /* number of unconfirmed messages received */
 
@@ -1037,6 +1065,22 @@ initializeMessageQueues(CS104_Slave self, int lowPrioMaxQueueSize, int highPrioM
 }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+static void
+initializeConnectionSpecificQueues(CS104_Slave self)
+{
+    int i;
+
+    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+        self->masterConnections[i]->lowPrioQueue = MessageQueue_create(self->maxLowPrioQueueSize);
+        self->masterConnections[i]->highPrioQueue = HighPriorityASDUQueue_create(self->maxHighPrioQueueSize);
+    }
+}
+#endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1) */
+
+static MasterConnection
+MasterConnection_create(CS104_Slave slave);
+
 static CS104_Slave
 createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 {
@@ -1064,7 +1108,7 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
             int i;
 
             for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
-                self->masterConnections[i] = NULL;
+                self->masterConnections[i] = MasterConnection_create(self);
             }
         }
 
@@ -1170,6 +1214,34 @@ CS104_Slave_getOpenConnections(CS104_Slave self)
     return openConnections;
 }
 
+static MasterConnection
+getFreeConnection(CS104_Slave self)
+{
+    MasterConnection connection = NULL;
+
+#if (CONFIG_USE_SEMAPHORES)
+    Semaphore_wait(self->openConnectionsLock);
+#endif
+
+    int i;
+
+    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+        if ((self->masterConnections[i]) && (self->masterConnections[i]->isUsed == false)) {
+            connection = self->masterConnections[i];
+            connection->isUsed = true;
+            self->openConnections++;
+            break;
+        }
+    }
+
+#if (CONFIG_USE_SEMAPHORES)
+    Semaphore_post(self->openConnectionsLock);
+#endif
+
+    return connection;
+}
+
+#if 0
 static void
 addOpenConnection(CS104_Slave self, MasterConnection connection)
 {
@@ -1191,6 +1263,7 @@ addOpenConnection(CS104_Slave self, MasterConnection connection)
     Semaphore_post(self->openConnectionsLock);
 #endif
 }
+#endif
 
 void
 CS104_Slave_setMaxOpenConnections(CS104_Slave self, int maxOpenConnections)
@@ -1999,16 +2072,22 @@ sendSMessage(MasterConnection self)
 }
 
 static void
-MasterConnection_destroy(MasterConnection self)
+MasterConnection_deinit(MasterConnection self)
 {
     if (self) {
-
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         if (self->tlsSocket != NULL)
             TLSSocket_close(self->tlsSocket);
 #endif
 
         Socket_destroy(self->socket);
+    }
+}
+
+static void
+MasterConnection_destroy(MasterConnection self)
+{
+    if (self) {
 
         GLOBAL_FREEMEM(self->sentASDUs);
 
@@ -2215,12 +2294,16 @@ CS104_Slave_removeConnection(CS104_Slave self, MasterConnection connection)
 
     for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
         if (self->masterConnections[i] == connection) {
-            self->masterConnections[i] = NULL;
+            self->masterConnections[i]->isUsed = false;
             break;
         }
     }
 
-    MasterConnection_destroy(connection);
+    if (connection->isActive) {
+        MessageQueue_setWaitingForTransmissionWhenNotConfirmed(connection->lowPrioQueue);
+    }
+
+    MasterConnection_deinit(connection);
 
 #if (CONFIG_USE_SEMAPHORES)
     Semaphore_post(self->openConnectionsLock);
@@ -2406,28 +2489,15 @@ _IMasterConnection_getApplicationLayerParameters(IMasterConnection self)
  *******************************************/
 
 static MasterConnection
-MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQueue, HighPriorityASDUQueue highPrioQueue)
+MasterConnection_create(CS104_Slave slave)
 {
     MasterConnection self = (MasterConnection) GLOBAL_MALLOC(sizeof(struct sMasterConnection));
 
     if (self != NULL) {
 
+        self->isUsed = false;
         self->slave = slave;
-        self->socket = socket;
-        self->isActive = false;
-        self->isRunning = false;
-        self->receiveCount = 0;
-        self->sendCount = 0;
-
-        self->unconfirmedReceivedIMessages = 0;
-        self->lastConfirmationTime = UINT64_MAX;
-
-        self->timeoutT2Triggered = false;
-
         self->maxSentASDUs = slave->conParameters.k;
-        self->oldestSentASDU = -1;
-        self->newestSentASDU = -1;
-
         self->sentASDUs = (SentASDUSlave*) GLOBAL_MALLOC(sizeof(SentASDUSlave) * self->maxSentASDUs);
 
         self->iMasterConnection.object = self;
@@ -2439,48 +2509,75 @@ MasterConnection_create(CS104_Slave slave, Socket socket, MessageQueue lowPrioQu
         self->iMasterConnection.close = _IMasterConnection_close;
         self->iMasterConnection.getPeerAddress = _IMasterConnection_getPeerAddress;
 
-        resetT3Timeout(self);
-
 #if (CONFIG_USE_SEMAPHORES == 1)
         self->sentASDUsLock = Semaphore_create(1);
 #endif
-
-#if (CONFIG_CS104_SUPPORT_TLS == 1)
-        if (slave->tlsConfig != NULL) {
-            self->tlsSocket = TLSSocket_create(socket, slave->tlsConfig, false);
-
-            if (self->tlsSocket == NULL) {
-                DEBUG_PRINT("Close connection\n");
-
-                MasterConnection_destroy(self);
-                return NULL;
-            }
-        }
-        else
-            self->tlsSocket = NULL;
-#endif
-
-        self->lowPrioQueue = lowPrioQueue;
-        self->highPrioQueue = highPrioQueue;
-
-        self->outstandingTestFRConMessages = 0;
-
         self->handleSet = Handleset_new();
     }
 
     return self;
 }
 
-#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
-static MasterConnection
-MasterConnection_createEx(CS104_Slave slave, Socket socket, CS104_RedundancyGroup redGroup)
+static void
+MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQueue, HighPriorityASDUQueue highPrioQueue)
 {
-    MasterConnection self = MasterConnection_create(slave, socket, redGroup->asduQueue, redGroup->connectionAsduQueue);
+    if (self) {
+        self->socket = skt;
+        self->isActive = false;
+        self->isRunning = false;
+        self->receiveCount = 0;
+        self->sendCount = 0;
 
-    if (self)
+        self->unconfirmedReceivedIMessages = 0;
+        self->lastConfirmationTime = UINT64_MAX;
+
+        self->timeoutT2Triggered = false;
+
+        self->oldestSentASDU = -1;
+        self->newestSentASDU = -1;
+
+        resetT3Timeout(self);
+
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+        if (self->slave->tlsConfig != NULL) {
+            self->tlsSocket = TLSSocket_create(skt, self->slave->tlsConfig, false);
+
+            if (self->tlsSocket == NULL) {
+                DEBUG_PRINT("Failed to create TLS context. Close connection\n");
+
+                MasterConnection_destroy(self);
+                self->isUsed = false;
+            }
+        }
+        else
+            self->tlsSocket = NULL;
+#endif
+
+        /* for the mode CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP we use the connection specific queues */
+        if (lowPrioQueue)
+            self->lowPrioQueue = lowPrioQueue;
+        else {
+            MessageQueue_releaseAllQueuedASDUs(self->lowPrioQueue);
+        }
+
+        if (highPrioQueue)
+            self->highPrioQueue = highPrioQueue;
+
+        HighPriorityASDUQueue_resetConnectionQueue(self->highPrioQueue);
+
+        self->outstandingTestFRConMessages = 0;
+    }
+}
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+static void
+MasterConnection_initEx(MasterConnection self, Socket skt, CS104_RedundancyGroup redGroup)
+{
+    if (self) {
+        MasterConnection_init(self, skt, redGroup->asduQueue, redGroup->connectionAsduQueue);
+
         self->redundancyGroup = redGroup;
-
-    return self;
+    }
 }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
 
@@ -2582,7 +2679,7 @@ handleClientConnections(CS104_Slave self)
 
             MasterConnection con = self->masterConnections[i];
 
-            if (con != NULL) {
+            if (con && con->isUsed) {
 
                 if (con->isRunning) {
 
@@ -2604,11 +2701,15 @@ handleClientConnections(CS104_Slave self)
 
                     DEBUG_PRINT("Connection closed\n");
 
-                    self->masterConnections[i] = NULL;
+                    self->masterConnections[i]->isUsed = false;
+
+                    if (self->masterConnections[i]->isActive) {
+                        MessageQueue_setWaitingForTransmissionWhenNotConfirmed(self->masterConnections[i]->lowPrioQueue);
+                    }
 
                     self->openConnections--;
 
-                    MasterConnection_destroy(con);
+                    MasterConnection_deinit(con);
                 }
 
             }
@@ -2623,7 +2724,7 @@ handleClientConnections(CS104_Slave self)
                 for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
                     MasterConnection con = self->masterConnections[i];
 
-                    if (con != NULL)
+                    if (con != NULL && con->isUsed)
                         MasterConnection_handleTcpConnection(con);
                 }
 
@@ -2634,7 +2735,7 @@ handleClientConnections(CS104_Slave self)
         for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
             MasterConnection con = self->masterConnections[i];
 
-            if (con != NULL) {
+            if (con != NULL & con->isUsed) {
                 if (con->isRunning)
                     MasterConnection_executePeriodicTasks(con);
             }
@@ -2767,7 +2868,8 @@ handleConnectionsThreadless(CS104_Slave self)
                     CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
 
                     if (matchingGroup != NULL) {
-                        connection = MasterConnection_createEx(self, newSocket, matchingGroup);
+                        connection = getFreeConnection(self);
+                        MasterConnection_initEx(connection, newSocket, matchingGroup);
 
                         if (matchingGroup->name) {
                             DEBUG_PRINT("Add connection to group: %s\n", matchingGroup->name);
@@ -2780,15 +2882,15 @@ handleConnectionsThreadless(CS104_Slave self)
 
                 }
                 else {
-                    connection = MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+                    connection = getFreeConnection(self);
+                    MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue);
                 }
 #else
-                connection = MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+                connection = getFreeConnection(self);
+                MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue);
 #endif
 
                 if (connection) {
-
-                    addOpenConnection(self, connection);
 
                     connection->isRunning = true;
 
@@ -2863,8 +2965,8 @@ serverThread (void* parameter)
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
                 if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
-                    lowPrioQueue = MessageQueue_create(self->maxLowPrioQueueSize);
-                    highPrioQueue = HighPriorityASDUQueue_create(self->maxHighPrioQueueSize);
+                    lowPrioQueue = NULL;
+                    highPrioQueue = NULL;
                 }
 #endif
 
@@ -2880,7 +2982,8 @@ serverThread (void* parameter)
                     CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
 
                     if (matchingGroup != NULL) {
-                        connection = MasterConnection_createEx(self, newSocket, matchingGroup);
+                        connection = getFreeConnection(self);
+                        MasterConnection_initEx(connection, newSocket, matchingGroup);
 
                         if (matchingGroup->name) {
                             DEBUG_PRINT("Add connection to group: %s\n", matchingGroup->name);
@@ -2893,16 +2996,15 @@ serverThread (void* parameter)
 
                 }
                 else {
-                    connection = MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+                    connection = getFreeConnection(self);
+                    MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue);
                 }
 #else
-                connection = MasterConnection_create(self, newSocket, lowPrioQueue, highPrioQueue);
+                connection = getFreeConnection(self);
+                MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue);
 #endif
 
                 if (connection) {
-
-                    addOpenConnection(self, connection);
-
                     /* now start the connection handling (thread) */
                     MasterConnection_start(connection);
                 }
@@ -3044,6 +3146,11 @@ CS104_Slave_start(CS104_Slave self)
             initializeRedundancyGroups(self, self->maxLowPrioQueueSize, self->maxHighPrioQueueSize);
 #endif
 
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+        if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP)
+            initializeConnectionSpecificQueues(self);
+#endif
+
         self->listeningThread = Thread_create(serverThread, (void*) self, false);
 
         Thread_start(self->listeningThread);
@@ -3073,6 +3180,11 @@ CS104_Slave_startThreadless(CS104_Slave self)
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
         if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
             initializeRedundancyGroups(self, self->maxLowPrioQueueSize, self->maxHighPrioQueueSize);
+#endif
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+        if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP)
+            initializeConnectionSpecificQueues(self);
 #endif
 
         if (self->localAddress)
@@ -3172,7 +3284,7 @@ CS104_Slave_destroy(CS104_Slave self)
         int i;
 
         for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
-            if (self->masterConnections[i] != NULL)
+            if (self->masterConnections[i] != NULL && self->masterConnections[i]->isUsed)
                 MasterConnection_close(self->masterConnections[i]);
         }
     }
@@ -3182,21 +3294,7 @@ CS104_Slave_destroy(CS104_Slave self)
 #endif
 
 #if (CONFIG_USE_THREADS == 1)
-    if (self->isThreadlessMode) {
-#endif
-
-        int i;
-
-        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
-            if (self->masterConnections[i] != NULL) {
-                MasterConnection_destroy(self->masterConnections[i]);
-                self->masterConnections[i] = NULL;
-            }
-        }
-
-#if (CONFIG_USE_THREADS == 1)
-    }
-    else {
+    if (self->isThreadlessMode == false) {
         /* Wait until all connections are closed */
         while (CS104_Slave_getOpenConnections(self) > 0)
             Thread_sleep(10);
@@ -3223,6 +3321,19 @@ CS104_Slave_destroy(CS104_Slave self)
     }
 
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
+
+    {
+        int i;
+
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+
+            if (self->masterConnections[i]) {
+                MasterConnection_destroy(self->masterConnections[i]);
+                self->masterConnections[i] = NULL;
+            }
+        }
+    }
+
 
     GLOBAL_FREEMEM(self);
 }

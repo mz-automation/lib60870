@@ -679,6 +679,10 @@ CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig);
 
 The debug output to the console can be enabled by setting _CONFIG_DEBUG_OUTPUT_ to 1. This will enable the debug output by default. The debug output can be disabled my using the function *Lib60870_enableDebugOutput*. The default implementation of the debug output function will print to the console (using printf). If you need to redirect the output the most easy way would be to change the implementation of the debug output *lib60870_debug_print* function in _lib60870_common.c_.
 
+=== Memory management
+
+
+
 === Big endian platforms
 
 The library contains a C header file to determine the platform byte order (_src/inc/internal/platform_endian.h_) when using the GCC compiler. This depends on defines that are provided by the C compiler. On some older big endian platforms like PowerPC or Coldfire depending on the compiler this may fail. You may have to define
@@ -696,6 +700,8 @@ on the GCC command line when the platform byte order is big endian.
 === Configuration options at library compile time
 
 Some configuration options are fixed at compile time of the library code. These options can be found in the file *lib60870_config.h*.
+
+Compile time options include the support for specific CS 104 redundancy modes, support for threads and semaphores (required when the library uses threads), maximum number of TCP connections for CS 104 slave, and others.
 
 == Reference information
 

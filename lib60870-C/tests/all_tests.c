@@ -315,7 +315,7 @@ test_CS104SlaveConnectionIsRedundancyGroup()
 
     int i;
 
-    for (i = 0; i < 200; i++) {
+    for (i = 0; i < 50; i++) {
         bool result = CS104_Connection_connect(con);
         TEST_ASSERT_TRUE(result);
 
@@ -355,7 +355,7 @@ test_CS104SlaveSingleRedundancyGroup()
 
     int i;
 
-    for (i = 0; i < 200; i++) {
+    for (i = 0; i < 50; i++) {
         bool result = CS104_Connection_connect(con);
         TEST_ASSERT_TRUE(result);
 
