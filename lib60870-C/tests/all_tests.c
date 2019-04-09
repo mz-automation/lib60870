@@ -482,8 +482,8 @@ test_CS104SlaveEventQueue1()
 
     CS104_Connection_close(con);
 
-    TEST_ASSERT_EQUAL_INT(30, info.asduHandlerCalled);
-    TEST_ASSERT_EQUAL_INT(30, info.spontCount);
+    TEST_ASSERT_EQUAL_INT(29, info.asduHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(29, info.spontCount);
     TEST_ASSERT_EQUAL_INT(29, info.lastScaledValue);
 
     CS104_Connection_destroy(con);
