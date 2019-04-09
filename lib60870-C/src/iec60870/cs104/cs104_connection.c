@@ -73,6 +73,9 @@ struct sCS104_Connection {
     struct sCS104_APCIParameters parameters;
     struct sCS101_AppLayerParameters alParameters;
 
+    uint8_t recvBuffer[260];
+    int recvBufPos;
+
     int connectTimeoutInMs;
     uint8_t sMessage[6];
 
@@ -268,6 +271,7 @@ static void
 resetConnection(CS104_Connection self)
 {
     self->connectTimeoutInMs = self->parameters.t0 * 1000;
+    self->recvBufPos = 0;
 
     self->running = false;
     self->failure = false;
@@ -459,6 +463,9 @@ CS104_Connection_getAPCIParameters(CS104_Connection self)
     return &(self->parameters);
 }
 
+/**
+ * \return number of bytes read, or -1 in case of an error
+ */
 static int
 readFromSocket(CS104_Connection self, uint8_t* buffer, int size)
 {
@@ -472,27 +479,64 @@ readFromSocket(CS104_Connection self, uint8_t* buffer, int size)
 #endif
 }
 
+/**
+ * \brief Read message part into receive buffer
+ *
+ * \return -1 in case of an error, 0 when no complete message can be read, > 0 when a complete message is in buffer
+ */
 static int
-receiveMessage(CS104_Connection self, uint8_t* buffer)
+receiveMessage(CS104_Connection self)
 {
-    int readFirst = readFromSocket(self, buffer, 1);
+    uint8_t* buffer = self->recvBuffer;
+    int bufPos = self->recvBufPos;
 
-    if (readFirst < 1)
-        return readFirst;
+    /* read start byte */
+    if (bufPos == 0) {
+        int readFirst = readFromSocket(self, buffer, 1);
 
-    if (buffer[0] != 0x68)
-        return -1; /* message error */
+        if (readFirst < 1)
+            return readFirst;
 
-    if (readFromSocket(self, buffer + 1, 1) != 1)
-        return -1;
+        if (buffer[0] != 0x68)
+            return -1; /* message error */
 
-    int length = buffer[1];
+        bufPos++;
+    }
+
+    /* read length byte */
+    if (bufPos == 1)  {
+        if (readFromSocket(self, buffer + 1, 1) != 1) {
+            self->recvBufPos = 0;
+            return -1;
+        }
+
+        bufPos++;
+    }
 
     /* read remaining frame */
-    if (readFromSocket(self, buffer + 2, length) != length)
-        return -1;
+    if (bufPos > 1) {
+        int length = buffer[1];
 
-    return length + 2;
+        int remainingLength = length - bufPos + 2;
+
+        int readCnt = readFromSocket(self, buffer + bufPos, remainingLength);
+
+        if (readCnt == remainingLength) {
+            self->recvBufPos = 0;
+            return length + 2;
+        }
+        else if (readCnt == -1) {
+            self->recvBufPos = 0;
+            return -1;
+        }
+        else {
+            self->recvBufPos = bufPos + readCnt;
+            return 0;
+        }
+    }
+
+    self->recvBufPos = bufPos;
+    return 0;
 }
 
 static bool
@@ -708,13 +752,11 @@ handleConnection(void* parameter)
 
             while (loopRunning) {
 
-                uint8_t buffer[300];
-
                 Handleset_reset(handleSet);
                 Handleset_addSocket(handleSet, self->socket);
 
                 if (Handleset_waitReady(handleSet, 100)) {
-                    int bytesRec = receiveMessage(self, buffer);
+                    int bytesRec = receiveMessage(self);
 
                     if (bytesRec == -1) {
                         loopRunning = false;
@@ -724,9 +766,9 @@ handleConnection(void* parameter)
                     if (bytesRec > 0) {
 
                         if (self->rawMessageHandler)
-                            self->rawMessageHandler(self->rawMessageHandlerParameter, buffer, bytesRec, false);
+                            self->rawMessageHandler(self->rawMessageHandlerParameter, self->recvBuffer, bytesRec, false);
 
-                        if (checkMessage(self, buffer, bytesRec) == false) {
+                        if (checkMessage(self, self->recvBuffer, bytesRec) == false) {
                             /* close connection on error */
                             loopRunning = false;
                             self->failure = true;

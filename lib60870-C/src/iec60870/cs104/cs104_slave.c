@@ -1021,7 +1021,10 @@ struct sMasterConnection {
 
     HandleSet handleSet;
 
-    uint8_t buffer[260];
+    uint8_t recvBuffer[260];
+    int recvBufPos;
+
+    uint8_t sendBuffer[260];
 
     MessageQueue lowPrioQueue;
     HighPriorityASDUQueue highPrioQueue;
@@ -1443,65 +1446,80 @@ printSendBuffer(MasterConnection self)
         DEBUG_PRINT("k-buffer is empty\n");
 }
 
-#if (CONFIG_CS104_SUPPORT_TLS == 1)
+/**
+ * \return number of bytes read, or -1 in case of an error
+ */
 static int
-receiveMessageTlsSocket(TLSSocket socket, uint8_t* buffer)
-{
-    int readFirst = TLSSocket_read(socket, buffer, 1);
-
-    if (readFirst < 1)
-        return readFirst;
-
-    if (buffer[0] != 0x68)
-        return -1; /* message error */
-
-    if (TLSSocket_read(socket, buffer + 1, 1) != 1)
-        return -1;
-
-    int length = buffer[1];
-
-    /* read remaining frame */
-    if (TLSSocket_read(socket, buffer + 2, length) != length)
-        return -1;
-
-    return length + 2;
-}
-#endif /*  (CONFIG_CS104_SUPPORT_TLS == 1) */
-
-static int
-receiveMessageSocket(Socket socket, uint8_t* buffer)
-{
-    int readFirst = Socket_read(socket, buffer, 1);
-
-    if (readFirst < 1)
-        return readFirst;
-
-    if (buffer[0] != 0x68)
-        return -1; /* message error */
-
-    if (Socket_read(socket, buffer + 1, 1) != 1)
-        return -1;
-
-    int length = buffer[1];
-
-    /* read remaining frame */
-    if (Socket_read(socket, buffer + 2, length) != length)
-        return -1;
-
-    return length + 2;
-}
-
-static int
-receiveMessage(MasterConnection self, uint8_t* buffer)
+readFromSocket(MasterConnection self, uint8_t* buffer, int size)
 {
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     if (self->tlsSocket != NULL)
-        return receiveMessageTlsSocket(self->tlsSocket, buffer);
+        return TLSSocket_read(self->tlsSocket, buffer, size);
     else
-        return receiveMessageSocket(self->socket, buffer);
+        return Socket_read(self->socket, buffer, size);
 #else
-    return receiveMessageSocket(self->socket, buffer);
+    return Socket_read(self->socket, buffer, size);
 #endif
+}
+
+/**
+ * \brief Read message part into receive buffer
+ *
+ * \return -1 in case of an error, 0 when no complete message can be read, > 0 when a complete message is in buffer
+ */
+static int
+receiveMessage(MasterConnection self)
+{
+    uint8_t* buffer = self->recvBuffer;
+    int bufPos = self->recvBufPos;
+
+    /* read start byte */
+    if (bufPos == 0) {
+        int readFirst = readFromSocket(self, buffer, 1);
+
+        if (readFirst < 1)
+            return readFirst;
+
+        if (buffer[0] != 0x68)
+            return -1; /* message error */
+
+        bufPos++;
+    }
+
+    /* read length byte */
+    if (bufPos == 1)  {
+        if (readFromSocket(self, buffer + 1, 1) != 1) {
+            self->recvBufPos = 0;
+            return -1;
+        }
+
+        bufPos++;
+    }
+
+    /* read remaining frame */
+    if (bufPos > 1) {
+        int length = buffer[1];
+
+        int remainingLength = length - bufPos + 2;
+
+        int readCnt = readFromSocket(self, buffer + bufPos, remainingLength);
+
+        if (readCnt == remainingLength) {
+            self->recvBufPos = 0;
+            return length + 2;
+        }
+        else if (readCnt == -1) {
+            self->recvBufPos = 0;
+            return -1;
+        }
+        else {
+            self->recvBufPos = bufPos + readCnt;
+            return 0;
+        }
+    }
+
+    self->recvBufPos = bufPos;
+    return 0;
 }
 
 static int
@@ -2130,11 +2148,11 @@ sendNextLowPriorityASDU(MasterConnection self)
     asduBuffer = MessageQueue_getNextWaitingASDU(self->lowPrioQueue, &timestamp, &queueEntry, &msgSize);
 
     if (asduBuffer) {
-        memcpy(self->buffer + IEC60870_5_104_APCI_LENGTH, asduBuffer, msgSize);
+        memcpy(self->sendBuffer + IEC60870_5_104_APCI_LENGTH, asduBuffer, msgSize);
 
         msgSize += IEC60870_5_104_APCI_LENGTH;
 
-        sendASDU(self, self->buffer, msgSize, timestamp, queueEntry);
+        sendASDU(self, self->sendBuffer, msgSize, timestamp, queueEntry);
     }
 
     MessageQueue_unlock(self->lowPrioQueue);
@@ -2166,11 +2184,11 @@ sendNextHighPriorityASDU(MasterConnection self)
     uint8_t* buffer = HighPriorityASDUQueue_getNextASDU(self->highPrioQueue, &msgSize);
 
     if (buffer) {
-        memcpy(self->buffer + IEC60870_5_104_APCI_LENGTH, buffer, msgSize);
+        memcpy(self->sendBuffer + IEC60870_5_104_APCI_LENGTH, buffer, msgSize);
 
         msgSize += IEC60870_5_104_APCI_LENGTH;
 
-        sendASDU(self, self->buffer, msgSize, 0, NULL);
+        sendASDU(self, self->sendBuffer, msgSize, 0, NULL);
 
         retVal = true;
     }
@@ -2343,11 +2361,7 @@ connectionHandlingThread(void* parameter)
 
         if (Handleset_waitReady(self->handleSet, socketTimeout)) {
 
-            int bytesRec = receiveMessage(self, self->buffer);
-
-            if (self->slave->rawMessageHandler)
-                self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
-                        &(self->iMasterConnection), self->buffer, bytesRec, false);
+            int bytesRec = receiveMessage(self);
 
             if (bytesRec == -1) {
                 DEBUG_PRINT("Error reading from socket\n");
@@ -2359,9 +2373,9 @@ connectionHandlingThread(void* parameter)
 
                 if (self->slave->rawMessageHandler)
                     self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
-                            &(self->iMasterConnection), self->buffer, bytesRec, false);
+                            &(self->iMasterConnection), self->recvBuffer, bytesRec, false);
 
-                if (handleMessage(self, self->buffer, bytesRec) == false)
+                if (handleMessage(self, self->recvBuffer, bytesRec) == false)
                     self->isRunning = false;
 
                 if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w) {
@@ -2527,6 +2541,7 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
         self->isRunning = false;
         self->receiveCount = 0;
         self->sendCount = 0;
+        self->recvBufPos = 0;
 
         self->unconfirmedReceivedIMessages = 0;
         self->lastConfirmationTime = UINT64_MAX;
@@ -2625,7 +2640,7 @@ MasterConnection_activate(MasterConnection self)
 static void
 MasterConnection_handleTcpConnection(MasterConnection self)
 {
-    int bytesRec = receiveMessage(self, self->buffer);
+    int bytesRec = receiveMessage(self);
 
     if (bytesRec < 0) {
         DEBUG_PRINT("Error reading from socket\n");
@@ -2636,9 +2651,9 @@ MasterConnection_handleTcpConnection(MasterConnection self)
 
         if (self->slave->rawMessageHandler)
             self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
-                    &(self->iMasterConnection), self->buffer, bytesRec, false);
+                    &(self->iMasterConnection), self->recvBuffer, bytesRec, false);
 
-        if (handleMessage(self, self->buffer, bytesRec) == false)
+        if (handleMessage(self, self->recvBuffer, bytesRec) == false)
             self->isRunning = false;
 
         if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w) {
