@@ -92,7 +92,7 @@ Handleset_waitReady(HandleSet self, unsigned int timeoutMs)
 {
    int result;
 
-   if (self != NULL && self->maxHandle >= 0) {
+   if (self != NULL && self->maxHandle != INVALID_SOCKET) {
        struct timeval timeout;
 
        timeout.tv_sec = timeoutMs / 1000;
@@ -411,9 +411,6 @@ int
 Socket_read(Socket self, uint8_t* buf, int size)
 {
     int bytes_read = recv(self->fd, (char*) buf, size, 0);
-
-    if (bytes_read == 0) // peer has closed socket
-        return -1;
 
     if (bytes_read == SOCKET_ERROR) {
         if (WSAGetLastError() == WSAEWOULDBLOCK)

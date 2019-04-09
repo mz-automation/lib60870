@@ -400,9 +400,6 @@ Socket_read(Socket self, uint8_t* buf, int size)
 
     int read_bytes = recv(self->fd, buf, size, MSG_DONTWAIT);
 
-    if (read_bytes == 0)
-        return -1;
-
     if (read_bytes == -1) {
         int error = errno;
 

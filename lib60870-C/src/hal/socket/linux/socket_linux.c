@@ -236,7 +236,7 @@ closeAndShutdownSocket(int socketFd)
         if (DEBUG_SOCKET)
             printf("socket_linux.c: call shutdown for %i!\n", socketFd);
 
-        // shutdown is required to unblock read or accept in another thread!
+        /* shutdown is required to unblock read or accept in another thread! */
         shutdown(socketFd, SHUT_RDWR);
 
         close(socketFd);
@@ -274,7 +274,6 @@ Socket_setConnectTimeout(Socket self, uint32_t timeoutInMs)
 {
     self->connectTimeout = timeoutInMs;
 }
-
 
 bool
 Socket_connect(Socket self, const char* address, int port)
@@ -409,9 +408,6 @@ Socket_read(Socket self, uint8_t* buf, int size)
 
     int read_bytes = recv(self->fd, buf, size, MSG_DONTWAIT);
 
-    if (read_bytes == 0)
-        return -1;
-
     if (read_bytes == -1) {
         int error = errno;
 
@@ -436,8 +432,13 @@ Socket_write(Socket self, uint8_t* buf, int size)
     if (self->fd == -1)
         return -1;
 
-    // MSG_NOSIGNAL - prevent send to signal SIGPIPE when peer unexpectedly closed the socket
-    return send(self->fd, buf, size, MSG_NOSIGNAL);
+    /* MSG_NOSIGNAL - prevent send to signal SIGPIPE when peer unexpectedly closed the socket */
+    int retVal = send(self->fd, buf, size, MSG_NOSIGNAL);
+
+    if ((retVal == -1) && (errno == EAGAIN))
+        return 0;
+    else
+        return retVal;
 }
 
 void
