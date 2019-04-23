@@ -505,9 +505,16 @@ receiveMessage(CS104_Connection self)
 
     /* read length byte */
     if (bufPos == 1)  {
-        if (readFromSocket(self, buffer + 1, 1) != 1) {
+
+        int readCnt = readFromSocket(self, buffer + 1, 1);
+
+        if (readCnt < 0) {
             self->recvBufPos = 0;
             return -1;
+        }
+        else if (readCnt == 0) {
+            self->recvBufPos = 1;
+            return 0;
         }
 
         bufPos++;
