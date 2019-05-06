@@ -752,8 +752,6 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
                 if (self->delayAcquisitionHandler(self->delayAcquisitionHandlerParameter,
                         &(self->iMasterConnection), asdu, DelayAcquisitionCommand_getDelay(dac)))
                     messageHandled = true;
-
-                DelayAcquisitionCommand_destroy(dac);
             }
         }
         else
