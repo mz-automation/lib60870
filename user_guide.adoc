@@ -711,7 +711,7 @@ The library supports the following ASDU (application service data unit) types.
 
 .IEC 60870-5-101/104 message types
 [width="90%",cols="n,10,1,1",frame="topbot",options="header"]
-|==========================
+|===
 | Message type | Description | C | C#
 | M_SP_NA_1(1) | Single point information (BOOLEAN)  | + | +
 | M_SP_TA_1(2) | Single point information (BOOLEAN) with CP24Time2a | + | +
@@ -781,7 +781,7 @@ The library supports the following ASDU (application service data unit) types.
 | F_AF_NA_1(124) | ACK file/section | + | +
 | F_SG_NA_1(125) | File segment | + | +
 | F_DR_TA_1(126) | File directory | + | +
-|==========================
+|===
 
 === CS 104 specific parameters
 
@@ -789,7 +789,7 @@ The following parameters are stored in *CS104_ConnectionParameters* objects.
 
 .IEC 60870-5-104 parameters
 [width="90%",cols="n,10",frame="topbot",options="header"]
-|==========================
+|===
 |Parameter        |Description
 |k       |Number of unconfirmed APDUs in I format. Sender will stop transmission after k unconfirmed I messages.
 |w       |Number of unconfirmed APDUs in I format. Receiver will confirm latest after w messages
@@ -797,4 +797,4 @@ The following parameters are stored in *CS104_ConnectionParameters* objects.
 |t1      |Timeout for transmitted APDUs in I/U format (in s) when timeout elapsed without confirmation the connection will be closed. This is used by the sender to determine if the receiver has failed to confirm a message.
 |t2      |Timeout to confirm messages (in s). This timeout is used by the receiver to determine the time when the message confirmation has to be sent.
 |t3      |time until test telegrams will be sent in case of an idle connection
-|==========================
+|===
