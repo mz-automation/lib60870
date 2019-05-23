@@ -2764,7 +2764,7 @@ handleClientConnections(CS104_Slave self)
         for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
             MasterConnection con = self->masterConnections[i];
 
-            if (con != NULL & con->isUsed) {
+            if (con != NULL && con->isUsed) {
                 if (con->isRunning)
                     MasterConnection_executePeriodicTasks(con);
             }
