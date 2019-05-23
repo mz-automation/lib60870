@@ -470,13 +470,16 @@ HighPriorityASDUQueue_create(int maxQueueSize)
 static void
 HighPriorityASDUQueue_destroy(HighPriorityASDUQueue self)
 {
-    GLOBAL_FREEMEM(self->buffer);
+    if (self){
+        if (self->buffer)
+            GLOBAL_FREEMEM(self->buffer);
 
 #if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_destroy(self->queueLock);
+        Semaphore_destroy(self->queueLock);
 #endif
 
-    GLOBAL_FREEMEM(self);
+        GLOBAL_FREEMEM(self);
+    }
 }
 
 static void
