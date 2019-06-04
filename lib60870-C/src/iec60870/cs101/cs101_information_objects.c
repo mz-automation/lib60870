@@ -649,7 +649,7 @@ StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, CS101_
         /* parse VTI (value with transient state indication) */
         self->vti = msg [startIndex++];
 
-        self->quality = (QualityDescriptor) msg [startIndex];
+        self->quality = (QualityDescriptor) msg [startIndex++];
 
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -6628,7 +6628,7 @@ FileLastSegmentOrSection_getFromBuffer(FileLastSegmentOrSection self, CS101_AppL
 
         self->nameOfSection = msg[startIndex++];
 
-        self->lsq = msg[startIndex];
+        self->lsq = msg[startIndex++];
 
         self->chs = msg[startIndex];
     }
