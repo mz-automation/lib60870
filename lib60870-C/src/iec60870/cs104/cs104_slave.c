@@ -470,13 +470,16 @@ HighPriorityASDUQueue_create(int maxQueueSize)
 static void
 HighPriorityASDUQueue_destroy(HighPriorityASDUQueue self)
 {
-    GLOBAL_FREEMEM(self->buffer);
+    if (self){
+        if (self->buffer)
+            GLOBAL_FREEMEM(self->buffer);
 
 #if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_destroy(self->queueLock);
+        Semaphore_destroy(self->queueLock);
 #endif
 
-    GLOBAL_FREEMEM(self);
+        GLOBAL_FREEMEM(self);
+    }
 }
 
 static void
@@ -2527,6 +2530,17 @@ MasterConnection_create(CS104_Slave slave)
         self->sentASDUsLock = Semaphore_create(1);
 #endif
         self->handleSet = Handleset_new();
+
+        // initialize pointers with NULL to segmentation fault on destroy call
+        self->socket = NULL;
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+        self->tlsSocket = NULL;
+#endif
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+        self->redundancyGroup = NULL;
+#endif
+        self->lowPrioQueue = NULL;
+        self->highPrioQueue = NULL;
     }
 
     return self;
@@ -2750,7 +2764,7 @@ handleClientConnections(CS104_Slave self)
         for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
             MasterConnection con = self->masterConnections[i];
 
-            if (con != NULL & con->isUsed) {
+            if (con != NULL && con->isUsed) {
                 if (con->isRunning)
                     MasterConnection_executePeriodicTasks(con);
             }
