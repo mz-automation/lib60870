@@ -2531,11 +2531,12 @@ MasterConnection_create(CS104_Slave slave)
 #endif
         self->handleSet = Handleset_new();
 
-        // initialize pointers with NULL to segmentation fault on destroy call
+        /* initialize pointers with NULL to avoid segmentation fault on destroy call */
         self->socket = NULL;
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         self->tlsSocket = NULL;
 #endif
+
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
         self->redundancyGroup = NULL;
 #endif
