@@ -58,7 +58,7 @@ ifndef INSTALL_PREFIX
 INSTALL_PREFIX = ./.install
 endif
 
-LIB_API_HEADER_FILES = src/hal/inc/hal_time.h 
+LIB_API_HEADER_FILES = src/hal/inc/hal_time.h
 LIB_API_HEADER_FILES += src/hal/inc/hal_thread.h
 LIB_API_HEADER_FILES += src/hal/inc/hal_socket.h
 LIB_API_HEADER_FILES += src/hal/inc/hal_serial.h
@@ -89,20 +89,21 @@ LIB_SOURCES = $(call get_sources,$(LIB_SOURCE_DIRS))
 LIB_OBJS = $(call src_to,.o,$(LIB_SOURCES))
 TEST_OBJS = $(call src_to,.o,$(LIB_TEST_SOURCES))
 CFLAGS += -std=gnu99
-#CFLAGS += -Wno-error=format 
+#CFLAGS += -Wno-error=format
 CFLAGS += -Wstrict-prototypes
 
 ifneq ($(HAL_IMPL), WIN32)
-CFLAGS += -Wuninitialized 
+CFLAGS += -Wuninitialized
 endif
 
-CFLAGS += -Wsign-compare 
-CFLAGS += -Wpointer-arith 
-CFLAGS += -Wnested-externs 
-CFLAGS += -Wmissing-declarations 
+CFLAGS += -Wsign-compare
+CFLAGS += -Wpointer-arith
+CFLAGS += -Wnested-externs
+CFLAGS += -Wmissing-declarations
 CFLAGS += -Wshadow
 CFLAGS += -Wall
-#CFLAGS += -Werror  
+CFLAGS += -fPIC
+#CFLAGS += -Werror
 
 all:	lib
 
@@ -124,14 +125,14 @@ dynlib:	$(DYN_LIB_NAME)
 
 examples:
 	cd examples; $(MAKE)
-	
+
 $(TEST_NAME):	$(LIB_OBJS) $(TEST_OBJS)
 	$(CC) -o $(TEST_NAME) $(LIB_OBJS) $(TEST_OBJS) -lpthread
 
 $(LIB_NAME):	$(LIB_OBJS)
 	$(AR) r $(LIB_NAME) $(LIB_OBJS)
 	$(RANLIB) $(LIB_NAME)
-	
+
 $(DYN_LIB_NAME):	$(LIB_OBJS)
 	$(CC) $(LDFLAGS) $(DYNLIB_LDFLAGS) -shared -o $(DYN_LIB_NAME) $(LIB_OBJS) $(LDLIBS)
 
@@ -139,7 +140,7 @@ $(LIB_OBJS_DIR)/%.o: %.c config
 	@echo compiling $(notdir $<)
 	$(SILENCE)mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $(LIB_INCLUDES) $(TEST_INCLUDES) $(OUTPUT_OPTION) $<
-	
+
 install:	$(LIB_NAME)
 	mkdir -p $(INSTALL_PREFIX)/include
 	mkdir -p $(INSTALL_PREFIX)/lib
