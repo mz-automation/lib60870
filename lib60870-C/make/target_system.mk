@@ -75,8 +75,8 @@ endif
 ifeq ($(TARGET), UCLINUX-XPORT)
 TOOLCHAIN_PREFIX=$(UCLINUX_XPORT_TOOLCHAIN_PREFIX)
 CFLAGS += -DPLATFORM_BYTE_ORDER
-CFLAGS += -mcpu=5208  
-CFLAGS += -fno-builtin -fno-common 
+CFLAGS += -mcpu=5208
+CFLAGS += -fno-builtin -fno-common
 CFLAGS += -fno-dwarf2-cfi-asm -msep-data -DCONFIG_COLDFIRE -D__linux__ -Dunix -D__uClinux__
 endif
 
@@ -115,7 +115,7 @@ EXCLUDE_ETHERNET_WINDOWS = 1
 endif
 
 
-else 
+else
 ifeq ($(TARGET), BSD)
 HAL_IMPL = BSD
 else
@@ -139,7 +139,7 @@ else
 LIB_OBJS_DIR = $(LIB60870_HOME)/build
 endif
 
-CFLAGS += -g 
+CFLAGS += -g
 #CFLAGS += -Os
 
 DYNLIB_LDFLAGS=-lpthread
@@ -168,13 +168,13 @@ LIB_NAME = $(LIB_OBJS_DIR)/lib60870.a
 TEST_NAME = $(LIB_OBJS_DIR)/tests.exe
 
 ifeq ($(TARGET), BSD)
-CFLAGS += -arch i386
-LDFLAGS += -arch i386
+# CFLAGS += -arch i386
+# LDFLAGS += -arch i386
 endif
 
 ifeq ($(TARGET), WIN32)
 DYN_LIB_NAME = $(LIB_OBJS_DIR)/60870.dll
-else 
+else
 
 ifeq ($(TARGET), BSD)
 DYN_LIB_NAME = $(LIB_OBJS_DIR)/lib60870.dylib
