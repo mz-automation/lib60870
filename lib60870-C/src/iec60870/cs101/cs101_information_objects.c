@@ -460,7 +460,7 @@ StepPositionWithCP56Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 
-    return false;
+    return true;
 }
 
 struct sInformationObjectVFT stepPositionWithCP56Time2aVFT = {
