@@ -187,7 +187,7 @@ TcpServerSocket_create(const char* address, int port)
         if (bind(fd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) >= 0) {
             serverSocket = GLOBAL_MALLOC(sizeof(struct sServerSocket));
             serverSocket->fd = fd;
-            serverSocket->backLog = 0;
+            serverSocket->backLog = 2;
         }
         else {
             close(fd);
@@ -413,6 +413,9 @@ Socket_read(Socket self, uint8_t* buf, int size)
             default:
                 return -1;
         }
+    }
+    else if (read_bytes == 0) {
+        return -1;
     }
 
     return read_bytes;
