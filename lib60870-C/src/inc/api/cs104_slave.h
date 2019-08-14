@@ -129,6 +129,9 @@ CS104_Slave_create(int maxLowPrioQueueSize, int maxHighPrioQueueSize);
 CS104_Slave
 CS104_Slave_createSecure(int maxLowPrioQueueSize, int maxHighPrioQueueSize, TLSConfiguration tlsConfig);
 
+void
+CS104_Slave_addPlugin(CS104_Slave self, CS101_SlavePlugin plugin);
+
 /**
  * \brief Set the local IP address to bind the server
  * use "0.0.0.0" to bind to all interfaces

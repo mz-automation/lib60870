@@ -973,6 +973,8 @@ struct sCS104_Slave {
     Thread listeningThread;
 
     ServerSocket serverSocket;
+
+    LinkedList plugins;
 };
 
 typedef struct {
@@ -1137,6 +1139,8 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 
         self->serverSocket = NULL;
 
+        self->plugins = NULL;
+
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         self->tlsConfig = NULL;
 #endif
@@ -1177,6 +1181,16 @@ CS104_Slave_createSecure(int maxLowPrioQueueSize, int maxHighPrioQueueSize, TLSC
     return self;
 }
 #endif /* (CONFIG_CS104_SUPPORT_TLS == 1) */
+
+void
+CS104_Slave_addPlugin(CS104_Slave self, CS101_SlavePlugin plugin)
+{
+    if (self->plugins == NULL)
+        self->plugins = LinkedList_create();
+
+    if (self->plugins)
+        LinkedList_add(self->plugins, plugin);
+}
 
 void
 CS104_Slave_setServerMode(CS104_Slave self, CS104_ServerMode serverMode)
@@ -1675,6 +1689,21 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
     bool messageHandled = false;
 
     CS104_Slave slave = self->slave;
+
+    /* call plugins */
+    if (slave->plugins) {
+        LinkedList pluginElem = LinkedList_getNext(slave->plugins);
+
+        while (pluginElem) {
+
+            CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
+
+            if (plugin->handleAsdu(plugin->parameter, &(self->iMasterConnection), asdu))
+                return;
+
+            pluginElem = LinkedList_getNext(pluginElem);
+        }
+    }
 
     uint8_t cot = CS101_ASDU_getCOT(asdu);
 
@@ -2508,7 +2537,7 @@ _IMasterConnection_getApplicationLayerParameters(IMasterConnection self)
 static MasterConnection
 MasterConnection_create(CS104_Slave slave)
 {
-    MasterConnection self = (MasterConnection) GLOBAL_MALLOC(sizeof(struct sMasterConnection));
+    MasterConnection self = (MasterConnection) GLOBAL_CALLOC(1, sizeof(struct sMasterConnection));
 
     if (self != NULL) {
 
@@ -2766,8 +2795,25 @@ handleClientConnections(CS104_Slave self)
             MasterConnection con = self->masterConnections[i];
 
             if (con != NULL && con->isUsed) {
-                if (con->isRunning)
+                if (con->isRunning) {
                     MasterConnection_executePeriodicTasks(con);
+
+                    /* call plugins */
+                    if (self->plugins) {
+
+                        LinkedList pluginElem = LinkedList_getNext(self->plugins);
+
+                        while (pluginElem) {
+
+                            CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
+
+                            plugin->runTask(plugin->parameter, &(con->iMasterConnection));
+
+                            pluginElem = LinkedList_getNext(pluginElem);
+                        }
+                    }
+
+                }
             }
         }
 
@@ -3364,6 +3410,9 @@ CS104_Slave_destroy(CS104_Slave self)
         }
     }
 
+    if (self->plugins) {
+        LinkedList_destroyStatic(self->plugins);
+    }
 
     GLOBAL_FREEMEM(self);
 }

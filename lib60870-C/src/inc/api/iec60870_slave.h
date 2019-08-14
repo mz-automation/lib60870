@@ -158,6 +158,27 @@ IMasterConnection_getApplicationLayerParameters(IMasterConnection self);
 
 
 /**
+ * @defgroup SLAVE_PLUGIN Slave plugin interface
+ *
+ * Plugin interface to add functionality to the slave (e.g. file server)
+ */
+
+
+typedef struct sCS101_SlavePlugin* CS101_SlavePlugin;
+
+struct sCS101_SlavePlugin
+{
+    bool (*handleAsdu) (void* parameter, IMasterConnection connection, CS101_ASDU asdu);
+    void (*runTask) (void* parameter, IMasterConnection connection);
+
+    void* parameter;
+};
+
+/**
+ * @}
+ */
+
+/**
  * @defgroup CALLBACK_HANDLERS Slave callback handlers
  *
  * Callback handlers to handle events in the slave

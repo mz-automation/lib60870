@@ -1816,6 +1816,7 @@ EndOfInitialization_getCOI(EndOfInitialization self);
  * @{
  */
 
+#define CS101_NOF_DEFAULT 0
 #define CS101_NOF_TRANSPARENT_FILE 1
 #define CS101_NOF_DISTURBANCE_DATA 2
 #define CS101_NOF_SEQUENCES_OF_EVENTS 3
