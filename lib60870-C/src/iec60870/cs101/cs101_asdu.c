@@ -299,7 +299,7 @@ CS101_ASDU_getOA(CS101_ASDU self)
     if (self->parameters->sizeOfCOT < 2)
         return -1;
     else
-        return (int) self->asdu[4];
+        return (int) self->asdu[3];
 }
 
 CS101_CauseOfTransmission
