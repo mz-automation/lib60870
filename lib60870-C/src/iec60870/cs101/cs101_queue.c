@@ -53,6 +53,10 @@ CS101_Queue_initialize(CS101_Queue self, int maxQueueSize)
         queueSize = 100;
 
     self->elements = (CS101_QueueElement) GLOBAL_CALLOC(queueSize, sizeof(struct sCS101_QueueElement));
+
+    self->size = queueSize;
+#else
+    self->size = CS101_MAX_QUEUE_SIZE;
 #endif
 
 
