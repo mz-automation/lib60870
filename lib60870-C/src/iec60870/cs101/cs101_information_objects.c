@@ -6201,9 +6201,9 @@ FileReady_create(FileReady self, int ioa, uint16_t nof, uint32_t lengthOfFile, b
         self->lengthOfFile = lengthOfFile;
 
         if (positive)
-            self->frq = 0x80;
-        else
             self->frq = 0;
+        else
+            self->frq = 0x80;
     }
 
     return self;
@@ -6823,7 +6823,8 @@ int
 FileSegment_GetMaxDataSize(CS101_AppLayerParameters parameters)
 {
     int maxSize = parameters->maxSizeOfASDU -
-        parameters->sizeOfTypeId - parameters->sizeOfVSQ - parameters->sizeOfCA - parameters->sizeOfCOT;
+        parameters->sizeOfTypeId - parameters->sizeOfVSQ - parameters->sizeOfCA - parameters->sizeOfCOT
+        - parameters->sizeOfIOA - 4;
 
     return maxSize;
 }
