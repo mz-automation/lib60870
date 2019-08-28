@@ -37,10 +37,8 @@
 #include "cs101_asdu_internal.h"
 
 
-struct sCS101_Master {
-
-    LinkLayer linkLayer;
-
+struct sCS101_Master
+{
     SerialPort serialPort;
 
     struct sLinkLayerParameters linkLayerParameters;
@@ -301,14 +299,15 @@ CS101_Master_destroy(CS101_Master self)
 void
 CS101_Master_setDIR(CS101_Master self, bool dir)
 {
-    LinkLayer_setDIR(self->linkLayer, dir);
+    if (self->balancedLinkLayer)
+        LinkLayerBalanced_setDIR(self->balancedLinkLayer, dir);
 }
 
 void
 CS101_Master_setOwnAddress(CS101_Master self, int address)
 {
-    if (self->linkLayer)
-        LinkLayer_setAddress(self->linkLayer, address);
+    if (self->balancedLinkLayer)
+        LinkLayerBalanced_setAddress(self->balancedLinkLayer, address);
 }
 
 void
