@@ -36,6 +36,7 @@
 #include "link_layer.h"
 #include "cs101_queue.h"
 #include "cs101_asdu_internal.h"
+#include "linked_list.h"
 
 #if ((CONFIG_USE_THREADS == 1) || (CONFIG_USE_SEMAPHORES == 1))
 #include "hal_thread.h"
@@ -88,6 +89,8 @@ struct sCS101_Slave
     bool isRunning;
     Thread workerThread;
 #endif
+
+    LinkedList plugins;
 };
 
 static void
@@ -352,6 +355,8 @@ CS101_Slave_createEx(SerialPort serialPort, LinkLayerParameters llParameters, CS
 
         CS101_Queue_initialize(&(self->userDataClass1Queue), class1QueueSize);
         CS101_Queue_initialize(&(self->userDataClass2Queue), class2QueueSize);
+
+        self->plugins = NULL;
     }
 
     return self;
@@ -381,6 +386,16 @@ CS101_Slave_destroy(CS101_Slave self)
 
         GLOBAL_FREEMEM(self);
     }
+}
+
+void
+CS101_Slave_addPlugin(CS101_Slave self, CS101_SlavePlugin plugin)
+{
+    if (self->plugins == NULL)
+        self->plugins = LinkedList_create();
+
+    if (self->plugins)
+        LinkedList_add(self->plugins, plugin);
 }
 
 void
@@ -468,7 +483,20 @@ CS101_Slave_run(CS101_Slave self)
     else
         LinkLayerBalanced_run(self->balancedLinkLayer);
 
-    /* TODO handle file transmission */
+    /* call plugins */
+    if (self->plugins) {
+
+        LinkedList pluginElem = LinkedList_getNext(self->plugins);
+
+        while (pluginElem) {
+
+            CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
+
+            plugin->runTask(plugin->parameter, &(self->iMasterConnection));
+
+            pluginElem = LinkedList_getNext(pluginElem);
+        }
+    }
 }
 
 #if (CONFIG_USE_THREADS == 1)
@@ -599,6 +627,21 @@ static void
 handleASDU(CS101_Slave self, CS101_ASDU asdu)
 {
     bool messageHandled = false;
+
+    /* call plugins */
+    if (self->plugins) {
+        LinkedList pluginElem = LinkedList_getNext(self->plugins);
+
+        while (pluginElem) {
+
+            CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
+
+            if (plugin->handleAsdu(plugin->parameter, &(self->iMasterConnection), asdu))
+                return;
+
+            pluginElem = LinkedList_getNext(pluginElem);
+        }
+    }
 
     uint8_t cot = CS101_ASDU_getCOT(asdu);
 

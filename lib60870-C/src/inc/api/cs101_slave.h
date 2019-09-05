@@ -112,6 +112,14 @@ void
 CS101_Slave_setDIR(CS101_Slave self, bool dir);
 
 /**
+ * \brief Register a plugin instance with this slave instance
+ *
+ * \param the plugin instance.
+ */
+void
+CS101_Slave_addPlugin(CS101_Slave self, CS101_SlavePlugin plugin);
+
+/**
  * \brief Set the idle timeout
  *
  * Time with no activity after which the connection is considered
