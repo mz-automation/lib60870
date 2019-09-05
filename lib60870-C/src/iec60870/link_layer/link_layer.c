@@ -684,14 +684,14 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
             bool fcb = ((c & 0x20) == 0x20);
             bool fcv = ((c & 0x10) == 0x10);
 
-            if (self->llPriBalanced != NULL) {
-                LinkLayerPrimaryBalanced_resetIdleTimeout(self->llPriBalanced);
-            }
-
             if (self->llSecBalanced != NULL)
                 LinkLayerSecondaryBalanced_handleMessage(self->llSecBalanced, fc, false, fcb, fcv, msg, userDataStart, userDataLength);
             else
                 DEBUG_PRINT ("No secondary link layer available!\n");
+
+            if (self->llPriBalanced != NULL) {
+                LinkLayerPrimaryBalanced_resetIdleTimeout(self->llPriBalanced);
+            }
 
         } else { /* we are primary link layer */
             bool dir = ((c & 0x80) == 0x80); /* DIR - direction for balanced transmission */
