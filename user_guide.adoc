@@ -1,4 +1,4 @@
-= lib60870-C 2.1.0 User Guide
+= lib60870-C 2.2.0 User Guide
 Copyright 2018 MZ Automation GmbH
 
 == Introduction

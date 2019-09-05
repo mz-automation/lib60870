@@ -1,3 +1,18 @@
+Changes to version 2.2.0
+------------------------
+- CS 101/104 slave: added plugin interface
+- CS101 master: fixed setting of own address in balanced mode (#51)
+- CS101 slave: fixed bug in queue size initialization
+- Socket HAL (linux/bsd): set default backlog to 2 (see #50)
+- Socket HAL (linux/bsd): Socket_read detects closed socket
+- fixed bugs in file handling messages
+- fixed bug in OA decoding
+- add support to create and handle private or not supported ASDU types
+- CS104 master/slave: improved socket handling
+- CS104 slave: improved memory handling and memory consumption
+- removed CONFIG_CS104_SLAVE_POOL (and related) configuration option
+
+
 Changes to version 2.1.1
 ------------------------
 - CS 104 slave: added functions IMasterConnection_getPeerAddress and IMasterConnection_close
