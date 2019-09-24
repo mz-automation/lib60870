@@ -322,6 +322,8 @@ Socket_connect(Socket self, const char* address, int port)
 
     close (self->fd);
 
+    self->fd = -1;
+
     return false;
 }
 
