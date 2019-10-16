@@ -100,25 +100,7 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
         CS101_ASDU_addInformationObject(newAsdu, io);
 
         CS101_ASDU_addInformationObject(newAsdu, (InformationObject)
-            SinglePointInformation_create((SinglePointInformation) io, 105, false, IEC60870_QUALITY_GOOD));
-
-        InformationObject_destroy(io);
-
-        IMasterConnection_sendASDU(connection, newAsdu);
-
-        CS101_ASDU_destroy(newAsdu);
-
-        newAsdu = CS101_ASDU_create(alParams, true, CS101_COT_INTERROGATED_BY_STATION,
-                0, 1, false, false);
-
-        CS101_ASDU_addInformationObject(newAsdu, io = (InformationObject) SinglePointInformation_create(NULL, 300, true, IEC60870_QUALITY_GOOD));
-        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 301, false, IEC60870_QUALITY_GOOD));
-        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 302, true, IEC60870_QUALITY_GOOD));
-        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 303, false, IEC60870_QUALITY_GOOD));
-        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 304, true, IEC60870_QUALITY_GOOD));
-        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 305, false, IEC60870_QUALITY_GOOD));
-        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 306, true, IEC60870_QUALITY_GOOD));
-        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 307, false, IEC60870_QUALITY_GOOD));
+            SinglePointInformation_create((SinglePointInformation) io, 11289, false, IEC60870_QUALITY_GOOD));
 
         InformationObject_destroy(io);
 
@@ -127,11 +109,27 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
         CS101_ASDU_destroy(newAsdu);
 
         newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_INTERROGATED_BY_STATION,
-                        0, 1, false, false);
+                    0, 1, false, false);
 
-        io = (InformationObject) BitString32_create(NULL, 500, 0xaaaa);
-
+        io = (InformationObject) MeasuredValueShort_create(NULL, 200, 0.314159, IEC60870_QUALITY_GOOD);
         CS101_ASDU_addInformationObject(newAsdu, io);
+
+        InformationObject_destroy(io);
+        IMasterConnection_sendASDU(connection, newAsdu);
+
+        CS101_ASDU_destroy(newAsdu);
+
+        newAsdu = CS101_ASDU_create(alParams, true, CS101_COT_INTERROGATED_BY_STATION,
+                0, 1, false, false);
+
+        CS101_ASDU_addInformationObject(newAsdu, io = (InformationObject) SinglePointInformation_create(NULL, 300, true, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 301, true, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 302, true, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 303, false, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 304, true, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 305, false, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 306, true, IEC60870_QUALITY_GOOD));
+        CS101_ASDU_addInformationObject(newAsdu, (InformationObject) SinglePointInformation_create((SinglePointInformation) io, 307, false, IEC60870_QUALITY_GOOD));
 
         InformationObject_destroy(io);
 
@@ -182,6 +180,54 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
         IMasterConnection_sendASDU(connection, asdu);
 
         return true;
+    } else if (CS101_ASDU_getTypeID(asdu) == C_SE_NB_1) {
+      printf("received scaled setpoint command\n");
+
+      if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION) {
+        InformationObject io = CS101_ASDU_getElement(asdu, 0);
+
+        if (InformationObject_getObjectAddress(io) == 5001) {
+          SetpointCommandScaled sc = (SetpointCommandScaled) io;
+
+          printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
+                        SetpointCommandScaled_getValue(sc));
+          CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+        } else {
+          CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
+        }
+
+        InformationObject_destroy(io);
+
+      } else {
+        CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
+      }
+
+      IMasterConnection_sendASDU(connection, asdu);
+      return true;
+    } else if (CS101_ASDU_getTypeID(asdu) == C_SE_NC_1) {
+      printf("received scaled setpoint command\n");
+
+      if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION) {
+        InformationObject io = CS101_ASDU_getElement(asdu, 0);
+
+        if (InformationObject_getObjectAddress(io) == 5002) {
+          SetpointCommandShort sc = (SetpointCommandShort) io;
+
+          printf("IOA: %i switch to %g\n", InformationObject_getObjectAddress(io),
+                        SetpointCommandShort_getValue(sc));
+          CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+        } else {
+          CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
+        }
+
+        InformationObject_destroy(io);
+
+      } else {
+        CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
+      }
+
+      IMasterConnection_sendASDU(connection, asdu);
+      return true;
     }
 
     return false;

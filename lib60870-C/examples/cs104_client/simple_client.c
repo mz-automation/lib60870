@@ -136,7 +136,7 @@ main(int argc, char** argv)
         CS104_Connection_setLocalAddress(con, localIp, localPort);
 
     /* uncomment to log messages */
-    //CS104_Connection_setRawMessageHandler(con, rawMessageHandler, NULL);
+    CS104_Connection_setRawMessageHandler(con, rawMessageHandler, NULL);
 
     if (CS104_Connection_connect(con)) {
         printf("Connected!\n");
