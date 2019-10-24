@@ -1670,7 +1670,8 @@ sendASDUInternal(MasterConnection self, CS101_ASDU asdu)
 }
 
 
-static void responseCOTUnknown(CS101_ASDU asdu, MasterConnection self)
+static void
+responseCOTUnknown(CS101_ASDU asdu, MasterConnection self)
 {
     DEBUG_PRINT("  with unknown COT\n");
     CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
@@ -1682,8 +1683,10 @@ static void responseCOTUnknown(CS101_ASDU asdu, MasterConnection self)
  * Handle received ASDUs
  *
  * Call the appropriate callbacks according to ASDU type and CoT
+ *
+ * \return true when ASDU is valid, false otherwise (e.g. corrupted message data)
  */
-static void
+static bool
 handleASDU(MasterConnection self, CS101_ASDU asdu)
 {
     bool messageHandled = false;
@@ -1699,7 +1702,7 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
             CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
 
             if (plugin->handleAsdu(plugin->parameter, &(self->iMasterConnection), asdu))
-                return;
+                return true;
 
             pluginElem = LinkedList_getNext(pluginElem);
         }
@@ -1720,9 +1723,14 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
                 InterrogationCommand irc = (InterrogationCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (slave->interrogationHandler(slave->interrogationHandlerParameter,
-                        &(self->iMasterConnection), asdu, InterrogationCommand_getQOI(irc)))
-                    messageHandled = true;
+                if (irc) {
+                    if (slave->interrogationHandler(slave->interrogationHandlerParameter,
+                            &(self->iMasterConnection), asdu, InterrogationCommand_getQOI(irc)))
+                        messageHandled = true;
+                }
+                else
+                    return false;
+
             }
         }
         else
@@ -1742,9 +1750,13 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
                 CounterInterrogationCommand cic = (CounterInterrogationCommand)  CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (slave->counterInterrogationHandler(slave->counterInterrogationHandlerParameter,
-                        &(self->iMasterConnection), asdu, CounterInterrogationCommand_getQCC(cic)))
-                    messageHandled = true;
+                if (cic) {
+                    if (slave->counterInterrogationHandler(slave->counterInterrogationHandlerParameter,
+                            &(self->iMasterConnection), asdu, CounterInterrogationCommand_getQCC(cic)))
+                        messageHandled = true;
+                }
+                else
+                    return false;
             }
         }
         else
@@ -1763,9 +1775,13 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
                 ReadCommand rc = (ReadCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (slave->readHandler(slave->readHandlerParameter,
-                        &(self->iMasterConnection), asdu, InformationObject_getObjectAddress((InformationObject) rc)))
-                    messageHandled = true;
+                if (rc) {
+                    if (slave->readHandler(slave->readHandlerParameter,
+                            &(self->iMasterConnection), asdu, InformationObject_getObjectAddress((InformationObject) rc)))
+                        messageHandled = true;
+                }
+                else
+                    return false;
             }
         }
         else
@@ -1785,29 +1801,33 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
                 ClockSynchronizationCommand csc = (ClockSynchronizationCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                CP56Time2a newTime = ClockSynchronizationCommand_getTime(csc);
+                if (csc) {
+                    CP56Time2a newTime = ClockSynchronizationCommand_getTime(csc);
 
-                if (slave->clockSyncHandler(slave->clockSyncHandlerParameter,
-                        &(self->iMasterConnection), asdu, newTime)) {
+                    if (slave->clockSyncHandler(slave->clockSyncHandlerParameter,
+                            &(self->iMasterConnection), asdu, newTime)) {
 
-                    CS101_ASDU_removeAllElements(asdu);
+                        CS101_ASDU_removeAllElements(asdu);
 
-                    ClockSynchronizationCommand_create(csc, 0, newTime);
+                        ClockSynchronizationCommand_create(csc, 0, newTime);
 
-                    CS101_ASDU_addInformationObject(asdu, (InformationObject) csc);
+                        CS101_ASDU_addInformationObject(asdu, (InformationObject) csc);
 
-                    CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                        CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
 
-                    CS104_Slave_enqueueASDU(slave, asdu);
+                        CS104_Slave_enqueueASDU(slave, asdu);
+                    }
+                    else {
+                        CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                        CS101_ASDU_setNegative(asdu, true);
+
+                        sendASDUInternal(self, asdu);
+                    }
+
+                    messageHandled = true;
                 }
-                else {
-                    CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
-                    CS101_ASDU_setNegative(asdu, true);
-
-                    sendASDUInternal(self, asdu);
-                }
-
-                messageHandled = true;
+                else
+                    return false;
             }
         }
         else
@@ -1844,9 +1864,13 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
                 ResetProcessCommand rpc = (ResetProcessCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (slave->resetProcessHandler(slave->resetProcessHandlerParameter,
-                        &(self->iMasterConnection), asdu, ResetProcessCommand_getQRP(rpc)))
-                    messageHandled = true;
+                if (rpc) {
+                    if (slave->resetProcessHandler(slave->resetProcessHandlerParameter,
+                            &(self->iMasterConnection), asdu, ResetProcessCommand_getQRP(rpc)))
+                        messageHandled = true;
+                }
+                else
+                    return false;
             }
 
         }
@@ -1867,9 +1891,14 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
                 DelayAcquisitionCommand dac = (DelayAcquisitionCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (slave->delayAcquisitionHandler(slave->delayAcquisitionHandlerParameter,
-                        &(self->iMasterConnection), asdu, DelayAcquisitionCommand_getDelay(dac)))
-                    messageHandled = true;
+                if (dac) {
+                    if (slave->delayAcquisitionHandler(slave->delayAcquisitionHandlerParameter,
+                            &(self->iMasterConnection), asdu, DelayAcquisitionCommand_getDelay(dac)))
+                        messageHandled = true;
+                }
+                else
+                    return false;
+
             }
         }
         else
@@ -1892,6 +1921,8 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
         CS101_ASDU_setNegative(asdu, true);
         sendASDUInternal(self, asdu);
     }
+
+    return true;
 }
 
 static bool
@@ -2006,103 +2037,134 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 {
     uint64_t currentTime = Hal_getTimeInMs();
 
-    if ((buffer[2] & 1) == 0) {
+    if (msgSize >= 3) {
 
-        if (msgSize < 7) {
-            DEBUG_PRINT("Received I msg too small!\n");
+        if (buffer[0] != 0x68) {
+            DEBUG_PRINT("Invalid START character!");
             return false;
         }
 
-        if (self->timeoutT2Triggered == false) {
-            self->timeoutT2Triggered = true;
-            self->lastConfirmationTime = currentTime; /* start timeout T2 */
-        }
+        uint8_t lengthOfApdu = buffer[1];
 
-        int frameSendSequenceNumber = ((buffer [3] * 0x100) + (buffer [2] & 0xfe)) / 2;
-        int frameRecvSequenceNumber = ((buffer [5] * 0x100) + (buffer [4] & 0xfe)) / 2;
-
-        DEBUG_PRINT("Received I frame: N(S) = %i N(R) = %i\n", frameSendSequenceNumber, frameRecvSequenceNumber);
-
-        if (frameSendSequenceNumber != self->receiveCount) {
-            DEBUG_PRINT("Sequence error: Close connection!");
+        if (lengthOfApdu != msgSize - 2) {
+            DEBUG_PRINT("Invalid length of APDU");
             return false;
         }
 
-        if (checkSequenceNumber (self, frameRecvSequenceNumber) == false) {
-            DEBUG_PRINT("Sequence number check failed");
-            return false;
+        if ((buffer[2] & 1) == 0) {
+
+            if (msgSize < 7) {
+                DEBUG_PRINT("Received I msg too small!");
+                return false;
+            }
+
+            if (self->timeoutT2Triggered == false) {
+                self->timeoutT2Triggered = true;
+                self->lastConfirmationTime = currentTime; /* start timeout T2 */
+            }
+
+            int frameSendSequenceNumber = ((buffer [3] * 0x100) + (buffer [2] & 0xfe)) / 2;
+            int frameRecvSequenceNumber = ((buffer [5] * 0x100) + (buffer [4] & 0xfe)) / 2;
+
+            DEBUG_PRINT("Received I frame: N(S) = %i N(R) = %i\n", frameSendSequenceNumber, frameRecvSequenceNumber);
+
+            if (frameSendSequenceNumber != self->receiveCount) {
+                DEBUG_PRINT("Sequence error: Close connection!");
+                return false;
+            }
+
+            if (checkSequenceNumber (self, frameRecvSequenceNumber) == false) {
+                DEBUG_PRINT("Sequence number check failed");
+                return false;
+            }
+
+            self->receiveCount = (self->receiveCount + 1) % 32768;
+            self->unconfirmedReceivedIMessages++;
+
+            if (self->isActive) {
+
+                CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->slave->alParameters), buffer + 6, msgSize - 6);
+
+                if (asdu) {
+                    bool validAsdu = handleASDU(self, asdu);
+
+                    CS101_ASDU_destroy(asdu);
+
+                    if (validAsdu == false) {
+                        DEBUG_PRINT("ASDU corrupted");
+                        return false;
+                    }
+                }
+                else {
+                    DEBUG_PRINT("Invalid ASDU");
+                    return false;
+                }
+            }
+            else
+                DEBUG_PRINT("Connection not activated. Skip I message");
+
         }
 
-        self->receiveCount = (self->receiveCount + 1) % 32768;
-        self->unconfirmedReceivedIMessages++;
+        /* Check for TESTFR_ACT message */
+        else if ((buffer[2] & 0x43) == 0x43) {
+            DEBUG_PRINT("Send TESTFR_CON\n");
 
-        if (self->isActive) {
-
-            CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->slave->alParameters), buffer + 6, msgSize - 6);
-
-            handleASDU(self, asdu);
-
-            CS101_ASDU_destroy(asdu);
+            if (writeToSocket(self, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE) < 0)
+                return false;
         }
-        else
-            DEBUG_PRINT("Connection not activated. Skip I message");
 
-    }
+        /* Check for STARTDT_ACT message */
+        else if ((buffer [2] & 0x07) == 0x07) {
+            CS104_Slave_activate(self->slave, self);
 
-    /* Check for TESTFR_ACT message */
-    else if ((buffer[2] & 0x43) == 0x43) {
-        DEBUG_PRINT("Send TESTFR_CON\n");
+            HighPriorityASDUQueue_resetConnectionQueue(self->highPrioQueue);
 
-        if (writeToSocket(self, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE) < 0)
-            return false;
-    }
+            DEBUG_PRINT("Send STARTDT_CON\n");
 
-    /* Check for STARTDT_ACT message */
-    else if ((buffer [2] & 0x07) == 0x07) {
-        CS104_Slave_activate(self->slave, self);
+            if (writeToSocket(self, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE) < 0)
+                return false;
+        }
 
-        HighPriorityASDUQueue_resetConnectionQueue(self->highPrioQueue);
+        /* Check for STOPDT_ACT message */
+        else if ((buffer [2] & 0x13) == 0x13) {
+            MasterConnection_deactivate(self);
 
-        DEBUG_PRINT("Send STARTDT_CON\n");
+            DEBUG_PRINT("Send STOPDT_CON\n");
 
-        if (writeToSocket(self, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE) < 0)
-            return false;
-    }
+            if (writeToSocket(self, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE) < 0)
+                return false;
+        }
 
-    /* Check for STOPDT_ACT message */
-    else if ((buffer [2] & 0x13) == 0x13) {
-        MasterConnection_deactivate(self);
+        /* Check for TESTFR_CON message */
+        else if ((buffer[2] & 0x83) == 0x83) {
+            DEBUG_PRINT("Recv TESTFR_CON\n");
 
-        DEBUG_PRINT("Send STOPDT_CON\n");
+            self->outstandingTestFRConMessages = 0;
+        }
 
-        if (writeToSocket(self, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE) < 0)
-            return false;
-    }
+        else if (buffer [2] == 0x01) { /* S-message */
+            int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
 
-    /* Check for TESTFR_CON message */
-    else if ((buffer[2] & 0x83) == 0x83) {
-        DEBUG_PRINT("Recv TESTFR_CON\n");
+            DEBUG_PRINT("Rcvd S(%i) (own sendcounter = %i)\n", seqNo, self->sendCount);
 
-        self->outstandingTestFRConMessages = 0;
-    }
+            if (checkSequenceNumber(self, seqNo) == false)
+                return false;
+        }
 
-    else if (buffer [2] == 0x01) { /* S-message */
-        int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
+        else {
+            DEBUG_PRINT("unknown message - IGNORE\n");
+            return true;
+        }
 
-        DEBUG_PRINT("Rcvd S(%i) (own sendcounter = %i)\n", seqNo, self->sendCount);
+        resetT3Timeout(self);
 
-        if (checkSequenceNumber(self, seqNo) == false)
-            return false;
-    }
-
-    else {
-        DEBUG_PRINT("unknown message - IGNORE\n");
         return true;
     }
+    else {
+        DEBUG_PRINT("Invalid message (too small)");
+        return false;
+    }
 
-    resetT3Timeout(self);
-
-    return true;
 }
 
 static void
