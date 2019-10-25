@@ -12,7 +12,7 @@ Features:
 - CS 104 redundancy group support
 - portable C99 code
 
-Please also consider the User Guide.
+Please also consider the User Guide and the API reference documentation (https://support.mz-automation.de/doc/lib60870/latest/)
 
 
 ## Compiling and running the examples:
