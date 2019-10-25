@@ -1,5 +1,6 @@
 Changes to version 2.2.0
 ------------------------
+- CS 101/104 slave: improved stability when receiving corrupted messages
 - CS 101/104 slave: added plugin interface
 - CS101 master: fixed setting of own address in balanced mode (#51)
 - CS101 slave: fixed bug in queue size initialization

@@ -2180,7 +2180,6 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
         DEBUG_PRINT("Invalid message (too small)");
         return false;
     }
-
 }
 
 static void
