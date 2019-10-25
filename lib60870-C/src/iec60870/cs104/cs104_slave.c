@@ -1701,7 +1701,9 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
             CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
 
-            if (plugin->handleAsdu(plugin->parameter, &(self->iMasterConnection), asdu))
+            CS101_SlavePlugin_Result result = plugin->handleAsdu(plugin->parameter, &(self->iMasterConnection), asdu);
+
+            if (result == CS101_PLUGIN_RESULT_HANDLED)
                 return true;
 
             pluginElem = LinkedList_getNext(pluginElem);

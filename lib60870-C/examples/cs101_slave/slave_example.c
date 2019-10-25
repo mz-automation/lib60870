@@ -206,7 +206,7 @@ main(int argc, char** argv)
     /* Add Ctrl-C handler */
     signal(SIGINT, sigint_handler);
 
-    const char* serialPort = "/dev/ttyUSB1";
+    const char* serialPort = "/dev/ttyUSB2";
 
     if (argc > 1)
         serialPort = argv[1];
