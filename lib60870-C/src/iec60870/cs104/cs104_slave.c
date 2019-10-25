@@ -2026,9 +2026,23 @@ checkSequenceNumber(MasterConnection self, int seqNo)
 }
 
 static void
-resetT3Timeout(MasterConnection self)
+resetT3Timeout(MasterConnection self, uint64_t currentTime)
 {
-    self->nextT3Timeout = Hal_getTimeInMs() + (uint64_t) (self->slave->conParameters.t3 * 1000);
+    self->nextT3Timeout = currentTime + (uint64_t) (self->slave->conParameters.t3 * 1000);
+}
+
+static bool
+checkT3Timeout(MasterConnection self, uint64_t currentTime)
+{
+    if (self->nextT3Timeout > (currentTime + (uint64_t) (self->slave->conParameters.t3 * 1000))) {
+        /* timeout value not plausible (maybe system time changed) */
+        resetT3Timeout(self, currentTime);
+    }
+
+    if (currentTime > self->nextT3Timeout)
+        return true;
+    else
+        return false;
 }
 
 
@@ -2156,7 +2170,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             return true;
         }
 
-        resetT3Timeout(self);
+        resetT3Timeout(self, currentTime);
 
         return true;
     }
@@ -2333,7 +2347,7 @@ handleTimeouts(MasterConnection self)
     bool timeoutsOk = true;
 
     /* check T3 timeout */
-    if (currentTime > self->nextT3Timeout) {
+    if (checkT3Timeout(self, currentTime)) {
 
         if (self->outstandingTestFRConMessages > 2) {
             DEBUG_PRINT("Timeout for TESTFR CON message\n");
@@ -2350,12 +2364,19 @@ handleTimeouts(MasterConnection self)
             }
 
             self->outstandingTestFRConMessages++;
-            resetT3Timeout(self);
+            resetT3Timeout(self, currentTime);
         }
     }
 
     /* check timeout for others station I messages */
     if (self->unconfirmedReceivedIMessages > 0) {
+
+        /* Check validity of last confirmation time */
+        if (self->lastConfirmationTime != UINT64_MAX && self->lastConfirmationTime > currentTime) {
+            /* last confirmation time is in the future (maybe caused by system time change) */
+            self->lastConfirmationTime = currentTime;
+        }
+
         if (currentTime > self->lastConfirmationTime) {
             if ((currentTime - self->lastConfirmationTime) >= (uint64_t) (self->slave->conParameters.t2 * 1000)) {
                 self->lastConfirmationTime = currentTime;
@@ -2374,6 +2395,13 @@ handleTimeouts(MasterConnection self)
     if (self->oldestSentASDU != -1) {
 
         if (currentTime > self->sentASDUs[self->oldestSentASDU].sentTime) {
+
+            /* check validity of sent time */
+
+            if (self->sentASDUs[self->oldestSentASDU].sentTime > currentTime) {
+                /* sent time is in the future (maybe caused by system time change) */
+                self->sentASDUs[self->oldestSentASDU].sentTime = currentTime;
+            }
 
             if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->slave->conParameters.t1 * 1000)) {
                 timeoutsOk = false;
@@ -2429,7 +2457,7 @@ connectionHandlingThread(void* parameter)
 
     self->isRunning = true;
 
-    resetT3Timeout(self);
+    resetT3Timeout(self, Hal_getTimeInMs());
 
     bool isAsduWaiting = false;
 
@@ -2657,7 +2685,7 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
         self->oldestSentASDU = -1;
         self->newestSentASDU = -1;
 
-        resetT3Timeout(self);
+        resetT3Timeout(self, Hal_getTimeInMs());
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         if (self->slave->tlsConfig != NULL) {

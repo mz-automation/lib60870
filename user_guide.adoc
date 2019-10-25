@@ -18,6 +18,7 @@ Here is a list of supported features:
 * Slave/Server supports sending data messages in monitoring direction and commands in reverse direction
 * The list of supported ASDU types can be found in the annex
 * The library supports user defined private ASDU types
+* Plugin interface for library extensions
 
 *NOTE:* CS stands for "companion standard" and specifies variants of the communication protocols and services defined in the IEC 60870-5 standard series.
 
