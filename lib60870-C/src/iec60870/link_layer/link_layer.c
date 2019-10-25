@@ -1086,7 +1086,6 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 void
 LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
 {
-    /* TODO make timeouts dealing with time adjustments (time moves to past) */
     uint64_t currentTime = Hal_getTimeInMs();
 
     PrimaryLinkLayerState primaryState = self->primaryState;
@@ -1107,6 +1106,11 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
     case PLL_EXECUTE_REQUEST_STATUS_OF_LINK:
 
         if (self->waitingForResponse) {
+
+            if (self->lastSendTime > currentTime) {
+                /* last sent time not plausible! */
+                self->lastSendTime = currentTime;
+            }
 
             if (currentTime > (self->lastSendTime + self->linkLayer->linkLayerParameters->timeoutForAck)) {
 
@@ -1145,6 +1149,11 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
         break;
 
     case PLL_LINK_LAYERS_AVAILABLE:
+
+        if (self->lastReceivedMsg > currentTime) {
+            /* last received message not plausible */
+            self->lastReceivedMsg = currentTime;
+        }
 
         if ((currentTime - self->lastReceivedMsg) > (unsigned int) self->idleTimeout) {
             DEBUG_PRINT ("PLL - Idle timeout detected. Send link layer test function\n");
