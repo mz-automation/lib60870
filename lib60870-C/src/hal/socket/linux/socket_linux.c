@@ -311,10 +311,17 @@ Socket_connect(Socket self, const char* address, int port)
     timeout.tv_usec = (self->connectTimeout % 1000) * 1000;
 
     if (select(self->fd + 1, NULL, &fdSet , NULL, &timeout) == 1) {
-        int so_error;
+        int so_error = -1;
         socklen_t len = sizeof so_error;
 
-        getsockopt(self->fd, SOL_SOCKET, SO_ERROR, &so_error, &len);
+        if (!getsockopt(self->fd, SOL_SOCKET, SO_ERROR, &so_error, &len) && DEBUG_SOCKET) {
+
+            char errno_message[256];
+
+            strerror_r(errno, errno_message, sizeof(errno_message));
+
+            fprintf(stderr, "%s: getsockopt failed for socket fd %d: %d (%s)\n", __func__, self->fd, errno, errno_message);
+        }
 
         if (so_error == 0)
             return true;
