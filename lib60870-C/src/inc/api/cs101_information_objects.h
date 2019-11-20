@@ -585,7 +585,7 @@ void
 BitString32_destroy(BitString32 self);
 
 BitString32
-BitString32_create(BitString32 self, int ioa, uint32_t value);
+BitString32_create(BitString32 self, int ioa, uint32_t value, QualityDescriptor quality);
 
 uint32_t
 BitString32_getValue(BitString32 self);
@@ -603,7 +603,7 @@ void
 Bitstring32WithCP24Time2a_destroy(Bitstring32WithCP24Time2a self);
 
 Bitstring32WithCP24Time2a
-Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, CP24Time2a timestamp);
+Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP24Time2a timestamp);
 
 CP24Time2a
 Bitstring32WithCP24Time2a_getTimestamp(Bitstring32WithCP24Time2a self);
@@ -618,7 +618,7 @@ void
 Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self);
 
 Bitstring32WithCP56Time2a
-Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, CP56Time2a timestamp);
+Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP56Time2a timestamp);
 
 CP56Time2a
 Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self);

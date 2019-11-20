@@ -482,8 +482,8 @@ test_CS104SlaveEventQueue1()
 
     CS104_Connection_close(con);
 
-    TEST_ASSERT_EQUAL_INT(29, info.asduHandlerCalled);
-    TEST_ASSERT_EQUAL_INT(29, info.spontCount);
+    TEST_ASSERT_EQUAL_INT(30, info.asduHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(30, info.spontCount);
     TEST_ASSERT_EQUAL_INT(29, info.lastScaledValue);
 
     CS104_Connection_destroy(con);
@@ -525,6 +525,56 @@ test_IpAddressHandling(void)
     TEST_ASSERT_EQUAL_UINT8(0x0e, ipAddr1.address[15]);
 }
 
+void
+test_BitString32(void)
+{
+    BitString32 bs32;
+
+    bs32 = BitString32_create(NULL, 101, 0xaaaa, IEC60870_QUALITY_INVALID);
+
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID, BitString32_getQuality(bs32));
+
+    BitString32_destroy(bs32);
+
+    bs32 = BitString32_create(NULL, 101, 0xaaaa, IEC60870_QUALITY_INVALID | IEC60870_QUALITY_NON_TOPICAL);
+
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID + IEC60870_QUALITY_NON_TOPICAL, BitString32_getQuality(bs32));
+
+    TEST_ASSERT_EQUAL_UINT32(0xaaaa, BitString32_getValue(bs32));
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject) bs32));
+
+    BitString32_destroy(bs32);
+
+    Bitstring32WithCP24Time2a bs32cp24;
+
+    struct sCP24Time2a cp24;
+
+    bs32cp24 = Bitstring32WithCP24Time2a_create(NULL, 100002, 0xbbbb, IEC60870_QUALITY_INVALID, &cp24);
+
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID, BitString32_getQuality((BitString32)bs32cp24));
+
+    TEST_ASSERT_EQUAL_UINT32(0xbbbb, BitString32_getValue((BitString32)bs32cp24));
+
+    TEST_ASSERT_EQUAL_INT(100002, InformationObject_getObjectAddress((InformationObject) bs32cp24));
+
+    Bitstring32WithCP24Time2a_destroy(bs32cp24);
+
+    Bitstring32WithCP56Time2a bs32cp56;
+
+    struct sCP56Time2a cp56;
+
+    bs32cp56 = Bitstring32WithCP56Time2a_create(NULL, 1000002, 0xcccc, IEC60870_QUALITY_INVALID | IEC60870_QUALITY_NON_TOPICAL, &cp56);
+
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID + IEC60870_QUALITY_NON_TOPICAL, BitString32_getQuality((BitString32)bs32cp56));
+
+    TEST_ASSERT_EQUAL_UINT32(0xcccc, BitString32_getValue((BitString32)bs32cp56));
+
+    TEST_ASSERT_EQUAL_INT(1000002, InformationObject_getObjectAddress((InformationObject) bs32cp56));
+
+    Bitstring32WithCP56Time2a_destroy(bs32cp56);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -534,6 +584,7 @@ main(int argc, char** argv)
     RUN_TEST(test_StepPositionInformation);
     RUN_TEST(test_addMaxNumberOfIOsToASDU);
     RUN_TEST(test_SingleEventType);
+    RUN_TEST(test_BitString32);
     RUN_TEST(test_EventOfProtectionEquipmentWithTime);
     RUN_TEST(test_IpAddressHandling);
 
