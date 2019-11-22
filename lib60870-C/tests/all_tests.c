@@ -611,11 +611,43 @@ test_CS104_Slave_CreateDestroy(void)
 	CS104_Slave_destroy(slave);
 }
 
+void
+test_CS104_Connection_CreateDestroy(void)
+{
+	CS104_Connection con = CS104_Connection_create("127.0.0.1", 2404);
+
+	TEST_ASSERT_NOT_NULL(con);
+
+	CS104_Connection_destroy(con);
+}
+
+void
+test_CS104_MasterSlave_CreateDestroy(void)
+{
+	CS104_Slave slave = CS104_Slave_create(100, 100);
+
+	TEST_ASSERT_NOT_NULL(slave);
+
+	CS104_Slave_setLocalPort(slave, 20004);
+
+	CS104_Connection con = CS104_Connection_create("127.0.0.1", 20004);
+
+	TEST_ASSERT_NOT_NULL(con);
+
+	CS104_Connection_connect(con);
+
+	CS104_Slave_destroy(slave);
+
+	CS104_Connection_destroy(con);
+}
+
 int
 main(int argc, char** argv)
 {
     UNITY_BEGIN();
     RUN_TEST(test_CS104_Slave_CreateDestroy);
+    RUN_TEST(test_CS104_Connection_CreateDestroy);
+    RUN_TEST(test_CS104_MasterSlave_CreateDestroy);
     RUN_TEST(test_CP56Time2a);
     RUN_TEST(test_CP56Time2aToMsTimestamp);
     RUN_TEST(test_StepPositionInformation);
