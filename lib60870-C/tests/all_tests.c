@@ -530,13 +530,19 @@ test_BitString32(void)
 {
     BitString32 bs32;
 
-    bs32 = BitString32_create(NULL, 101, 0xaaaa, IEC60870_QUALITY_INVALID);
+    bs32 = BitString32_createEx(NULL, 101, 0xaaaa, IEC60870_QUALITY_INVALID);
 
     TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID, BitString32_getQuality(bs32));
 
     BitString32_destroy(bs32);
 
-    bs32 = BitString32_create(NULL, 101, 0xaaaa, IEC60870_QUALITY_INVALID | IEC60870_QUALITY_NON_TOPICAL);
+	bs32 = BitString32_create(NULL, 101, 0xaaaa);
+
+	TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_GOOD, BitString32_getQuality(bs32));
+
+	BitString32_destroy(bs32);
+
+    bs32 = BitString32_createEx(NULL, 101, 0xaaaa, IEC60870_QUALITY_INVALID | IEC60870_QUALITY_NON_TOPICAL);
 
     TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID + IEC60870_QUALITY_NON_TOPICAL, BitString32_getQuality(bs32));
 
@@ -550,7 +556,7 @@ test_BitString32(void)
 
     struct sCP24Time2a cp24;
 
-    bs32cp24 = Bitstring32WithCP24Time2a_create(NULL, 100002, 0xbbbb, IEC60870_QUALITY_INVALID, &cp24);
+    bs32cp24 = Bitstring32WithCP24Time2a_createEx(NULL, 100002, 0xbbbb, IEC60870_QUALITY_INVALID, &cp24);
 
     TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID, BitString32_getQuality((BitString32)bs32cp24));
 
@@ -560,13 +566,33 @@ test_BitString32(void)
 
     Bitstring32WithCP24Time2a_destroy(bs32cp24);
 
+    bs32cp24 = Bitstring32WithCP24Time2a_create(NULL, 100002, 0xbbbb, &cp24);
+
+	TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_GOOD, BitString32_getQuality((BitString32)bs32cp24));
+
+	TEST_ASSERT_EQUAL_UINT32(0xbbbb, BitString32_getValue((BitString32)bs32cp24));
+
+	TEST_ASSERT_EQUAL_INT(100002, InformationObject_getObjectAddress((InformationObject) bs32cp24));
+
+	Bitstring32WithCP24Time2a_destroy(bs32cp24);
+
     Bitstring32WithCP56Time2a bs32cp56;
 
     struct sCP56Time2a cp56;
 
-    bs32cp56 = Bitstring32WithCP56Time2a_create(NULL, 1000002, 0xcccc, IEC60870_QUALITY_INVALID | IEC60870_QUALITY_NON_TOPICAL, &cp56);
+    bs32cp56 = Bitstring32WithCP56Time2a_createEx(NULL, 1000002, 0xcccc, IEC60870_QUALITY_INVALID | IEC60870_QUALITY_NON_TOPICAL, &cp56);
 
     TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID + IEC60870_QUALITY_NON_TOPICAL, BitString32_getQuality((BitString32)bs32cp56));
+
+    TEST_ASSERT_EQUAL_UINT32(0xcccc, BitString32_getValue((BitString32)bs32cp56));
+
+    TEST_ASSERT_EQUAL_INT(1000002, InformationObject_getObjectAddress((InformationObject) bs32cp56));
+
+    Bitstring32WithCP56Time2a_destroy(bs32cp56);
+
+    bs32cp56 = Bitstring32WithCP56Time2a_create(NULL, 1000002, 0xcccc, &cp56);
+
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_GOOD, BitString32_getQuality((BitString32)bs32cp56));
 
     TEST_ASSERT_EQUAL_UINT32(0xcccc, BitString32_getValue((BitString32)bs32cp56));
 

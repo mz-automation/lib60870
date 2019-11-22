@@ -1211,7 +1211,13 @@ BitString32_destroy(BitString32 self)
 }
 
 BitString32
-BitString32_create(BitString32 self, int ioa, uint32_t value, QualityDescriptor quality)
+BitString32_create(BitString32 self, int ioa, uint32_t value)
+{
+	return BitString32_createEx(self, ioa, value, IEC60870_QUALITY_GOOD);
+}
+
+BitString32
+BitString32_createEx(BitString32 self, int ioa, uint32_t value, QualityDescriptor quality)
 {
     if (self == NULL)
          self = (BitString32) GLOBAL_CALLOC(1, sizeof(struct sBitString32));
@@ -1318,7 +1324,13 @@ Bitstring32WithCP24Time2a_destroy(Bitstring32WithCP24Time2a self)
 }
 
 Bitstring32WithCP24Time2a
-Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP24Time2a timestamp)
+Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, CP24Time2a timestamp)
+{
+	return Bitstring32WithCP24Time2a_createEx(self, ioa, value, IEC60870_QUALITY_GOOD, timestamp);
+}
+
+Bitstring32WithCP24Time2a
+Bitstring32WithCP24Time2a_createEx(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP24Time2a timestamp)
 {
     if (self == NULL)
          self = (Bitstring32WithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sBitstring32WithCP24Time2a));
@@ -1423,7 +1435,13 @@ Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self)
 }
 
 Bitstring32WithCP56Time2a
-Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP56Time2a timestamp)
+Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, CP56Time2a timestamp)
+{
+	return Bitstring32WithCP56Time2a_createEx(self, ioa, value, IEC60870_QUALITY_GOOD, timestamp);
+}
+
+Bitstring32WithCP56Time2a
+Bitstring32WithCP56Time2a_createEx(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP56Time2a timestamp)
 {
     if (self == NULL)
          self = (Bitstring32WithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sBitstring32WithCP56Time2a));
