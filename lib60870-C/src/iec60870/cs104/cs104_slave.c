@@ -3433,8 +3433,10 @@ CS104_Slave_destroy(CS104_Slave self)
 #endif
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
-    if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
-        MessageQueue_releaseAllQueuedASDUs(self->asduQueue);
+    if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
+    	if (self->asduQueue)
+    		MessageQueue_releaseAllQueuedASDUs(self->asduQueue);
+    }
 #endif
 
     if (self->localAddress != NULL)

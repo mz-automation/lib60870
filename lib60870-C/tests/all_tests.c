@@ -575,10 +575,21 @@ test_BitString32(void)
     Bitstring32WithCP56Time2a_destroy(bs32cp56);
 }
 
+void
+test_CS104_Slave_CreateDestroy(void)
+{
+	CS104_Slave slave = CS104_Slave_create(100, 100);
+
+	TEST_ASSERT_NOT_NULL(slave);
+
+	CS104_Slave_destroy(slave);
+}
+
 int
 main(int argc, char** argv)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_CS104_Slave_CreateDestroy);
     RUN_TEST(test_CP56Time2a);
     RUN_TEST(test_CP56Time2aToMsTimestamp);
     RUN_TEST(test_StepPositionInformation);
