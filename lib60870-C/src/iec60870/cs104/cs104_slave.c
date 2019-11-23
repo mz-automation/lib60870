@@ -224,12 +224,12 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
     }
 
     if (self->entryCounter > 0) {
+
         if (nextMsgPtr <= self->firstEntry) {
 
             /* remove old entries until we have enough space for the new ASDU */
             while ((nextMsgPtr + entrySize > self->firstEntry) && (self->entryCounter > 0)) {
-                if (self->firstEntry != self->lastEntry) {
-
+            	if (self->firstEntry != self->lastEntry) {
                     uint8_t* thisEntry = self->firstEntry;
 
                     if (self->firstEntry != self->lastInBufferEntry) {
@@ -240,7 +240,6 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
                         self->firstEntry = self->buffer;
                         memcpy(&entryInfo, self->firstEntry, sizeof(struct sMessageQueueEntryInfo));
                         self->oldestTimestamp = entryInfo.entryTimestamp;
-
 
                         self->entryCounter--;
                         break;
@@ -307,7 +306,7 @@ MessageQueue_isAsduAvailable(MessageQueue self)
 static uint8_t*
 MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* timestamp, uint8_t** queueEntry, int* size)
 {
-    /* TODO optimze - maybe not required to loop the whole buffer! */
+    /* TODO optimize - maybe not required to loop the whole buffer! */
     uint8_t* buffer = NULL;
 
     if (self->entryCounter != 0) {
@@ -351,6 +350,10 @@ MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* timestamp, uint8_t*
 static void
 MessageQueue_setWaitingForTransmissionWhenNotConfirmed(MessageQueue self)
 {
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+
     if (self->entryCounter != 0) {
 
         uint8_t* entryPtr = self->firstEntry;
@@ -376,6 +379,10 @@ MessageQueue_setWaitingForTransmissionWhenNotConfirmed(MessageQueue self)
             memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
         }
     }
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->queueLock);
+#endif
 }
 
 static void
