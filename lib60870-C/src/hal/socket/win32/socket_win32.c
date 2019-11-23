@@ -298,29 +298,35 @@ Socket_connect(Socket self, const char* address, int port)
 
 	self->fd = socket(AF_INET, SOCK_STREAM, 0);
 
-#if CONFIG_ACTIVATE_TCP_KEEPALIVE == 1
-    activateKeepAlive(self->fd);
-#endif
+	if (self->fd != INVALID_SOCKET) {
+	#if CONFIG_ACTIVATE_TCP_KEEPALIVE == 1
+		activateKeepAlive(self->fd);
+	#endif
 
-    setSocketNonBlocking(self);
+		setSocketNonBlocking(self);
 
-    fd_set fdSet;
-    FD_ZERO(&fdSet);
-    FD_SET(self->fd, &fdSet);
+		fd_set fdSet;
+		FD_ZERO(&fdSet);
+		FD_SET(self->fd, &fdSet);
 
-    if (connect(self->fd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) == SOCKET_ERROR) {
-        if (WSAGetLastError() != WSAEWOULDBLOCK)
-            return false;
-    }
+		if (connect(self->fd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) == SOCKET_ERROR) {
+			if (WSAGetLastError() != WSAEWOULDBLOCK)
+				return false;
+		}
 
-    struct timeval timeout;
-    timeout.tv_sec = self->connectTimeout / 1000;
-    timeout.tv_usec = (self->connectTimeout % 1000) * 1000;
+		struct timeval timeout;
+		timeout.tv_sec = self->connectTimeout / 1000;
+		timeout.tv_usec = (self->connectTimeout % 1000) * 1000;
 
-    if (select(self->fd + 1, NULL, &fdSet, NULL, &timeout) <= 0)
-        return false;
-    else
-        return true;
+		if (select(self->fd + 1, NULL, &fdSet, NULL, &timeout) <= 0)
+			return false;
+		else
+			return true;
+	}
+	else {
+		return false;
+	}
+
 }
 
 char*

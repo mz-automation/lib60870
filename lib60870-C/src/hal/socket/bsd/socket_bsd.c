@@ -292,29 +292,44 @@ Socket_connect(Socket self, const char* address, int port)
 
     self->fd = socket(AF_INET, SOCK_STREAM, 0);
 
-#if CONFIG_ACTIVATE_TCP_KEEPALIVE == 1
-    activateKeepAlive(self->fd);
-#endif
+    if (self->fd != -1) {
+	#if CONFIG_ACTIVATE_TCP_KEEPALIVE == 1
+		activateKeepAlive(self->fd);
+	#endif
 
-    fd_set fdSet;
-    FD_ZERO(&fdSet);
-    FD_SET(self->fd, &fdSet);
+		fd_set fdSet;
+		FD_ZERO(&fdSet);
+		FD_SET(self->fd, &fdSet);
 
-    fcntl(self->fd, F_SETFL, O_NONBLOCK);
+		fcntl(self->fd, F_SETFL, O_NONBLOCK);
 
-    if (connect(self->fd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0) {
-        if (errno != EINPROGRESS)
-            return false;
+		if (connect(self->fd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0) {
+			if (errno != EINPROGRESS)
+				return false;
+		}
+
+		struct timeval timeout;
+		timeout.tv_sec = self->connectTimeout / 1000;
+		timeout.tv_usec = (self->connectTimeout % 1000) * 1000;
+
+		if (select(self->fd + 1, NULL, &fdSet, NULL, &timeout) == 1) {
+            int so_error;
+            socklen_t len = sizeof(so_error);
+
+            int res = getsockopt(self->fd, SOL_SOCKET, SO_ERROR, &so_error, &len);
+
+            if (res == 0) {
+                if (so_error == 0)
+                    return true;
+            }
+        }
+
+        close (self->fd);
+
+		self->fd = -1;
     }
 
-    struct timeval timeout;
-    timeout.tv_sec = self->connectTimeout / 1000;
-    timeout.tv_usec = (self->connectTimeout % 1000) * 1000;
-
-    if (select(self->fd + 1, NULL, &fdSet, NULL, &timeout) <= 0)
-        return false;
-    else
-        return true;
+    return false;
 }
 
 char*
