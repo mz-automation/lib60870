@@ -125,7 +125,7 @@ MessageQueue_initialize(MessageQueue self, int maxQueueSize)
 {
     self->size = maxQueueSize * (sizeof(struct sMessageQueueEntryInfo) + 256);
 
-    self->buffer = GLOBAL_CALLOC(1, self->size);
+    self->buffer = (uint8_t*) GLOBAL_CALLOC(1, self->size);
 
     DEBUG_PRINT("event queue buffer size: %i bytes\n", self->size);
 
@@ -452,7 +452,7 @@ HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self, int maxQueueSize)
 {
     self->size = maxQueueSize * (sizeof(uint16_t) + 256);
 
-    self->buffer = GLOBAL_CALLOC(1, self->size);
+    self->buffer = (uint8_t*) GLOBAL_CALLOC(1, self->size);
 
     self->firstEntry = NULL;
     self->lastEntry = NULL;

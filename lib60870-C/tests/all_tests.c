@@ -217,6 +217,7 @@ test_SingleEventType(void)
 void
 test_EventOfProtectionEquipmentWithTime(void)
 {
+#ifndef _WIN32
     tSingleEvent singleEvent = 0;
     struct sCP16Time2a elapsedTime;
     struct sCP56Time2a timestamp;
@@ -255,6 +256,7 @@ test_EventOfProtectionEquipmentWithTime(void)
     CS101_ASDU_destroy(asdu2);
 
     TEST_ASSERT_EQUAL_INT(0, qdp);
+#endif
 }
 
 
