@@ -643,6 +643,20 @@ test_CS104_MasterSlave_CreateDestroy(void)
 	CS104_Connection_destroy(con);
 }
 
+void
+test_CS104_Connection_ConnectTimeout(void)
+{
+	CS104_Connection con = CS104_Connection_create("192.168.3.120", 2404);
+
+	TEST_ASSERT_NOT_NULL(con);
+
+	bool result = CS104_Connection_connect(con);
+
+	TEST_ASSERT_FALSE(result);
+
+	CS104_Connection_destroy(con);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -663,6 +677,8 @@ main(int argc, char** argv)
     RUN_TEST(test_CS104SlaveSingleRedundancyGroup);
 
     RUN_TEST(test_CS104SlaveEventQueue1);
+
+    RUN_TEST(test_CS104_Connection_ConnectTimeout);
 
     return UNITY_END();
 }

@@ -728,97 +728,102 @@ handleConnection(void* parameter)
 
     self->socket = TcpSocket_create();
 
-    Socket_setConnectTimeout(self->socket, self->connectTimeoutInMs);
+    if (self->socket) {
+        Socket_setConnectTimeout(self->socket, self->connectTimeoutInMs);
 
-    if (Socket_connect(self->socket, self->hostname, self->tcpPort)) {
+        if (Socket_connect(self->socket, self->hostname, self->tcpPort)) {
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
-        if (self->tlsConfig != NULL) {
-            self->tlsSocket = TLSSocket_create(self->socket, self->tlsConfig, false);
+            if (self->tlsConfig != NULL) {
+                self->tlsSocket = TLSSocket_create(self->socket, self->tlsConfig, false);
 
-            if (self->tlsSocket)
-                self->running = true;
+                if (self->tlsSocket)
+                    self->running = true;
+                else
+                    self->failure = true;
+            }
             else
-                self->failure = true;
-        }
-        else
-            self->running = true;
+                self->running = true;
 #else
-        self->running = true;
+            self->running = true;
 #endif
 
-        if (self->running) {
+            if (self->running) {
 
-            /* Call connection handler */
-            if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_OPENED);
+                /* Call connection handler */
+                if (self->connectionHandler != NULL)
+                    self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_OPENED);
 
-            HandleSet handleSet = Handleset_new();
+                HandleSet handleSet = Handleset_new();
 
-            bool loopRunning = true;
+                bool loopRunning = true;
 
-            while (loopRunning) {
+                while (loopRunning) {
 
-                Handleset_reset(handleSet);
-                Handleset_addSocket(handleSet, self->socket);
+                    Handleset_reset(handleSet);
+                    Handleset_addSocket(handleSet, self->socket);
 
-                if (Handleset_waitReady(handleSet, 100)) {
-                    int bytesRec = receiveMessage(self);
+                    if (Handleset_waitReady(handleSet, 100)) {
+                        int bytesRec = receiveMessage(self);
 
-                    if (bytesRec == -1) {
-                        loopRunning = false;
-                        self->failure = true;
-                    }
-
-                    if (bytesRec > 0) {
-
-                        if (self->rawMessageHandler)
-                            self->rawMessageHandler(self->rawMessageHandlerParameter, self->recvBuffer, bytesRec, false);
-
-                        if (checkMessage(self, self->recvBuffer, bytesRec) == false) {
-                            /* close connection on error */
+                        if (bytesRec == -1) {
                             loopRunning = false;
                             self->failure = true;
                         }
+
+                        if (bytesRec > 0) {
+
+                            if (self->rawMessageHandler)
+                                self->rawMessageHandler(self->rawMessageHandlerParameter, self->recvBuffer, bytesRec, false);
+
+                            if (checkMessage(self, self->recvBuffer, bytesRec) == false) {
+                                /* close connection on error */
+                                loopRunning = false;
+                                self->failure = true;
+                            }
+                        }
+
+                        if (self->unconfirmedReceivedIMessages >= self->parameters.w) {
+                            self->lastConfirmationTime = Hal_getTimeInMs();
+                            self->unconfirmedReceivedIMessages = 0;
+                            self->timeoutT2Trigger = false;
+                            sendSMessage(self);
+                        }
                     }
 
-                    if (self->unconfirmedReceivedIMessages >= self->parameters.w) {
-                        self->lastConfirmationTime = Hal_getTimeInMs();
-                        self->unconfirmedReceivedIMessages = 0;
-                        self->timeoutT2Trigger = false;
-                        sendSMessage(self);
-                    }
+                    if (handleTimeouts(self) == false)
+                        loopRunning = false;
+
+                    if (self->close)
+                        loopRunning = false;
                 }
 
-                if (handleTimeouts(self) == false)
-                    loopRunning = false;
+                Handleset_destroy(handleSet);
 
-                if (self->close)
-                    loopRunning = false;
+                /* Call connection handler */
+                if (self->connectionHandler != NULL)
+                    self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_CLOSED);
+
             }
-
-            Handleset_destroy(handleSet);
-
-            /* Call connection handler */
-            if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_CLOSED);
-
         }
+        else {
+            self->failure = true;
+        }
+
+    #if (CONFIG_CS104_SUPPORT_TLS == 1)
+        if (self->tlsSocket)
+            TLSSocket_close(self->tlsSocket);
+    #endif
+
+        Socket_destroy(self->socket);
     }
     else {
-        self->failure = true;
+    	DEBUG_PRINT("Failed to create socket\n");
     }
 
-#if (CONFIG_CS104_SUPPORT_TLS == 1)
-    if (self->tlsSocket)
-        TLSSocket_close(self->tlsSocket);
-#endif
-
-    Socket_destroy(self->socket);
+    self->running = false;
 
     DEBUG_PRINT("EXIT CONNECTION HANDLING THREAD\n");
-
-    self->running = false;
 
     return NULL;
 }
