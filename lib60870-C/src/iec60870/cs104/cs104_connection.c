@@ -799,10 +799,6 @@ handleConnection(void* parameter)
 
             Handleset_destroy(handleSet);
 
-            /* Call connection handler */
-            if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_CLOSED);
-
         }
     }
     else {
@@ -816,9 +812,13 @@ handleConnection(void* parameter)
 
     Socket_destroy(self->socket);
 
-    DEBUG_PRINT("EXIT CONNECTION HANDLING THREAD\n");
-
     self->running = false;
+
+    /* Call connection handler */
+    if (self->connectionHandler != NULL)
+        self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_CLOSED);
+
+    DEBUG_PRINT("EXIT CONNECTION HANDLING THREAD\n");
 
     return NULL;
 }
