@@ -1180,7 +1180,7 @@ BitString32_encode(BitString32 self, Frame frame, CS101_AppLayerParameters param
 
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
-    int value = self->value;
+    uint32_t value = self->value;
 
     Frame_setNextByte(frame, (uint8_t) (value % 0x100));
     Frame_setNextByte(frame, (uint8_t) ((value / 0x100) % 0x100));
@@ -1290,7 +1290,7 @@ Bitstring32WithCP24Time2a_encode(Bitstring32WithCP24Time2a self, Frame frame, CS
 
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
-    int value = self->value;
+    uint32_t  value = self->value;
 
     Frame_setNextByte(frame, (uint8_t) (value % 0x100));
     Frame_setNextByte(frame, (uint8_t) ((value / 0x100) % 0x100));
@@ -1401,7 +1401,7 @@ Bitstring32WithCP56Time2a_encode(Bitstring32WithCP56Time2a self, Frame frame, CS
 
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
-    int value = self->value;
+    uint32_t  value = self->value;
 
     Frame_setNextByte(frame, (uint8_t) (value % 0x100));
     Frame_setNextByte(frame, (uint8_t) ((value / 0x100) % 0x100));
