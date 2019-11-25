@@ -613,9 +613,9 @@ test_BitString32xx_encodeDecode(void)
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
-    BitString32 bs32_1 = BitString32_createEx(NULL, 101, 0xaaaa, IEC60870_QUALITY_INVALID);
-    BitString32 bs32_2 = BitString32_create(NULL, 102, 0x0000);
-    BitString32 bs32_3 = BitString32_create(NULL, 103, 0xffff);
+    BitString32 bs32_1 = BitString32_createEx(NULL, 101, (uint32_t) 0xaaaaaaaaaa, IEC60870_QUALITY_INVALID);
+    BitString32 bs32_2 = BitString32_create(NULL, 102, (uint32_t) 0x0000000000);
+    BitString32 bs32_3 = BitString32_create(NULL, 103, (uint32_t) 0xffffffffffUL);
 
     CS101_ASDU_addInformationObject(asdu, (InformationObject) bs32_1);
     CS101_ASDU_addInformationObject(asdu, (InformationObject) bs32_2);
@@ -634,13 +634,13 @@ test_BitString32xx_encodeDecode(void)
     BitString32 bs32_2_dec = (BitString32) CS101_ASDU_getElement(asdu2, 1);
     BitString32 bs32_3_dec = (BitString32) CS101_ASDU_getElement(asdu2, 2);
 
-    TEST_ASSERT_EQUAL_UINT32(0xaaaa, BitString32_getValue(bs32_1_dec));
+    TEST_ASSERT_EQUAL_UINT32(0xaaaaaaaaaaUL, BitString32_getValue(bs32_1_dec));
     TEST_ASSERT_EQUAL_INT(IEC60870_QUALITY_INVALID, BitString32_getQuality(bs32_1_dec));
 
-    TEST_ASSERT_EQUAL_UINT32(0x0000, BitString32_getValue(bs32_2_dec));
+    TEST_ASSERT_EQUAL_UINT32(0x0000000000UL, BitString32_getValue(bs32_2_dec));
     TEST_ASSERT_EQUAL_INT(IEC60870_QUALITY_GOOD, BitString32_getQuality(bs32_2_dec));
 
-    TEST_ASSERT_EQUAL_UINT32(0xffff, BitString32_getValue(bs32_3_dec));
+    TEST_ASSERT_EQUAL_UINT32(0xffffffffUL, BitString32_getValue(bs32_3_dec));
     TEST_ASSERT_EQUAL_INT(IEC60870_QUALITY_GOOD, BitString32_getQuality(bs32_3_dec));
 
     InformationObject_destroy((InformationObject)bs32_1_dec);
