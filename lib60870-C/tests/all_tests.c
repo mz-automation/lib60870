@@ -259,8 +259,6 @@ test_EventOfProtectionEquipmentWithTime(void)
 #endif
 }
 
-
-
 struct test_CS104SlaveConnectionIsRedundancyGroup_Info
 {
     bool running;
@@ -604,6 +602,56 @@ test_BitString32(void)
 }
 
 void
+test_BitString32xx_encodeDecode(void)
+{
+#ifndef _WIN32
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+    BitString32 bs32_1 = BitString32_createEx(NULL, 101, 0xaaaa, IEC60870_QUALITY_INVALID);
+    BitString32 bs32_2 = BitString32_create(NULL, 102, 0x0000);
+    BitString32 bs32_3 = BitString32_create(NULL, 103, 0xffff);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) bs32_1);
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) bs32_2);
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) bs32_3);
+
+    CS101_ASDU_encode(asdu, f);
+
+    InformationObject_destroy((InformationObject) bs32_1);
+    InformationObject_destroy((InformationObject) bs32_2);
+    InformationObject_destroy((InformationObject) bs32_3);
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    BitString32 bs32_1_dec = (BitString32) CS101_ASDU_getElement(asdu2, 0);
+    BitString32 bs32_2_dec = (BitString32) CS101_ASDU_getElement(asdu2, 1);
+    BitString32 bs32_3_dec = (BitString32) CS101_ASDU_getElement(asdu2, 2);
+
+    TEST_ASSERT_EQUAL_UINT32(0xaaaa, BitString32_getValue(bs32_1_dec));
+    TEST_ASSERT_EQUAL_INT(IEC60870_QUALITY_INVALID, BitString32_getQuality(bs32_1_dec));
+
+    TEST_ASSERT_EQUAL_UINT32(0x0000, BitString32_getValue(bs32_2_dec));
+    TEST_ASSERT_EQUAL_INT(IEC60870_QUALITY_GOOD, BitString32_getQuality(bs32_2_dec));
+
+    TEST_ASSERT_EQUAL_UINT32(0xffff, BitString32_getValue(bs32_3_dec));
+    TEST_ASSERT_EQUAL_INT(IEC60870_QUALITY_GOOD, BitString32_getQuality(bs32_3_dec));
+
+    InformationObject_destroy((InformationObject)bs32_1_dec);
+    InformationObject_destroy((InformationObject)bs32_2_dec);
+    InformationObject_destroy((InformationObject)bs32_3_dec);
+
+    CS101_ASDU_destroy(asdu2);
+#endif
+}
+
+void
 test_CS104_Slave_CreateDestroy(void)
 {
 	CS104_Slave slave = CS104_Slave_create(100, 100);
@@ -644,6 +692,32 @@ test_CS104_MasterSlave_CreateDestroy(void)
 }
 
 void
+test_CS104_MasterSlave_CreateDestroyLoop(void)
+{
+	CS104_Slave slave = NULL;
+	CS104_Connection con = NULL;
+
+	for (int i = 0; i < 1000; i++) {
+		slave = CS104_Slave_create(100, 100);
+
+		TEST_ASSERT_NOT_NULL(slave);
+
+		CS104_Slave_setLocalPort(slave, 20004);
+
+		con = CS104_Connection_create("127.0.0.1", 20004);
+
+		TEST_ASSERT_NOT_NULL(con);
+
+		CS104_Connection_connect(con);
+
+		CS104_Slave_destroy(slave);
+
+		CS104_Connection_destroy(con);
+	}
+}
+
+
+void
 test_CS104_Connection_ConnectTimeout(void)
 {
 	CS104_Connection con = CS104_Connection_create("192.168.3.120", 2404);
@@ -662,6 +736,7 @@ main(int argc, char** argv)
 {
     UNITY_BEGIN();
     RUN_TEST(test_CS104_Slave_CreateDestroy);
+    RUN_TEST(test_CS104_MasterSlave_CreateDestroyLoop);
     RUN_TEST(test_CS104_Connection_CreateDestroy);
     RUN_TEST(test_CS104_MasterSlave_CreateDestroy);
     RUN_TEST(test_CP56Time2a);
@@ -670,6 +745,7 @@ main(int argc, char** argv)
     RUN_TEST(test_addMaxNumberOfIOsToASDU);
     RUN_TEST(test_SingleEventType);
     RUN_TEST(test_BitString32);
+    RUN_TEST(test_BitString32xx_encodeDecode);
     RUN_TEST(test_EventOfProtectionEquipmentWithTime);
     RUN_TEST(test_IpAddressHandling);
 
