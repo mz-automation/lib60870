@@ -191,6 +191,7 @@ CS101_ASDU_addPayload(CS101_ASDU self, uint8_t* buffer, int size)
     if (self->payloadSize + self->asduHeaderLength + size <= 256) {
         memcpy(self->payload + self->payloadSize, buffer, size);
         self->payloadSize += size;
+        return true;
     }
     else
         return false;
