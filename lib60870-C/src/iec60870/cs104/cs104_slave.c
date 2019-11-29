@@ -97,7 +97,7 @@ typedef enum  {
  ***************************************************/
 
 struct sMessageQueueEntryInfo {
-    uint64_t entryTimestamp;
+    uint64_t entryId;
     unsigned int entryState:2;
     unsigned int size:8;
 };
@@ -110,7 +110,7 @@ struct sMessageQueue {
     uint8_t* lastEntry;
     uint8_t* lastInBufferEntry;
 
-    uint64_t oldestTimestamp;
+    uint64_t entryId;
     uint8_t* buffer;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -134,6 +134,7 @@ MessageQueue_initialize(MessageQueue self, int maxQueueSize)
     self->firstEntry = NULL;
     self->lastEntry = NULL;
     self->lastInBufferEntry = NULL;
+    self->entryId = 1;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     self->queueLock = Semaphore_create(1);
@@ -201,15 +202,12 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
     Semaphore_wait(self->queueLock);
 #endif
 
-    uint64_t currentTimestamp = Hal_getTimeInMs();
-
     struct sMessageQueueEntryInfo entryInfo;
 
     uint8_t* nextMsgPtr;
 
     if (self->entryCounter == 0) {
         self->firstEntry = self->buffer;
-        self->oldestTimestamp = currentTimestamp;
         self->lastInBufferEntry = self->firstEntry;
         nextMsgPtr = self->buffer;
     }
@@ -230,7 +228,6 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
             /* remove old entries until we have enough space for the new ASDU */
             while ((nextMsgPtr + entrySize > self->firstEntry) && (self->entryCounter > 0)) {
             	if (self->firstEntry != self->lastEntry) {
-                    uint8_t* thisEntry = self->firstEntry;
 
                     if (self->firstEntry != self->lastInBufferEntry) {
                         memcpy(&entryInfo, self->firstEntry, sizeof(struct sMessageQueueEntryInfo));
@@ -239,7 +236,6 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
                     else {
                         self->firstEntry = self->buffer;
                         memcpy(&entryInfo, self->firstEntry, sizeof(struct sMessageQueueEntryInfo));
-                        self->oldestTimestamp = entryInfo.entryTimestamp;
 
                         self->entryCounter--;
                         break;
@@ -249,7 +245,6 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
                 }
                 else {
                     self->firstEntry = nextMsgPtr;
-                    self->oldestTimestamp = currentTimestamp;
                     self->lastInBufferEntry = nextMsgPtr;
                     self->entryCounter = 0;
                 }
@@ -269,7 +264,7 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
     CS101_ASDU_encode(asdu, frame);
 
     entryInfo.size = asduSize;
-    entryInfo.entryTimestamp = currentTimestamp;
+    entryInfo.entryId = self->entryId++;
     entryInfo.entryState = QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION;
 
     memcpy(nextMsgPtr, &entryInfo, sizeof(struct sMessageQueueEntryInfo));
@@ -304,7 +299,7 @@ MessageQueue_isAsduAvailable(MessageQueue self)
 }
 
 static uint8_t*
-MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* timestamp, uint8_t** queueEntry, int* size)
+MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* entryId, uint8_t** queueEntry, int* size)
 {
     /* TODO optimize - maybe not required to loop the whole buffer! */
     uint8_t* buffer = NULL;
@@ -333,7 +328,7 @@ MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* timestamp, uint8_t*
 
         if (entryInfo.entryState == QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION) {
 
-            *timestamp = entryInfo.entryTimestamp;
+            *entryId = entryInfo.entryId;
             *queueEntry = entryPtr;
             entryInfo.entryState = QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED;
 
@@ -403,7 +398,7 @@ MessageQueue_releaseAllQueuedASDUs(MessageQueue self)
 }
 
 static void
-MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_t timestamp)
+MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_t entryId)
 {
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
@@ -411,13 +406,18 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_
 
     if (self->entryCounter > 0) {
 
-        if (timestamp >= self->oldestTimestamp) {
+        /* entryId plausibility check */
+        int64_t entryIdDiff = self->entryId - entryId;
+
+        if (entryIdDiff <= self->entryCounter) {
 
             struct sMessageQueueEntryInfo entryInfo;
-
             memcpy(&entryInfo, queueEntry, sizeof(struct sMessageQueueEntryInfo));
 
-            entryInfo.entryState = QUEUE_ENTRY_STATE_NOT_USED_OR_CONFIRMED;
+            /* check if ASDU is matching */
+            if (entryInfo.entryId == entryId) {
+                entryInfo.entryState = QUEUE_ENTRY_STATE_NOT_USED_OR_CONFIRMED;
+            }
         }
     }
 
@@ -985,12 +985,10 @@ struct sCS104_Slave {
 };
 
 typedef struct {
-    /* required to identify message in server (low-priority) queue */
-    uint64_t entryTime;
+    uint64_t entryId; /* required to identify message in server (low-priority) queue */
     uint8_t* queueEntry; /* NULL if ASDU is not from low-priority queue */
 
-    /* required for T1 timeout */
-    uint64_t sentTime;
+    uint64_t sentTime; /* required for T1 timeout */
     int seqNo;
 } SentASDUSlave;
 
@@ -1606,7 +1604,7 @@ isSentBufferFull(MasterConnection self)
 
 
 static void
-sendASDU(MasterConnection self, uint8_t* buffer, int msgSize, uint64_t timestamp, uint8_t* queueEntry)
+sendASDU(MasterConnection self, uint8_t* buffer, int msgSize, uint64_t entryId, uint8_t* queueEntry)
 {
     int currentIndex = 0;
 
@@ -1618,7 +1616,7 @@ sendASDU(MasterConnection self, uint8_t* buffer, int msgSize, uint64_t timestamp
         currentIndex = (self->newestSentASDU + 1) % self->maxSentASDUs;
     }
 
-    self->sentASDUs[currentIndex].entryTime = timestamp;
+    self->sentASDUs[currentIndex].entryId = entryId;
     self->sentASDUs[currentIndex].queueEntry = queueEntry;
     self->sentASDUs[currentIndex].seqNo = sendIMessage(self, buffer, msgSize);
     self->sentASDUs[currentIndex].sentTime = Hal_getTimeInMs();
@@ -1996,7 +1994,7 @@ checkSequenceNumber(MasterConnection self, int seqNo)
 
                     MessageQueue_markAsduAsConfirmed(self->lowPrioQueue,
                             self->sentASDUs[self->oldestSentASDU].queueEntry,
-                            self->sentASDUs[self->oldestSentASDU].entryTime);
+                            self->sentASDUs[self->oldestSentASDU].entryId);
                 }
 
                 if (oldestAsduSeqNo == seqNo) {
@@ -2257,18 +2255,18 @@ sendNextLowPriorityASDU(MasterConnection self)
 
     MessageQueue_lock(self->lowPrioQueue);
 
-    uint64_t timestamp;
+    uint64_t entryId;
     uint8_t* queueEntry;
     int msgSize;
 
-    asduBuffer = MessageQueue_getNextWaitingASDU(self->lowPrioQueue, &timestamp, &queueEntry, &msgSize);
+    asduBuffer = MessageQueue_getNextWaitingASDU(self->lowPrioQueue, &entryId, &queueEntry, &msgSize);
 
     if (asduBuffer) {
         memcpy(self->sendBuffer + IEC60870_5_104_APCI_LENGTH, asduBuffer, msgSize);
 
         msgSize += IEC60870_5_104_APCI_LENGTH;
 
-        sendASDU(self, self->sendBuffer, msgSize, timestamp, queueEntry);
+        sendASDU(self, self->sendBuffer, msgSize, entryId, queueEntry);
     }
 
     MessageQueue_unlock(self->lowPrioQueue);
