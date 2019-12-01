@@ -40,6 +40,7 @@ struct sASDUFrame {
 static void
 asduFrame_destroy(Frame self)
 {
+    UNUSED_PARAMETER(self);
 }
 
 static void

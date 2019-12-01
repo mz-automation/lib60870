@@ -90,7 +90,7 @@ LIB_OBJS = $(call src_to,.o,$(LIB_SOURCES))
 TEST_OBJS = $(call src_to,.o,$(LIB_TEST_SOURCES))
 CFLAGS += -std=gnu99
 #CFLAGS += -Wno-error=format 
-CFLAGS += -Wstrict-prototypes
+CFLAGS += -Wstrict-prototypes -Wall -Wextra
 
 ifneq ($(HAL_IMPL), WIN32)
 CFLAGS += -Wuninitialized 

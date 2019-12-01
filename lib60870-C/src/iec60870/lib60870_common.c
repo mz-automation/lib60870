@@ -40,6 +40,8 @@ lib60870_debug_print(const char *format, ...)
         vprintf(format, ap);
         va_end(ap);
     }
+#else
+    UNUSED_PARAMETER(format);
 #endif
 }
 
@@ -48,6 +50,8 @@ Lib60870_enableDebugOutput(bool value)
 {
 #if (CONFIG_DEBUG_OUTPUT == 1)
     debugOutputEnabled = value;
+#else
+    UNUSED_PARAMETER(value);
 #endif
 }
 
