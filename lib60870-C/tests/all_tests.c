@@ -629,7 +629,7 @@ test_CS104SlaveEventQueueOverflow()
 
     int asduSize = 12;
     int entrySize = sizeof(struct sTestMessageQueueEntryInfo) + asduSize;
-    int msgQueueCapacity = ((sizeof(struct sTestMessageQueueEntryInfo) + 256) * 10) / entrySize;
+    int msgQueueCapacity = ((sizeof(struct sTestMessageQueueEntryInfo) + 256) * 10) / entrySize - 1;
 
     TEST_ASSERT_EQUAL_INT(299, info.lastScaledValue);
     TEST_ASSERT_EQUAL_INT(msgQueueCapacity, info.asduHandlerCalled);
@@ -722,7 +722,7 @@ test_CS104SlaveEventQueueOverflow2()
 
     int asduSize = 12;
     int entrySize = sizeof(struct sTestMessageQueueEntryInfo) + asduSize;
-    int msgQueueCapacity = ((sizeof(struct sTestMessageQueueEntryInfo) + 256) * 10) / entrySize;
+    int msgQueueCapacity = ((sizeof(struct sTestMessageQueueEntryInfo) + 256) * 10) / entrySize - 1;
 
     TEST_ASSERT_EQUAL_INT(299, info.lastScaledValue);
     TEST_ASSERT_EQUAL_INT(msgQueueCapacity, info.asduHandlerCalled);

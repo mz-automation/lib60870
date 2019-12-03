@@ -182,6 +182,33 @@ MessageQueue_unlock(MessageQueue self)
 #endif
 }
 
+static int
+countEntriesUntilEndOfBuffer(MessageQueue self, uint8_t* firstEntry)
+{
+    int count = 0;
+
+    uint8_t* entryPtr = firstEntry;
+
+    struct sMessageQueueEntryInfo entryInfo;
+
+    memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
+
+    while (entryPtr) {
+
+        count++;
+
+        /* move to next entry */
+        if (entryPtr == self->lastInBufferEntry)
+            break;
+        else
+            entryPtr = entryPtr + sizeof(struct sMessageQueueEntryInfo) + entryInfo.size;
+
+        memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
+    }
+
+    return count;
+}
+
 
 /**
  * Add an ASDU to the queue. When queue is full, override oldest entry.
@@ -214,48 +241,46 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
     else {
         memcpy(&entryInfo, self->lastEntry, sizeof(struct sMessageQueueEntryInfo));
         nextMsgPtr = self->lastEntry + sizeof(struct sMessageQueueEntryInfo) + entryInfo.size;
-    }
 
-    if (nextMsgPtr + entrySize > self->buffer + self->size) {
-        nextMsgPtr = self->buffer;
-        self->lastInBufferEntry = self->lastEntry;
-    }
+        /* Check if ASDU fits into the buffer */
+        if (nextMsgPtr + entrySize > self->buffer + self->size) {
+            if (nextMsgPtr <= self->firstEntry) {
+                self->entryCounter -=  countEntriesUntilEndOfBuffer(self, self->firstEntry);
+                self->firstEntry = self->buffer;
+            }
 
-    if (self->entryCounter > 0) {
+            nextMsgPtr = self->buffer;
+
+            if (self->lastEntry > self->firstEntry)
+                self->lastInBufferEntry = self->lastEntry;
+        }
 
         if (nextMsgPtr <= self->firstEntry) {
 
             /* remove old entries until we have enough space for the new ASDU */
-            while ((nextMsgPtr + entrySize > self->firstEntry) && (self->entryCounter > 0)) {
-            	if (self->firstEntry != self->lastEntry) {
+            while ((nextMsgPtr + entrySize >= self->firstEntry) && (self->entryCounter > 0)) {
 
-                    if (self->firstEntry != self->lastInBufferEntry) {
-                        memcpy(&entryInfo, self->firstEntry, sizeof(struct sMessageQueueEntryInfo));
-                        self->firstEntry = self->firstEntry + sizeof(struct sMessageQueueEntryInfo) + entryInfo.size;
-                    }
-                    else {
-                        self->firstEntry = self->buffer;
-                        memcpy(&entryInfo, self->firstEntry, sizeof(struct sMessageQueueEntryInfo));
+                self->entryCounter--;
 
-                        self->entryCounter--;
-                        break;
-                    }
-
-                    self->entryCounter--;
+                if (self->firstEntry == self->lastInBufferEntry) {
+                    self->firstEntry = self->buffer;
+                    self->lastInBufferEntry = nextMsgPtr;
+                    break;
                 }
                 else {
-                    self->firstEntry = nextMsgPtr;
-                    self->lastInBufferEntry = nextMsgPtr;
-                    self->entryCounter = 0;
+                    memcpy(&entryInfo, self->firstEntry, sizeof(struct sMessageQueueEntryInfo));
+                    self->firstEntry = self->firstEntry + sizeof(struct sMessageQueueEntryInfo) + entryInfo.size;
+
                 }
             }
-        }
-        else {
-            self->lastInBufferEntry = nextMsgPtr;
         }
     }
 
     self->lastEntry = nextMsgPtr;
+
+    if (self->lastEntry > self->lastInBufferEntry)
+        self->lastInBufferEntry = self->lastEntry;
+
     self->entryCounter++;
 
     struct sBufferFrame bufferFrame;
@@ -301,7 +326,6 @@ MessageQueue_isAsduAvailable(MessageQueue self)
 static uint8_t*
 MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* entryId, uint8_t** queueEntry, int* size)
 {
-    /* TODO optimize - maybe not required to loop the whole buffer! */
     uint8_t* buffer = NULL;
 
     if (self->entryCounter != 0) {
@@ -407,9 +431,9 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_
     if (self->entryCounter > 0) {
 
         /* entryId plausibility check */
-        int64_t entryIdDiff = self->entryId - entryId;
+        uint64_t entryIdDiff = self->entryId - 1 - entryId;
 
-        if (entryIdDiff <= self->entryCounter) {
+        if (entryIdDiff < self->entryCounter) {
 
             struct sMessageQueueEntryInfo entryInfo;
             memcpy(&entryInfo, queueEntry, sizeof(struct sMessageQueueEntryInfo));
@@ -417,6 +441,10 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_
             /* check if ASDU is matching */
             if (entryInfo.entryId == entryId) {
                 entryInfo.entryState = QUEUE_ENTRY_STATE_NOT_USED_OR_CONFIRMED;
+            }
+            else {
+                /* we shouldn't be here - probably bug in queue handling code */
+                DEBUG_PRINT("CS104 SLAVE: message queue corrupted\n");
             }
         }
     }
@@ -1995,6 +2023,8 @@ checkSequenceNumber(MasterConnection self, int seqNo)
                     MessageQueue_markAsduAsConfirmed(self->lowPrioQueue,
                             self->sentASDUs[self->oldestSentASDU].queueEntry,
                             self->sentASDUs[self->oldestSentASDU].entryId);
+
+                    self->sentASDUs[self->oldestSentASDU].queueEntry = NULL;
                 }
 
                 if (oldestAsduSeqNo == seqNo) {
@@ -2018,7 +2048,6 @@ checkSequenceNumber(MasterConnection self, int seqNo)
                 }
 
             } while (true);
-
         }
     }
     else
@@ -2636,11 +2665,10 @@ MasterConnection_create(CS104_Slave slave)
     MasterConnection self = (MasterConnection) GLOBAL_CALLOC(1, sizeof(struct sMasterConnection));
 
     if (self != NULL) {
-
         self->isUsed = false;
         self->slave = slave;
         self->maxSentASDUs = slave->conParameters.k;
-        self->sentASDUs = (SentASDUSlave*) GLOBAL_MALLOC(sizeof(SentASDUSlave) * self->maxSentASDUs);
+        self->sentASDUs = (SentASDUSlave*) GLOBAL_CALLOC(self->maxSentASDUs, sizeof(SentASDUSlave));
 
         self->iMasterConnection.object = self;
         self->iMasterConnection.getApplicationLayerParameters = _IMasterConnection_getApplicationLayerParameters;
