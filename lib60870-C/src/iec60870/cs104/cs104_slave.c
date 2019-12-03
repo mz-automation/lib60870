@@ -183,6 +183,24 @@ MessageQueue_unlock(MessageQueue self)
 }
 
 static int
+MessageQueue_getEntryCount(MessageQueue self)
+{
+    int count = 0;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->queueLock);
+#endif
+
+    count = self->entryCounter;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->queueLock);
+#endif
+
+    return count;
+}
+
+static int
 countEntriesUntilEndOfBuffer(MessageQueue self, uint8_t* firstEntry)
 {
     int count = 0;
@@ -433,7 +451,7 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_
         /* entryId plausibility check */
         uint64_t entryIdDiff = self->entryId - 1 - entryId;
 
-        if (entryIdDiff < self->entryCounter) {
+        if (entryIdDiff < (unsigned) self->entryCounter) {
 
             struct sMessageQueueEntryInfo entryInfo;
             memcpy(&entryInfo, queueEntry, sizeof(struct sMessageQueueEntryInfo));
@@ -3361,6 +3379,30 @@ CS104_Slave_start(CS104_Slave self)
 #else
     DEBUG_PRINT("ERROR: CS104_Slave_start not supported when CONFIG_USE_TREADS = 0 or CONFIG_USE_SEMAPHORES = 0!\n");
 #endif
+}
+
+int
+CS104_Slave_getNumberOfQueueEntries(CS104_Slave self, CS104_RedundancyGroup redGroup)
+{
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
+    if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
+        return MessageQueue_getEntryCount(self->asduQueue);
+    }
+#endif
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
+    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
+
+        if (redGroup) {
+            return MessageQueue_getEntryCount(redGroup->asduQueue);
+        }
+
+        DEBUG_PRINT("CS104_SLAVE: redundancy group not found\n");
+    }
+#endif
+
+    /* mode CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP not supported! */
+
+    return 0;
 }
 
 void
