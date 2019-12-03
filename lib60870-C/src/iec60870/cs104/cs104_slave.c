@@ -459,6 +459,7 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_
             /* check if ASDU is matching */
             if (entryInfo.entryId == entryId) {
                 entryInfo.entryState = QUEUE_ENTRY_STATE_NOT_USED_OR_CONFIRMED;
+                memcpy(queueEntry, &entryInfo, sizeof(struct sMessageQueueEntryInfo));
             }
             else {
                 /* we shouldn't be here - probably bug in queue handling code */
