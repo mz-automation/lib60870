@@ -97,6 +97,8 @@ IBalancedApplicationLayer_GetUserData (void* parameter, Frame frame)
 static bool
 IBalancedApplicationLayer_HandleReceivedData (void* parameter, uint8_t* msg, bool isBroadcast, int userDataStart, int userDataLength)
 {
+    UNUSED_PARAMETER(isBroadcast);
+
     CS101_Master self = (CS101_Master) parameter;
 
     CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->alParameters), msg + userDataStart, userDataLength);
@@ -149,7 +151,8 @@ IPrimaryApplicationLayer_UserData(void* parameter, int slaveAddress, uint8_t* ms
 static void
 IPrimaryApplicationLayer_Timeout (void* parameter, int slaveAddress)
 {
-
+    UNUSED_PARAMETER(parameter);
+    UNUSED_PARAMETER(slaveAddress);
 }
 
 static struct sIPrimaryApplicationLayer cs101UnbalancedAppLayerInterface = {

@@ -234,8 +234,20 @@ main(int argc, char** argv)
      */
     CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
 
-    /* get the connection parameters - we need them to create correct ASDUs */
+    /* get the connection parameters - we need them to create correct ASDUs -
+     * you can also modify the parameters here when default parameters are not to be used */
     CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    /* when you have to tweak the APCI parameters (t0-t3, k, w) you can access them here */
+    CS104_APCIParameters apciParams = CS104_Slave_getConnectionParameters(slave);
+
+    printf("APCI parameters:\n");
+    printf("  t0: %i\n", apciParams->t0);
+    printf("  t1: %i\n", apciParams->t1);
+    printf("  t2: %i\n", apciParams->t2);
+    printf("  t3: %i\n", apciParams->t3);
+    printf("  k: %i\n", apciParams->k);
+    printf("  w: %i\n", apciParams->w);
 
     /* set the callback handler for the clock synchronization command */
     CS104_Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);

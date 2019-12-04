@@ -956,6 +956,12 @@ LinkLayerPrimaryBalanced_setStateChangeHandler(LinkLayerPrimaryBalanced self,
 void
 LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc, bool dir, bool dfc, int address, uint8_t* msg, int userDataStart, int userDataLength)
 {
+    UNUSED_PARAMETER(dir);
+    UNUSED_PARAMETER(address);
+    UNUSED_PARAMETER(msg);
+    UNUSED_PARAMETER(userDataStart);
+    UNUSED_PARAMETER(userDataLength);
+
     PrimaryLinkLayerState primaryState = self->primaryState;
     PrimaryLinkLayerState newState = primaryState;
 
