@@ -141,6 +141,8 @@ GetClass2Data (void* parameter, Frame frame)
 static bool
 HandleReceivedData (void* parameter, uint8_t* msg, bool isBroadcast, int userDataStart, int userDataLength)
 {
+    UNUSED_PARAMETER(isBroadcast);
+
     CS101_Slave self = (CS101_Slave) parameter;
 
     CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->alParameters), msg + userDataStart, userDataLength);

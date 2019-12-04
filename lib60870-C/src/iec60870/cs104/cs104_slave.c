@@ -103,14 +103,14 @@ struct sMessageQueueEntryInfo {
 };
 
 struct sMessageQueue {
-    int size;
-    int entryCounter;
+    int size; /* size of buffer in bytes */
+    int entryCounter; /* number of messages (ASDU) in the queue */
 
-    uint8_t* firstEntry;
-    uint8_t* lastEntry;
-    uint8_t* lastInBufferEntry;
+    uint8_t* firstEntry; /* first entry in FIFO */
+    uint8_t* lastEntry; /* last entry in FIFO */
+    uint8_t* lastInBufferEntry; /* entry with highest address in FIFO buffer */
 
-    uint64_t entryId;
+    uint64_t entryId; /* ID of next entry; will be increased by one for each new entry */
     uint8_t* buffer;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -201,7 +201,7 @@ MessageQueue_getEntryCount(MessageQueue self)
 }
 
 static int
-countEntriesUntilEndOfBuffer(MessageQueue self, uint8_t* firstEntry)
+MessageQueue_countEntriesUntilEndOfBuffer(MessageQueue self, uint8_t* firstEntry)
 {
     int count = 0;
 
@@ -261,11 +261,14 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
 
         /* Check if ASDU fits into the buffer */
         if (nextMsgPtr + entrySize > self->buffer + self->size) {
+
+            /* remove all entries from last entry to end of buffer */
             if (nextMsgPtr <= self->firstEntry) {
-                self->entryCounter -=  countEntriesUntilEndOfBuffer(self, self->firstEntry);
+                self->entryCounter -=  MessageQueue_countEntriesUntilEndOfBuffer(self, self->firstEntry);
                 self->firstEntry = self->buffer;
             }
 
+            /* put new message at beginning of buffer */
             nextMsgPtr = self->buffer;
 
             if (self->lastEntry > self->firstEntry)
@@ -499,6 +502,8 @@ HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self, int maxQueueSize)
     self->size = maxQueueSize * (sizeof(uint16_t) + 256);
 
     self->buffer = (uint8_t*) GLOBAL_CALLOC(1, self->size);
+
+    self->entryCounter = 0;
 
     self->firstEntry = NULL;
     self->lastEntry = NULL;
