@@ -419,13 +419,17 @@ Socket_read(Socket self, uint8_t* buf, int size)
     int bytes_read = recv(self->fd, (char*) buf, size, 0);
 
     if (bytes_read == SOCKET_ERROR) {
+
         if (WSAGetLastError() == WSAEWOULDBLOCK)
             return 0;
         else
             return -1;
     }
+    else if (bytes_read == 0) {
+        return -1;
+    }
 
-	return bytes_read;
+    return bytes_read;
 }
 
 int
