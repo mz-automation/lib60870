@@ -227,7 +227,6 @@ countEntriesUntilEndOfBuffer(MessageQueue self, uint8_t* firstEntry)
     return count;
 }
 
-
 /**
  * Add an ASDU to the queue. When queue is full, override oldest entry.
  */
@@ -276,7 +275,7 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
         if (nextMsgPtr <= self->firstEntry) {
 
             /* remove old entries until we have enough space for the new ASDU */
-            while ((nextMsgPtr + entrySize >= self->firstEntry) && (self->entryCounter > 0)) {
+            while ((nextMsgPtr + entrySize > self->firstEntry) && (self->entryCounter > 0)) {
 
                 self->entryCounter--;
 

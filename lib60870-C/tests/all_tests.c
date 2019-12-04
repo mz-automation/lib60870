@@ -1179,7 +1179,7 @@ test_CS104SlaveEventQueueOverflow()
 
     int asduSize = 12;
     int entrySize = sizeof(struct sTestMessageQueueEntryInfo) + asduSize;
-    int msgQueueCapacity = ((sizeof(struct sTestMessageQueueEntryInfo) + 256) * 10) / entrySize - 1;
+    int msgQueueCapacity = ((sizeof(struct sTestMessageQueueEntryInfo) + 256) * 10) / entrySize;
 
     TEST_ASSERT_EQUAL_INT(299, info.lastScaledValue);
     TEST_ASSERT_EQUAL_INT(msgQueueCapacity, info.asduHandlerCalled);
@@ -1272,7 +1272,7 @@ test_CS104SlaveEventQueueOverflow2()
 
     int asduSize = 12;
     int entrySize = sizeof(struct sTestMessageQueueEntryInfo) + asduSize;
-    int msgQueueCapacity = ((sizeof(struct sTestMessageQueueEntryInfo) + 256) * 10) / entrySize - 1;
+    int msgQueueCapacity = ((sizeof(struct sTestMessageQueueEntryInfo) + 256) * 10) / entrySize;
 
     TEST_ASSERT_EQUAL_INT(299, info.lastScaledValue);
     TEST_ASSERT_EQUAL_INT(msgQueueCapacity, info.asduHandlerCalled);
@@ -1335,14 +1335,165 @@ test_CS104SlaveEventQueueOverflow2()
 
     CS104_Connection_close(con);
 
-    //TEST_ASSERT_EQUAL_INT(msgQueueCapacity + 150, info.asduHandlerCalled);
-    //TEST_ASSERT_EQUAL_INT(msgQueueCapacity + 150, info.spontCount);
-    //TEST_ASSERT_EQUAL_INT(449, info.lastScaledValue);
+    CS104_Connection_destroy(con);
+
+    CS104_Slave_destroy(slave);
+}
+
+void
+test_CS104SlaveEventQueueCheckCapacity()
+{
+    CS104_Slave slave = CS104_Slave_create(2, 2);
+
+    CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    struct stest_CS104SlaveEventQueue1 info;
+    info.asduHandlerCalled = 0;
+    info.spontCount = 0;
+    info.lastScaledValue = 0;
+
+    int16_t scaledValue = 0;
+
+    /* Fill queue with small messages */
+    int asduSize = 6 + 3 + 1;
+    int entrySize = sizeof(struct sTestMessageQueueEntryInfo) + asduSize;
+    int msgQueueCapacity = ((sizeof(struct sTestMessageQueueEntryInfo) + 256) * 2) / entrySize;
+
+    for (int i = 0; i < 299; i++) {
+        CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
+
+        InformationObject io = (InformationObject) SinglePointInformation_create(NULL, 101, true, IEC60870_QUALITY_GOOD);
+
+        CS101_ASDU_addInformationObject(newAsdu, io);
+
+        InformationObject_destroy(io);
+
+        CS104_Slave_enqueueASDU(slave, newAsdu);
+
+        if (i >= msgQueueCapacity)
+            TEST_ASSERT_EQUAL_INT(msgQueueCapacity, CS104_Slave_getNumberOfQueueEntries(slave, NULL));
+        else
+            TEST_ASSERT_EQUAL_INT(i + 1, CS104_Slave_getNumberOfQueueEntries(slave, NULL));
+
+        CS101_ASDU_destroy(newAsdu);
+    }
+
+    CS104_Connection con = CS104_Connection_create("127.0.0.1", 20004);
+
+    CS104_Connection_setASDUReceivedHandler(con, test_CS104SlaveEventQueue1_asduReceivedHandler, &info);
+
+    bool result = CS104_Connection_connect(con);
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_sendStartDT(con);
+
+    Thread_sleep(500);
+
+    CS104_Connection_close(con);
+
+    TEST_ASSERT_EQUAL_INT(msgQueueCapacity, info.asduHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(msgQueueCapacity, CS104_Slave_getNumberOfQueueEntries(slave, NULL));
 
     CS104_Connection_destroy(con);
 
     CS104_Slave_destroy(slave);
 }
+
+void
+test_CS104SlaveEventQueueOverflow3()
+{
+    /**
+     * Trigger code to remove multiple messages at once from the buffer
+     */
+
+    CS104_Slave slave = CS104_Slave_create(2, 2);
+
+    CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    struct stest_CS104SlaveEventQueue1 info;
+    info.asduHandlerCalled = 0;
+    info.spontCount = 0;
+    info.lastScaledValue = 0;
+
+    int16_t scaledValue = 0;
+
+    /* Fill queue with small messages */
+
+    int asduSize = 6 + 3 + 1;
+    int entrySize = sizeof(struct sTestMessageQueueEntryInfo) + asduSize;
+    int msgQueueCapacity = ((sizeof(struct sTestMessageQueueEntryInfo) + 256) * 2) / entrySize;
+
+    for (int i = 0; i < 35; i++) {
+
+        CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
+
+        InformationObject io = (InformationObject) SinglePointInformation_create(NULL, 101, true, IEC60870_QUALITY_GOOD);
+
+        CS101_ASDU_addInformationObject(newAsdu, io);
+
+        InformationObject_destroy(io);
+
+        CS104_Slave_enqueueASDU(slave, newAsdu);
+
+        CS101_ASDU_destroy(newAsdu);
+    }
+
+    CS104_Connection con = CS104_Connection_create("127.0.0.1", 20004);
+
+    CS104_Connection_setASDUReceivedHandler(con, test_CS104SlaveEventQueue1_asduReceivedHandler, &info);
+
+    int count1 = CS104_Slave_getNumberOfQueueEntries(slave, NULL);
+
+
+
+    /* add a single large messages */
+    CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+    for (int i = 0; i < 50; i++) {
+          SinglePointInformation spi = SinglePointInformation_create(NULL, 110, false, IEC60870_QUALITY_GOOD);;
+
+          CS101_ASDU_addInformationObject(newAsdu, (InformationObject) spi);
+
+          InformationObject_destroy((InformationObject) spi);
+    }
+
+    CS104_Slave_enqueueASDU(slave, newAsdu);
+
+    CS101_ASDU_destroy(newAsdu);
+
+    int count2 = CS104_Slave_getNumberOfQueueEntries(slave, NULL);
+
+    /* check that multiple buffer entries were removed */
+    TEST_ASSERT_TRUE(count2 + 1 < count1);
+
+    info.asduHandlerCalled = 0;
+
+    bool result = CS104_Connection_connect(con);
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_sendStartDT(con);
+
+    Thread_sleep(500);
+
+    CS104_Connection_close(con);
+
+    TEST_ASSERT_EQUAL_INT(count2, info.asduHandlerCalled);
+
+    CS104_Connection_destroy(con);
+
+    CS104_Slave_destroy(slave);
+}
+
 
 void
 test_IpAddressHandling(void)
@@ -3768,6 +3919,8 @@ main(int argc, char** argv)
     RUN_TEST(test_CS104SlaveEventQueue1);
     RUN_TEST(test_CS104SlaveEventQueueOverflow);
     RUN_TEST(test_CS104SlaveEventQueueOverflow2);
+    RUN_TEST(test_CS104SlaveEventQueueCheckCapacity);
+    RUN_TEST(test_CS104SlaveEventQueueOverflow3);
 
     RUN_TEST(test_CS104_Connection_ConnectTimeout);
 
