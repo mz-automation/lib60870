@@ -8,6 +8,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#if WIN32
+#define bzero(b,len) (memset((b), '\0', (len)), (void) 0) 
+#endif
+
 void setUp(void) { }
 void tearDown(void) {}
 
@@ -60,7 +64,7 @@ CS104_IPAddress_setFromString(CS104_IPAddress self, const char* ipAddrStr)
         self->type = IP_ADDRESS_TYPE_IPV6;
 
         /* has "::" ? */
-        char* doubleSep = strstr(ipAddrStr, "::");
+        char* doubleSep = (char*) strstr(ipAddrStr, "::");
 
         int elementsBefore = 0;
         int elementsAfter = 8;
@@ -173,11 +177,19 @@ CS104_IPAddress_equals(CS104_IPAddress self, CS104_IPAddress other)
     return true;
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void
 CS101_ASDU_encode(CS101_ASDU self, Frame frame);
 
 CS101_ASDU
 CS101_ASDU_createFromBuffer(CS101_AppLayerParameters parameters, uint8_t* msg, int msgLength);
+
+#ifdef __cplusplus
+}
+#endif
 
 void
 test_CP56Time2a(void)
@@ -1033,6 +1045,12 @@ test_CS104SlaveEventQueue1_asduReceivedHandler (void* parameter, int address, CS
     return true;
 }
 
+struct sTestMessageQueueEntryInfo {
+	uint64_t entryTimestamp;
+	unsigned int entryState : 2;
+	unsigned int size : 8;
+};
+
 void
 test_CS104SlaveEventQueue1()
 {
@@ -1085,6 +1103,9 @@ test_CS104SlaveEventQueue1()
 
     TEST_ASSERT_EQUAL_INT(14, info.lastScaledValue);
 
+    info.asduHandlerCalled = 0;
+    info.spontCount = 0;
+
     result = CS104_Connection_connect(con);
     TEST_ASSERT_TRUE(result);
 
@@ -1112,20 +1133,14 @@ test_CS104SlaveEventQueue1()
 
     CS104_Connection_close(con);
 
-    TEST_ASSERT_EQUAL_INT(30, info.asduHandlerCalled);
-    TEST_ASSERT_EQUAL_INT(30, info.spontCount);
+    TEST_ASSERT_EQUAL_INT(15, info.asduHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(15, info.spontCount);
     TEST_ASSERT_EQUAL_INT(29, info.lastScaledValue);
 
     CS104_Connection_destroy(con);
 
     CS104_Slave_destroy(slave);
 }
-
-struct sTestMessageQueueEntryInfo {
-    uint64_t entryTimestamp;
-    unsigned int entryState:2;
-    unsigned int size:8;
-};
 
 void
 test_CS104SlaveEventQueueOverflow()
@@ -3842,11 +3857,15 @@ test_CS104_MasterSlave_CreateDestroyLoop(void)
 
 		CS104_Slave_setLocalPort(slave, 20004);
 
+		CS104_Slave_start(slave);
+
 		con = CS104_Connection_create("127.0.0.1", 20004);
 
 		TEST_ASSERT_NOT_NULL(con);
 
-		CS104_Connection_connect(con);
+		bool result = CS104_Connection_connect(con);
+
+		TEST_ASSERT_TRUE(result);
 
 		CS104_Slave_destroy(slave);
 

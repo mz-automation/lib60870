@@ -40,6 +40,10 @@ struct sCS101_ASDU {
     int payloadSize;
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * \brief create a new (read-only) instance
  *
@@ -47,5 +51,9 @@ struct sCS101_ASDU {
  */
 CS101_ASDU
 CS101_ASDU_createFromBuffer(CS101_AppLayerParameters parameters, uint8_t* msg, int msgLength);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_INC_INTERNAL_CS101_ASDU_INTERNAL_H_ */
