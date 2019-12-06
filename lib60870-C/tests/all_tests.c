@@ -3679,6 +3679,1087 @@ test_MeasuredValueShortWithCP56Time2a(void)
 }
 
 void
+test_IntegratedTotals(void)
+{
+    IntegratedTotals it1;
+    IntegratedTotals it2;
+    BinaryCounterReading bcr1;
+    BinaryCounterReading bcr2;
+
+    bcr1 = BinaryCounterReading_create(NULL, INT32_MAX, 0, true, true, true);
+    bcr2 = BinaryCounterReading_create(NULL, INT32_MIN, 15, false, false, false);
+    it1 = IntegratedTotals_create(NULL, 101, bcr1);
+    it2 = IntegratedTotals_create(NULL, 102, bcr2);
+
+    BinaryCounterReading_destroy(bcr1);
+    BinaryCounterReading_destroy(bcr2);
+
+    TEST_ASSERT_EQUAL_INT32(INT32_MAX, BinaryCounterReading_getValue(IntegratedTotals_getBCR(it1)));
+    TEST_ASSERT_EQUAL_UINT8(0, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR(it1)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR(it1)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR(it1)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR(it1)));
+
+    TEST_ASSERT_EQUAL_INT32(INT32_MIN, BinaryCounterReading_getValue(IntegratedTotals_getBCR(it2)));
+    TEST_ASSERT_EQUAL_UINT8(15, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR(it2)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR(it2)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR(it2)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR(it2)));
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) it1);
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) it2);
+
+    IntegratedTotals_destroy(it1);
+    IntegratedTotals_destroy(it2);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(22, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(2, CS101_ASDU_getNumberOfElements(asdu2));
+
+    IntegratedTotals it1_dec = (IntegratedTotals) CS101_ASDU_getElement(asdu2, 0);
+    IntegratedTotals it2_dec = (IntegratedTotals) CS101_ASDU_getElement(asdu2, 1);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )it1_dec));
+    TEST_ASSERT_EQUAL_INT32(INT32_MAX, BinaryCounterReading_getValue(IntegratedTotals_getBCR(it1_dec)));
+    TEST_ASSERT_EQUAL_UINT8(0, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR(it1_dec)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR(it1_dec)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR(it1_dec)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR(it1_dec)));
+
+    TEST_ASSERT_EQUAL_INT(102, InformationObject_getObjectAddress((InformationObject )it2_dec));
+    TEST_ASSERT_EQUAL_INT32(INT32_MIN, BinaryCounterReading_getValue(IntegratedTotals_getBCR(it2_dec)));
+    TEST_ASSERT_EQUAL_UINT8(15, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR(it2_dec)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR(it2_dec)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR(it2_dec)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR(it2_dec)));
+
+    IntegratedTotals_destroy(it1_dec);
+    IntegratedTotals_destroy(it2_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_IntegratedTotalsWithCP24Time2a(void)
+{
+    IntegratedTotalsWithCP24Time2a it1;
+    IntegratedTotalsWithCP24Time2a it2;
+    BinaryCounterReading bcr1;
+    BinaryCounterReading bcr2;
+    uint64_t time1 = Hal_getTimeInMs();
+    uint64_t time2 = time1 + 1000;
+
+    struct sCP24Time2a cpTime1;
+    struct sCP24Time2a cpTime2;
+
+    bzero(&cpTime1, sizeof(struct sCP24Time2a));
+    bzero(&cpTime2, sizeof(struct sCP24Time2a));
+
+    CP24Time2a_setMinute(&cpTime1, 12);
+    CP24Time2a_setMillisecond(&cpTime1, 24123);
+
+    CP24Time2a_setMinute(&cpTime2, 54);
+    CP24Time2a_setMillisecond(&cpTime2, 12345);
+
+    bcr1 = BinaryCounterReading_create(NULL, INT32_MAX, 0, true, true, true);
+    bcr2 = BinaryCounterReading_create(NULL, INT32_MIN, 15, false, false, false);
+    it1 = IntegratedTotalsWithCP24Time2a_create(NULL, 101, bcr1, &cpTime1);
+    it2 = IntegratedTotalsWithCP24Time2a_create(NULL, 102, bcr2, &cpTime2);
+
+    BinaryCounterReading_destroy(bcr1);
+    BinaryCounterReading_destroy(bcr2);
+
+    TEST_ASSERT_EQUAL_INT32(INT32_MAX, BinaryCounterReading_getValue(IntegratedTotals_getBCR((IntegratedTotals )it1)));
+    TEST_ASSERT_EQUAL_UINT8(0, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR((IntegratedTotals )it1)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR((IntegratedTotals )it1)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR((IntegratedTotals )it1)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR((IntegratedTotals )it1)));
+
+    TEST_ASSERT_EQUAL_INT32(INT32_MIN, BinaryCounterReading_getValue(IntegratedTotals_getBCR((IntegratedTotals )it2)));
+    TEST_ASSERT_EQUAL_UINT8(15, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR((IntegratedTotals )it2)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR((IntegratedTotals )it2)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR((IntegratedTotals )it2)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR((IntegratedTotals )it2)));
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) it1);
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) it2);
+
+    IntegratedTotalsWithCP24Time2a_destroy(it1);
+    IntegratedTotalsWithCP24Time2a_destroy(it2);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(28, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(2, CS101_ASDU_getNumberOfElements(asdu2));
+
+    IntegratedTotalsWithCP24Time2a it1_dec = (IntegratedTotalsWithCP24Time2a) CS101_ASDU_getElement(asdu2, 0);
+    IntegratedTotalsWithCP24Time2a it2_dec = (IntegratedTotalsWithCP24Time2a) CS101_ASDU_getElement(asdu2, 1);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )it1_dec));
+    TEST_ASSERT_EQUAL_INT32(INT32_MAX, BinaryCounterReading_getValue(IntegratedTotals_getBCR((IntegratedTotals )it1_dec)));
+    TEST_ASSERT_EQUAL_UINT8(0, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR((IntegratedTotals )it1_dec)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR((IntegratedTotals )it1_dec)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR((IntegratedTotals )it1_dec)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR((IntegratedTotals )it1_dec)));
+
+    TEST_ASSERT_EQUAL_INT(102, InformationObject_getObjectAddress((InformationObject )it2_dec));
+    TEST_ASSERT_EQUAL_INT32(INT32_MIN, BinaryCounterReading_getValue(IntegratedTotals_getBCR((IntegratedTotals )it2_dec)));
+    TEST_ASSERT_EQUAL_UINT8(15, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR((IntegratedTotals )it2_dec)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR((IntegratedTotals )it2_dec)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR((IntegratedTotals )it2_dec)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR((IntegratedTotals )it2_dec)));
+
+    CP24Time2a time1_dec = IntegratedTotalsWithCP24Time2a_getTimestamp(it1_dec);
+    TEST_ASSERT_EQUAL_INT(12, CP24Time2a_getMinute(time1_dec));
+    TEST_ASSERT_EQUAL_INT(24, CP24Time2a_getSecond(time1_dec));
+    TEST_ASSERT_EQUAL_INT(123, CP24Time2a_getMillisecond(time1_dec));
+
+    CP24Time2a time2_dec = IntegratedTotalsWithCP24Time2a_getTimestamp(it2_dec);
+    TEST_ASSERT_EQUAL_INT(54, CP24Time2a_getMinute(time2_dec));
+    TEST_ASSERT_EQUAL_INT(12, CP24Time2a_getSecond(time2_dec));
+    TEST_ASSERT_EQUAL_INT(345, CP24Time2a_getMillisecond(time2_dec));
+
+    IntegratedTotalsWithCP24Time2a_destroy(it1_dec);
+    IntegratedTotalsWithCP24Time2a_destroy(it2_dec);
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_IntegratedTotalsWithCP56Time2a(void)
+{
+    IntegratedTotalsWithCP56Time2a it1;
+    IntegratedTotalsWithCP56Time2a it2;
+    BinaryCounterReading bcr1;
+    BinaryCounterReading bcr2;
+
+    uint64_t time1 = Hal_getTimeInMs();
+    uint64_t time2 = time1 + 1000;
+
+    struct sCP56Time2a cpTime1;
+    struct sCP56Time2a cpTime2;
+
+    CP56Time2a_createFromMsTimestamp(&cpTime1, time1);
+    CP56Time2a_createFromMsTimestamp(&cpTime2, time2);
+
+    bcr1 = BinaryCounterReading_create(NULL, INT32_MAX, 0, true, true, true);
+    bcr2 = BinaryCounterReading_create(NULL, INT32_MIN, 15, false, false, false);
+    it1 = IntegratedTotalsWithCP56Time2a_create(NULL, 101, bcr1, &cpTime1);
+    it2 = IntegratedTotalsWithCP56Time2a_create(NULL, 102, bcr2, &cpTime2);
+
+    BinaryCounterReading_destroy(bcr1);
+    BinaryCounterReading_destroy(bcr2);
+
+    TEST_ASSERT_EQUAL_INT32(INT32_MAX, BinaryCounterReading_getValue(IntegratedTotals_getBCR((IntegratedTotals )it1)));
+    TEST_ASSERT_EQUAL_UINT8(0, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR((IntegratedTotals )it1)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR((IntegratedTotals )it1)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR((IntegratedTotals )it1)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR((IntegratedTotals )it1)));
+
+    TEST_ASSERT_EQUAL_INT32(INT32_MIN, BinaryCounterReading_getValue(IntegratedTotals_getBCR((IntegratedTotals )it2)));
+    TEST_ASSERT_EQUAL_UINT8(15, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR((IntegratedTotals )it2)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR((IntegratedTotals )it2)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR((IntegratedTotals )it2)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR((IntegratedTotals )it2)));
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) it1);
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) it2);
+
+    IntegratedTotalsWithCP56Time2a_destroy(it1);
+    IntegratedTotalsWithCP56Time2a_destroy(it2);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(36, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(2, CS101_ASDU_getNumberOfElements(asdu2));
+
+    IntegratedTotalsWithCP56Time2a it1_dec = (IntegratedTotalsWithCP56Time2a) CS101_ASDU_getElement(asdu2, 0);
+    IntegratedTotalsWithCP56Time2a it2_dec = (IntegratedTotalsWithCP56Time2a) CS101_ASDU_getElement(asdu2, 1);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )it1_dec));
+    TEST_ASSERT_EQUAL_INT32(INT32_MAX, BinaryCounterReading_getValue(IntegratedTotals_getBCR((IntegratedTotals )it1_dec)));
+    TEST_ASSERT_EQUAL_UINT8(0, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR((IntegratedTotals )it1_dec)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR((IntegratedTotals )it1_dec)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR((IntegratedTotals )it1_dec)));
+    TEST_ASSERT_TRUE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR((IntegratedTotals )it1_dec)));
+
+    TEST_ASSERT_EQUAL_INT(102, InformationObject_getObjectAddress((InformationObject )it2_dec));
+    TEST_ASSERT_EQUAL_INT32(INT32_MIN, BinaryCounterReading_getValue(IntegratedTotals_getBCR((IntegratedTotals )it2_dec)));
+    TEST_ASSERT_EQUAL_UINT8(15, BinaryCounterReading_getSequenceNumber(IntegratedTotals_getBCR((IntegratedTotals )it2_dec)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_hasCarry(IntegratedTotals_getBCR((IntegratedTotals )it2_dec)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isAdjusted(IntegratedTotals_getBCR((IntegratedTotals )it2_dec)));
+    TEST_ASSERT_FALSE(BinaryCounterReading_isInvalid(IntegratedTotals_getBCR((IntegratedTotals )it2_dec)));
+
+    TEST_ASSERT_EQUAL_UINT64(time1, CP56Time2a_toMsTimestamp(IntegratedTotalsWithCP56Time2a_getTimestamp(it1_dec)));
+    TEST_ASSERT_EQUAL_UINT64(time2, CP56Time2a_toMsTimestamp(IntegratedTotalsWithCP56Time2a_getTimestamp(it2_dec)));
+
+    IntegratedTotalsWithCP56Time2a_destroy(it1_dec);
+    IntegratedTotalsWithCP56Time2a_destroy(it2_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_SingleCommand(void)
+{
+    SingleCommand sc;
+    sc = SingleCommand_create(NULL, 101, true, true, 0);
+
+    TEST_ASSERT_TRUE(SingleCommand_getState(sc));
+    TEST_ASSERT_TRUE(SingleCommand_isSelect(sc));
+    TEST_ASSERT_EQUAL_INT(0, SingleCommand_getQU(sc));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) sc);
+
+    SingleCommand_destroy(sc);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(10, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    SingleCommand sc_dec = (SingleCommand) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )sc_dec));
+
+    TEST_ASSERT_TRUE(SingleCommand_getState(sc_dec));
+    TEST_ASSERT_TRUE(SingleCommand_isSelect(sc_dec));
+    TEST_ASSERT_EQUAL_INT(0, SingleCommand_getQU(sc_dec));
+
+    SingleCommand_destroy(sc_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_SingleCommandWithCP56Time2a(void)
+{
+    SingleCommandWithCP56Time2a sc;
+
+    uint64_t time1 = Hal_getTimeInMs();
+
+    struct sCP56Time2a cpTime1;
+
+    CP56Time2a_createFromMsTimestamp(&cpTime1, time1);
+
+    sc = SingleCommandWithCP56Time2a_create(NULL, 101, true, true, 0, &cpTime1);
+
+    TEST_ASSERT_TRUE(SingleCommand_getState((SingleCommand )sc));
+    TEST_ASSERT_TRUE(SingleCommand_isSelect((SingleCommand )sc));
+    TEST_ASSERT_EQUAL_INT(0, SingleCommand_getQU((SingleCommand )sc));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) sc);
+
+    SingleCommandWithCP56Time2a_destroy(sc);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(17, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    SingleCommandWithCP56Time2a sc_dec = (SingleCommandWithCP56Time2a) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )sc_dec));
+
+    TEST_ASSERT_TRUE(SingleCommand_getState((SingleCommand )sc_dec));
+    TEST_ASSERT_TRUE(SingleCommand_isSelect((SingleCommand )sc_dec));
+    TEST_ASSERT_EQUAL_INT(0, SingleCommand_getQU((SingleCommand )sc_dec));
+    TEST_ASSERT_EQUAL_UINT64(time1, CP56Time2a_toMsTimestamp(SingleCommandWithCP56Time2a_getTimestamp(sc_dec)));
+
+    SingleCommandWithCP56Time2a_destroy(sc_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_DoubleCommand(void)
+{
+    DoubleCommand dc;
+    dc = DoubleCommand_create(NULL, 101, 1, true, 0);
+
+    TEST_ASSERT_TRUE(DoubleCommand_isSelect(dc));
+    TEST_ASSERT_EQUAL_INT(1, DoubleCommand_getState(dc));
+    TEST_ASSERT_EQUAL_INT(0, DoubleCommand_getQU(dc));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) dc);
+
+    DoubleCommand_destroy(dc);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(10, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    DoubleCommand dc_dec = (DoubleCommand) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )dc_dec));
+
+    TEST_ASSERT_TRUE(DoubleCommand_isSelect(dc_dec));
+    TEST_ASSERT_EQUAL_INT(1, DoubleCommand_getState(dc_dec));
+    TEST_ASSERT_EQUAL_INT(0, DoubleCommand_getQU(dc_dec));
+
+    DoubleCommand_destroy(dc_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_DoubleCommandWithCP56Time2a(void)
+{
+    DoubleCommandWithCP56Time2a dc;
+
+    uint64_t time1 = Hal_getTimeInMs();
+    struct sCP56Time2a cpTime1;
+    CP56Time2a_createFromMsTimestamp(&cpTime1, time1);
+
+    dc = DoubleCommandWithCP56Time2a_create(NULL, 101, 1, true, 0, &cpTime1);
+
+    TEST_ASSERT_TRUE(DoubleCommandWithCP56Time2a_isSelect(dc));
+    TEST_ASSERT_EQUAL_INT(1, DoubleCommandWithCP56Time2a_getState(dc));
+    TEST_ASSERT_EQUAL_INT(0, DoubleCommandWithCP56Time2a_getQU(dc));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) dc);
+
+    DoubleCommandWithCP56Time2a_destroy(dc);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(17, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    DoubleCommandWithCP56Time2a dc_dec = (DoubleCommandWithCP56Time2a) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )dc_dec));
+
+    TEST_ASSERT_TRUE(DoubleCommandWithCP56Time2a_isSelect(dc_dec));
+    TEST_ASSERT_EQUAL_INT(1, DoubleCommandWithCP56Time2a_getState(dc_dec));
+    TEST_ASSERT_EQUAL_INT(0, DoubleCommandWithCP56Time2a_getQU(dc_dec));
+    TEST_ASSERT_EQUAL_UINT64(time1, CP56Time2a_toMsTimestamp(DoubleCommandWithCP56Time2a_getTimestamp(dc_dec)));
+
+    DoubleCommandWithCP56Time2a_destroy(dc_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_StepCommandValue(void)
+{
+    StepCommand scv;
+    scv = StepCommand_create(NULL, 101, IEC60870_STEP_INVALID_0, true, 0);
+
+    TEST_ASSERT_TRUE(StepCommand_isSelect(scv));
+    TEST_ASSERT_EQUAL_INT(IEC60870_STEP_INVALID_0, StepCommand_getState(scv));
+    TEST_ASSERT_EQUAL_INT(0, StepCommand_getQU(scv));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) scv);
+
+    StepCommand_destroy(scv);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(10, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    StepCommand scv_dec = (StepCommand) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )scv_dec));
+
+    TEST_ASSERT_TRUE(StepCommand_isSelect(scv_dec));
+    TEST_ASSERT_EQUAL_INT(IEC60870_STEP_INVALID_0, StepCommand_getState(scv_dec));
+    TEST_ASSERT_EQUAL_INT(0, StepCommand_getQU(scv_dec));
+
+    StepCommand_destroy(scv_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_StepCommandWithCP56Time2a(void)
+{
+    StepCommandWithCP56Time2a scv;
+    uint64_t time1 = Hal_getTimeInMs();
+    struct sCP56Time2a cpTime1;
+    CP56Time2a_createFromMsTimestamp(&cpTime1, time1);
+
+    scv = StepCommandWithCP56Time2a_create(NULL, 101, IEC60870_STEP_INVALID_0, true, 0, &cpTime1);
+
+    TEST_ASSERT_TRUE(StepCommandWithCP56Time2a_isSelect(scv));
+    TEST_ASSERT_EQUAL_INT(IEC60870_STEP_INVALID_0, StepCommandWithCP56Time2a_getState(scv));
+    TEST_ASSERT_EQUAL_INT(0, StepCommandWithCP56Time2a_getQU(scv));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) scv);
+
+    StepCommandWithCP56Time2a_destroy((StepCommand) scv);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(17, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    StepCommandWithCP56Time2a scv_dec = (StepCommandWithCP56Time2a) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )scv_dec));
+
+    TEST_ASSERT_TRUE(StepCommandWithCP56Time2a_isSelect(scv_dec));
+    TEST_ASSERT_EQUAL_INT(IEC60870_STEP_INVALID_0, StepCommandWithCP56Time2a_getState(scv_dec));
+    TEST_ASSERT_EQUAL_INT(0, StepCommandWithCP56Time2a_getQU(scv_dec));
+    TEST_ASSERT_EQUAL_UINT64(time1, CP56Time2a_toMsTimestamp(StepCommandWithCP56Time2a_getTimestamp(scv_dec)));
+
+    StepCommandWithCP56Time2a_destroy((StepCommand) scv_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_SetpointCommandNormalized(void)
+{
+    SetpointCommandNormalized spcn;
+    spcn = SetpointCommandNormalized_create(NULL, 101, -1, true, 0);
+
+    TEST_ASSERT_EQUAL_INT(-1, SetpointCommandNormalized_getValue(spcn));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandNormalized_getQL(spcn));
+    TEST_ASSERT_TRUE(SetpointCommandNormalized_isSelect(spcn));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) spcn);
+
+    SetpointCommandNormalized_destroy(spcn);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(12, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    SetpointCommandNormalized spcn_dec = (SetpointCommandNormalized) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )spcn_dec));
+
+    TEST_ASSERT_EQUAL_INT(-1, SetpointCommandNormalized_getValue(spcn_dec));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandNormalized_getQL(spcn_dec));
+    TEST_ASSERT_TRUE(SetpointCommandNormalized_isSelect(spcn_dec));
+
+    SetpointCommandNormalized_destroy(spcn_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_SetpointCommandNormalizedWithCP56Time2a(void)
+{
+    SetpointCommandNormalizedWithCP56Time2a spcn;
+    uint64_t time1 = Hal_getTimeInMs();
+    struct sCP56Time2a cpTime1;
+    CP56Time2a_createFromMsTimestamp(&cpTime1, time1);
+
+    spcn = SetpointCommandNormalizedWithCP56Time2a_create(NULL, 101, 0, true, 0, &cpTime1);
+
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandNormalizedWithCP56Time2a_getValue(spcn));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandNormalizedWithCP56Time2a_getQL(spcn));
+    TEST_ASSERT_TRUE(SetpointCommandNormalizedWithCP56Time2a_isSelect(spcn));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) spcn);
+
+    SetpointCommandNormalizedWithCP56Time2a_destroy(spcn);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(19, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    SetpointCommandNormalizedWithCP56Time2a spcn_dec = (SetpointCommandNormalizedWithCP56Time2a) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )spcn_dec));
+
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandNormalizedWithCP56Time2a_getValue(spcn_dec));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandNormalizedWithCP56Time2a_getQL(spcn_dec));
+    TEST_ASSERT_TRUE(SetpointCommandNormalizedWithCP56Time2a_isSelect(spcn_dec));
+    TEST_ASSERT_EQUAL_UINT64(time1, CP56Time2a_toMsTimestamp(SetpointCommandNormalizedWithCP56Time2a_getTimestamp(spcn_dec)));
+
+    SetpointCommandNormalizedWithCP56Time2a_destroy(spcn_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_SetpointCommandScaled(void)
+{
+    SetpointCommandScaled spcs;
+    spcs = SetpointCommandScaled_create(NULL, 101, -32768, true, 0);
+
+    TEST_ASSERT_EQUAL_INT(-32768, SetpointCommandScaled_getValue(spcs));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandScaled_getQL(spcs));
+    TEST_ASSERT_TRUE(SetpointCommandScaled_isSelect(spcs));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) spcs);
+
+    SetpointCommandScaled_destroy(spcs);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(12, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    SetpointCommandScaled spcs_dec = (SetpointCommandScaled) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )spcs_dec));
+
+    TEST_ASSERT_EQUAL_INT(-32768, SetpointCommandScaled_getValue(spcs_dec));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandScaled_getQL(spcs_dec));
+    TEST_ASSERT_TRUE(SetpointCommandScaled_isSelect(spcs_dec));
+
+    SetpointCommandScaled_destroy(spcs_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_SetpointCommandScaledWithCP56Time2a(void)
+{
+    SetpointCommandScaledWithCP56Time2a spcs;
+
+    uint64_t time1 = Hal_getTimeInMs();
+    struct sCP56Time2a cpTime1;
+    CP56Time2a_createFromMsTimestamp(&cpTime1, time1);
+
+    spcs = SetpointCommandScaledWithCP56Time2a_create(NULL, 101, -32768, true, 0, &cpTime1);
+
+    TEST_ASSERT_EQUAL_INT(-32768, SetpointCommandScaledWithCP56Time2a_getValue(spcs));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandScaledWithCP56Time2a_getQL(spcs));
+    TEST_ASSERT_TRUE(SetpointCommandScaledWithCP56Time2a_isSelect(spcs));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) spcs);
+
+    SetpointCommandScaledWithCP56Time2a_destroy(spcs);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(19, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    SetpointCommandScaledWithCP56Time2a spcs_dec = (SetpointCommandScaledWithCP56Time2a) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )spcs_dec));
+
+    TEST_ASSERT_EQUAL_INT(-32768, SetpointCommandScaledWithCP56Time2a_getValue(spcs_dec));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandScaledWithCP56Time2a_getQL(spcs_dec));
+    TEST_ASSERT_TRUE(SetpointCommandScaledWithCP56Time2a_isSelect(spcs_dec));
+    TEST_ASSERT_EQUAL_UINT64(time1, CP56Time2a_toMsTimestamp(SetpointCommandScaledWithCP56Time2a_getTimestamp(spcs_dec)));
+
+    SetpointCommandScaledWithCP56Time2a_destroy(spcs_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_SetpointCommandShort(void)
+{
+    SetpointCommandShort spcs;
+    spcs = SetpointCommandShort_create(NULL, 101, 10.5f, true, 0);
+
+    TEST_ASSERT_EQUAL_FLOAT(10.5f, SetpointCommandShort_getValue(spcs));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandShort_getQL(spcs));
+    TEST_ASSERT_TRUE(SetpointCommandShort_isSelect(spcs));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) spcs);
+
+    SetpointCommandShort_destroy(spcs);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(14, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    SetpointCommandShort spcs_dec = (SetpointCommandShort) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )spcs_dec));
+
+    TEST_ASSERT_EQUAL_FLOAT(10.5f, SetpointCommandShort_getValue(spcs_dec));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandShort_getQL(spcs_dec));
+    TEST_ASSERT_TRUE(SetpointCommandShort_isSelect(spcs_dec));
+
+    SetpointCommandShort_destroy(spcs_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_SetpointCommandShortWithCP56Time2a(void)
+{
+    SetpointCommandShortWithCP56Time2a spcs;
+    uint64_t time1 = Hal_getTimeInMs();
+    struct sCP56Time2a cpTime1;
+    CP56Time2a_createFromMsTimestamp(&cpTime1, time1);
+
+    spcs = SetpointCommandShortWithCP56Time2a_create(NULL, 101, 10.5f, true, 0, &cpTime1);
+
+    TEST_ASSERT_EQUAL_FLOAT(10.5f, SetpointCommandShortWithCP56Time2a_getValue(spcs));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandShortWithCP56Time2a_getQL(spcs));
+    TEST_ASSERT_TRUE(SetpointCommandShortWithCP56Time2a_isSelect(spcs));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) spcs);
+
+    SetpointCommandShortWithCP56Time2a_destroy(spcs);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(21, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    SetpointCommandShortWithCP56Time2a spcs_dec = (SetpointCommandShortWithCP56Time2a) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )spcs_dec));
+
+    TEST_ASSERT_EQUAL_FLOAT(10.5f, SetpointCommandShortWithCP56Time2a_getValue(spcs_dec));
+    TEST_ASSERT_EQUAL_INT(0, SetpointCommandShortWithCP56Time2a_getQL(spcs_dec));
+    TEST_ASSERT_TRUE(SetpointCommandShortWithCP56Time2a_isSelect(spcs_dec));
+    TEST_ASSERT_EQUAL_UINT64(time1, CP56Time2a_toMsTimestamp(SetpointCommandShortWithCP56Time2a_getTimestamp(spcs_dec)));
+
+    SetpointCommandShortWithCP56Time2a_destroy(spcs_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_InterrogationCommand(void)
+{
+    InterrogationCommand ic;
+    uint8_t qoi = 21;
+    ic = InterrogationCommand_create(NULL, 101, qoi);
+    TEST_ASSERT_EQUAL_INT(21, InterrogationCommand_getQOI(ic));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) ic);
+
+    InterrogationCommand_destroy(ic);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(10, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    InterrogationCommand ic_dec = (InterrogationCommand) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )ic_dec));
+
+    TEST_ASSERT_EQUAL_INT(21, InterrogationCommand_getQOI(ic_dec));
+
+    InterrogationCommand_destroy(ic_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_CounterInterrogationCommand(void)
+{
+    CounterInterrogationCommand cic;
+    uint8_t qcc = 1;
+    cic = CounterInterrogationCommand_create(NULL, 101, qcc);
+
+    TEST_ASSERT_EQUAL_INT(1, CounterInterrogationCommand_getQCC(cic));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) cic);
+
+    CounterInterrogationCommand_destroy(cic);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(10, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    CounterInterrogationCommand cic_dec = (CounterInterrogationCommand) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )cic_dec));
+
+    TEST_ASSERT_EQUAL_INT(1, CounterInterrogationCommand_getQCC(cic_dec));
+
+    CounterInterrogationCommand_destroy(cic_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_ReadCommand(void)
+{
+    ReadCommand rc;
+    rc = ReadCommand_create( NULL, 101);
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) rc);
+
+    ReadCommand_destroy(rc);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(9, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    ReadCommand rc_dec = (ReadCommand) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )rc_dec));
+
+    ReadCommand_destroy(rc_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_ClockSynchronizationCommand(void)
+{
+    ClockSynchronizationCommand csc;
+    uint64_t time1 = Hal_getTimeInMs();
+    struct sCP56Time2a cpTime1;
+    CP56Time2a_createFromMsTimestamp(&cpTime1, time1);
+    csc = ClockSynchronizationCommand_create(NULL, 101, &cpTime1);
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) csc);
+
+    ClockSynchronizationCommand_destroy(csc);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(16, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    ClockSynchronizationCommand csc_dec = (ClockSynchronizationCommand) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )csc_dec));
+    TEST_ASSERT_EQUAL_UINT64(time1, CP56Time2a_toMsTimestamp(ClockSynchronizationCommand_getTime(csc_dec)));
+
+    ClockSynchronizationCommand_destroy(csc_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_ResetProcessCommand(void)
+{
+    ResetProcessCommand rpc;
+    uint8_t qrp = 0;
+    rpc = ResetProcessCommand_create(NULL, 101, qrp);
+
+    TEST_ASSERT_EQUAL_INT(0, ResetProcessCommand_getQRP(rpc));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) rpc);
+
+    ResetProcessCommand_destroy(rpc);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(10, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    ResetProcessCommand rpc_dec = (ResetProcessCommand) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )rpc_dec));
+
+    TEST_ASSERT_EQUAL_INT(0, ResetProcessCommand_getQRP(rpc_dec));
+
+    ResetProcessCommand_destroy(rpc_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_DelayAcquisitionCommand(void)
+{
+    DelayAcquisitionCommand dac;
+    uint8_t time1 = Hal_getTimeInMs();
+
+    struct sCP16Time2a delay;
+
+    bzero(&delay, sizeof(struct sCP16Time2a));
+
+    CP16Time2a_setEplapsedTimeInMs(&delay, 24123);
+
+    dac = DelayAcquisitionCommand_create(NULL, 101, &delay);
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) dac);
+
+    DelayAcquisitionCommand_destroy(dac);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(11, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    DelayAcquisitionCommand dac_dec = (DelayAcquisitionCommand) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )dac_dec));
+    CP16Time2a time1_dec = DelayAcquisitionCommand_getDelay(dac_dec);
+    TEST_ASSERT_EQUAL_INT(24123, CP16Time2a_getEplapsedTimeInMs(time1_dec));
+
+    DelayAcquisitionCommand_destroy(dac_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
 test_BitString32(void)
 {
     BitString32 bs32;
@@ -3752,6 +4833,53 @@ test_BitString32(void)
     TEST_ASSERT_EQUAL_INT(1000002, InformationObject_getObjectAddress((InformationObject ) bs32cp56));
 
     Bitstring32WithCP56Time2a_destroy(bs32cp56);
+}
+
+void
+test_Bitstring32CommandWithCP56Time2a(void)
+{
+    Bitstring32CommandWithCP56Time2a bsc;
+    uint64_t time1 = Hal_getTimeInMs();
+
+    struct sCP56Time2a cpTime1;
+
+    CP56Time2a_createFromMsTimestamp(&cpTime1, time1);
+
+    bsc = Bitstring32CommandWithCP56Time2a_create(NULL, 101, (uint32_t) 0x0000000000, &cpTime1);
+
+    TEST_ASSERT_EQUAL_UINT32(0x0000000000, Bitstring32CommandWithCP56Time2a_getValue(bsc));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) bsc);
+
+    Bitstring32CommandWithCP56Time2a_destroy(bsc);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(20, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    Bitstring32CommandWithCP56Time2a bsc_dec = (Bitstring32CommandWithCP56Time2a) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )bsc_dec));
+    TEST_ASSERT_EQUAL_UINT64(time1, CP56Time2a_toMsTimestamp(Bitstring32CommandWithCP56Time2a_getTimestamp(bsc_dec)));
+    TEST_ASSERT_EQUAL_UINT32(0x0000000000, Bitstring32CommandWithCP56Time2a_getValue(bsc_dec));
+
+    Bitstring32CommandWithCP56Time2a_destroy(bsc_dec);
+
+    CS101_ASDU_destroy(asdu2);
 }
 
 void
@@ -3927,7 +5055,39 @@ main(int argc, char** argv)
     RUN_TEST(test_StepPositionWithCP24Time2a);
     RUN_TEST(test_StepPositionWithCP56Time2a);
 
+    RUN_TEST(test_IntegratedTotals);
+    RUN_TEST(test_IntegratedTotalsWithCP24Time2a);
+    RUN_TEST(test_IntegratedTotalsWithCP56Time2a);
+
+    RUN_TEST(test_SingleCommand);
+    RUN_TEST(test_SingleCommandWithCP56Time2a);
+
+    RUN_TEST(test_DoubleCommand);
+    RUN_TEST(test_DoubleCommandWithCP56Time2a);
+
+    RUN_TEST(test_StepCommandValue);
+    RUN_TEST(test_StepCommandWithCP56Time2a);
+
+    RUN_TEST(test_SetpointCommandNormalized);
+    RUN_TEST(test_SetpointCommandNormalizedWithCP56Time2a);
+
+    RUN_TEST(test_SetpointCommandScaled);
+    RUN_TEST(test_SetpointCommandScaledWithCP56Time2a);
+
+    RUN_TEST(test_SetpointCommandShort);
+    RUN_TEST(test_SetpointCommandShortWithCP56Time2a);
+
+    RUN_TEST(test_InterrogationCommand);
+    RUN_TEST(test_CounterInterrogationCommand);
+
+    RUN_TEST(test_ReadCommand);
+    RUN_TEST(test_ClockSynchronizationCommand);
+    RUN_TEST(test_ResetProcessCommand);
+    RUN_TEST(test_DelayAcquisitionCommand);
+
     RUN_TEST(test_BitString32);
+    RUN_TEST(test_Bitstring32CommandWithCP56Time2a);
+
     RUN_TEST(test_BitString32xx_encodeDecode);
     RUN_TEST(test_EventOfProtectionEquipmentWithTime);
     RUN_TEST(test_IpAddressHandling);
