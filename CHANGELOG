@@ -1,3 +1,13 @@
+Changes to version 2.2.1
+------------------------
+- CS104 slave: fixed problems in queue handling (#67)
+- added missing return statement in CS101_ASDU_addPayload(#68)
+- CS101_ASDU_addInformationObject now checks for correct object type
+- windows socket driver: fixed - fail to detect peer close when read from socket
+- fixed bug in BitString32 encoding (see #65)
+- fixed - null pointer access when calling CS104_Slave_destroy without server running before (issue #64)
+- added Bitstring32X_createEx functions to keep API backward compatible and allow setting of quality (issue #63)
+
 Changes to version 2.2.0
 ------------------------
 - CS 101/104 slave: improved stability when receiving corrupted messages

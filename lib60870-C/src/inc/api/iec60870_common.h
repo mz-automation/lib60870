@@ -46,8 +46,8 @@ extern "C" {
 #define IEC_60870_5_104_DEFAULT_TLS_PORT 19998
 
 #define LIB60870_VERSION_MAJOR 2
-#define LIB60870_VERSION_MINOR 1
-#define LIB60870_VERSION_PATCH 0
+#define LIB60870_VERSION_MINOR 2
+#define LIB60870_VERSION_PATCH 1
 
 /**
  * \brief lib60870 version information
