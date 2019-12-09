@@ -5016,6 +5016,125 @@ test_CS104_Connection_ConnectTimeout(void)
 	CS104_Connection_destroy(con);
 }
 
+void
+test_CS104_Connection_UseAfterClose(void)
+{
+    CS104_Slave slave = NULL;
+    CS104_Connection con = NULL;
+
+    slave = CS104_Slave_create(100, 100);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+    CS104_Slave_start(slave);
+
+    con = CS104_Connection_create("127.0.0.1", 20004);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_close(con);
+
+    result = CS104_Connection_sendInterrogationCommand(con, CS101_COT_ACTIVATION, 1, IEC60870_QOI_STATION);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+}
+
+void
+test_CS104_Connection_UseAfterServerClosedConnection(void)
+{
+    CS104_Slave slave = NULL;
+    CS104_Connection con = NULL;
+
+    slave = CS104_Slave_create(100, 100);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+    CS104_Slave_start(slave);
+
+    con = CS104_Connection_create("127.0.0.1", 20004);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Slave_destroy(slave);
+
+    /* wait to allow client side to detect connection loss */
+    Thread_sleep(500);
+
+    result = CS104_Connection_sendInterrogationCommand(con, CS101_COT_ACTIVATION, 1, IEC60870_QOI_STATION);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Connection_destroy(con);
+}
+
+void
+test_CS101_ASDU_addObjectOfWrongType(void)
+{
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+    InformationObject io1 = (InformationObject) SinglePointInformation_create(NULL, 101, true, IEC60870_QUALITY_GOOD);
+
+    bool added = CS101_ASDU_addInformationObject(asdu, io1);
+
+    TEST_ASSERT_TRUE(added);
+
+    InformationObject_destroy(io1);
+
+    InformationObject io2 = (InformationObject) DoublePointInformation_create(NULL, 102, IEC60870_DOUBLE_POINT_OFF, IEC60870_QUALITY_GOOD);
+
+    added = CS101_ASDU_addInformationObject(asdu, io2);
+
+    TEST_ASSERT_FALSE(added);
+
+    InformationObject_destroy(io2);
+
+    CS101_ASDU_destroy(asdu);
+}
+
+void
+test_CS101_ASDU_addUntilOverflow(void)
+{
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+    int i = 0;
+
+    for (i = 0; i < 60; i++) {
+        InformationObject io = (InformationObject) SinglePointInformation_create(NULL, 100 + i, true, IEC60870_QUALITY_GOOD);
+
+        bool added = CS101_ASDU_addInformationObject(asdu, io);
+
+        TEST_ASSERT_TRUE(added);
+
+        InformationObject_destroy(io);
+
+        TEST_ASSERT_EQUAL_INT(i + 1, CS101_ASDU_getNumberOfElements(asdu));
+    }
+
+    InformationObject io = (InformationObject) SinglePointInformation_create(NULL, 100 + i, true, IEC60870_QUALITY_GOOD);
+
+    bool added = CS101_ASDU_addInformationObject(asdu, io);
+
+    TEST_ASSERT_FALSE(added);
+
+    InformationObject_destroy(io);
+
+    CS101_ASDU_destroy(asdu);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -5102,6 +5221,11 @@ main(int argc, char** argv)
     RUN_TEST(test_CS104SlaveEventQueueOverflow3);
 
     RUN_TEST(test_CS104_Connection_ConnectTimeout);
+
+    RUN_TEST(test_CS104_Connection_UseAfterClose);
+    RUN_TEST(test_CS104_Connection_UseAfterServerClosedConnection);
+    RUN_TEST(test_CS101_ASDU_addObjectOfWrongType);
+    RUN_TEST(test_CS101_ASDU_addUntilOverflow);
 
     return UNITY_END();
 }

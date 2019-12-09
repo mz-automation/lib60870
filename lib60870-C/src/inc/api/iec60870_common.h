@@ -465,10 +465,12 @@ CS101_ASDU_destroy(CS101_ASDU self);
 /**
  * \brief add an information object to the ASDU
  *
+ * NOTE: Only information objects of the exact same type can be added to a single ASDU!
+ *
  * \param self ASDU object instance
  * \param io information object to be added
  *
- * \return true when added, false when there not enough space left in the ASDU or IO cannot be added to the sequence because of wrong IOA.
+ * \return true when added, false when there not enough space left in the ASDU or IO cannot be added to the sequence because of wrong IOA, or wrong type.
  */
 bool
 CS101_ASDU_addInformationObject(CS101_ASDU self, InformationObject io);
