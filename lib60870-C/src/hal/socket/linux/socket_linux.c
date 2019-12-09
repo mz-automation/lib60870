@@ -20,20 +20,18 @@
  */
 
 #include "hal_socket.h"
-#include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
 #include <sys/select.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
-#include <netinet/in.h>
-#include <netdb.h>
 #include <errno.h>
 #include <stdio.h>
-
 #include <fcntl.h>
-
-#include <netinet/tcp.h> // required for TCP keepalive
+#include <netinet/tcp.h> /* required for TCP keepalive */
+#include <linux/version.h>
 
 #include "hal_thread.h"
 #include "lib_memory.h"
@@ -111,6 +109,43 @@ Handleset_destroy(HandleSet self)
    GLOBAL_FREEMEM(self);
 }
 
+void
+Socket_activateTcpKeepAlive(Socket self, int idleTime, int interval, int count)
+{
+#if defined SO_KEEPALIVE
+    int optval;
+    socklen_t optlen = sizeof(optval);
+
+    optval = 1;
+
+    if (setsockopt(self->fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen)) {
+        if (DEBUG_SOCKET)
+            printf("Failed to enable TCP keepalive\n");
+    }
+
+#if defined TCP_KEEPCNT
+    optval = idleTime;
+    if (setsockopt(self->fd, IPPROTO_TCP, TCP_KEEPIDLE, &optval, optlen)) {
+        if (DEBUG_SOCKET)
+            printf("Failed to set TCP keepalive TCP_KEEPIDLE parameter\n");
+    }
+
+    optval = interval;
+    if (setsockopt(self->fd, IPPROTO_TCP, TCP_KEEPINTVL, &optval, optlen)) {
+        if (DEBUG_SOCKET)
+            printf("Failed to set TCP keepalive TCP_KEEPINTVL parameter\n");
+    }
+
+    optval = count;
+    if (setsockopt(self->fd, IPPROTO_TCP, TCP_KEEPCNT, &optval, optlen)) {
+        if (DEBUG_SOCKET)
+            printf("Failed to set TCP keepalive TCP_KEEPCNT parameter\n");
+    }
+#endif /* TCP_KEEPCNT */
+
+#endif /* SO_KEEPALIVE */
+}
+
 static bool
 prepareServerAddress(const char* address, int port, struct sockaddr_in* sockaddr)
 {
@@ -178,6 +213,18 @@ TcpServerSocket_create(const char* address, int port)
         int optionReuseAddr = 1;
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (char *) &optionReuseAddr, sizeof(int));
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
+        int tcpUserTimeout = 10000;
+        int result = setsockopt(fd, SOL_TCP,  TCP_USER_TIMEOUT, &tcpUserTimeout, sizeof(tcpUserTimeout));
+
+        if (result < 0) {
+            if (DEBUG_SOCKET)
+                printf("SOCKET: failed to set TCP_USER_TIMEOUT\n");
+        }
+#else
+#warning "TCP_USER_TIMEOUT not supported by linux kernel"
+#endif
+
         if (bind(fd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) >= 0) {
             serverSocket = (ServerSocket) GLOBAL_MALLOC(sizeof(struct sServerSocket));
             serverSocket->fd = fd;
@@ -189,7 +236,6 @@ TcpServerSocket_create(const char* address, int port)
             close(fd);
             return NULL ;
         }
-
     }
 
     return serverSocket;
@@ -200,7 +246,6 @@ ServerSocket_listen(ServerSocket self)
 {
     listen(self->fd, self->backLog);
 }
-
 
 /* CHANGED TO MAKE NON-BLOCKING --> RETURNS NULL IF NO CONNECTION IS PENDING */
 Socket
@@ -330,27 +375,22 @@ Socket_connect(Socket self, const char* address, int port)
     return false;
 }
 
-char*
-Socket_getPeerAddress(Socket self)
+static char*
+convertAddressToStr(struct sockaddr_storage* addr)
 {
-    struct sockaddr_storage addr;
-    socklen_t addrLen = sizeof(addr);
-
-    getpeername(self->fd, (struct sockaddr*) &addr, &addrLen);
-
     char addrString[INET6_ADDRSTRLEN + 7];
     int port;
 
     bool isIPv6;
 
-    if (addr.ss_family == AF_INET) {
-        struct sockaddr_in* ipv4Addr = (struct sockaddr_in*) &addr;
+    if (addr->ss_family == AF_INET) {
+        struct sockaddr_in* ipv4Addr = (struct sockaddr_in*) addr;
         port = ntohs(ipv4Addr->sin_port);
         inet_ntop(AF_INET, &(ipv4Addr->sin_addr), addrString, INET_ADDRSTRLEN);
         isIPv6 = false;
     }
-    else if (addr.ss_family == AF_INET6) {
-        struct sockaddr_in6* ipv6Addr = (struct sockaddr_in6*) &addr;
+    else if (addr->ss_family == AF_INET6) {
+        struct sockaddr_in6* ipv6Addr = (struct sockaddr_in6*) addr;
         port = ntohs(ipv6Addr->sin6_port);
         inet_ntop(AF_INET6, &(ipv6Addr->sin6_addr), addrString, INET6_ADDRSTRLEN);
         isIPv6 = true;
@@ -360,13 +400,38 @@ Socket_getPeerAddress(Socket self)
 
     char* clientConnection = (char*) GLOBAL_MALLOC(strlen(addrString) + 9);
 
-
     if (isIPv6)
         sprintf(clientConnection, "[%s]:%i", addrString, port);
     else
         sprintf(clientConnection, "%s:%i", addrString, port);
 
     return clientConnection;
+}
+
+char*
+Socket_getPeerAddress(Socket self)
+{
+    struct sockaddr_storage addr;
+    socklen_t addrLen = sizeof(addr);
+
+    if (getpeername(self->fd, (struct sockaddr*) &addr, &addrLen) == 0) {
+        return convertAddressToStr(&addr);
+    }
+    else
+        return NULL;
+}
+
+char*
+Socket_getLocalAddress(Socket self)
+{
+    struct sockaddr_storage addr;
+    socklen_t addrLen = sizeof(addr);
+
+    if (getsockname(self->fd, (struct sockaddr*) &addr, &addrLen) == 0) {
+        return convertAddressToStr(&addr);
+    }
+    else
+        return NULL;
 }
 
 char*
@@ -413,6 +478,9 @@ Socket_read(Socket self, uint8_t* buf, int size)
 
     int read_bytes = recv(self->fd, buf, size, MSG_DONTWAIT);
 
+    if (read_bytes == 0)
+        return -1;
+
     if (read_bytes == -1) {
         int error = errno;
 
@@ -426,9 +494,6 @@ Socket_read(Socket self, uint8_t* buf, int size)
             default:
                 return -1;
         }
-    }
-    else if (read_bytes == 0) {
-    	return -1;
     }
 
     return read_bytes;

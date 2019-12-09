@@ -415,6 +415,9 @@ Socket_read(Socket self, uint8_t* buf, int size)
 
     int read_bytes = recv(self->fd, buf, size, MSG_DONTWAIT);
 
+    if (read_bytes == 0)
+        return -1;
+
     if (read_bytes == -1) {
         int error = errno;
 
@@ -429,9 +432,6 @@ Socket_read(Socket self, uint8_t* buf, int size)
                 return -1;
         }
     }
-    else if (read_bytes == 0) {
-        return -1;
-    }
 
     return read_bytes;
 }
@@ -442,8 +442,12 @@ Socket_write(Socket self, uint8_t* buf, int size)
     if (self->fd == -1)
         return -1;
 
-    // MSG_NOSIGNAL - prevent send to signal SIGPIPE when peer unexpectedly closed the socket
-    return send(self->fd, buf, size, 0);
+    int retVal = send(self->fd, buf, size, 0);
+
+    if ((retVal == -1) && (errno == EAGAIN))
+        return 0;
+    else
+        return retVal;
 }
 
 void
