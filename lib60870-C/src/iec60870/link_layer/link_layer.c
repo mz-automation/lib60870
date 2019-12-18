@@ -476,7 +476,7 @@ llsu_setState(LL_Sec_Unb self, LinkLayerState newState)
         self->state = newState;
 
         if (self->stateChangedHandler)
-            self->stateChangedHandler(self->stateChangedHandlerParameter, -1, newState);
+            self->stateChangedHandler(self->stateChangedHandlerParameter, self->_linkLayer.address, newState);
     }
 }
 
