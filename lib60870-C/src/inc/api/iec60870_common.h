@@ -684,7 +684,7 @@ CP56Time2a_setMonth(CP56Time2a self, int value);
 /**
  * \brief Get the year (range 0..99)
  *
- * \param value the year (0.99)
+ * \param value the year (0..99)
  */
 int
 CP56Time2a_getYear(CP56Time2a self);

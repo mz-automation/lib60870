@@ -224,6 +224,20 @@ test_CP56Time2aToMsTimestamp(void)
 }
 
 void
+test_CP56Time2aConversionFunctions(void)
+{
+    uint64_t currentTime = Hal_getTimeInMs();
+
+    struct sCP56Time2a timeval;
+
+    CP56Time2a_setFromMsTimestamp(&timeval, currentTime);
+
+    uint64_t convertedTime = CP56Time2a_toMsTimestamp(&timeval);
+
+    TEST_ASSERT_EQUAL_UINT64(currentTime, convertedTime);
+}
+
+void
 test_StepPositionInformation(void)
 {
     StepPositionInformation spi1;
@@ -5158,6 +5172,7 @@ main(int argc, char** argv)
     RUN_TEST(test_CS104_MasterSlave_CreateDestroy);
     RUN_TEST(test_CP56Time2a);
     RUN_TEST(test_CP56Time2aToMsTimestamp);
+    RUN_TEST(test_CP56Time2aConversionFunctions);
     RUN_TEST(test_StepPositionInformation);
     RUN_TEST(test_addMaxNumberOfIOsToASDU);
     RUN_TEST(test_SingleEventType);
