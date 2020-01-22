@@ -1747,14 +1747,19 @@ test_SinglePointInformation(void)
     SinglePointInformation spi1;
     SinglePointInformation spi2;
     SinglePointInformation spi3;
+    SinglePointInformation spi4;
 
     spi1 = SinglePointInformation_create(NULL, 101, true, IEC60870_QUALITY_INVALID);
     spi2 = SinglePointInformation_create(NULL, 102, false, IEC60870_QUALITY_BLOCKED);
     spi3 = SinglePointInformation_create(NULL, 103, true, IEC60870_QUALITY_GOOD);
 
+    /* invalid quality bit (overflow) is expected to be ignored */
+    spi4 = SinglePointInformation_create(NULL, 104, false, IEC60870_QUALITY_OVERFLOW);
+
     TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID, SinglePointInformation_getQuality(spi1));
     TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_BLOCKED, SinglePointInformation_getQuality(spi2));
     TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_GOOD, SinglePointInformation_getQuality(spi3));
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_GOOD, SinglePointInformation_getQuality(spi4));
     TEST_ASSERT_TRUE(SinglePointInformation_getValue(spi1));
 
     uint8_t buffer[256];
@@ -1768,28 +1773,32 @@ test_SinglePointInformation(void)
     CS101_ASDU_addInformationObject(asdu, (InformationObject) spi1);
     CS101_ASDU_addInformationObject(asdu, (InformationObject) spi2);
     CS101_ASDU_addInformationObject(asdu, (InformationObject) spi3);
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) spi4);
 
     SinglePointInformation_destroy(spi1);
     SinglePointInformation_destroy(spi2);
     SinglePointInformation_destroy(spi3);
+    SinglePointInformation_destroy(spi4);
 
     CS101_ASDU_encode(asdu, f);
 
-    TEST_ASSERT_EQUAL_INT(18, Frame_getMsgSize(f));
+    TEST_ASSERT_EQUAL_INT(22, Frame_getMsgSize(f));
 
     CS101_ASDU_destroy(asdu);
 
     CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
 
-    TEST_ASSERT_EQUAL_INT(3, CS101_ASDU_getNumberOfElements(asdu2));
+    TEST_ASSERT_EQUAL_INT(4, CS101_ASDU_getNumberOfElements(asdu2));
 
     SinglePointInformation spi1_dec = (SinglePointInformation) CS101_ASDU_getElement(asdu2, 0);
     SinglePointInformation spi2_dec = (SinglePointInformation) CS101_ASDU_getElement(asdu2, 1);
     SinglePointInformation spi3_dec = (SinglePointInformation) CS101_ASDU_getElement(asdu2, 2);
+    SinglePointInformation spi4_dec = (SinglePointInformation) CS101_ASDU_getElement(asdu2, 3);
 
     TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject)spi1_dec));
     TEST_ASSERT_EQUAL_INT(102, InformationObject_getObjectAddress((InformationObject)spi2_dec));
     TEST_ASSERT_EQUAL_INT(103, InformationObject_getObjectAddress((InformationObject)spi3_dec));
+    TEST_ASSERT_EQUAL_INT(104, InformationObject_getObjectAddress((InformationObject)spi4_dec));
 
     TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID, SinglePointInformation_getQuality(spi1_dec));
     TEST_ASSERT_TRUE(SinglePointInformation_getValue(spi1_dec));
@@ -1800,9 +1809,13 @@ test_SinglePointInformation(void)
     TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_GOOD, SinglePointInformation_getQuality(spi3_dec));
     TEST_ASSERT_TRUE(SinglePointInformation_getValue(spi3_dec));
 
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_GOOD, SinglePointInformation_getQuality(spi4_dec));
+    TEST_ASSERT_FALSE(SinglePointInformation_getValue(spi4_dec));
+
     SinglePointInformation_destroy(spi1_dec);
     SinglePointInformation_destroy(spi2_dec);
     SinglePointInformation_destroy(spi3_dec);
+    SinglePointInformation_destroy(spi4_dec);
 
     CS101_ASDU_destroy(asdu2);
 }

@@ -226,7 +226,7 @@ SinglePointInformation_encode(SinglePointInformation self, Frame frame, CS101_Ap
 
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) self->quality;
+    uint8_t val = (uint8_t) (self->quality & 0xf0);
 
     if (self->value)
         val++;
@@ -260,7 +260,7 @@ SinglePointInformation_create(SinglePointInformation self, int ioa, bool value,
 
         self->objectAddress = ioa;
         self->value = value;
-        self->quality = quality;
+        self->quality = quality & 0xf0;
     }
 
     return self;
@@ -715,7 +715,7 @@ DoublePointInformation_encode(DoublePointInformation self, Frame frame, CS101_Ap
 
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) self->quality;
+    uint8_t val = (uint8_t) (self->quality & 0xf0);
 
     val += (int) self->value;
 
@@ -754,7 +754,7 @@ DoublePointInformation_create(DoublePointInformation self, int ioa, DoublePointV
 
     self->objectAddress = ioa;
     self->value = value;
-    self->quality = quality;
+    self->quality = quality & 0xf0;
 
     return self;
 }
@@ -824,7 +824,7 @@ DoublePointWithCP24Time2a_encode(DoublePointWithCP24Time2a self, Frame frame, CS
 
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) self->quality;
+    uint8_t val = (uint8_t) (self->quality & 0xf0);
 
     val += (int) self->value;
 
@@ -867,7 +867,7 @@ DoublePointWithCP24Time2a_create(DoublePointWithCP24Time2a self, int ioa, Double
 
         self->objectAddress = ioa;
         self->value = value;
-        self->quality = quality;
+        self->quality = quality & 0xf0;
         self->timestamp = *timestamp;
     }
 
@@ -936,7 +936,7 @@ DoublePointWithCP56Time2a_encode(DoublePointWithCP56Time2a self, Frame frame, CS
 
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) self->quality;
+    uint8_t val = (uint8_t) (self->quality & 0xf0);
 
     val += (int) self->value;
 
@@ -980,7 +980,7 @@ DoublePointWithCP56Time2a_create(DoublePointWithCP56Time2a self, int ioa, Double
 
         self->objectAddress = ioa;
         self->value = value;
-        self->quality = quality;
+        self->quality = quality & 0xf0;
         self->timestamp = *timestamp;
     }
 
@@ -1050,7 +1050,7 @@ SinglePointWithCP24Time2a_encode(SinglePointWithCP24Time2a self, Frame frame, CS
 
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) self->quality;
+    uint8_t val = (uint8_t) (self->quality & 0xf0);
 
     if (self->value)
         val++;
@@ -1093,7 +1093,7 @@ SinglePointWithCP24Time2a_create(SinglePointWithCP24Time2a self, int ioa, bool v
 
         self->objectAddress = ioa;
         self->value = value;
-        self->quality = quality;
+        self->quality = quality & 0xf0;
         self->timestamp = *timestamp;
     }
 
@@ -1163,7 +1163,7 @@ SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, CS
 
     InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) self->quality;
+    uint8_t val = (uint8_t) (self->quality & 0xf0);
 
     if (self->value)
         val++;
@@ -1201,7 +1201,7 @@ SinglePointWithCP56Time2a_create(SinglePointWithCP56Time2a self, int ioa, bool v
 
         self->objectAddress = ioa;
         self->value = value;
-        self->quality = quality;
+        self->quality = (quality & 0xf0);
         self->timestamp = *timestamp;
     }
 
