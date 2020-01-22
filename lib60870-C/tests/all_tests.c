@@ -4198,7 +4198,7 @@ test_StepCommandWithCP56Time2a(void)
 
     CS101_ASDU_addInformationObject(asdu, (InformationObject) scv);
 
-    StepCommandWithCP56Time2a_destroy((StepCommand) scv);
+    StepCommandWithCP56Time2a_destroy((StepCommandWithCP56Time2a) scv);
 
     CS101_ASDU_encode(asdu, f);
 
@@ -4219,7 +4219,7 @@ test_StepCommandWithCP56Time2a(void)
     TEST_ASSERT_EQUAL_INT(0, StepCommandWithCP56Time2a_getQU(scv_dec));
     TEST_ASSERT_EQUAL_UINT64(time1, CP56Time2a_toMsTimestamp(StepCommandWithCP56Time2a_getTimestamp(scv_dec)));
 
-    StepCommandWithCP56Time2a_destroy((StepCommand) scv_dec);
+    StepCommandWithCP56Time2a_destroy((StepCommandWithCP56Time2a) scv_dec);
 
     CS101_ASDU_destroy(asdu2);
 }

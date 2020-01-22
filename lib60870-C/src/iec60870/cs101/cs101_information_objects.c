@@ -4781,7 +4781,7 @@ StepCommandWithCP56Time2a_initialize(StepCommandWithCP56Time2a self)
 }
 
 void
-StepCommandWithCP56Time2a_destroy(StepCommand self)
+StepCommandWithCP56Time2a_destroy(StepCommandWithCP56Time2a self)
 {
     GLOBAL_FREEMEM(self);
 }

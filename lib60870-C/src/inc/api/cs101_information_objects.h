@@ -1630,7 +1630,7 @@ DoubleCommandWithCP56Time2a_getTimestamp(DoubleCommandWithCP56Time2a self);
 typedef struct sStepCommandWithCP56Time2a* StepCommandWithCP56Time2a;
 
 void
-StepCommandWithCP56Time2a_destroy(StepCommand self);
+StepCommandWithCP56Time2a_destroy(StepCommandWithCP56Time2a self);
 
 StepCommandWithCP56Time2a
 StepCommandWithCP56Time2a_create(StepCommandWithCP56Time2a self, int ioa, StepCommandValue command, bool selectCommand, int qu, CP56Time2a timestamp);
