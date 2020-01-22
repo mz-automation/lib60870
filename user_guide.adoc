@@ -1,5 +1,5 @@
-= lib60870-C 2.2.0 User Guide
-Copyright 2018 MZ Automation GmbH
+= lib60870-C 2.2.1 User Guide
+Copyright 2019 MZ Automation GmbH
 
 == Introduction
 
