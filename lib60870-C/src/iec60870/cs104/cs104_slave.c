@@ -1290,6 +1290,20 @@ CS104_Slave_getOpenConnections(CS104_Slave self)
     return openConnections;
 }
 
+static void
+decreaseConnectionCounter(CS104_Slave self)
+{
+#if (CONFIG_USE_SEMAPHORES)
+    Semaphore_wait(self->openConnectionsLock);
+#endif
+
+    self->openConnections--;
+
+#if (CONFIG_USE_SEMAPHORES)
+    Semaphore_post(self->openConnectionsLock);
+#endif
+}
+
 static MasterConnection
 getFreeConnection(CS104_Slave self)
 {
@@ -2723,7 +2737,7 @@ MasterConnection_create(CS104_Slave slave)
     return self;
 }
 
-static void
+static bool
 MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQueue, HighPriorityASDUQueue highPrioQueue)
 {
     if (self) {
@@ -2751,8 +2765,8 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
             if (self->tlsSocket == NULL) {
                 DEBUG_PRINT("Failed to create TLS context. Close connection\n");
 
-                MasterConnection_destroy(self);
                 self->isUsed = false;
+                return false;
             }
         }
         else
@@ -2772,18 +2786,28 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
         HighPriorityASDUQueue_resetConnectionQueue(self->highPrioQueue);
 
         self->outstandingTestFRConMessages = 0;
+
+        return true;
+    }
+    else {
+        return false;
     }
 }
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
-static void
+static bool
 MasterConnection_initEx(MasterConnection self, Socket skt, CS104_RedundancyGroup redGroup)
 {
-    if (self) {
-        MasterConnection_init(self, skt, redGroup->asduQueue, redGroup->connectionAsduQueue);
+    bool retVal = false;
 
-        self->redundancyGroup = redGroup;
+    if (self) {
+        retVal = MasterConnection_init(self, skt, redGroup->asduQueue, redGroup->connectionAsduQueue);
+
+        if (retVal)
+            self->redundancyGroup = redGroup;
     }
+
+    return retVal;
 }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
 
@@ -3092,11 +3116,19 @@ handleConnectionsThreadless(CS104_Slave self)
 
                     if (matchingGroup != NULL) {
                         connection = getFreeConnection(self);
-                        MasterConnection_initEx(connection, newSocket, matchingGroup);
 
-                        if (matchingGroup->name) {
-                            DEBUG_PRINT("Add connection to group: %s\n", matchingGroup->name);
+                        if (connection) {
+                            if (MasterConnection_initEx(connection, newSocket, matchingGroup)) {
+                                if (matchingGroup->name) {
+                                    DEBUG_PRINT("Add connection to group: %s\n", matchingGroup->name);
+                                }
+                            }
+                            else {
+                                decreaseConnectionCounter(self);
+                                connection = NULL;
+                            }
                         }
+
                     }
                     else {
                         DEBUG_PRINT("Found no matching redundancy group -> close connection\n");
@@ -3106,11 +3138,24 @@ handleConnectionsThreadless(CS104_Slave self)
                 }
                 else {
                     connection = getFreeConnection(self);
-                    MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue);
+
+                    if (connection) {
+                        if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue) == false) {
+                            decreaseConnectionCounter(self);
+                            connection = NULL;
+                        }
+                    }
+
                 }
 #else
                 connection = getFreeConnection(self);
-                MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue);
+
+                if (connection) {
+                    if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue) == false) {
+                        decreaseConnectionCounter(self);
+                        connection = NULL;
+                    }
+                }
 #endif
 
                 if (connection) {
@@ -3206,11 +3251,19 @@ serverThread (void* parameter)
 
                     if (matchingGroup != NULL) {
                         connection = getFreeConnection(self);
-                        MasterConnection_initEx(connection, newSocket, matchingGroup);
 
-                        if (matchingGroup->name) {
-                            DEBUG_PRINT("Add connection to group: %s\n", matchingGroup->name);
+                        if (connection) {
+                            if (MasterConnection_initEx(connection, newSocket, matchingGroup)) {
+                                if (matchingGroup->name) {
+                                    DEBUG_PRINT("Add connection to group: %s\n", matchingGroup->name);
+                                }
+                            }
+                            else {
+                                decreaseConnectionCounter(self);
+                                connection = NULL;
+                            }
                         }
+
                     }
                     else {
                         DEBUG_PRINT("Found no matching redundancy group -> close connection\n");
@@ -3220,19 +3273,35 @@ serverThread (void* parameter)
                 }
                 else {
                     connection = getFreeConnection(self);
-                    MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue);
+
+                    if (connection) {
+                        if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue) == false) {
+                            decreaseConnectionCounter(self);
+                            connection = NULL;
+                        }
+                    }
+
                 }
 #else
                 connection = getFreeConnection(self);
-                MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue);
+
+                if (connection) {
+                    if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue) == false) {
+                        decreaseConnectionCounter(self);
+                        connection = NULL;
+                    }
+                }
 #endif
 
                 if (connection) {
                     /* now start the connection handling (thread) */
                     MasterConnection_start(connection);
                 }
-                else
+                else{
+                    Socket_destroy(newSocket);
+
                     DEBUG_PRINT("Connection attempt failed!");
+                }
 
             }
             else {
