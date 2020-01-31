@@ -5162,6 +5162,95 @@ test_CS101_ASDU_addUntilOverflow(void)
     CS101_ASDU_destroy(asdu);
 }
 
+void
+test_CS104_MasterSlave_TLSConnectSuccess(void)
+{
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server-key.pem", NULL);
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server.cer");
+    TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root.cer");
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client1-key.pem", NULL);
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client1.cer");
+    TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root.cer");
+
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig2, "server.cer");
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
+
+
+void
+test_CS104_MasterSlave_TLSConnectFails(void)
+{
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client1-key.pem", NULL);
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client1.cer");
+    TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root.cer");
+
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig2, "server.cer");
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -5254,6 +5343,9 @@ main(int argc, char** argv)
     RUN_TEST(test_CS104_Connection_UseAfterServerClosedConnection);
     RUN_TEST(test_CS101_ASDU_addObjectOfWrongType);
     RUN_TEST(test_CS101_ASDU_addUntilOverflow);
+
+    RUN_TEST(test_CS104_MasterSlave_TLSConnectSuccess);
+    RUN_TEST(test_CS104_MasterSlave_TLSConnectFails);
 
     return UNITY_END();
 }
