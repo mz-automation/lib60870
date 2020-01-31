@@ -430,6 +430,8 @@ CP32Time2a_setSummerTime(CP32Time2a self, bool value)
 void
 CP32Time2a_setFromMsTimestamp(CP32Time2a self, uint64_t timestamp)
 {
+    memset(self->encodedValue, 0, 4);
+
     time_t timeVal = timestamp / 1000;
 
     int msPart = timestamp % 1000;
