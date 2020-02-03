@@ -798,9 +798,15 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
                 ResetProcessCommand rpc = (ResetProcessCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (self->resetProcessHandler(self->resetProcessHandlerParameter,
-                        &(self->iMasterConnection), asdu, ResetProcessCommand_getQRP(rpc)))
-                    messageHandled = true;
+                if (rpc) {
+
+                    if (self->resetProcessHandler(self->resetProcessHandlerParameter,
+                            &(self->iMasterConnection), asdu, ResetProcessCommand_getQRP(rpc)))
+                        messageHandled = true;
+                }
+                else {
+                    DEBUG_PRINT("Invalid reset-process-command message");
+                }
             }
 
         }
