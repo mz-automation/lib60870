@@ -1113,6 +1113,8 @@ test_CS104SlaveEventQueue1()
 
     Thread_sleep(500);
 
+    CS104_Connection_sendStopDT(con);
+
     CS104_Connection_close(con);
 
     TEST_ASSERT_EQUAL_INT(14, info.lastScaledValue);
@@ -1421,12 +1423,14 @@ test_CS104SlaveEventQueueCheckCapacity()
 
     CS104_Connection_sendStartDT(con);
 
-    Thread_sleep(500);
+    Thread_sleep(1000);
 
     CS104_Connection_close(con);
 
     TEST_ASSERT_EQUAL_INT(msgQueueCapacity, info.asduHandlerCalled);
-    TEST_ASSERT_EQUAL_INT(msgQueueCapacity, CS104_Slave_getNumberOfQueueEntries(slave, NULL));
+
+    /* outstanding I messages that are not confirmed */
+    TEST_ASSERT_EQUAL_INT(0, CS104_Slave_getNumberOfQueueEntries(slave, NULL));
 
     CS104_Connection_destroy(con);
 
