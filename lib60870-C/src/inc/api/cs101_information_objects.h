@@ -280,7 +280,7 @@ typedef uint8_t QualifierOfCIC;
 #define IEC60870_QCC_FRZ_READ                 0x00
 #define IEC60870_QCC_FRZ_FREEZE_WITHOUT_RESET 0x40
 #define IEC60870_QCC_FRZ_FREEZE_WITH_RESET    0x80
-#define IEC60870_QCC_FRZ_COUNTER_RESET
+#define IEC60870_QCC_FRZ_COUNTER_RESET        0xc0
 
 /**
  * \brief QRP (Qualifier of reset process command) according to IEC 60870-5-101:2003 7.2.6.27
