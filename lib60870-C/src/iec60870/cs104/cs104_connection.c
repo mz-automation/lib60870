@@ -29,6 +29,7 @@
 #include "cs104_frame.h"
 #include "hal_thread.h"
 #include "hal_socket.h"
+#include "tls_socket.h"
 #include "hal_time.h"
 #include "lib_memory.h"
 
