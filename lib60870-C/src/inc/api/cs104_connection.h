@@ -235,6 +235,18 @@ bool
 CS104_Connection_sendTestCommand(CS104_Connection self, int ca);
 
 /**
+ * \brief Send a test command with timestamp (C_TS_TA_1 typeID: 107)
+ *
+ * \param ca Common address of the slave/server
+ * \param tsc test sequence counter
+ * \param timestamp CP56Time2a timestamp
+ *
+ * \return true if message was sent, false otherwise
+ */
+bool
+CS104_Connection_sendTestCommandWithTimestamp(CS104_Connection self, int ca, uint16_t tsc, CP56Time2a timestamp);
+
+/**
  * \brief Send a process command to the controlled (or other) station
  *
  * \deprecated Use \ref CS104_Connection_sendProcessCommandEx instead

@@ -92,6 +92,9 @@ asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
             SinglePointInformation_destroy(io);
         }
     }
+    else if (CS101_ASDU_getTypeID(asdu) == C_TS_TA_1) {
+        printf("  test command with timestamp\n");
+    }
 
     return true;
 }
@@ -127,6 +130,11 @@ main(int argc, char** argv)
         CS104_Connection_sendInterrogationCommand(con, CS101_COT_ACTIVATION, 1, IEC60870_QOI_STATION);
 
         Thread_sleep(5000);
+
+        struct sCP56Time2a testTimestamp;
+        CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
+
+        CS104_Connection_sendTestCommandWithTimestamp(con, 1, 0x4938, &testTimestamp);
 
 #if 0
         InformationObject sc = (InformationObject)

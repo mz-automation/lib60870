@@ -1119,6 +1119,16 @@ CS104_Connection_sendTestCommand(CS104_Connection self, int ca)
 }
 
 bool
+CS104_Connection_sendTestCommandWithTimestamp(CS104_Connection self, int ca, uint16_t tsc, CP56Time2a timestamp)
+{
+    struct sTestCommandWithCP56Time2a _testCommand;
+
+    TestCommandWithCP56Time2a testCommand = TestCommandWithCP56Time2a_create(&_testCommand, tsc, timestamp);
+
+    return CS104_Connection_sendProcessCommandEx(self, CS101_COT_ACTIVATION, ca, (InformationObject) testCommand);
+}
+
+bool
 CS104_Connection_sendProcessCommand(CS104_Connection self, TypeID typeId, CS101_CauseOfTransmission cot, int ca, InformationObject sc)
 {
     Frame frame = (Frame) T104Frame_create();
