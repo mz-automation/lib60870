@@ -1769,6 +1769,33 @@ bool
 TestCommand_isValid(TestCommand self);
 
 /*************************************************
+ * TestCommandWithCP56Time2a : InformationObject
+ ************************************************/
+
+typedef struct sTestCommandWithCP56Time2a* TestCommandWithCP56Time2a;
+
+/**
+ * \brief Create a test command with CP56Time2a timestamp information object
+ *
+ * \param[in] self existing instance to use or NULL to create a new instance
+ * \param[in] tsc test sequence counter
+ * \param[in] timestamp
+ *
+ * \return the new or initialized instance
+ */
+TestCommandWithCP56Time2a
+TestCommandWithCP56Time2a_create(TestCommandWithCP56Time2a self, uint16_t tsc, CP56Time2a timestamp);
+
+void
+TestCommandWithCP56Time2a_destroy(TestCommandWithCP56Time2a self);
+
+uint64_t
+TestCommandWithCP56Time2a_getCounter(TestCommandWithCP56Time2a self);
+
+CP56Time2a
+TestCommandWithCP56Time2a_getTimestamp(TestCommandWithCP56Time2a self);
+
+/*************************************************
  * ResetProcessCommand : InformationObject
  ************************************************/
 

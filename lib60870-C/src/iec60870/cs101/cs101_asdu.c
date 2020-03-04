@@ -1109,6 +1109,12 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
 
         break;
 
+    case C_TS_TA_1: /* 107 - Test command with time */
+
+        retVal = (InformationObject) TestCommandWithCP56Time2a_getFromBuffer((TestCommandWithCP56Time2a) io, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
     case P_ME_NA_1: /* 110 - Parameter of measured values, normalized value */
 
         elementSize = self->parameters->sizeOfIOA + 3;

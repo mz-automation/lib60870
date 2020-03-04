@@ -6263,6 +6263,110 @@ TestCommand_getFromBuffer(TestCommand self, CS101_AppLayerParameters parameters,
 }
 
 /*************************************************
+ * TestCommandWithCP56Time2a : InformationObject
+ ************************************************/
+
+static bool
+TestCommandWithCP56Time2a_encode(TestCommandWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+{
+    int size = isSequence ? 2 : (parameters->sizeOfIOA + 9);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    Frame_setNextByte(frame, self->tsc % 0x100);
+    Frame_setNextByte(frame, self->tsc / 0x100);
+
+    Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
+
+    return true;
+}
+
+struct sInformationObjectVFT testCommandWithCP56Time2aVFT = {
+        (EncodeFunction) TestCommandWithCP56Time2a_encode,
+        (DestroyFunction) TestCommandWithCP56Time2a_destroy
+};
+
+static void
+TestCommandWithCP56Time2a_initialize(TestCommandWithCP56Time2a self)
+{
+    self->virtualFunctionTable = &(testCommandWithCP56Time2aVFT);
+    self->type = C_TS_TA_1;
+}
+
+TestCommandWithCP56Time2a
+TestCommandWithCP56Time2a_create(TestCommandWithCP56Time2a self, uint16_t tsc, CP56Time2a timestamp)
+{
+    if (self == NULL)
+        self = (TestCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sTestCommandWithCP56Time2a));
+
+    if (self) {
+        TestCommandWithCP56Time2a_initialize(self);
+
+        self->objectAddress = 0;
+
+        self->tsc = tsc;
+        self->timestamp = *timestamp;
+    }
+
+    return self;
+}
+
+void
+TestCommandWithCP56Time2a_destroy(TestCommandWithCP56Time2a self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+uint64_t
+TestCommandWithCP56Time2a_getCounter(TestCommandWithCP56Time2a self)
+{
+    return self->tsc;
+}
+
+CP56Time2a
+TestCommandWithCP56Time2a_getTimestamp(TestCommandWithCP56Time2a self)
+{
+    return &(self->timestamp);
+}
+
+TestCommandWithCP56Time2a
+TestCommandWithCP56Time2a_getFromBuffer(TestCommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    /* check message size */
+    int minSize = startIndex + 9;
+
+    if (minSize > msgSize) {
+        DEBUG_PRINT("invalid ASDU - size too small\n");
+        return NULL;
+    }
+
+    if (self == NULL)
+        self = (TestCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sTestCommandWithCP56Time2a));
+
+    if (self != NULL) {
+        TestCommandWithCP56Time2a_initialize(self);
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        /* test counter */
+        self->tsc = msg[startIndex++];
+        self->tsc += (msg[startIndex++] * 0x100);
+
+        /* timestamp */
+        CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+
+
+/*************************************************
  * ResetProcessCommand : InformationObject
  ************************************************/
 

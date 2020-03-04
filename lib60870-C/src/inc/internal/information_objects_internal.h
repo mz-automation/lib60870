@@ -260,6 +260,10 @@ TestCommand
 TestCommand_getFromBuffer(TestCommand self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+TestCommandWithCP56Time2a
+TestCommandWithCP56Time2a_getFromBuffer(TestCommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
 ResetProcessCommand
 ResetProcessCommand_getFromBuffer(ResetProcessCommand self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
@@ -979,6 +983,18 @@ struct sTestCommand {
 
     uint8_t byte1;
     uint8_t byte2;
+};
+
+struct sTestCommandWithCP56Time2a {
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint16_t tsc;
+
+    struct sCP56Time2a timestamp;
 };
 
 struct sResetProcessCommand {
