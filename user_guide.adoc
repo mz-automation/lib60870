@@ -3,7 +3,7 @@ Copyright 2019 MZ Automation GmbH
 
 == Introduction
 
-lib60870-C is a new implementation of the IEC 60870-5-101/104 protocol for client (master station) and server (slave or controlled station). The library implements all data types of the IEC 60870-5-101/104 specifications. *lib60870-C* is implemented in standard C and is compatible with the C99 standard. It is designed to be as easy to use as possible.
+lib60870-C is a feature rich and field proven implementation of the IEC 60870-5-101/104 protocol for client (master station) and server (slave or controlled station). The library implements all data types of the IEC 60870-5-101/104 specifications. *lib60870-C* is implemented in standard C and is compatible with the C99 standard. It is designed to be as easy to use as possible.
 
 The client/server API is strictly asynchronous. You send the requests with non-blocking functions and will have to handle the responses and other events in callback functions.
 
