@@ -387,6 +387,10 @@ CS101_Slave_destroy(CS101_Slave self)
         CS101_Queue_dispose(&(self->userDataClass2Queue));
 
         GLOBAL_FREEMEM(self);
+
+        if (self->plugins) {
+            LinkedList_destroyStatic(self->plugins);
+        }
     }
 }
 

@@ -3629,85 +3629,87 @@ CS104_Slave_stop(CS104_Slave self)
 void
 CS104_Slave_destroy(CS104_Slave self)
 {
+    if (self) {
 #if (CONFIG_USE_THREADS == 1)
-    if (self->isRunning)
-        CS104_Slave_stop(self);
+        if (self->isRunning)
+            CS104_Slave_stop(self);
 #endif
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
-    if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
-    	if (self->asduQueue)
-    		MessageQueue_releaseAllQueuedASDUs(self->asduQueue);
-    }
-#endif
-
-    if (self->localAddress != NULL)
-        GLOBAL_FREEMEM(self->localAddress);
-
-    /*
-     * Stop all connections
-     * */
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->openConnectionsLock);
-#endif
-
-    {
-        int i;
-
-        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
-            if (self->masterConnections[i] != NULL && self->masterConnections[i]->isUsed)
-                MasterConnection_close(self->masterConnections[i]);
+        if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
+            if (self->asduQueue)
+                MessageQueue_releaseAllQueuedASDUs(self->asduQueue);
         }
-    }
+#endif
+
+        if (self->localAddress != NULL)
+            GLOBAL_FREEMEM(self->localAddress);
+
+        /*
+         * Stop all connections
+         * */
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_wait(self->openConnectionsLock);
+#endif
+
+        {
+            int i;
+
+            for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+                if (self->masterConnections[i] != NULL && self->masterConnections[i]->isUsed)
+                    MasterConnection_close(self->masterConnections[i]);
+            }
+        }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->openConnectionsLock);
+        Semaphore_post(self->openConnectionsLock);
 #endif
 
 #if (CONFIG_USE_THREADS == 1)
-    if (self->isThreadlessMode == false) {
-        /* Wait until all connections are closed */
-        while (CS104_Slave_getOpenConnections(self) > 0)
-            Thread_sleep(10);
-    }
+        if (self->isThreadlessMode == false) {
+            /* Wait until all connections are closed */
+            while (CS104_Slave_getOpenConnections(self) > 0)
+                Thread_sleep(10);
+        }
 #endif
 
 #if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_destroy(self->openConnectionsLock);
+        Semaphore_destroy(self->openConnectionsLock);
 #endif
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
-    if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
-        MessageQueue_destroy(self->asduQueue);
-        HighPriorityASDUQueue_destroy(self->connectionAsduQueue);
-    }
+        if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
+            MessageQueue_destroy(self->asduQueue);
+            HighPriorityASDUQueue_destroy(self->connectionAsduQueue);
+        }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
 
-    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
+        if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
 
-        if (self->redundancyGroups)
-            LinkedList_destroyDeep(self->redundancyGroups, (LinkedListValueDeleteFunction) CS104_RedundancyGroup_destroy);
-    }
+            if (self->redundancyGroups)
+                LinkedList_destroyDeep(self->redundancyGroups, (LinkedListValueDeleteFunction) CS104_RedundancyGroup_destroy);
+        }
 
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
 
-    {
-        int i;
+        {
+            int i;
 
-        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+            for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
 
-            if (self->masterConnections[i]) {
-                MasterConnection_destroy(self->masterConnections[i]);
-                self->masterConnections[i] = NULL;
+                if (self->masterConnections[i]) {
+                    MasterConnection_destroy(self->masterConnections[i]);
+                    self->masterConnections[i] = NULL;
+                }
             }
         }
-    }
 
-    if (self->plugins) {
-        LinkedList_destroyStatic(self->plugins);
-    }
+        if (self->plugins) {
+            LinkedList_destroyStatic(self->plugins);
+        }
 
-    GLOBAL_FREEMEM(self);
+        GLOBAL_FREEMEM(self);
+    }
 }
