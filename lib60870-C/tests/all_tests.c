@@ -4914,6 +4914,60 @@ test_Bitstring32CommandWithCP56Time2a(void)
 }
 
 void
+test_QueryLog(void)
+{
+    QueryLog queryLog;
+
+    uint64_t stopTime = Hal_getTimeInMs();
+    uint64_t startTime = stopTime - 2000;
+
+    struct sCP56Time2a rangeStartTime;
+    struct sCP56Time2a rangeStopTime;
+
+    CP56Time2a_createFromMsTimestamp(&rangeStartTime, startTime);
+    CP56Time2a_createFromMsTimestamp(&rangeStopTime, stopTime);
+
+    queryLog = QueryLog_create(NULL, 101, 256, &rangeStartTime, &rangeStopTime);
+
+    TEST_ASSERT_EQUAL_UINT16(256, QueryLog_getNOF(queryLog));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) queryLog);
+
+    QueryLog_destroy(queryLog);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(25, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    QueryLog queryLog_dec = (QueryLog) CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_NOT_NULL(queryLog_dec);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject )queryLog_dec));
+    TEST_ASSERT_EQUAL_UINT16(256, QueryLog_getNOF(queryLog_dec));
+    TEST_ASSERT_EQUAL_UINT64(startTime, CP56Time2a_toMsTimestamp(QueryLog_getRangeStartTime(queryLog_dec)));
+    TEST_ASSERT_EQUAL_UINT64(stopTime, CP56Time2a_toMsTimestamp(QueryLog_getRangeStopTime(queryLog_dec)));
+
+    QueryLog_destroy(queryLog_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
 test_BitString32xx_encodeDecode(void)
 {
 #ifndef _WIN32
@@ -5327,6 +5381,8 @@ main(int argc, char** argv)
 
     RUN_TEST(test_BitString32);
     RUN_TEST(test_Bitstring32CommandWithCP56Time2a);
+
+    RUN_TEST(test_QueryLog);
 
     RUN_TEST(test_BitString32xx_encodeDecode);
     RUN_TEST(test_EventOfProtectionEquipmentWithTime);

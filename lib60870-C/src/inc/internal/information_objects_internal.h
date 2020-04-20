@@ -300,6 +300,10 @@ FileDirectory
 FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
+QueryLog
+QueryLog_getFromBuffer(QueryLog self, CS101_AppLayerParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex);
+
 
 /********************************************
  * static InformationObject type definitions
@@ -1154,6 +1158,20 @@ struct sFileDirectory {
     struct sCP56Time2a creationTime;
 };
 
+struct sQueryLog {
+
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint16_t nof; /* name of file */
+
+    struct sCP56Time2a rangeStartTime;
+    struct sCP56Time2a rangeStopTime;
+};
+
 
 union uInformationObject {
     struct sSinglePointInformation m1;
@@ -1194,6 +1212,8 @@ union uInformationObject {
     struct sParameterActivation m36;
     struct sEventOfProtectionEquipmentWithCP56Time2a m37;
     struct sStepCommandWithCP56Time2a m38;
+    struct sFileDirectory m39;
+    struct sQueryLog m40;
 };
 
 #endif /* SRC_INC_INFORMATION_OBJECTS_INTERNAL_H_ */

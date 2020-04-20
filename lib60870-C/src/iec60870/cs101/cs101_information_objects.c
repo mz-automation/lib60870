@@ -7479,7 +7479,6 @@ FileSegment_getFromBuffer(FileSegment self, CS101_AppLayerParameters parameters,
  * FileDirectory: InformationObject
  *************************************************/
 
-
 static bool
 FileDirectory_encode(FileDirectory self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
 {
@@ -7630,3 +7629,116 @@ FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters paramet
 
     return self;
 }
+
+/*************************************************
+ * QueryLog: InformationObject
+ *************************************************/
+
+static bool
+QueryLog_encode(QueryLog self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+{
+    int size = isSequence ? 16 : (parameters->sizeOfIOA + 16);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
+    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
+    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+
+    Frame_appendBytes(frame, self->rangeStartTime.encodedValue, 7);
+    Frame_appendBytes(frame, self->rangeStopTime.encodedValue, 7);
+
+    return true;
+}
+
+struct sInformationObjectVFT QueryLogVFT = {
+        (EncodeFunction) QueryLog_encode,
+        (DestroyFunction) QueryLog_destroy
+};
+
+static void
+QueryLog_initialize(QueryLog self)
+{
+    self->virtualFunctionTable = &(QueryLogVFT);
+    self->type = F_SC_NB_1;
+}
+
+QueryLog
+QueryLog_create(QueryLog self, int ioa, uint16_t nof, CP56Time2a rangeStartTime, CP56Time2a rangeStopTime)
+{
+    if (self == NULL)
+        self = (QueryLog) GLOBAL_MALLOC(sizeof(struct sQueryLog));
+
+    if (self != NULL) {
+        QueryLog_initialize(self);
+
+        self->objectAddress = ioa;
+        self->nof = nof;
+        self->rangeStartTime = *rangeStartTime;
+        self->rangeStopTime = *rangeStopTime;
+    }
+
+    return self;
+}
+
+uint16_t
+QueryLog_getNOF(QueryLog self)
+{
+    return self->nof;
+}
+
+CP56Time2a
+QueryLog_getRangeStartTime(QueryLog self)
+{
+    return &(self->rangeStartTime);
+}
+
+CP56Time2a
+QueryLog_getRangeStopTime(QueryLog self)
+{
+    return &(self->rangeStopTime);
+}
+
+void
+QueryLog_destroy(QueryLog self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+QueryLog
+QueryLog_getFromBuffer(QueryLog self, CS101_AppLayerParameters parameters,
+        uint8_t* msg, int msgSize, int startIndex)
+{
+    /* check message size */
+    int minSize = startIndex + parameters->sizeOfIOA + 16;
+
+    if (minSize > msgSize) {
+        DEBUG_PRINT("invalid ASDU - size too small\n");
+        return NULL;
+    }
+
+    if (self == NULL)
+       self = (QueryLog) GLOBAL_MALLOC(sizeof(struct sQueryLog));
+
+    if (self != NULL) {
+
+        QueryLog_initialize(self);
+
+        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+
+        startIndex += parameters->sizeOfIOA; /* skip IOA */
+
+        self->nof = msg[startIndex++];
+        self->nof += (msg[startIndex++] * 0x100);
+
+        CP56Time2a_getFromBuffer(&(self->rangeStartTime), msg, msgSize, startIndex);
+        startIndex += 7;
+
+        CP56Time2a_getFromBuffer(&(self->rangeStopTime), msg, msgSize, startIndex);
+    }
+
+    return self;
+}
+

@@ -1199,6 +1199,12 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
 
         break;
 
+    case F_SC_NB_1: /* 127 - QueryLog */
+
+        retVal = (InformationObject) QueryLog_getFromBuffer((QueryLog) io, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
     default:
     	DEBUG_PRINT("type %d not supported\n", CS101_ASDU_getTypeID(self));
     	break;

@@ -2168,6 +2168,28 @@ FileDirectory_getCreationTime(FileDirectory self);
 void
 FileDirectory_destroy(FileDirectory self);
 
+/*************************************************
+ * QueryLog: InformationObject
+ *************************************************/
+
+typedef struct sQueryLog* QueryLog;
+
+QueryLog
+QueryLog_create(QueryLog self, int ioa, uint16_t nof, CP56Time2a rangeStartTime, CP56Time2a rangeStopTime);
+
+uint16_t
+QueryLog_getNOF(QueryLog self);
+
+CP56Time2a
+QueryLog_getRangeStartTime(QueryLog self);
+
+
+CP56Time2a
+QueryLog_getRangeStopTime(QueryLog self);
+
+void
+QueryLog_destroy(QueryLog self);
+
 /**
  * @}
  */
