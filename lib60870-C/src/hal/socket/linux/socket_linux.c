@@ -282,9 +282,19 @@ closeAndShutdownSocket(int socketFd)
             printf("socket_linux.c: call shutdown for %i!\n", socketFd);
 
         /* shutdown is required to unblock read or accept in another thread! */
-        shutdown(socketFd, SHUT_RDWR);
+        int result = shutdown(socketFd, SHUT_RDWR);
 
-        close(socketFd);
+        if (result == -1) {
+            if (DEBUG_SOCKET)
+                printf("socket_linux.c: shutdown error: %i\n", errno);
+        }
+
+        result = close(socketFd);
+
+        if (result == -1) {
+            if (DEBUG_SOCKET)
+                printf("socket_linux.c: close error: %i\n", errno);
+        }
     }
 }
 

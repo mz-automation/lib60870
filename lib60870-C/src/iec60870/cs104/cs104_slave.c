@@ -2577,6 +2577,31 @@ CS104_Slave_removeConnection(CS104_Slave self, MasterConnection connection)
 #endif
 }
 
+static void
+CS104_Slave_closeAllConnections(CS104_Slave self) 
+{
+#if (CONFIG_USE_SEMAPHORES)
+    Semaphore_wait(self->openConnectionsLock);
+#endif
+
+    int i;
+
+    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+        if (self->masterConnections[i]) {
+            if (self->masterConnections[i]->isUsed) {
+                self->masterConnections[i]->isUsed = false;
+                MasterConnection_deinit(self->masterConnections[i]);
+            }
+        }
+    }
+
+    self->openConnections = 0;
+
+#if (CONFIG_USE_SEMAPHORES)
+    Semaphore_post(self->openConnectionsLock);
+#endif
+}
+
 static void*
 connectionHandlingThread(void* parameter)
 {
@@ -2651,8 +2676,6 @@ connectionHandlingThread(void* parameter)
     if (self->slave->connectionEventHandler) {
        self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_CONNECTION_CLOSED);
     }
-
-    DEBUG_PRINT("CS104 SLAVE: Connection closed\n");
 
     self->isRunning = false;
 
@@ -3582,9 +3605,11 @@ CS104_Slave_stopThreadless(CS104_Slave self)
     self->isRunning = false;
 
     if (self->serverSocket) {
-        Socket_destroy((Socket) self->serverSocket);
+        ServerSocket_destroy(self->serverSocket);
         self->serverSocket = NULL;
     }
+
+    CS104_Slave_closeAllConnections(self);
 }
 
 void
