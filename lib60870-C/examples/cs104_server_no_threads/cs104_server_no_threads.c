@@ -263,10 +263,7 @@ main(int argc, char** argv)
             CS101_ASDU_addInformationObject(newAsdu,
                     (InformationObject) MeasuredValueScaled_create((MeasuredValueScaled)&ioBuf, 110, scaledValue, IEC60870_QUALITY_GOOD));
 
-            /* Add ASDU to slave event queue - don't release the ASDU afterwards!
-             * The ASDU will be released by the Slave instance when the ASDU
-             * has been sent.
-             */
+            /* Add ASDU to slave event queue */
             CS104_Slave_enqueueASDU(slave, newAsdu);
         }
 

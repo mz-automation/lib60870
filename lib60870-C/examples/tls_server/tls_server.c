@@ -223,10 +223,7 @@ main(int argc, char** argv)
 
         InformationObject_destroy(io);
 
-        /* Add ASDU to slave event queue - don't release the ASDU afterwards!
-         * The ASDU will be released by the Slave instance when the ASDU
-         * has been sent.
-         */
+        /* Add ASDU to slave event queue */
         CS104_Slave_enqueueASDU(slave, newAsdu);
 
         CS101_ASDU_destroy(newAsdu);
