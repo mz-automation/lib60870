@@ -6320,7 +6320,7 @@ TestCommandWithCP56Time2a_destroy(TestCommandWithCP56Time2a self)
     GLOBAL_FREEMEM(self);
 }
 
-uint64_t
+uint16_t
 TestCommandWithCP56Time2a_getCounter(TestCommandWithCP56Time2a self)
 {
     return self->tsc;

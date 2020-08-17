@@ -1789,7 +1789,7 @@ TestCommandWithCP56Time2a_create(TestCommandWithCP56Time2a self, uint16_t tsc, C
 void
 TestCommandWithCP56Time2a_destroy(TestCommandWithCP56Time2a self);
 
-uint64_t
+uint16_t
 TestCommandWithCP56Time2a_getCounter(TestCommandWithCP56Time2a self);
 
 CP56Time2a
