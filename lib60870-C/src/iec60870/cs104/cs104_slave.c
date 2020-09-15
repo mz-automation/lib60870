@@ -3071,29 +3071,29 @@ handleClientConnections(CS104_Slave self)
 static char*
 getPeerAddress(Socket socket, char* ipAddress)
 {
-    char* ipAddrStr;
+    char* ipAddrStr = NULL;
 
-    Socket_getPeerAddressStatic(socket, ipAddress);
+    if (Socket_getPeerAddressStatic(socket, ipAddress)) {
+        /* remove TCP port part */
+        if (ipAddress[0] == '[') {
+            /* IPV6 address */
+            ipAddrStr = ipAddress + 1;
 
-    /* remove TCP port part */
-    if (ipAddress[0] == '[') {
-        /* IPV6 address */
-        ipAddrStr = ipAddress + 1;
+            char* separator = strchr(ipAddrStr, ']');
 
-        char* separator = strchr(ipAddrStr, ']');
+            if (separator != NULL)
+                *separator = 0;
 
-        if (separator != NULL)
-            *separator = 0;
+        }
+        else {
+            /* IPV4 address */
+            ipAddrStr = ipAddress;
 
-    }
-    else {
-        /* IPV4 address */
-        ipAddrStr = ipAddress;
+            char* separator = strchr(ipAddrStr, ':');
 
-        char* separator = strchr(ipAddrStr, ':');
-
-        if (separator != NULL)
-            *separator = 0;
+            if (separator != NULL)
+                *separator = 0;
+        }
     }
 
     return ipAddrStr;

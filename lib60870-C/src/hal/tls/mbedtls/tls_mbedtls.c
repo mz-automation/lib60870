@@ -348,6 +348,20 @@ readFunction(void* ctx, unsigned char* buf, size_t len)
     return ret;
 }
 
+static int
+writeFunction(void* ctx, const unsigned char* buf, size_t len)
+{
+    Socket skt = (Socket) ctx;
+
+    int ret = Socket_write(skt, (uint8_t*) buf, (int) len);
+
+    if (ret == -1) {
+        return MBEDTLS_ERR_SSL_CONN_EOF;
+    }
+
+    return ret;
+}
+
 TLSSocket
 TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClientCert)
 {
@@ -379,7 +393,7 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
         if (ret != 0)
             DEBUG_PRINT("TLS", "mbedtls_ssl_setup returned %d\n", ret);
 
-        mbedtls_ssl_set_bio(&(self->ssl), socket, (mbedtls_ssl_send_t*) Socket_write,
+        mbedtls_ssl_set_bio(&(self->ssl), socket, (mbedtls_ssl_send_t*) writeFunction,
                 (mbedtls_ssl_recv_t*) readFunction, NULL);
 
         while( (ret = mbedtls_ssl_handshake(&(self->ssl)) ) != 0 )
