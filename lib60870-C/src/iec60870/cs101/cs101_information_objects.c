@@ -107,7 +107,7 @@ bool
 StatusAndStatusChangeDetection_getST(StatusAndStatusChangeDetection self, int index)
 {
     if ((index >= 0) && (index < 16))
-        return ((int) (StatusAndStatusChangeDetection_getSTn(self) & (2^index)) != 0);
+        return ((int) (StatusAndStatusChangeDetection_getSTn(self) & (1 << index)) != 0);
     else
         return false;
 }
@@ -116,7 +116,7 @@ bool
 StatusAndStatusChangeDetection_getCD(StatusAndStatusChangeDetection self, int index)
 {
     if ((index >= 0) && (index < 16))
-        return ((int) (StatusAndStatusChangeDetection_getCDn(self) & (2^index)) != 0);
+        return ((int) (StatusAndStatusChangeDetection_getCDn(self) & (1 << index)) != 0);
     else
         return false;
 }
