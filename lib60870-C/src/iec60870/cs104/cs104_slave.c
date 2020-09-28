@@ -1538,7 +1538,7 @@ CS104_Slave_getAppLayerParameters(CS104_Slave self)
 static void
 printSendBuffer(MasterConnection self)
 {
-    if (self->oldestSentASDU != -1) {
+    if ((signed short)self->oldestSentASDU != (signed short)-1) {
         int currentIndex = self->oldestSentASDU;
 
         int nextIndex = 0;
@@ -1687,7 +1687,7 @@ static bool
 isSentBufferFull(MasterConnection self)
 {
     /* locking of k-buffer has to be done by caller! */
-    if (self->oldestSentASDU == -1)
+    if ((signed short)self->oldestSentASDU == (signed short)-1)
         return false;
 
     int newIndex = (self->newestSentASDU + 1) % (self->maxSentASDUs);
@@ -1704,7 +1704,7 @@ sendASDU(MasterConnection self, uint8_t* buffer, int msgSize, uint64_t entryId, 
 {
     int currentIndex = 0;
 
-    if (self->oldestSentASDU == -1) {
+    if ((signed short)self->oldestSentASDU == (signed short)-1) {
         self->oldestSentASDU = 0;
         self->newestSentASDU = 0;
     }
@@ -2058,7 +2058,7 @@ checkSequenceNumber(MasterConnection self, int seqNo)
     bool counterOverflowDetected = false;
     int oldestValidSeqNo = -1;
 
-    if (self->oldestSentASDU == -1) { /* if k-Buffer is empty */
+    if ((signed short)self->oldestSentASDU == (signed short)-1) { /* if k-Buffer is empty */
         if (seqNo == self->sendCount)
             seqNoIsValid = true;
     }
@@ -2089,7 +2089,7 @@ checkSequenceNumber(MasterConnection self, int seqNo)
     }
 
     if (seqNoIsValid) {
-        if (self->oldestSentASDU != -1) {
+        if ((signed short)self->oldestSentASDU != (signed short)-1) {
 
             do {
                 int oldestAsduSeqNo = self->sentASDUs[self->oldestSentASDU].seqNo;
@@ -2521,7 +2521,7 @@ handleTimeouts(MasterConnection self)
 #endif
 
     /* check if counterpart confirmed I message */
-    if (self->oldestSentASDU != -1) {
+    if ((signed short)self->oldestSentASDU != (signed short)-1) {
 
         if (currentTime > self->sentASDUs[self->oldestSentASDU].sentTime) {
 
