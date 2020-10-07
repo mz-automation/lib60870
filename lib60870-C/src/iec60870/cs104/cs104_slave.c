@@ -1918,7 +1918,7 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
                         CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
 
-                        CS104_Slave_enqueueASDU(slave, asdu);
+                        sendASDUInternal(self, asdu);
                     }
                     else {
                         CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
