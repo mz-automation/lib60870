@@ -1092,11 +1092,11 @@ struct sMasterConnection {
     unsigned int isRunning:1;
     unsigned int timeoutT2Triggered:1;
     unsigned int outstandingTestFRConMessages:3;
-    unsigned int maxSentASDUs:16; /* k-parameter */
-    int oldestSentASDU:16; /* oldest sent ASDU in k-buffer */
-    int newestSentASDU:16; /* newest sent ASDU in k-buffer */
-    unsigned int sendCount:16;     /* sent messages - sequence counter */
-    unsigned int receiveCount:16;  /* received messages - sequence counter */
+    uint16_t maxSentASDUs; /* k-parameter */
+    int16_t  oldestSentASDU; /* oldest sent ASDU in k-buffer */
+    int16_t  newestSentASDU; /* newest sent ASDU in k-buffer */
+    uint16_t sendCount;     /* sent messages - sequence counter */
+    uint16_t receiveCount;  /* received messages - sequence counter */
 
     int unconfirmedReceivedIMessages; /* number of unconfirmed messages received */
 
