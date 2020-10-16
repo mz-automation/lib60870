@@ -1,9 +1,9 @@
-= lib60870-C 2.2.1 User Guide
-Copyright 2019 MZ Automation GmbH
+= lib60870 - IEC 60870-5-101/104 C Source Code Library User Guide - Version 2.3.0 
+Copyright 2020 MZ Automation GmbH
 
 == Introduction
 
-lib60870-C is a feature rich and field proven implementation of the IEC 60870-5-101/104 protocol for client (master station) and server (slave or controlled station). The library implements all data types of the IEC 60870-5-101/104 specifications. *lib60870-C* is implemented in standard C and is compatible with the C99 standard. It is designed to be as easy to use as possible.
+lib60870 is a feature rich and field proven implementation of the IEC 60870-5-101/104 protocol for client (master station) and server (slave or controlled station). The library implements all data types of the IEC 60870-5-101/104 specifications. *lib60870* is implemented in standard C and is compatible with the C99 standard. It is designed to be as easy to use as possible.
 
 The client/server API is strictly asynchronous. You send the requests with non-blocking functions and will have to handle the responses and other events in callback functions.
 
@@ -505,9 +505,9 @@ To deactivate the IEC 60870-5-104 service the server can be stopped with the _CS
 
 === Spontaneous or periodic transmission of messages
 
-For spontaneous or periodic message transmission on the server/slave side the API user has to allocate a _CS101_ASDU_ object that represents the ASDU, add Information Objects to the ASDU, and finally put the ASDU into the transmission queue. The transmission queue is a FIFO (first in first out) list. If the queue is full the oldest message will be deleted and replaced by the newly added message. Messages will only be sent if the there is an active client connection or working link layer connection. Otherwise the messages will remain in the queue until a connection is activated.
+For spontaneous or periodic message transmission on the server/slave side the API user has to allocate a _CS101_ASDU_ object that represents a single ASDU, add Information Objects to the ASDU, and finally put the ASDU into the transmission queue. The transmission queue is a FIFO (first in first out) list. If the queue is full the oldest message will be deleted and replaced by the newly added message. Messages will only be sent if the there is an active client connection or working link layer connection. Otherwise the messages will remain in the queue until a connection is activated.
 
-*LIB60870-C:* In the C version the queue size is determined by the *maxQueueSize* parameter of the *T104Slave_create* function. If the library is compiled with the _CONFIG_SLAVE_WITH_STATIC_MESSAGE_QUEUE_ option enabled the _maxQueueSize_ parameter will be ignored and the queue will always have the size defined with by _CONFIG_SLAVE_MESSAGE_QUEUE_SIZE_.
+*CS 104:* In the CS 104 slave the queue size is determined by the *maxLowPrioQueueSize* parameter of the *CS104_Slave_create* function. If the _maxLowPrioQueueSize_ parameter is set to zero the queue will always have the size defined with by _CONFIG_SLAVE_MESSAGE_QUEUE_SIZE_. The second parameter *maxHighPrioQueueSize* determines the size of the high priority data queue. Messages that are put into this queue bypass the messages of the low priority queue. The high priority queue is used for request responses in library callback handlers.
 
 The following steps have to be done to send spontaneous or periodic messages:
 
@@ -535,9 +535,14 @@ The following steps have to be done to send spontaneous or periodic messages:
 
   CS101_ASDU_destroy(newAsdu);
 
+*NOTE:* For _CS 104_ you have to use the _CS104_Slave_enqueueASDU_ function in step 5:
+
+  CS104_Slave_enqueueASDU(slave, newAsdu);
+
+
 === Handling of interrogation requests
 
-On the server side you should use the InterrogationHandler callback function to handle the Interrogation request. Depending on the QOI (_Qualifier of interrogation_) value you should return different information objects. For a simple system it is enough to only handle station interrogation requests (QOI = 20). The QOI values 21-36 are used for the interrogation groups (1-16). It is up to the slave implementer to assign information objects to interrogation groups.
+On the server side you should use the InterrogationHandler callback function to handle the Interrogation request. Depending on the QOI (_Qualifier of interrogation_) value you can return different information objects. For a simple system it is enough to only handle station interrogation requests (QOI = 20). The QOI values 21-36 are used for the interrogation groups (1-16). It is up to the slave implementer to assign information objects to interrogation groups.
 
 According to the specification the server has to respond the ACTIVATION request from the client with the ACT_CON response followed by ASDUs containing the information objects with _CS101_COT_INTERROGATED_BY_STATION_ for a station interrogation or COT that represent the respective interrogation group (e.g. _CS101_COT_INTERROGATED_BY_GROUP_1_ for interrogation group 1). After sending all information objects the server has to send the initial interrogation command message with COT = _CS101_COT_ACTIVATION_TERMINATION_ to indicate that the transmission of the interrogation data is finished.
 
@@ -584,17 +589,19 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 ----
 
 Inside of the interrogation handler the IMasterConnection interface can be used to send the interrogated data
-back to the client/master. The _CS101_ASDU_ and _InformationObject_ instances created inside the interrogation handler are in the responsibility of the user and have to be release with the appropriate functions (_CS101_ASDU_destroy_ and _InformationObject_destroy_) when they have been allocated dynamically.
+back to the client/master. The _CS101_ASDU_ and _InformationObject_ instances created inside the interrogation handler are in the responsibility of the user and have to be released with the appropriate functions (_CS101_ASDU_destroy_ and _InformationObject_destroy_) when they have been allocated dynamically before.
 
 === CS104 (TCP/IP) specific issues
 
 ==== Server mode
 
-The server provides two different modes:
+The server provides three different modes:
 
 The default mode (_CS104_MODE_SINGLE_REDUNDANCY_GROUP_) allows only a *single active client connection*. An active client connection is a connection where ASDUs are sent. All other connections are standby connections. There is a single queue for events. Events are also stored when no client is connected or when no connection is active.
 
 The second mode (_CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP_) allows *multiple active client connections*. Every connection has its own event queue. The event queue will be deleted when the client connection is closed. This mode has to be used when more then one client has to access the application data.
+
+The third mode (_CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS_) is the most flexible mode and allows to define specific _redundancy groups_. These redundany groups are groups of clients that share the same event queue. For each redundancy group there is a seperate event queue instance.
 
 The server mode can be set with the _CS104_Slave_setServerMode_ function.
 
@@ -614,7 +621,7 @@ The default TCP port for IEC 60870-5-104 is 2404. The port can be changed with t
 
   CS104_Slave_setLocalPort(slave, 2405);
 
-Per default the server listens to all local IP addresses. With the _CS104_Slave_setLocalAddress_ function it is possible to restrict the server to a single local IP address.
+By default the server listens to all local IP addresses. With the _CS104_Slave_setLocalAddress_ function it is possible to restrict the server to listen to a single local IP address.
 
   CS104_Slave_setLocalAddress(slave, "192.168.1.50");
 
@@ -622,7 +629,7 @@ With this setting the CS104 server will only listen on the local interface with 
 
 ==== Set a connection request handler to restrict the access and track connections
 
-The _CS104_ConnectionRequestHandler_ can be used to restrict the access to the server. With the return value the application can allow or deny the connection attempt of a client.
+The _CS104_ConnectionRequestHandler_ can be used to restrict the access to the server. With the return value the application can allow or deny the connection attempts of a client.
 
 A _CS104_ConnectionRequestHandler_ can be set with the _CS104_Slave_setConnectionRequestHandler_ function. The second parameter is an arbitrary user provided object that will be passed to the handler when it is called. If not needed it can be set to _NULL_.
 
@@ -651,9 +658,9 @@ static bool connectionRequestHandler(void* parameter, const char* ipAddress)
 
 The CS 104 standard can also be used with TLS to realize secure and authenticated connections.
 
-In order to use TLS the configuration parameters, certificates, and private keys have to be configured.
+In order to use TLS, the related parameters, certificates, and private keys have to be configured.
 
-This configuration is stored in a _TLSConfiguration_ object. A new configuration object can be created with the _TLSConfiguration_create_ function.
+The configuration is stored in a _TLSConfiguration_ object. A new configuration object can be created with the _TLSConfiguration_create_ function.
 
 [[app-listing]]
 [source, c]
@@ -679,10 +686,6 @@ CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig);
 === Debug output
 
 The debug output to the console can be enabled by setting _CONFIG_DEBUG_OUTPUT_ to 1. This will enable the debug output by default. The debug output can be disabled my using the function *Lib60870_enableDebugOutput*. The default implementation of the debug output function will print to the console (using printf). If you need to redirect the output the most easy way would be to change the implementation of the debug output *lib60870_debug_print* function in _lib60870_common.c_.
-
-=== Memory management
-
-
 
 === Big endian platforms
 
@@ -754,7 +757,6 @@ The library supports the following ASDU (application service data unit) types.
 | C_SE_NC_1(50) | Setpoint command, short value (FLOAT32)| + | +
 | C_BO_NA_1(51) | Bitstring command (32 bit bitstring)  | + | +
 
-
 | C_SC_TA_1(58) | Single command (BOOLEAN) with CP56Time2a | + | +
 | C_DC_TA_1(59) | Double command (ON/OFF/transient) with CP56Time2a | + | +
 | C_RC_TA_1(60) | Step command with CP56Time2a | + | +
@@ -763,12 +765,16 @@ The library supports the following ASDU (application service data unit) types.
 | C_SE_TC_1(63) | Setpoint command, short value (FLOAT32) with CP56Time2a| + | +
 | C_BO_TA_1(64) | Bitstring command (32 bit bitstring) with CP56Time2a | + | +
 
+| M_EI_NA_1(70) | End of initialization  | + | +
+
 | C_IC_NA_1(100) | Interrogation command | + | +
 | C_CI_NA_1(101) | Counter interrogation command | + | +
 | C_RD_NA_1(102) | Read command | + | +
 | C_CS_NA_1(103) | Clock synchronization command | + | +
+| C_TS_NA_1(104) | Test command | + | +
 | C_RP_NA_1(105) | Reset process command | + | +
 | C_CD_NA_1(106) | Delay acquisition command | + | +
+| C_TS_TA_1(107) | Test command with CP56Time2a | + | +
 
 | P_ME_NA_1(110) | Parameter of measured values, normalized value | + | +
 | P_ME_NB_1(111) | Parameter of measured values, scaled value  | + | +
@@ -782,6 +788,7 @@ The library supports the following ASDU (application service data unit) types.
 | F_AF_NA_1(124) | ACK file/section | + | +
 | F_SG_NA_1(125) | File segment | + | +
 | F_DR_TA_1(126) | File directory | + | +
+| F_SC_NB_1(127) | Query log | + | +
 |===
 
 === CS 104 specific parameters
@@ -795,7 +802,7 @@ The following parameters are stored in *CS104_ConnectionParameters* objects.
 |k       |Number of unconfirmed APDUs in I format. Sender will stop transmission after k unconfirmed I messages.
 |w       |Number of unconfirmed APDUs in I format. Receiver will confirm latest after w messages
 |t0      |Timeout for connection establishment (in s)
-|t1      |Timeout for transmitted APDUs in I/U format (in s) when timeout elapsed without confirmation the connection will be closed. This is used by the sender to determine if the receiver has failed to confirm a message.
+|t1      |Timeout for transmitted APDUs in I/U format (in s). When timeout elapsed without confirmation the connection will be closed. This is used by the sender to determine if the receiver has failed to confirm a message.
 |t2      |Timeout to confirm messages (in s). This timeout is used by the receiver to determine the time when the message confirmation has to be sent.
-|t3      |time until test telegrams will be sent in case of an idle connection
+|t3      |Timeout to send test telegrams in case of an idle connection
 |===

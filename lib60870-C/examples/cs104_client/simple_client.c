@@ -114,6 +114,9 @@ main(int argc, char** argv)
     printf("Connecting to: %s:%i\n", ip, port);
     CS104_Connection con = CS104_Connection_create(ip, port);
 
+    CS101_AppLayerParameters alParams = CS104_Connection_getAppLayerParameters(con);
+    alParams->originatorAddress = 3;
+
     CS104_Connection_setConnectionHandler(con, connectionHandler, NULL);
     CS104_Connection_setASDUReceivedHandler(con, asduReceivedHandler, NULL);
 
