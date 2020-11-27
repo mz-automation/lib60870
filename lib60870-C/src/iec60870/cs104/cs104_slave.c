@@ -797,7 +797,7 @@ CS104_IPAddress_setFromString(CS104_IPAddress self, const char* ipAddrStr)
         int i;
 
         for (i = 0; i < 4; i++) {
-            self->address[i] = strtoul(ipAddrStr, NULL, 10);
+            self->address[i] = (uint8_t) strtoul(ipAddrStr, NULL, 10);
 
             ipAddrStr = strchr(ipAddrStr, '.');
 
@@ -2203,7 +2203,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             return false;
         }
 
-        if ((buffer[2] & 1) == 0) {
+        if ((buffer[2] & 1) == 0) { /* I message */
 
             if (msgSize < 7) {
                 DEBUG_PRINT("CS104 SLAVE: Received I msg too small!");
@@ -2252,9 +2252,10 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
                     return false;
                 }
             }
-            else
-                DEBUG_PRINT("CS104 SLAVE: Connection not activated. Skip I message");
-
+            else {
+                DEBUG_PRINT("CS104 SLAVE: Received I message while connection not activate -> close connection");
+                return false;
+            }
         }
 
         /* Check for TESTFR_ACT message */
@@ -2304,6 +2305,12 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
         }
 
         else if (buffer [2] == 0x01) { /* S-message */
+
+            if (self->isActive == false) {
+                DEBUG_PRINT("CS104 SLAVE: Received S message while connection not activate -> close connection");
+                return false;
+            }
+
             int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
 
             DEBUG_PRINT("CS104 SLAVE: Rcvd S(%i) (own sendcounter = %i)\n", seqNo, self->sendCount);
@@ -2752,7 +2759,7 @@ _IMasterConnection_getPeerAddress(IMasterConnection self, char* addrBuf, int add
     if (addrStr == NULL)
         return 0;
 
-    int len = strlen(buf);
+    int len = (int) strlen(buf);
 
     if (len < addrBufSize) {
         strcpy(addrBuf, buf);
