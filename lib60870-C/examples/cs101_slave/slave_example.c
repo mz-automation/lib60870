@@ -147,18 +147,24 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
         if  (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION) {
             InformationObject io = CS101_ASDU_getElement(asdu, 0);
 
-            if (InformationObject_getObjectAddress(io) == 5000) {
-                SingleCommand sc = (SingleCommand) io;
+            if (io) {
+                if (InformationObject_getObjectAddress(io) == 5000) {
+                    SingleCommand sc = (SingleCommand) io;
 
-                printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
-                        SingleCommand_getState(sc));
+                    printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
+                            SingleCommand_getState(sc));
 
-                CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                    CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                }
+                else
+                    CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
+
+                InformationObject_destroy(io);
             }
-            else
-                CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
+            else {
+                printf("ERROR: ASDU contains no information object!\n");
+            }
 
-            InformationObject_destroy(io);
         }
         else
             CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
@@ -214,14 +220,19 @@ main(int argc, char** argv)
     SerialPort port = SerialPort_create(serialPort, 9600, 8, 'E', 1);
 
     /* create a new slave/server instance with default link layer and application layer parameters */
-    // CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_UNBALANCED);
-    CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_BALANCED);
+    // CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_BALANCED);
+    CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_UNBALANCED);
 
-    CS101_Slave_setLinkLayerAddress(slave, 3);
+    CS101_Slave_setLinkLayerAddress(slave, 1);
     CS101_Slave_setLinkLayerAddressOtherStation(slave, 2);
 
     /* get the application layer parameters - we need them to create correct ASDUs */
     CS101_AppLayerParameters alParameters = CS101_Slave_getAppLayerParameters(slave);
+
+    /* change default application layer parameters (optional) */
+    alParameters->sizeOfCA = 2;
+    alParameters->sizeOfIOA = 3;
+    alParameters->sizeOfCOT = 2;
 
     LinkLayerParameters llParameters = CS101_Slave_getLinkLayerParameters(slave);
     llParameters->timeoutForAck = 500;

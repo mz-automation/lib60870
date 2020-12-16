@@ -147,9 +147,14 @@ HandleReceivedData (void* parameter, uint8_t* msg, bool isBroadcast, int userDat
 
     CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->alParameters), msg + userDataStart, userDataLength);
 
-    handleASDU(self, asdu);
+    if (asdu) {
+        handleASDU(self, asdu);
 
-    CS101_ASDU_destroy(asdu);
+        CS101_ASDU_destroy(asdu);
+    }
+    else {
+        DEBUG_PRINT("CS101 slave: Failed to parse ASDU\n");
+    }
 
     return true;
 }
