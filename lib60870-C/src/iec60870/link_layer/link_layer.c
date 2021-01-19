@@ -2083,8 +2083,15 @@ LinkLayerPrimaryUnbalanced_handleMessage(LinkLayerPrimaryUnbalanced self, uint8_
 void
 LinkLayerPrimaryUnbalanced_runStateMachine(LinkLayerPrimaryUnbalanced self)
 {
-    /* run all the link layer state machines for the registered slaves */
+    if (self->hasNextBroadcastToSend) {
+        /* send pending broadcast message */
 
+        SendVariableLengthFrame(self->linkLayer, LL_FC_04_USER_DATA_NO_REPLY, LinkLayer_getBroadcastAddress(self->linkLayer), true, false, false, false, (Frame) &(self->nextBroadcastMessage));
+
+        self->hasNextBroadcastToSend = false;
+    }
+
+    /* run all the link layer state machines for the registered slaves */
     if (LinkedList_size(self->slaveConnections) > 0) {
 
         if (self->currentSlave != NULL) {

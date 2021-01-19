@@ -147,6 +147,10 @@ main(int argc, char** argv)
 
     CS101_Master master = CS101_Master_create(port, NULL, NULL, IEC60870_LINK_LAYER_UNBALANCED);
 
+    LinkLayerParameters llParams = CS101_Master_getLinkLayerParameters(master);
+
+    llParams->addressLength = 1;
+
     /* Setting the callback handler for generic ASDUs */
     CS101_Master_setASDUReceivedHandler(master, asduReceivedHandler, NULL);
 
@@ -203,7 +207,7 @@ main(int argc, char** argv)
                 InformationObject sc = (InformationObject)
                         SingleCommand_create(NULL, 5000, true, false, 0);
 
-                CS101_Master_useSlaveAddress(master, 1);
+                CS101_Master_useSlaveAddress(master, 2);
                 CS101_Master_sendProcessCommand(master, CS101_COT_ACTIVATION, 1, sc);
                 CS101_Master_run(master);
 
@@ -222,7 +226,8 @@ main(int argc, char** argv)
                 CP56Time2a_createFromMsTimestamp(&newTime, Hal_getTimeInMs());
 
                 printf("Send time sync command\n");
-                CS101_Master_useSlaveAddress(master, 1);
+                /* Use broadcast address */
+                CS101_Master_useSlaveAddress(master, 255);
                 CS101_Master_sendClockSyncCommand(master, 1, &newTime);
                 CS101_Master_run(master);
             }

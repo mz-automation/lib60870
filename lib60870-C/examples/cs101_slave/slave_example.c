@@ -40,10 +40,12 @@ printCP56Time2a(CP56Time2a time)
 static void
 rawMessageHandler (void* parameter, uint8_t* msg, int msgSize, bool sent)
 {
-    if (sent)
+    if (sent) {
         printf("SEND: ");
-    else
+    }
+    else {
         printf("RCVD: ");
+    }
 
     int i;
     for (i = 0; i < msgSize; i++) {
@@ -212,7 +214,7 @@ main(int argc, char** argv)
     /* Add Ctrl-C handler */
     signal(SIGINT, sigint_handler);
 
-    const char* serialPort = "/dev/ttyUSB2";
+    const char* serialPort = "/dev/ttyUSB0";
 
     if (argc > 1)
         serialPort = argv[1];
@@ -237,7 +239,6 @@ main(int argc, char** argv)
     LinkLayerParameters llParameters = CS101_Slave_getLinkLayerParameters(slave);
     llParameters->timeoutForAck = 500;
 
-
     /* set the callback handler for the clock synchronization command */
     CS101_Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);
 
@@ -257,7 +258,7 @@ main(int argc, char** argv)
     CS101_Slave_setLinkLayerStateChanged(slave, linkLayerStateChanged, NULL);
 
     /* uncomment to log messages */
-    //CS101_Slave_setRawMessageHandler(slave, rawMessageHandler, NULL);
+    CS101_Slave_setRawMessageHandler(slave, rawMessageHandler, NULL);
 
     int16_t scaledValue = 0;
 
