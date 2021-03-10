@@ -1091,7 +1091,7 @@ struct sMasterConnection {
     unsigned int isActive:1;
     unsigned int isRunning:1;
     unsigned int timeoutT2Triggered:1;
-    unsigned int outstandingTestFRConMessages:3;
+    unsigned int waitingForTestFRcon:1;
     uint16_t maxSentASDUs; /* k-parameter */
     int16_t  oldestSentASDU; /* oldest sent ASDU in k-buffer */
     int16_t  newestSentASDU; /* newest sent ASDU in k-buffer */
@@ -1104,6 +1104,7 @@ struct sMasterConnection {
     uint64_t lastConfirmationTime; /* timestamp when the last confirmation message (for I messages) was sent */
 
     uint64_t nextT3Timeout;
+    uint64_t nextTestFRConTimeout; /* timeout T1 when waiting for TEST FR con */
 
     SentASDUSlave* sentASDUs;
 
@@ -2157,12 +2158,35 @@ resetT3Timeout(MasterConnection self, uint64_t currentTime)
 static bool
 checkT3Timeout(MasterConnection self, uint64_t currentTime)
 {
+    if (self->waitingForTestFRcon)
+        return false;
+
     if (self->nextT3Timeout > (currentTime + (uint64_t) (self->slave->conParameters.t3 * 1000))) {
         /* timeout value not plausible (maybe system time changed) */
         resetT3Timeout(self, currentTime);
     }
 
     if (currentTime > self->nextT3Timeout)
+        return true;
+    else
+        return false;
+}
+
+static void
+resetTestFRConTimeout(MasterConnection self, uint64_t currentTime)
+{
+    self->nextTestFRConTimeout = currentTime + (uint64_t) (self->slave->conParameters.t1 * 1000);
+}
+
+static bool
+checkTestFRConTimeout(MasterConnection self, uint64_t currentTime)
+{
+    if (self->nextTestFRConTimeout > (currentTime + (uint64_t) (self->slave->conParameters.t1 * 1000))) {
+        /* timeout value not plausible (maybe system time changed) */
+        resetTestFRConTimeout(self, currentTime);
+    }
+
+    if (currentTime > self->nextTestFRConTimeout)
         return true;
     else
         return false;
@@ -2301,7 +2325,9 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
         else if ((buffer[2] & 0x83) == 0x83) {
             DEBUG_PRINT("CS104 SLAVE: Recv TESTFR_CON\n");
 
-            self->outstandingTestFRConMessages = 0;
+            self->waitingForTestFRcon = false;
+
+            resetT3Timeout(self, currentTime); /* not required here -> is done below! */
         }
 
         else if (buffer [2] == 0x01) { /* S-message */
@@ -2484,23 +2510,24 @@ handleTimeouts(MasterConnection self)
 
     /* check T3 timeout */
     if (checkT3Timeout(self, currentTime)) {
+        if (writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE) < 0) {
 
-        if (self->outstandingTestFRConMessages > 2) {
+            DEBUG_PRINT("CS104 SLAVE: Failed to write TESTFR ACT message\n");
+
+            self->isRunning = false;
+        }
+
+        self->waitingForTestFRcon = true;
+        resetTestFRConTimeout(self, currentTime);
+    }
+
+    /* Check for TEST FR con timeout */
+    if (self->waitingForTestFRcon) {
+        if (checkTestFRConTimeout(self, currentTime)) {
             DEBUG_PRINT("CS104 SLAVE: Timeout for TESTFR CON message\n");
 
             /* close connection */
             timeoutsOk = false;
-        }
-        else {
-            if (writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE) < 0) {
-
-                DEBUG_PRINT("CS104 SLAVE: Failed to write TESTFR ACT message\n");
-
-                self->isRunning = false;
-            }
-
-            self->outstandingTestFRConMessages++;
-            resetT3Timeout(self, currentTime);
         }
     }
 
@@ -2870,7 +2897,7 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
 
         HighPriorityASDUQueue_resetConnectionQueue(self->highPrioQueue);
 
-        self->outstandingTestFRConMessages = 0;
+        self->waitingForTestFRcon = false;
 
         return true;
     }
@@ -3662,10 +3689,7 @@ void
 CS104_Slave_destroy(CS104_Slave self)
 {
     if (self) {
-#if (CONFIG_USE_THREADS == 1)
-        if (self->isRunning)
-            CS104_Slave_stop(self);
-#endif
+        CS104_Slave_stop(self);
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
         if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
