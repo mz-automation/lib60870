@@ -406,9 +406,8 @@ CS101_ASDU_getNumberOfElements(CS101_ASDU self)
 void
 CS101_ASDU_setNumberOfElements(CS101_ASDU self, int numberOfElements)
 {
-    uint8_t noe = ((uint8_t) numberOfElements) & 0x7f;
-
-    self->asdu[1] |= noe;
+    self->asdu[1] &= 0x80;
+    self->asdu[1] |= ((uint8_t) numberOfElements) & 0x7f;
 }
 
 InformationObject

@@ -820,6 +820,7 @@ test_StepPositionWithCP56Time2a(void)
 	StepPositionWithCP56Time2a_destroy(spi8_dec);
 	CS101_ASDU_destroy(asdu2);
 }
+
 void
 test_addMaxNumberOfIOsToASDU(void)
 {
@@ -854,7 +855,6 @@ test_addMaxNumberOfIOsToASDU(void)
 
     TEST_ASSERT_EQUAL_INT(124, ioa);
 }
-
 
 void
 test_SingleEventType(void)
@@ -1204,7 +1204,7 @@ test_CS104SlaveEventQueueOverflow()
 
     CS104_Connection_sendStartDT(con);
 
-    Thread_sleep(500);
+    Thread_sleep(1500);
 
     CS104_Connection_close(con);
 
@@ -5309,6 +5309,48 @@ test_CS104_MasterSlave_TLSConnectFails(void)
     TLSConfiguration_destroy(tlsConfig2);
 }
 
+void
+test_ASDUsetGetNumberOfElements(void)
+{
+    struct sCS101_AppLayerParameters salParameters;
+
+    salParameters.maxSizeOfASDU = 100;
+    salParameters.originatorAddress = 0;
+    salParameters.sizeOfCA = 2;
+    salParameters.sizeOfCOT = 2;
+    salParameters.sizeOfIOA = 3;
+    salParameters.sizeOfTypeId = 1;
+    salParameters.sizeOfVSQ = 1;
+
+    CS101_ASDU asdu = CS101_ASDU_create(&salParameters, false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
+
+    TEST_ASSERT_FALSE(CS101_ASDU_isSequence(asdu));
+
+    CS101_ASDU_setNumberOfElements(asdu, 127);
+
+    TEST_ASSERT_EQUAL_INT(127, CS101_ASDU_getNumberOfElements(asdu));
+
+    CS101_ASDU_setNumberOfElements(asdu, 5);
+
+    TEST_ASSERT_EQUAL_INT(5, CS101_ASDU_getNumberOfElements(asdu));
+
+    TEST_ASSERT_FALSE(CS101_ASDU_isSequence(asdu));
+
+    CS101_ASDU_setSequence(asdu, true);
+
+    CS101_ASDU_setNumberOfElements(asdu, 127);
+
+    TEST_ASSERT_EQUAL_INT(127, CS101_ASDU_getNumberOfElements(asdu));
+
+    CS101_ASDU_setNumberOfElements(asdu, 5);
+
+    TEST_ASSERT_EQUAL_INT(5, CS101_ASDU_getNumberOfElements(asdu));
+
+    TEST_ASSERT_TRUE(CS101_ASDU_isSequence(asdu));
+
+    CS101_ASDU_destroy(asdu);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -5406,6 +5448,8 @@ main(int argc, char** argv)
 
     RUN_TEST(test_CS104_MasterSlave_TLSConnectSuccess);
     RUN_TEST(test_CS104_MasterSlave_TLSConnectFails);
+
+    RUN_TEST(test_ASDUsetGetNumberOfElements);
 
     return UNITY_END();
 }
