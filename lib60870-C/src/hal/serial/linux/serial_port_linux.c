@@ -29,6 +29,8 @@
 #include <termios.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <sys/select.h>
 
 #include "hal_serial.h"
 #include "hal_time.h"
@@ -60,7 +62,7 @@ SerialPort_create(const char* interfaceName, int baudRate, uint8_t dataBits, cha
         self->lastSentTime = 0;
         self->timeout.tv_sec = 0;
         self->timeout.tv_usec = 100000; /* 100 ms */
-        strncpy(self->interfaceName, interfaceName, 100);
+        strncpy(self->interfaceName, interfaceName, 99);
         self->lastError = SERIAL_PORT_ERROR_NONE;
     }
 
@@ -263,7 +265,7 @@ SerialPort_readByte(SerialPort self)
 int
 SerialPort_write(SerialPort self, uint8_t* buffer, int startPos, int bufSize)
 {
-    //TODO assure minimum line idle time
+    /* TODO assure minimum line idle time? */
 
     self->lastError = SERIAL_PORT_ERROR_NONE;
 
