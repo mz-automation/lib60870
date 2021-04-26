@@ -1,3 +1,8 @@
+Changes to version 2.3.1
+------------------------
+
+- TLS support now requires mbedtls 2.16.10
+
 Changes to version 2.3.0
 ------------------------
 - CS104 slave: send time sync response only to requesting client (#87)
