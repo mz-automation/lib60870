@@ -204,6 +204,16 @@ main(int argc, char** argv)
         goto exit_program;
     }
 
+    CS101_ASDU newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_INITIALIZED, 0, 1, false, false);
+
+    InformationObject io = (InformationObject) EndOfInitialization_create(NULL, 0);
+
+    CS101_ASDU_addInformationObject(newAsdu, io);
+
+    InformationObject_destroy(io);
+
+    CS104_Slave_enqueueASDU(slave, newAsdu);
+
     int16_t scaledValue = 0;
 
     while (running) {
