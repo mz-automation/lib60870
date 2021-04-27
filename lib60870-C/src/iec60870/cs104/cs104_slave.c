@@ -2440,6 +2440,8 @@ static bool
 sendNextHighPriorityASDU(MasterConnection self)
 {
     bool retVal = false;
+    uint8_t* buffer = NULL;
+    int msgSize = 0;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->sentASDUsLock);
@@ -2450,8 +2452,7 @@ sendNextHighPriorityASDU(MasterConnection self)
 
     HighPriorityASDUQueue_lock(self->highPrioQueue);
 
-    int msgSize;
-    uint8_t* buffer = HighPriorityASDUQueue_getNextASDU(self->highPrioQueue, &msgSize);
+    buffer = HighPriorityASDUQueue_getNextASDU(self->highPrioQueue, &msgSize);
 
     if (buffer) {
         memcpy(self->sendBuffer + IEC60870_5_104_APCI_LENGTH, buffer, msgSize);
