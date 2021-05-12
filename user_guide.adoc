@@ -591,6 +591,45 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 Inside of the interrogation handler the IMasterConnection interface can be used to send the interrogated data
 back to the client/master. The _CS101_ASDU_ and _InformationObject_ instances created inside the interrogation handler are in the responsibility of the user and have to be released with the appropriate functions (_CS101_ASDU_destroy_ and _InformationObject_destroy_) when they have been allocated dynamically before.
 
+=== Handling of read commands (C_RD_NA_1) ===
+
+The read command C_RD_NA_1(102) can be used by the client/master to read the value of a particular data point in monitoring direction.
+
+The most convenient way to handle read commands at the server/slave side is to implement the callback function type _CS101_ReadHandler_. The read handler can be installed by the _CS104_Slave_setReadHandler_ or _CS101_Slave_setReadHandler_ functions for a CS 104 server or CS 101 slave.
+
+In the read handler you have either to send the same read command but with a COT that indicates an error. Or you have to create the ASDU of the proper type for the data point and send this back to the client/master. When doing the latter you have to use the COT _CS101_COT_REQUEST_ to indicate that the message was caused by a read request.
+
+[[app-listing]]
+[source, c]
+.Simple implementation of a read handler (pseudo code)
+----
+static bool
+readHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, int ioa)
+{
+	if (request failed) {
+	   /* send error reponse- e.g. unknown */
+	   CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_CA);
+	   CS101_ASDU_setNegative(asdu, true);
+	   IMasterConnection_sendASDU(connection, asdu);
+	}
+	else {
+	
+		CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(cs104Slave);
+		
+		sCS101_StaticASDU _asdu;
+		CS101_ADSU newAsdu = CS101_ASDU_initializeStatic(_asdu, alParams, false, CS101_COT_REQUEST,
+		        0, 1, false, false);
+		
+		CS101_ASDU_addInformationObject(newAsdu, io);
+		
+		IMasterConnection_sendASDU(connection, newAsdu);
+	}
+
+   /* return true to indicate that the request ASDU is handled here */
+	return true;   
+}
+----
+
 === CS104 (TCP/IP) specific issues
 
 ==== Server mode
