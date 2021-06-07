@@ -78,6 +78,9 @@ struct sCS104_Connection {
     char hostname[HOST_NAME_MAX + 1];
     int tcpPort;
 
+    char* localIpAddress;
+    int localTcpPort;
+
     struct sCS104_APCIParameters parameters;
     struct sCS101_AppLayerParameters alParameters;
 
@@ -226,6 +229,9 @@ createConnection(const char* hostname, int tcpPort)
         self->tcpPort = tcpPort;
         self->parameters = defaultAPCIParameters;
         self->alParameters = defaultAppLayerParameters;
+
+        self->localIpAddress = NULL;
+        self->localTcpPort = -1;
 
         self->receivedHandler = NULL;
         self->receivedHandlerParameter = NULL;
@@ -457,7 +463,28 @@ CS104_Connection_destroy(CS104_Connection self)
     Semaphore_destroy(self->socketWriteLock);
 #endif
 
+    if (self->localIpAddress) {
+        GLOBAL_FREEMEM(self->localIpAddress);
+        self->localIpAddress = NULL;
+    }
+
     GLOBAL_FREEMEM(self);
+}
+
+void
+CS104_Connection_setLocalAddress(CS104_Connection self, const char* localIpAddress, int localPort)
+{
+    if (self) {
+        if (self->localIpAddress) {
+            GLOBAL_FREEMEM(self->localIpAddress);
+            self->localIpAddress = NULL;
+        }
+
+        if (localIpAddress) {
+            self->localIpAddress = strdup(localIpAddress);
+            self->localTcpPort = localPort;
+        }
+    }
 }
 
 void
@@ -784,6 +811,10 @@ handleConnection(void* parameter)
 
     if (self->socket) {
         Socket_setConnectTimeout(self->socket, self->connectTimeoutInMs);
+
+        if (self->localIpAddress) {
+            Socket_bind(self->socket, self->localIpAddress, self->localTcpPort);
+        }
 
         if (Socket_connect(self->socket, self->hostname, self->tcpPort)) {
 

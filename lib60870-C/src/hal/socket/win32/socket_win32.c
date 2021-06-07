@@ -152,7 +152,7 @@ setSocketNonBlocking(Socket self)
 }
 
 static bool
-prepareServerAddress(const char* address, int port, struct sockaddr_in* sockaddr)
+prepareAddress(const char* address, int port, struct sockaddr_in* sockaddr)
 {
 
 	memset((char *) sockaddr , 0, sizeof(struct sockaddr_in));
@@ -219,7 +219,7 @@ TcpServerSocket_create(const char* address, int port)
 
 	struct sockaddr_in server_addr;
 
-	if (!prepareServerAddress(address, port, &server_addr))
+	if (!prepareAddress(address, port, &server_addr))
 	    return NULL;
 
 	listen_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -343,7 +343,7 @@ Socket_connect(Socket self, const char* address, int port)
 {
     struct sockaddr_in serverAddress;
 
-    if (!prepareServerAddress(address, port, &serverAddress))
+    if (!prepareAddress(address, port, &serverAddress))
         return false;
 
     setSocketNonBlocking(self);

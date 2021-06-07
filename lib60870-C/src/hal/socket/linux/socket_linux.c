@@ -147,7 +147,7 @@ Socket_activateTcpKeepAlive(Socket self, int idleTime, int interval, int count)
 }
 
 static bool
-prepareServerAddress(const char* address, int port, struct sockaddr_in* sockaddr)
+prepareAddress(const char* address, int port, struct sockaddr_in* sockaddr)
 {
     bool retVal = true;
 
@@ -174,6 +174,10 @@ prepareServerAddress(const char* address, int port, struct sockaddr_in* sockaddr
         sockaddr->sin_addr.s_addr = htonl(INADDR_ANY);
 
     sockaddr->sin_family = AF_INET;
+
+    if (port < 0)
+        port = 0;
+
     sockaddr->sin_port = htons(port);
 
 exit_function:
@@ -205,7 +209,7 @@ TcpServerSocket_create(const char* address, int port)
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) >= 0) {
         struct sockaddr_in serverAddress;
 
-        if (!prepareServerAddress(address, port, &serverAddress)) {
+        if (!prepareAddress(address, port, &serverAddress)) {
             close(fd);
             return NULL;
         }
@@ -315,19 +319,52 @@ ServerSocket_destroy(ServerSocket self)
 Socket
 TcpSocket_create()
 {
-    Socket self = (Socket) GLOBAL_MALLOC(sizeof(struct sSocket));
+    Socket self = (Socket)NULL;
 
-    self->fd = -1;
-    self->connectTimeout = 5000;
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (fd != -1) {
+        Socket self = (Socket) GLOBAL_MALLOC(sizeof(struct sSocket));
+
+        if (self) {
+            self->connectTimeout = 5000;
+            self->fd = fd;
+        }
+        else {
+            close(fd);
+        }
+    }
 
     return self;
 }
-
 
 void
 Socket_setConnectTimeout(Socket self, uint32_t timeoutInMs)
 {
     self->connectTimeout = timeoutInMs;
+}
+
+bool
+Socket_bind(Socket self, const char* srcAddress, int srcPort)
+{
+    struct sockaddr_in localAddress;
+
+    if (!prepareAddress(srcAddress, srcPort, &localAddress))
+        return false;
+
+    int result = bind(self->fd, (struct sockaddr*)&localAddress, sizeof(localAddress));
+
+    if (result == -1) {
+        if (DEBUG_SOCKET)
+            printf("SOCKET: failed to bind TCP socket (errno=%i)\n", errno);
+
+        close(self->fd);
+        self->fd = -1;
+
+        return false;
+    }    
+
+    return true;
 }
 
 bool
@@ -338,12 +375,11 @@ Socket_connect(Socket self, const char* address, int port)
     if (DEBUG_SOCKET)
         printf("Socket_connect: %s:%i\n", address, port);
 
-    if (!prepareServerAddress(address, port, &serverAddress))
-        return false;
-
-    self->fd = socket(AF_INET, SOCK_STREAM, 0);
-
     if (self->fd != -1) {
+
+        if (!prepareAddress(address, port, &serverAddress))
+            return false;
+
         fd_set fdSet;
         FD_ZERO(&fdSet);
         FD_SET(self->fd, &fdSet);
