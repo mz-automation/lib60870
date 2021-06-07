@@ -87,6 +87,8 @@ IF(WITH_MBEDTLS)
 list (APPEND library_SRCS ${tls_SRCS})
 list (APPEND library_SRCS ./hal/tls/mbedtls/tls_mbedtls.c)
 
+add_definitions(-DLIB60870_HAS_TLS_SUPPORT=1)
+
 ENDIF(WITH_MBEDTLS)
 
 include (GenerateExportHeader)

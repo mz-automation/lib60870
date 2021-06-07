@@ -5220,6 +5220,8 @@ test_CS101_ASDU_addUntilOverflow(void)
     CS101_ASDU_destroy(asdu);
 }
 
+#if (LIB60870_HAS_TLS_SUPPORT == 1)
+
 void
 test_CS104_MasterSlave_TLSConnectSuccess(void)
 {
@@ -5308,6 +5310,8 @@ test_CS104_MasterSlave_TLSConnectFails(void)
     TLSConfiguration_destroy(tlsConfig1);
     TLSConfiguration_destroy(tlsConfig2);
 }
+
+#endif /* #if (LIB60870_HAS_TLS_SUPPORT == 1) */
 
 void
 test_ASDUsetGetNumberOfElements(void)
@@ -5446,8 +5450,10 @@ main(int argc, char** argv)
     RUN_TEST(test_CS101_ASDU_addObjectOfWrongType);
     RUN_TEST(test_CS101_ASDU_addUntilOverflow);
 
+#if (LIB60870_HAS_TLS_SUPPORT == 1)
     RUN_TEST(test_CS104_MasterSlave_TLSConnectSuccess);
     RUN_TEST(test_CS104_MasterSlave_TLSConnectFails);
+#endif /* #if (LIB60870_HAS_TLS_SUPPORT == 1) */
 
     RUN_TEST(test_ASDUsetGetNumberOfElements);
 
