@@ -324,7 +324,7 @@ TcpSocket_create()
     int fd = socket(AF_INET, SOCK_STREAM, 0);
 
     if (fd != -1) {
-        Socket self = (Socket) GLOBAL_MALLOC(sizeof(struct sSocket));
+        self = (Socket) GLOBAL_MALLOC(sizeof(struct sSocket));
 
         if (self) {
             self->connectTimeout = 5000;
@@ -333,6 +333,10 @@ TcpSocket_create()
         else {
             close(fd);
         }
+    }
+    else {
+        if (DEBUG_SOCKET)
+            printf("socket_linux.c: failed to create socket: %i\n", errno);
     }
 
     return self;
