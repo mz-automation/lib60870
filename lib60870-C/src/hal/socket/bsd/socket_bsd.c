@@ -137,7 +137,7 @@ activateKeepAlive(int sd)
 #endif /* (CONFIG_ACTIVATE_TCP_KEEPALIVE == 1) */
 
 static bool
-prepareServerAddress(const char* address, int port, struct sockaddr_in* sockaddr)
+prepareAddress(const char* address, int port, struct sockaddr_in* sockaddr)
 {
 
 	memset((char *) sockaddr , 0, sizeof(struct sockaddr_in));
@@ -176,7 +176,7 @@ TcpServerSocket_create(const char* address, int port)
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) >= 0) {
         struct sockaddr_in serverAddress;
 
-        if (!prepareServerAddress(address, port, &serverAddress)) {
+        if (!prepareAddress(address, port, &serverAddress)) {
             close(fd);
             return NULL;
         }
@@ -287,7 +287,7 @@ Socket_connect(Socket self, const char* address, int port)
     if (DEBUG_SOCKET)
         printf("Socket_connect: %s:%i\n", address, port);
 
-    if (!prepareServerAddress(address, port, &serverAddress))
+    if (!prepareAddress(address, port, &serverAddress))
         return false;
 
     self->fd = socket(AF_INET, SOCK_STREAM, 0);

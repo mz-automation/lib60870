@@ -202,6 +202,20 @@ void
 Socket_setConnectTimeout(Socket self, uint32_t timeoutInMs);
 
 /**
+ * \brief bind a socket to a particular IP address and port (for TcpSocket)
+ * 
+ * NOTE: Don't use the socket when this functions returns false!
+ * 
+ * \param self the client socket instance
+ * \param srcAddress the local IP address or hostname as C string
+ * \param srcPort the local TCP port to use. When < 1 the OS will chose the TCP port to use.
+ * 
+ * \return true in case of success, false otherwise
+ */ 
+bool
+Socket_bind(Socket self, const char* srcAddress, int srcPort);
+
+/**
  * \brief connect to a server
  *
  * Connect to a server application identified by the address and port parameter.

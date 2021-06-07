@@ -74,6 +74,19 @@ CS104_Connection_create(const char* hostname, int tcpPort);
 CS104_Connection
 CS104_Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguration tlsConfig);
 
+
+/**
+ * \brief Set the local IP address and port to be used by the client
+ * 
+ * NOTE: This function is optional. When not used the OS decides what IP address and TCP port to use.
+ * 
+ * \param self CS104_Connection instance
+ * \param localIpAddress the local IP address or hostname as C string
+ * \param localPort the local TCP port to use. When < 1 the OS will chose the TCP port to use.
+ */
+void
+CS104_Connection_setLocalAddress(CS104_Connection self, const char* localIpAddress, int localPort);
+
 /**
  * \brief Set the CS104 specific APCI parameters.
  *
