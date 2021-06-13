@@ -104,12 +104,20 @@ main(int argc, char** argv)
 {
     const char* ip = "localhost";
     uint16_t port = IEC_60870_5_104_DEFAULT_PORT;
+    const char* localIp = NULL;
+    int localPort = -1;
 
     if (argc > 1)
         ip = argv[1];
 
     if (argc > 2)
         port = atoi(argv[2]);
+
+    if (argc > 3)
+        localIp = argv[3];
+
+    if (argc > 4)
+        port = atoi(argv[4]);
 
     printf("Connecting to: %s:%i\n", ip, port);
     CS104_Connection con = CS104_Connection_create(ip, port);
@@ -119,6 +127,10 @@ main(int argc, char** argv)
 
     CS104_Connection_setConnectionHandler(con, connectionHandler, NULL);
     CS104_Connection_setASDUReceivedHandler(con, asduReceivedHandler, NULL);
+
+    /* optional bind to local IP address/interface */
+    if (localIp)
+        CS104_Connection_setLocalAddress(con, "192.168.178.62", localPort);
 
     /* uncomment to log messages */
     //CS104_Connection_setRawMessageHandler(con, rawMessageHandler, NULL);
