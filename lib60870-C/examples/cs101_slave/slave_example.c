@@ -294,6 +294,8 @@ main(int argc, char** argv)
         Thread_sleep(1);
     }
 
+	goto exit_program;
+
 exit_program:
     CS101_Slave_destroy(slave);
 

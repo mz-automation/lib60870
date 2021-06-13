@@ -336,7 +336,7 @@ TcpSocket_create()
     }
     else {
         if (DEBUG_SOCKET)
-            printf("socket_linux.c: failed to create socket: %i\n", errno);
+            printf("SOCKET: failed to create socket: %i\n", errno);
     }
 
     return self;

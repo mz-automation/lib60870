@@ -19,6 +19,8 @@
  *  See COPYING file for the complete license text.
  */
 
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
@@ -99,7 +101,7 @@ Handleset_waitReady(HandleSet self, unsigned int timeoutMs)
 
        timeout.tv_sec = timeoutMs / 1000;
        timeout.tv_usec = (timeoutMs % 1000) * 1000;
-       result = select(self->maxHandle + 1, &self->handles, NULL, NULL, &timeout);
+       result = select((int)self->maxHandle + 1, &self->handles, NULL, NULL, &timeout);
    } else {
        result = -1;
    }
@@ -254,12 +256,18 @@ TcpServerSocket_create(const char* address, int port)
 
 	serverSocket = (ServerSocket) GLOBAL_MALLOC(sizeof(struct sServerSocket));
 
-	serverSocket->fd = listen_socket;
-	serverSocket->backLog = 10;
+    if (serverSocket) {
+        serverSocket->fd = listen_socket;
+        serverSocket->backLog = 10;
 
-    setSocketNonBlocking((Socket) serverSocket);
+        setSocketNonBlocking((Socket) serverSocket);
 
-	socketCount++;
+        socketCount++;
+    }
+    else {
+        closesocket(listen_socket);
+        wsaShutdown();   
+    }
 
 	return serverSocket;
 }
@@ -273,7 +281,7 @@ ServerSocket_listen(ServerSocket self)
 Socket
 ServerSocket_accept(ServerSocket self)
 {
-	int fd;
+	SOCKET fd;
 
 	Socket conSocket = NULL;
 
@@ -314,15 +322,24 @@ TcpSocket_create()
     if (wsaStartUp() == false)
         return NULL;
 
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
 
     if (sock != INVALID_SOCKET) {
         self = (Socket) GLOBAL_MALLOC(sizeof(struct sSocket));
 
-        self->fd = sock;
-        self->connectTimeout = 5000;
+        if (self) {
+            self->fd = sock;
+            self->connectTimeout = 5000;
 
-        socketCount++;
+            socketCount++;
+        }
+        else {
+            if (DEBUG_SOCKET)
+                printf("SOCKET: failed to create socket - cannot allocate memory\n");
+
+            closesocket(sock);
+            wsaShutdown();
+        }
     }
     else {
         if (DEBUG_SOCKET)
@@ -336,6 +353,29 @@ void
 Socket_setConnectTimeout(Socket self, uint32_t timeoutInMs)
 {
     self->connectTimeout = timeoutInMs;
+}
+
+bool
+Socket_bind(Socket self, const char* srcAddress, int srcPort)
+{
+    struct sockaddr_in localAddress;
+
+    if (!prepareAddress(srcAddress, srcPort, &localAddress))
+        return false;
+
+    int result = bind(self->fd, (struct sockaddr*)&localAddress, sizeof(localAddress));
+
+    if (result == SOCKET_ERROR) {
+        if (DEBUG_SOCKET)
+            printf("SOCKET: failed to bind TCP socket (errno=%i)\n", WSAGetLastError());
+
+        closesocket(self->fd);
+        self->fd = -1;
+
+        return false;
+    }    
+
+    return true;
 }
 
 bool
@@ -361,7 +401,7 @@ Socket_connect(Socket self, const char* address, int port)
     timeout.tv_sec = self->connectTimeout / 1000;
     timeout.tv_usec = (self->connectTimeout % 1000) * 1000;
 
-    if (select(self->fd + 1, NULL, &fdSet, NULL, &timeout) <= 0)
+    if (select((int)self->fd + 1, NULL, &fdSet, NULL, &timeout) <= 0)
         return false;
     else
         return true;

@@ -130,7 +130,7 @@ main(int argc, char** argv)
 
     /* optional bind to local IP address/interface */
     if (localIp)
-        CS104_Connection_setLocalAddress(con, "192.168.178.62", localPort);
+        CS104_Connection_setLocalAddress(con, localIp, localPort);
 
     /* uncomment to log messages */
     //CS104_Connection_setRawMessageHandler(con, rawMessageHandler, NULL);
