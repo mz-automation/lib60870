@@ -265,9 +265,25 @@ ServerSocket_destroy(ServerSocket self)
 Socket
 TcpSocket_create()
 {
-    Socket self = GLOBAL_MALLOC(sizeof(struct sSocket));
+    Socket self = (Socket)NULL;
 
-    self->fd = -1;
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (fd != -1) {
+        self = (Socket) GLOBAL_MALLOC(sizeof(struct sSocket));
+
+        if (self) {
+            self->connectTimeout = 5000;
+            self->fd = fd;
+        }
+        else {
+            close(fd);
+        }
+    }
+    else {
+        if (DEBUG_SOCKET)
+            printf("SOCKET: failed to create socket: %i\n", errno);
+    }
 
     return self;
 }
@@ -278,6 +294,28 @@ Socket_setConnectTimeout(Socket self, uint32_t timeoutInMs)
     self->connectTimeout = timeoutInMs;
 }
 
+bool
+Socket_bind(Socket self, const char* srcAddress, int srcPort)
+{
+    struct sockaddr_in localAddress;
+
+    if (!prepareAddress(srcAddress, srcPort, &localAddress))
+        return false;
+
+    int result = bind(self->fd, (struct sockaddr*)&localAddress, sizeof(localAddress));
+
+    if (result == -1) {
+        if (DEBUG_SOCKET)
+            printf("SOCKET: failed to bind TCP socket (errno=%i)\n", errno);
+
+        close(self->fd);
+        self->fd = -1;
+
+        return false;
+    }    
+
+    return true;
+}
 
 bool
 Socket_connect(Socket self, const char* address, int port)
@@ -287,26 +325,25 @@ Socket_connect(Socket self, const char* address, int port)
     if (DEBUG_SOCKET)
         printf("Socket_connect: %s:%i\n", address, port);
 
-    if (!prepareAddress(address, port, &serverAddress))
-        return false;
-
-    self->fd = socket(AF_INET, SOCK_STREAM, 0);
-
     if (self->fd != -1) {
-	#if CONFIG_ACTIVATE_TCP_KEEPALIVE == 1
-		activateKeepAlive(self->fd);
-	#endif
 
-		fd_set fdSet;
-		FD_ZERO(&fdSet);
-		FD_SET(self->fd, &fdSet);
+        if (!prepareAddress(address, port, &serverAddress))
+            return false;
 
-		fcntl(self->fd, F_SETFL, O_NONBLOCK);
+        fd_set fdSet;
+        FD_ZERO(&fdSet);
+        FD_SET(self->fd, &fdSet);
 
-		if (connect(self->fd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0) {
-			if (errno != EINPROGRESS)
-				return false;
-		}
+    #if (CONFIG_ACTIVATE_TCP_KEEPALIVE == 1)
+        activateKeepAlive(self->fd);
+    #endif
+
+        fcntl(self->fd, F_SETFL, O_NONBLOCK);
+
+        if (connect(self->fd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0) {
+            if (errno != EINPROGRESS)
+                return false;
+        }
 
 		struct timeval timeout;
 		timeout.tv_sec = self->connectTimeout / 1000;
