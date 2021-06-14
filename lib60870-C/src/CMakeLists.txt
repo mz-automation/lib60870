@@ -41,6 +41,7 @@ set (lib_windows_SRCS
 )
 
 set (lib_bsd_SRCS
+./hal/serial/linux/serial_port_linux.c
 ./hal/socket/bsd/socket_bsd.c
 ./hal/thread/bsd/thread_bsd.c
 ./hal/time/unix/time.c
