@@ -250,12 +250,12 @@ sendLastSegment(CS101_FileServer self, IMasterConnection connection, int oa)
  *
  * Call inside asdu handler
  */
-static bool
+static CS101_SlavePlugin_Result
 CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS101_ASDU asdu)
 {
     CS101_FileServer self = (CS101_FileServer) parameter;
 
-    bool asduHandled = false;
+    CS101_SlavePlugin_Result result = CS101_PLUGIN_RESULT_NOT_HANDLED;
 
     IEC60870_5_TypeID typeId = CS101_ASDU_getTypeID(asdu);
 
@@ -788,11 +788,11 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
         }
 
-        asduHandled = true;
+        result = CS101_PLUGIN_RESULT_HANDLED;
     }
 
 
-    return asduHandled;
+    return result;
 }
 
 static void
