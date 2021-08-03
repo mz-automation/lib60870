@@ -121,18 +121,25 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
         if  (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION) {
             InformationObject io = CS101_ASDU_getElement(asdu, 0);
 
-            if (InformationObject_getObjectAddress(io) == 5000) {
-                SingleCommand sc = (SingleCommand) io;
+            if (io) {
 
-                printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
-                        SingleCommand_getState(sc));
+                if (InformationObject_getObjectAddress(io) == 5000) {
+                    SingleCommand sc = (SingleCommand) io;
 
-                CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                    printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
+                            SingleCommand_getState(sc));
+
+                    CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                }
+                else
+                    CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
+
+                InformationObject_destroy(io);
             }
-            else
-                CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
-
-            InformationObject_destroy(io);
+            else {
+                printf("ERROR: ASDU contains no information object!\n");
+                return true;
+            }
         }
         else
             CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);

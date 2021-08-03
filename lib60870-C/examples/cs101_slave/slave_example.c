@@ -165,6 +165,7 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
             }
             else {
                 printf("ERROR: ASDU contains no information object!\n");
+                return true;
             }
 
         }
@@ -226,7 +227,7 @@ main(int argc, char** argv)
     CS101_Slave slave = CS101_Slave_create(port, NULL, NULL, IEC60870_LINK_LAYER_UNBALANCED);
 
     CS101_Slave_setLinkLayerAddress(slave, 1);
-    CS101_Slave_setLinkLayerAddressOtherStation(slave, 2);
+    CS101_Slave_setLinkLayerAddressOtherStation(slave, 1);
 
     /* get the application layer parameters - we need them to create correct ASDUs */
     CS101_AppLayerParameters alParameters = CS101_Slave_getAppLayerParameters(slave);
