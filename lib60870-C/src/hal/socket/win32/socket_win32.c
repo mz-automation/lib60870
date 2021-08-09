@@ -281,13 +281,13 @@ ServerSocket_listen(ServerSocket self)
 Socket
 ServerSocket_accept(ServerSocket self)
 {
-    SOCKET fd;
+    SOCKET fd = INVALID_SOCKET;
 
     Socket conSocket = NULL;
 
     fd = accept(self->fd, NULL, NULL);
 
-    if (fd >= 0) {
+    if (fd != INVALID_SOCKET) {
         conSocket = (Socket)GLOBAL_CALLOC(1, sizeof(struct sSocket));
         conSocket->fd = fd;
 
