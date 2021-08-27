@@ -38,7 +38,7 @@ def main():
     client.set_connection_handler(connection_handler)
     client.set_asdu_received_handler(asdu_received_handler)
 
-    with client.connect():
+    with client.connection():
         client.send_start_dt()
         time.sleep(5)
         client.send_interrogation_command(ca=1)

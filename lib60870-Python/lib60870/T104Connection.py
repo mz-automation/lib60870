@@ -35,15 +35,18 @@ class T104Connection():
         lib.T104Connection_destroy(self.con)
 
     @contextmanager
-    def connect(self):
+    def connection(self):
         try:
-            logger.debug("calling T104Connection_connect()")
-            lib.T104Connection_connect.restype = c_bool
-            if lib.T104Connection_connect(self.con):
-                yield self.con
-            #RuntimeError("Connection failed")
+            connection = self.connect()
+            if connection:
+                yield connection
         finally:
             self.close()
+
+    def connect(self):
+        logger.debug("calling T104Connection_connect()")
+        lib.T104Connection_connect.restype = c_bool
+        return lib.T104Connection_connect(self.con)
 
     def disconnect(self):
         self.close()
