@@ -67,7 +67,13 @@ class ASDU(ctypes.Structure):
         pass
 
     def __str__(self):
-        return "ASDU: {}({})".format(self.get_type_id().name, self.get_number_of_elements())
+        return "ASDU: {type_id}({count}) oa:{oa}, ca:{ca}, cot:{cot}".format(
+            type_id=self.get_type_id().name,
+            count=self.get_number_of_elements(),
+            oa=self.oa,
+            ca=self.ca,
+            cot=self.cot,
+        )
 
     def __repr__(self):
         output = "{}(".format(type(self).__name__)
@@ -143,6 +149,18 @@ class ASDU(ctypes.Structure):
     def get_buffer(self):
         size = self.asduHeaderLength + self.payloadSize
         return ctypes.string_at(self.asdu, size=size)
+
+    @property
+    def cot(self):
+        return self.get_cot()
+
+    @property
+    def ca(self):
+        return self.get_ca()
+
+    @property
+    def oa(self):
+        return self.get_oa()
 
     @property
     def elements(self):
