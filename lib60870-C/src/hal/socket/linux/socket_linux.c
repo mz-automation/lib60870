@@ -403,7 +403,7 @@ Socket_getPeerAddressStatic(Socket self, char* peerAddressString)
 int
 Socket_read(Socket self, uint8_t* buf, int size)
 {
-    if (self->fd == -1)
+    if (!self || self->fd == -1)
         return -1;
 
     int read_bytes = recv(self->fd, buf, size, MSG_DONTWAIT);
