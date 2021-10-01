@@ -222,7 +222,7 @@ sendIMessage(CS104_Connection self, Frame frame)
 static CS104_Connection
 createConnection(const char* hostname, int tcpPort)
 {
-    CS104_Connection self = (CS104_Connection) GLOBAL_MALLOC(sizeof(struct sCS104_Connection));
+    CS104_Connection self = (CS104_Connection) GLOBAL_CALLOC(1, sizeof(struct sCS104_Connection));
 
     if (self != NULL) {
         strncpy(self->hostname, hostname, HOST_NAME_MAX);
