@@ -468,10 +468,6 @@ removeFirstEntry(MessageQueue self)
 static void
 MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_t entryId)
 {
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->queueLock);
-#endif
-
     if (self->entryCounter > 0) {
 
         /* entryId plausibility check */
@@ -500,10 +496,6 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_
             }
         }
     }
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->queueLock);
-#endif
 }
 
 /***************************************************
@@ -2106,6 +2098,8 @@ checkSequenceNumber(MasterConnection self, int seqNo)
                 /* remove from server (low-priority) queue if required */
                 if (self->sentASDUs[self->oldestSentASDU].queueEntry != NULL) {
 
+                    MessageQueue_lock(self->lowPrioQueue);
+
                     MessageQueue_markAsduAsConfirmed(self->lowPrioQueue,
                             self->sentASDUs[self->oldestSentASDU].queueEntry,
                             self->sentASDUs[self->oldestSentASDU].entryId);
@@ -2113,6 +2107,8 @@ checkSequenceNumber(MasterConnection self, int seqNo)
                     self->sentASDUs[self->oldestSentASDU].queueEntry = NULL;
 
                     self->sentASDUs[self->oldestSentASDU].seqNo = -1;
+
+                    MessageQueue_unlock(self->lowPrioQueue);
                 }
 
                 if (oldestAsduSeqNo == seqNo) {

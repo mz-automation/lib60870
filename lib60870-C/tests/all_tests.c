@@ -973,6 +973,7 @@ test_CS104SlaveConnectionIsRedundancyGroup()
 
     for (i = 0; i < 50; i++) {
         bool result = CS104_Connection_connect(con);
+
         TEST_ASSERT_TRUE(result);
 
         CS104_Connection_sendStartDT(con);
