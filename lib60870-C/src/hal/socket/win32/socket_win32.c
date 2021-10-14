@@ -19,7 +19,10 @@
 
 #include "lib_memory.h"
 #include "hal_socket.h"
-#include "stack_config.h"
+
+#ifndef DEBUG_SOCKET
+#define DEBUG_SOCKET 0
+#endif
 
 #ifndef __MINGW64_VERSION_MAJOR
 struct tcp_keepalive {
