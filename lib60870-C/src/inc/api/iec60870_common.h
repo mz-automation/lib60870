@@ -47,7 +47,7 @@ extern "C" {
 
 #define LIB60870_VERSION_MAJOR 2
 #define LIB60870_VERSION_MINOR 3
-#define LIB60870_VERSION_PATCH 0
+#define LIB60870_VERSION_PATCH 1
 
 /**
  * \brief lib60870 version information
