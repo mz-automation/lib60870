@@ -1,38 +1,33 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  socket_linux.c
  *
- *  This file is part of lib60870-C
+ *  Copyright 2013-2021 Michael Zillgith
  *
- *  lib60870-C is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  lib60870-C is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with lib60870-C.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  See COPYING file for the complete license text.
+ *  This file is part of Platform Abstraction Layer (libpal)
+ *  for libiec61850, libmms, and lib60870.
  */
 
 #include "hal_socket.h"
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <netdb.h>
 #include <sys/select.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
+#include <netinet/in.h>
+#include <netdb.h>
 #include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <netinet/tcp.h> /* required for TCP keepalive */
 #include <linux/version.h>
 
+#define _GNU_SOURCE
+#include <signal.h>
+#include <poll.h>
+
+
+#include "linked_list.h"
 #include "hal_thread.h"
 #include "lib_memory.h"
 
@@ -50,63 +45,127 @@ struct sServerSocket {
     int backLog;
 };
 
+struct sUdpSocket {
+    int fd;
+};
+
 struct sHandleSet {
-   fd_set handles;
-   int maxHandle;
+    LinkedList sockets;
+    bool pollfdIsUpdated;
+    struct pollfd* fds;
+    int nfds;
 };
 
 HandleSet
 Handleset_new(void)
 {
-   HandleSet result = (HandleSet) GLOBAL_MALLOC(sizeof(struct sHandleSet));
+   HandleSet self = (HandleSet) GLOBAL_MALLOC(sizeof(struct sHandleSet));
 
-   if (result != NULL) {
-       FD_ZERO(&result->handles);
-       result->maxHandle = -1;
+   if (self) {
+       self->sockets = LinkedList_create();
+       self->pollfdIsUpdated = false;
+       self->fds = NULL;
+       self->nfds = 0;
    }
-   return result;
+
+   return self;
 }
 
 void
 Handleset_reset(HandleSet self)
 {
-    FD_ZERO(&self->handles);
-    self->maxHandle = -1;
+    if (self) {
+        if (self->sockets) {
+            LinkedList_destroyStatic(self->sockets);
+            self->sockets = LinkedList_create();
+            self->pollfdIsUpdated = false;
+        }
+    }
 }
 
 void
 Handleset_addSocket(HandleSet self, const Socket sock)
 {
    if (self != NULL && sock != NULL && sock->fd != -1) {
-       FD_SET(sock->fd, &self->handles);
-       if (sock->fd > self->maxHandle) {
-           self->maxHandle = sock->fd;
-       }
+
+       LinkedList_add(self->sockets, sock);
+       self->pollfdIsUpdated = false;
    }
+}
+
+void
+Handleset_removeSocket(HandleSet self, const Socket sock)
+{
+    if (self && self->sockets && sock) {
+        LinkedList_remove(self->sockets, sock);
+        self->pollfdIsUpdated = false;
+    }
 }
 
 int
 Handleset_waitReady(HandleSet self, unsigned int timeoutMs)
 {
-   int result;
+    /* check if pollfd array is updated */
+    if (self->pollfdIsUpdated == false) {
+        if (self->fds) {
+            GLOBAL_FREEMEM(self->fds);
+            self->fds = NULL;
+        }
 
-   if ((self != NULL) && (self->maxHandle >= 0)) {
-       struct timeval timeout;
+        self->nfds = LinkedList_size(self->sockets);
 
-       timeout.tv_sec = timeoutMs / 1000;
-       timeout.tv_usec = (timeoutMs % 1000) * 1000;
-       result = select(self->maxHandle + 1, &self->handles, NULL, NULL, &timeout);
-   } else {
-       result = -1;
-   }
+        self->fds = GLOBAL_CALLOC(self->nfds, sizeof(struct pollfd));
 
-   return result;
+        int i;
+
+        for (i = 0; i < self->nfds; i++) {
+            LinkedList sockElem = LinkedList_get(self->sockets, i);
+
+            if (sockElem) {
+                Socket sock = (Socket) LinkedList_getData(sockElem);
+
+                if (sock) {
+                    self->fds[i].fd = sock->fd;
+                    self->fds[i].events = POLL_IN;
+                }
+            }
+        }
+
+        self->pollfdIsUpdated = true;
+    }
+
+    if (self->fds && self->nfds > 0) {
+        int result = poll(self->fds, self->nfds, timeoutMs);
+
+        if (result == -1 && errno == EINTR) {
+            result = 0;
+        }
+
+        if (result == -1) {
+            if (DEBUG_SOCKET)
+                printf("SOCKET: poll error (errno: %i)\n", errno);
+        }
+
+        return result;
+    }
+    else {
+        /* there is no socket to wait for */
+        return 0;
+    }
 }
 
 void
 Handleset_destroy(HandleSet self)
 {
-   GLOBAL_FREEMEM(self);
+    if (self) {
+        if (self->sockets)
+            LinkedList_destroyStatic(self->sockets);
+
+        if (self->fds)
+            GLOBAL_FREEMEM(self->fds);
+
+        GLOBAL_FREEMEM(self);
+    }
 }
 
 void
@@ -120,26 +179,26 @@ Socket_activateTcpKeepAlive(Socket self, int idleTime, int interval, int count)
 
     if (setsockopt(self->fd, SOL_SOCKET, SO_KEEPALIVE, &optval, optlen)) {
         if (DEBUG_SOCKET)
-            printf("Failed to enable TCP keepalive\n");
+            printf("SOCKET: Failed to enable TCP keepalive\n");
     }
 
 #if defined TCP_KEEPCNT
     optval = idleTime;
     if (setsockopt(self->fd, IPPROTO_TCP, TCP_KEEPIDLE, &optval, optlen)) {
         if (DEBUG_SOCKET)
-            printf("Failed to set TCP keepalive TCP_KEEPIDLE parameter\n");
+            printf("SOCKET: Failed to set TCP keepalive TCP_KEEPIDLE parameter\n");
     }
 
     optval = interval;
     if (setsockopt(self->fd, IPPROTO_TCP, TCP_KEEPINTVL, &optval, optlen)) {
         if (DEBUG_SOCKET)
-            printf("Failed to set TCP keepalive TCP_KEEPINTVL parameter\n");
+            printf("SOCKET: Failed to set TCP keepalive TCP_KEEPINTVL parameter\n");
     }
 
     optval = count;
     if (setsockopt(self->fd, IPPROTO_TCP, TCP_KEEPCNT, &optval, optlen)) {
         if (DEBUG_SOCKET)
-            printf("Failed to set TCP keepalive TCP_KEEPCNT parameter\n");
+            printf("SOCKET: Failed to set TCP keepalive TCP_KEEPCNT parameter\n");
     }
 #endif /* TCP_KEEPCNT */
 
@@ -163,6 +222,10 @@ prepareAddress(const char* address, int port, struct sockaddr_in* sockaddr)
         result = getaddrinfo(address, NULL, &addressHints, &lookupResult);
 
         if (result != 0) {
+
+            if (DEBUG_SOCKET)
+                printf("SOCKET: getaddrinfo failed (code=%i)\n", result);
+
             retVal = false;
             goto exit_function;
         }
@@ -262,10 +325,20 @@ ServerSocket_accept(ServerSocket self)
     fd = accept(self->fd, NULL, NULL );
 
     if (fd >= 0) {
-        conSocket = TcpSocket_create();
-        conSocket->fd = fd;
+        conSocket = (Socket) GLOBAL_CALLOC(1, sizeof(struct sSocket));
 
-        activateTcpNoDelay(conSocket);
+        if (conSocket) {
+            conSocket->fd = fd;
+
+            activateTcpNoDelay(conSocket);
+        }
+        else {
+            /* out of memory */
+            close(fd);
+
+            if (DEBUG_SOCKET)
+                printf("SOCKET: out of memory\n");
+        }
     }
 
     return conSocket;
@@ -283,21 +356,21 @@ closeAndShutdownSocket(int socketFd)
     if (socketFd != -1) {
 
         if (DEBUG_SOCKET)
-            printf("socket_linux.c: call shutdown for %i!\n", socketFd);
+            printf("SOCKET: call shutdown for %i!\n", socketFd);
 
         /* shutdown is required to unblock read or accept in another thread! */
         int result = shutdown(socketFd, SHUT_RDWR);
 
         if (result == -1) {
             if (DEBUG_SOCKET)
-                printf("socket_linux.c: shutdown error: %i\n", errno);
+                printf("SOCKET: shutdown error: %i\n", errno);
         }
 
         result = close(socketFd);
 
         if (result == -1) {
             if (DEBUG_SOCKET)
-                printf("socket_linux.c: close error: %i\n", errno);
+                printf("SOCKET: close error: %i\n", errno);
         }
     }
 }
@@ -321,22 +394,36 @@ TcpSocket_create()
 {
     Socket self = (Socket)NULL;
 
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (fd != -1) {
+    if (sock != -1) {
         self = (Socket) GLOBAL_MALLOC(sizeof(struct sSocket));
 
         if (self) {
+            self->fd = sock;
             self->connectTimeout = 5000;
-            self->fd = fd;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 37)
+            int tcpUserTimeout = 10000;
+            int result = setsockopt(sock, SOL_TCP,  TCP_USER_TIMEOUT, &tcpUserTimeout, sizeof(tcpUserTimeout));
+
+            if (result == -1) {
+                if (DEBUG_SOCKET)
+                    printf("SOCKET: failed to set TCP_USER_TIMEOUT (errno=%i)\n", errno);
+            }
+#endif
         }
         else {
-            close(fd);
+            /* out of memory */
+            close(sock);
+
+            if (DEBUG_SOCKET)
+                printf("SOCKET: out of memory\n");
         }
     }
     else {
         if (DEBUG_SOCKET)
-            printf("SOCKET: failed to create socket: %i\n", errno);
+            printf("SOCKET: failed to create socket (errno=%i)\n", errno);
     }
 
     return self;
@@ -372,55 +459,106 @@ Socket_bind(Socket self, const char* srcAddress, int srcPort)
 }
 
 bool
-Socket_connect(Socket self, const char* address, int port)
+Socket_connectAsync(Socket self, const char* address, int port)
 {
     struct sockaddr_in serverAddress;
 
     if (DEBUG_SOCKET)
-        printf("Socket_connect: %s:%i\n", address, port);
+        printf("SOCKET: connect: %s:%i\n", address, port);
 
-    if (self->fd != -1) {
+    if (!prepareAddress(address, port, &serverAddress))
+        return false;
 
-        if (!prepareAddress(address, port, &serverAddress))
-            return false;
+    fd_set fdSet;
+    FD_ZERO(&fdSet);
+    FD_SET(self->fd, &fdSet);
 
-        fd_set fdSet;
-        FD_ZERO(&fdSet);
-        FD_SET(self->fd, &fdSet);
+    activateTcpNoDelay(self);
 
-        activateTcpNoDelay(self);
+    fcntl(self->fd, F_SETFL, O_NONBLOCK);
 
-    #if (CONFIG_ACTIVATE_TCP_KEEPALIVE == 1)
-        activateKeepAlive(self->fd);
-    #endif
+    if (connect(self->fd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0) {
 
-        fcntl(self->fd, F_SETFL, O_NONBLOCK);
-
-        if (connect(self->fd, (struct sockaddr *) &serverAddress, sizeof(serverAddress)) < 0) {
-            if (errno != EINPROGRESS)
-                return false;
-        }
-
-        struct timeval timeout;
-        timeout.tv_sec = self->connectTimeout / 1000;
-        timeout.tv_usec = (self->connectTimeout % 1000) * 1000;
-
-        if (select(self->fd + 1, NULL, &fdSet , NULL, &timeout) == 1) {
-            int so_error;
-            socklen_t len = sizeof(so_error);
-
-            int res = getsockopt(self->fd, SOL_SOCKET, SO_ERROR, &so_error, &len);
-
-            if (res == 0) {
-                if (so_error == 0)
-                    return true;
+        if (errno != EINPROGRESS) {
+            if (close(self->fd) == -1) {
+                if (DEBUG_SOCKET)
+                    printf("SOCKET: failed to close socket (errno: %i)\n", errno);
             }
+
+            self->fd = -1;
+            return false;
+        }
+    }
+
+    return true; /* is connecting or already connected */
+}
+
+SocketState
+Socket_checkAsyncConnectState(Socket self)
+{
+    struct timeval timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
+
+    fd_set fdSet;
+    FD_ZERO(&fdSet);
+    FD_SET(self->fd, &fdSet);
+
+    int selectVal = select(self->fd + 1, NULL, &fdSet , NULL, &timeout);
+
+    if (selectVal == 1) {
+
+        /* Check if connection is established */
+
+        int so_error;
+        socklen_t len = sizeof so_error;
+
+        if (getsockopt(self->fd, SOL_SOCKET, SO_ERROR, &so_error, &len) >= 0) {
+
+            if (so_error == 0)
+                return SOCKET_STATE_CONNECTED;
         }
 
-        close (self->fd);
-
-        self->fd = -1;
+        return SOCKET_STATE_FAILED;
     }
+    else if (selectVal == 0) {
+        return SOCKET_STATE_CONNECTING;
+    }
+    else {
+        return SOCKET_STATE_FAILED;
+    }
+}
+
+bool
+Socket_connect(Socket self, const char* address, int port)
+{
+    if (Socket_connectAsync(self, address, port) == false)
+        return false;
+
+    struct timeval timeout;
+    timeout.tv_sec = self->connectTimeout / 1000;
+    timeout.tv_usec = (self->connectTimeout % 1000) * 1000;
+
+    fd_set fdSet;
+    FD_ZERO(&fdSet);
+    FD_SET(self->fd, &fdSet);
+
+    if (select(self->fd + 1, NULL, &fdSet , NULL, &timeout) == 1) {
+
+        /* Check if connection is established */
+
+        int so_error;
+        socklen_t len = sizeof so_error;
+
+        if (getsockopt(self->fd, SOL_SOCKET, SO_ERROR, &so_error, &len) >= 0) {
+
+            if (so_error == 0)
+                return true;
+        }
+    }
+
+    close (self->fd);
+    self->fd = -1;
 
     return false;
 }
@@ -542,6 +680,10 @@ Socket_read(Socket self, uint8_t* buf, int size)
                 return -1;
 
             default:
+
+                if (DEBUG_SOCKET)
+                    printf("DEBUG_SOCKET: recv returned error (errno=%i)\n", error);
+
                 return -1;
         }
     }
@@ -556,12 +698,19 @@ Socket_write(Socket self, uint8_t* buf, int size)
         return -1;
 
     /* MSG_NOSIGNAL - prevent send to signal SIGPIPE when peer unexpectedly closed the socket */
-    int retVal = send(self->fd, buf, size, MSG_NOSIGNAL);
+    int retVal = send(self->fd, buf, size, MSG_NOSIGNAL | MSG_DONTWAIT);
 
-    if ((retVal == -1) && (errno == EAGAIN))
-        return 0;
-    else
-        return retVal;
+    if (retVal == -1) {
+        if (errno == EAGAIN) {
+            return 0;
+        }
+        else {
+            if (DEBUG_SOCKET)
+                printf("DEBUG_SOCKET: send returned error (errno=%i)\n", errno);
+        }
+    }
+
+    return retVal;
 }
 
 void
@@ -576,4 +725,122 @@ Socket_destroy(Socket self)
     Thread_sleep(10);
 
     GLOBAL_FREEMEM(self);
+}
+
+UdpSocket
+UdpSocket_create()
+{
+    UdpSocket self = NULL;
+
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (sock != -1) {
+        self = (UdpSocket) GLOBAL_MALLOC(sizeof(struct sSocket));
+
+        self->fd = sock;
+    }
+    else {
+        if (DEBUG_SOCKET)
+            printf("SOCKET: failed to create UDP socket (errno=%i)\n", errno);
+    }
+
+    return self;
+}
+
+bool
+UdpSocket_bind(UdpSocket self, const char* address, int port)
+{
+    struct sockaddr_in localAddress;
+
+    if (!prepareAddress(address, port, &localAddress)) {
+        close(self->fd);
+        self->fd = 0;
+        return false;
+    }
+
+    int result = bind(self->fd, (struct sockaddr*)&localAddress, sizeof(localAddress));
+
+    if (result == -1) {
+        if (DEBUG_SOCKET)
+            printf("SOCKET: failed to bind UDP socket (errno=%i)\n", errno);
+
+        close(self->fd);
+        self->fd = 0;
+
+        return false;
+    }
+
+    return true;
+}
+
+bool
+UdpSocket_sendTo(UdpSocket self, const char* address, int port, uint8_t* msg, int msgSize)
+{
+    struct sockaddr_in remoteAddress;
+
+    if (!prepareAddress(address, port, &remoteAddress)) {
+
+        if (DEBUG_SOCKET)
+            printf("SOCKET: failed to lookup remote address %s\n", address);
+
+        return false;
+    }
+
+    int result = sendto(self->fd, msg, msgSize, 0, (struct sockaddr*)&remoteAddress, sizeof(remoteAddress));
+
+    if (result == msgSize) {
+        return true;
+    }
+    else if (result == -1) {
+        if (DEBUG_SOCKET)
+            printf("SOCKET: failed to send UDP message (errno=%i)\n", errno);
+    }
+    else {
+        if (DEBUG_SOCKET)
+            printf("SOCKET: failed to send UDP message (insufficient data sent)\n");
+    }
+
+    return false;
+}
+
+int
+UdpSocket_receiveFrom(UdpSocket self, char* address, int maxAddrSize, uint8_t* msg, int msgSize)
+{
+    struct sockaddr_storage remoteAddress;
+    socklen_t structSize = sizeof(struct sockaddr_storage);
+
+    int result = recvfrom(self->fd, msg, msgSize, MSG_DONTWAIT, (struct sockaddr*)&remoteAddress, &structSize);
+
+    if (result == -1) {
+        if (DEBUG_SOCKET)
+            printf("SOCKET: failed to receive UDP message (errno=%i)\n", errno);
+    }
+
+    if (address) {
+        bool isIPv6;
+        char addrString[INET6_ADDRSTRLEN + 7];
+        int port;
+
+        if (remoteAddress.ss_family == AF_INET) {
+            struct sockaddr_in* ipv4Addr = (struct sockaddr_in*) &remoteAddress;
+            port = ntohs(ipv4Addr->sin_port);
+            inet_ntop(AF_INET, &(ipv4Addr->sin_addr), addrString, INET_ADDRSTRLEN);
+            isIPv6 = false;
+        }
+        else if (remoteAddress.ss_family == AF_INET6) {
+            struct sockaddr_in6* ipv6Addr = (struct sockaddr_in6*) &remoteAddress;
+            port = ntohs(ipv6Addr->sin6_port);
+            inet_ntop(AF_INET6, &(ipv6Addr->sin6_addr), addrString, INET6_ADDRSTRLEN);
+            isIPv6 = true;
+        }
+        else
+            return result ;
+
+        if (isIPv6)
+            snprintf(address, maxAddrSize, "[%s]:%i", addrString, port);
+        else
+            snprintf(address, maxAddrSize, "%s:%i", addrString, port);
+    }
+
+    return result;
 }

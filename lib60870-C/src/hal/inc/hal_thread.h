@@ -1,28 +1,18 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  thread_hal.h
  *
- *  This file is part of lib60870-C
+ *  Multi-threading abstraction layer
  *
- *  lib60870-C is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ *  Copyright 2013-2021 Michael Zillgith
  *
- *  lib60870-C is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with lib60870-C.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  See COPYING file for the complete license text.
+ *  This file is part of Platform Abstraction Layer (libpal)
+ *  for libiec61850, libmms, and lib60870.
  */
 
 #ifndef THREAD_HAL_H_
 #define THREAD_HAL_H_
 
-#include <stdbool.h>
+#include "hal_base.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,7 +52,7 @@ typedef void* (*ThreadExecutionFunction) (void*);
  *
  * \return the newly created Thread instance
  */
-Thread
+PAL_API Thread
 Thread_create(ThreadExecutionFunction function, void* parameter, bool autodestroy);
 
 /**
@@ -73,7 +63,7 @@ Thread_create(ThreadExecutionFunction function, void* parameter, bool autodestro
  *
  * \param thread the Thread instance to start
  */
-void
+PAL_API void
 Thread_start(Thread thread);
 
 /**
@@ -81,26 +71,26 @@ Thread_start(Thread thread);
  *
  * \param thread the Thread instance to destroy
  */
-void
+PAL_API void
 Thread_destroy(Thread thread);
 
 /**
  * \brief Suspend execution of the Thread for the specified number of milliseconds
  */
-void
+PAL_API void
 Thread_sleep(int millies);
 
-Semaphore
+PAL_API Semaphore
 Semaphore_create(int initialValue);
 
 /* Wait until semaphore value is greater than zero. Then decrease the semaphore value. */
-void
+PAL_API void
 Semaphore_wait(Semaphore self);
 
-void
+PAL_API void
 Semaphore_post(Semaphore self);
 
-void
+PAL_API void
 Semaphore_destroy(Semaphore self);
 
 /*! @} */
