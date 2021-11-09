@@ -5,21 +5,29 @@ from lib60870.CP24Time2a import CP24Time2a, pCP24Time2a
 from lib60870.CP56Time2a import CP56Time2a, pCP56Time2a
 
 import ctypes
-from ctypes import c_int, c_uint16, c_uint32, c_uint64, c_void_p, c_bool, c_uint8, c_void_p, c_float
+from ctypes import c_int, c_int8, c_uint16, c_uint32, c_uint64, c_void_p, c_bool, c_uint8, c_void_p, c_float
 
 lib = lib60870.get_library()
 logger = logging.getLogger(__name__)
 
 # type aliases
 c_enum = c_int
+
 cTypeId = c_enum
 DoublePointValue = c_enum
+
+EventState = c_enum
+pEventState = ctypes.POINTER(EventState)
 StepCommandValue = c_enum
 StartEvent = c_uint8
 OutputCircuitInfo = c_uint8
 QualifierOfRPC = c_uint8
+QualifierOfCIC = c_uint8
+pQualifierOfCIC = ctypes.POINTER(QualifierOfCIC)
+QualifierOfParameterMV = c_uint8
+pQualifierOfParameterMV = ctypes.POINTER(QualifierOfParameterMV)
+pFrame = c_void_p  # TODO
 QualifierOfParameterActivation = c_uint8
-
 EncodeFunction = c_void_p  # TODO
 DestroyFunction = ctypes.CFUNCTYPE(None, c_void_p)
 
