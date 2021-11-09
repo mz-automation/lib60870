@@ -310,6 +310,24 @@ class LookupTests(unittest.TestCase):
         type_id = get_type_id_from_name(name)
         self.assertEqual(type_id, TypeID.M_SP_TB_1)
 
+
+class TestHasCP56Time2a(unittest.TestCase):
+    def test_SinglePointInformation(self):
+        self.assertFalse(SinglePointInformation.has_CP56Time2a())
+
+    def test_SinglePointWithCP56Time2a(self):
+        self.assertTrue(SinglePointWithCP56Time2a.has_CP56Time2a())
+
+    def test_SinglePointWithCP24Time2a(self):
+        self.assertFalse(SinglePointWithCP24Time2a.has_CP56Time2a())
+
+    def test_SingleCommand(self):
+        self.assertFalse(SingleCommand.has_CP56Time2a())
+
+    def test_SingleCommandWithCP56Time2a(self):
+        self.assertTrue(SingleCommandWithCP56Time2a.has_CP56Time2a())
+
+
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(name)s:%(levelname)s:%(message)s', level=logging.DEBUG)
     unittest.main()

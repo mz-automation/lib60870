@@ -80,6 +80,13 @@ class IOBase():
     def get_timestamp(self):
         return None
 
+    @classmethod
+    def has_CP56Time2a(cls):
+        for (name, type) in cls._fields_:
+            if name == "timestamp" and type == CP56Time2a:
+                return True
+        return False
+
     def clone(self):
         c = self.__class__.__new__(self.__class__)
         for field in c._fields_:
