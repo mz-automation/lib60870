@@ -119,7 +119,9 @@ class T104Connection():
 
     def send_asdu(self, asdu):
         lib.T104Connection_sendASDU.restype = c_bool
-        return lib.T104Connection_sendASDU(self.con, asdu.pointer)
+        if asdu.get_number_of_elements() > 0:
+            return lib.T104Connection_sendASDU(self.con, asdu.pointer)
+        return False
 
     def set_connection_handler(self, callback, parameter=None):
         logger.debug("setting connection callback")
