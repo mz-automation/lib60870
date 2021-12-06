@@ -56,14 +56,14 @@ def asdu_callback(parameter, connection, asdu):
     logging.info("Received asdu {}".format(asdu))
     if asdu.get_type_id() == TypeID.C_SC_NA_1:
         logging.info("received single command\n")
-
-            sc = asdu.elements[0]
-            if sc.get_object_address() == 5000:
-                logging.info("IOA: {} switch to {}".format(sc.get_object_address(), sc.get_state()))
-                cot = CauseOfTransmission.ACTIVATION_CON
-            else:
-                cot = CauseOfTransmission.UNKNOWN_INFORMATION_OBJECT_ADDRESS
+        sc = asdu.elements[0]
+        if sc.get_object_address() == 5000:
+            logging.info("IOA: {} switch to {}".format(sc.get_object_address(), sc.get_state()))
+            cot = CauseOfTransmission.ACTIVATION_CON
+        else:
+            cot = CauseOfTransmission.UNKNOWN_INFORMATION_OBJECT_ADDRESS
         if asdu.get_cot() == CauseOfTransmission.ACTIVATION:
+            pass
         else:
             cot = CauseOfTransmission.UNKNOWN_CAUSE_OF_TRANSMISSION
         asdu.set_cot(cot)
