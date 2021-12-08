@@ -2808,6 +2808,55 @@ class FileDirectory(ctypes.Structure, IOBase):
 pFileDirectory = ctypes.POINTER(FileDirectory)
 
 
+def build_command(command_type, **kwargs):
+    ioa = kwargs["ioa"]
+    value = kwargs["value"]
+    command = kwargs.get("value", value)
+    selectCommand = kwargs.get("selectCommand", False)
+    qu = kwargs.get("qu", 0)
+    ql = kwargs.get("ql", 0)
+    as_scaled = kwargs.get("as_scaled", False)
+    timestamp = kwargs.get("timestamp", None)
+
+    if command_type == SingleCommand:
+        return SingleCommand(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu)
+    if command_type == DoubleCommand:
+        return DoubleCommand(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu)
+    if command_type == StepCommand:
+        return StepCommand(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu)
+    if command_type == SetpointCommandNormalized:
+        return SetpointCommandNormalized(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, as_scaled=as_scaled)
+    if command_type == SetpointCommandScaled:
+        return SetpointCommandScaled(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql)
+    if command_type == SetpointCommandShort:
+        return SetpointCommandShort(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql)
+    if command_type == Bitstring32Command:
+        return Bitstring32Command(ioa=ioa, value=value)
+    if command_type == SingleCommandWithCP56Time2a:
+        return SingleCommandWithCP56Time2a(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu, timestamp=timestamp)
+    if command_type == DoubleCommandWithCP56Time2a:
+        return DoubleCommandWithCP56Time2a(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu, timestamp=timestamp)
+    if command_type == StepCommandWithCP56Time2a:
+        return StepCommandWithCP56Time2a(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu, timestamp=timestamp)
+    if command_type == SetpointCommandNormalizedWithCP56Time2a:
+        return SetpointCommandNormalizedWithCP56Time2a(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, as_scaled=as_scaled, timestamp=timestamp)
+    if command_type == SetpointCommandScaledWithCP56Time2a:
+        return SetpointCommandScaledWithCP56Time2a(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, timestamp=timestamp)
+    if command_type == SetpointCommandShortWithCP56Time2a:
+        return SetpointCommandShortWithCP56Time2a(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, timestamp=timestamp)
+    if command_type == Bitstring32CommandWithCP56Time2a:
+        return Bitstring32CommandWithCP56Time2a(ioa=ioa, value=value, timestamp=timestamp)
+
+
+def is_normalized(type_id):
+    return type_id in (
+        lib60870.TypeID.C_SE_NA_1,
+        lib60870.TypeID.M_ME_NA_1,
+        lib60870.TypeID.M_ME_TA_1,
+        lib60870.TypeID.M_ME_TD_1,
+        )
+
+
 _type_id_type_lookup = [
     ((lib60870.TypeID.INVALID), (InformationObject)),
     ((lib60870.TypeID.M_SP_NA_1), (SinglePointInformation)),  # 1
