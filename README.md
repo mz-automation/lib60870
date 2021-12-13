@@ -49,11 +49,11 @@ This can be done by using the *WITHOUT_HAL* and *WITHOUT_COMMON* defines when ca
 
 ## Building with TLS support
 
-The library can be build with support for TLS. In order to do so you have to download mbedtls version 2.6.0.
+The library can be build with support for TLS. In order to do so you have to download mbedtls version 2.16.10.
 
 Unpack the mbedtls tarball in the dependencies folder so that a folder
 
-dependencies/mbedtls-2.6.0
+dependencies/mbedtls-2.6.10
 
 exists.
 
