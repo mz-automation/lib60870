@@ -48,6 +48,14 @@ set (lib_bsd_SRCS
 ./hal/memory/lib_memory.c
 )
 
+set (lib_macos_SRCS
+./hal/serial/linux/serial_port_linux.c
+./hal/socket/bsd/socket_bsd.c
+./hal/thread/macos/thread_macos.c
+./hal/time/unix/time.c
+./hal/memory/lib_memory.c
+)
+
 endif (BUILD_HAL)
 
 IF(WIN32)
@@ -68,7 +76,7 @@ ELSEIF(UNIX)
 IF(APPLE)
 set (library_SRCS
     ${lib_common_SRCS}
-    ${lib_bsd_SRCS}
+    ${lib_macos_SRCS}
 )
 ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
 set (library_SRCS

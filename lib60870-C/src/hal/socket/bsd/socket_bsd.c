@@ -184,7 +184,7 @@ Socket_activateTcpKeepAlive(Socket self, int idleTime, int interval, int count)
 }
 
 static bool
-prepareAddress(const char* address, int port, struct sockaddr_in* sockaddr)
+prepareServerAddress(const char* address, int port, struct sockaddr_in* sockaddr)
 {
 
 	memset((char *) sockaddr , 0, sizeof(struct sockaddr_in));
@@ -231,7 +231,7 @@ TcpServerSocket_create(const char* address, int port)
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) >= 0) {
         struct sockaddr_in serverAddress;
 
-        if (!prepareAddress(address, port, &serverAddress)) {
+        if (!prepareServerAddress(address, port, &serverAddress)) {
             close(fd);
             return NULL;
         }
@@ -373,7 +373,7 @@ Socket_bind(Socket self, const char* srcAddress, int srcPort)
 {
     struct sockaddr_in localAddress;
 
-    if (!prepareAddress(srcAddress, srcPort, &localAddress))
+    if (!prepareServerAddress(srcAddress, srcPort, &localAddress))
         return false;
 
     int result = bind(self->fd, (struct sockaddr*)&localAddress, sizeof(localAddress));
