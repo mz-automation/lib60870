@@ -36,9 +36,11 @@ option(BUILD_TESTS "Build the tests" ON)
 
 if(BUILD_HAL)
 
-if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.10)
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12)
 set(WITH_MBEDTLS 1)
-endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.10)
+else()
+message("NOTE: mbedtls 2.16.12 is required for TLS support!")
+endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12)
 
 endif(BUILD_HAL)
 
@@ -53,10 +55,10 @@ include_directories(
 if(WITH_MBEDTLS)
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/src/hal/tls/mbedtls
-    ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.10/include
+    ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12/include
 )
 
-file(GLOB tls_SRCS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.10/library/*.c)
+file(GLOB tls_SRCS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12/library/*.c)
 
 add_definitions(-DCONFIG_CS104_SUPPORT_TLS=1)
 add_definitions(-DMBEDTLS_CONFIG_FILE="mbedtls_config.h")
