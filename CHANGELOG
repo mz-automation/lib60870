@@ -3,6 +3,16 @@ Changes to version 2.3.1
 
 - TLS support now requires mbedtls 2.16.12
 - CS104 client/master: add support to specify local interface/IP address
+- Macos HAL layer: replaced semaphores by mutex
+- updated HAL layer
+- fix - Possible buffer overflow when formatting IPv6 addresses (#96)
+- fixed - write to queueEntry is not protected (#99)
+- fixed bug in CS101_ASDU_setNumberOfElements (#91)
+- CS104 slave: fixed problem in TEST-FR con timeout handling
+- CS101 master: fixed problem not sending broadcast messages (#88)
+- CS101 slave: fixed potential crash when application layer parameters don't match
+- CS104 server: fixed - receiving I or S frame while in STOPDT should close connection
+
 
 Changes to version 2.3.0
 ------------------------
