@@ -2776,7 +2776,7 @@ _IMasterConnection_getPeerAddress(IMasterConnection self, char* addrBuf, int add
 {
     MasterConnection con = (MasterConnection) self->object;
 
-    char buf[50];
+    char buf[54];
 
     char* addrStr = Socket_getPeerAddressStatic(con->socket, buf);
 
