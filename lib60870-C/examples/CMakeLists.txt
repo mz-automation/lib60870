@@ -1,9 +1,11 @@
 add_subdirectory(cs101_master_balanced)
 add_subdirectory(cs101_master_unbalanced)
 add_subdirectory(cs101_slave)
+add_subdirectory(cs101_slave_files)
 add_subdirectory(cs104_client)
 add_subdirectory(cs104_server)
 add_subdirectory(cs104_server_no_threads)
+add_subdirectory(cs104_server_files)
 add_subdirectory(cs104_redundancy_server)
 add_subdirectory(multi_client_server)
 

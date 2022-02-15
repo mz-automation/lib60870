@@ -46,6 +46,7 @@ endif(BUILD_HAL)
 
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/config
+    ${CMAKE_CURRENT_LIST_DIR}/src/file-service
     ${CMAKE_CURRENT_LIST_DIR}/src/inc/api
     ${CMAKE_CURRENT_LIST_DIR}/src/inc/internal
     ${CMAKE_CURRENT_LIST_DIR}/src/common/inc

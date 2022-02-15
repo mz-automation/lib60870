@@ -1,5 +1,6 @@
 
 set (lib_common_SRCS
+./file-service/file_server.c
 ./iec60870/apl/cpXXtime2a.c
 ./iec60870/cs101/cs101_asdu.c
 ./iec60870/cs101/cs101_bcr.c
