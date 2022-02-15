@@ -402,5 +402,5 @@ main(int argc, char** argv)
 
 exit_program:
     CS104_Slave_destroy(slave);
-  //  CS101_FileServer_destroy(fileServer);
+    CS101_FileServer_destroy(fileServer);
 }

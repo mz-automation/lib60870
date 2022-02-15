@@ -7379,7 +7379,7 @@ FileSegment
 FileSegment_create(FileSegment self, int ioa, uint16_t nof, uint8_t nos, uint8_t* data, uint8_t los)
 {
     if (self == NULL)
-       self = (FileSegment) GLOBAL_MALLOC(sizeof(struct sFileSegment));
+        self = (FileSegment) GLOBAL_MALLOC(sizeof(struct sFileSegment));
 
     if (self != NULL) {
         FileSegment_initialize(self);

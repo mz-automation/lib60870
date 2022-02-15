@@ -1,5 +1,22 @@
 /*
- * file_server.c
+ *  Copyright 2016-2022 Michael Zillgith
+ *
+ *  This file is part of lib60870-C
+ *
+ *  lib60870-C is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  lib60870-C is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with lib60870-C.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ *  See COPYING file for the complete license text.
  */
 
 #include "cs101_file_service.h"
@@ -61,7 +78,7 @@ static void
 sendCallFile(CS101_FileServer self, IMasterConnection connection, int oa)
 {
     sCS101_StaticASDU _asdu;
-    uint8_t ioBuf[30];
+    uint8_t ioBuf[64];
 
     CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
 
@@ -79,7 +96,7 @@ static void
 sendCallSection(CS101_FileServer self, IMasterConnection connection, int oa)
 {
     sCS101_StaticASDU _asdu;
-    uint8_t ioBuf[30];
+    uint8_t ioBuf[64];
 
     CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
 
@@ -99,7 +116,7 @@ static void
 sendFileAck(CS101_FileServer self, IMasterConnection connection, int oa, uint8_t nos, uint8_t afq)
 {
     sCS101_StaticASDU _asdu;
-    uint8_t ioBuf[30];
+    uint8_t ioBuf[64];
 
     CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
 
@@ -117,7 +134,7 @@ static void
 sendSectionReady(CS101_FileServer self, IMasterConnection connection, int oa)
 {
     sCS101_StaticASDU _asdu;
-    uint8_t ioBuf[30];
+    uint8_t ioBuf[64];
 
     CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
 
@@ -135,7 +152,7 @@ static void
 sendLastSection(CS101_FileServer self, IMasterConnection connection, int oa)
 {
     sCS101_StaticASDU _asdu;
-    uint8_t ioBuf[30];
+    uint8_t ioBuf[64];
 
     CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
 
@@ -153,7 +170,7 @@ static void
 sendFileReady(CS101_FileServer self, IMasterConnection connection, int oa, uint32_t lof, bool positive)
 {
     sCS101_StaticASDU _asdu;
-    uint8_t ioBuf[30];
+    uint8_t ioBuf[64];
 
     CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
 
@@ -193,7 +210,7 @@ sendSegment(CS101_FileServer self, IMasterConnection connection, int oa)
             currentSegmentSize = self->maxSegmentSize;
 
         sCS101_StaticASDU _asdu;
-        uint8_t ioBuf[30];
+        uint8_t ioBuf[64];
         uint8_t segmentData[255];
 
         CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
@@ -225,7 +242,7 @@ static void
 sendLastSegment(CS101_FileServer self, IMasterConnection connection, int oa)
 {
     sCS101_StaticASDU _asdu;
-    uint8_t ioBuf[30];
+    uint8_t ioBuf[64];
 
     CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
 
