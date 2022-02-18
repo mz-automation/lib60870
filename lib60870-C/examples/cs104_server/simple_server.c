@@ -183,7 +183,69 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
 
         return true;
     }
+	if (CS101_ASDU_getTypeID(asdu) == 136) //1¨¦¨°??¡¥¨¦¨¨?¡§?¦Ì¡ê?¨°???¡À¡§??¡ã¨¹o??¨¤??¨¦¨¨?¡§?¦Ì?¡é2?¡ä?¨º¡À
+	{
+		printf("  received  muliti SetpointCommandScaled:\n");
+		if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION)
+		{
+			int i;
+			for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
+			{
+				SetMultiPointCommandNormalized io =
+					(SetMultiPointCommandNormalized)CS101_ASDU_getElement(asdu, i);
+				printf("    IOA: %i value: %f\n",
+					InformationObject_getObjectAddress((InformationObject)io),
+					SetMultiPointCommandNormalized_getValue((SetMultiPointCommandNormalized)io));
+				SetMultiPointCommandNormalized_destroy(io);
+			}
+		}
+		CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+		IMasterConnection_sendASDU(connection, asdu);
+		return true;
+	}
+	if (CS101_ASDU_getTypeID(asdu) == 137) //¡À¨º?¨¨?¡¥¨¦¨¨?¡§?¦Ì¡ê?¨°???¡À¡§??¡ã¨¹o??¨¤??¨¦¨¨?¡§?¦Ì?¡é2?¡ä?¨º¡À
+	{
+		printf("  received  muliti SetpointCommandScaled:\n");
+		if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION)
+		{
+			
 
+			//¨º1¨®??¨®?¨²?a??¡À¡§??
+			int i;
+			for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
+			{
+				SetMultiPointCommandScaled io =
+					(SetMultiPointCommandScaled)CS101_ASDU_getElement(asdu, i);
+				printf("    IOA: %i value: %i\n",
+					InformationObject_getObjectAddress((InformationObject)io),
+					SetMultiPointCommandScaled_getValue((SetMultiPointCommandScaled)io));
+				SetMultiPointCommandScaled_destroy(io);
+			}
+		}
+		CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+		IMasterConnection_sendASDU(connection, asdu);
+		return true;
+	}
+	if (CS101_ASDU_getTypeID(asdu) == 138) //?¨¬??¦Ì?¨¦¨¨?¡§?¦Ì¡ê?¨°???¡À¡§??¡ã¨¹o??¨¤??¨¦¨¨?¡§?¦Ì?¡é2?¡ä?¨º¡À
+	{
+		printf("  received  muliti SetpointCommandShort:\n");
+		if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION)
+		{		
+			int i;
+			for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
+			{
+				SetMultiPointCommandShort io =
+					(SetMultiPointCommandShort)CS101_ASDU_getElement(asdu, i);
+				printf("    IOA: %i value: %f\n",
+					InformationObject_getObjectAddress((InformationObject)io),
+					SetMultiPointCommandShort_getValue((SetMultiPointCommandShort)io));
+				SetMultiPointCommandShort_destroy(io);
+			}
+		}
+		CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);//
+		IMasterConnection_sendASDU(connection, asdu);
+		return true;
+	}
     return false;
 }
 

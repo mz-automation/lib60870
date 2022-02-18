@@ -122,7 +122,10 @@ typedef enum {
     F_AF_NA_1 = 124,
     F_SG_NA_1 = 125,
     F_DR_TA_1 = 126,
-    F_SC_NB_1 = 127
+    F_SC_NB_1 = 127,
+    C_SE_NE_1 = 136,
+    C_SE_NF_1 = 137,
+    C_SE_NG_1 = 138
 } IEC60870_5_TypeID;
 
 typedef IEC60870_5_TypeID TypeID;
@@ -1224,6 +1227,45 @@ bool
 SetpointCommandNormalized_isSelect(SetpointCommandNormalized self);
 
 /*************************************************
+ * SetMultiPointCommandNormalized : InformationObject
+ ************************************************/
+
+typedef struct sSetMultiPointCommandNormalized* SetMultiPointCommandNormalized;
+
+typedef struct sNormalizedVal NormalizedVal;
+void
+SetMultiPointCommandNormalized_destroy(SetMultiPointCommandNormalized self);
+
+/**
+ * \brief Create a normalized set MultiPoint command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value normalized value between -1 and 1
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] ql qualifier of set point command (0 = standard, 1..127 = reserved)
+ *
+ * \return the initialized instance
+ */
+SetMultiPointCommandNormalized
+SetMultiPointCommandNormalized_create(SetMultiPointCommandNormalized self, int ioa, float* value, int valnum, bool selectCommand, int ql);
+
+float
+SetMultiPointCommandNormalized_getValue(SetMultiPointCommandNormalized self);
+
+int
+SetMultiPointCommandNormalized_getQL(SetMultiPointCommandNormalized self);
+
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
+bool
+SetMultiPointCommandNormalized_isSelect(SetMultiPointCommandNormalized self);
+
+
+/*************************************************
  * SetpointCommandScaled : InformationObject
  ************************************************/
 
@@ -1261,6 +1303,44 @@ bool
 SetpointCommandScaled_isSelect(SetpointCommandScaled self);
 
 /*************************************************
+ * SetpointCommandScaled : InformationObject
+ ************************************************/
+
+typedef struct sSetMultiPointCommandScaled* SetMultiPointCommandScaled;
+
+typedef struct sScaledVal ScaledVal;
+void
+SetMultiPointCommandScaled_destroy(SetMultiPointCommandScaled self);
+
+/**
+ * \brief Create a scaled set multi point command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value the scaled value (–32.768 .. 32.767)
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] ql qualifier of set multi point command (0 = standard, 1..127 = reserved)
+ *
+ * \return the initialized instance
+ */
+SetMultiPointCommandScaled
+SetMultiPointCommandScaled_create(SetMultiPointCommandScaled self, int ioa, int* value, int valnum, bool selectCommand, int ql);
+
+int
+SetMultiPointCommandScaled_getValue(SetMultiPointCommandScaled self);
+
+int
+SetMultiPointCommandScaled_getQL(SetMultiPointCommandScaled self);
+
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
+bool
+SetMultiPointCommandScaled_isSelect(SetMultiPointCommandScaled self);
+
+/*************************************************
  * SetpointCommandShort: InformationObject
  ************************************************/
 
@@ -1288,6 +1368,43 @@ SetpointCommandShort_getValue(SetpointCommandShort self);
 
 int
 SetpointCommandShort_getQL(SetpointCommandShort self);
+
+/**
+ * \brief Return the value of the S/E bit of the qualifier of command
+ *
+ * \return S/E bit, true = select, false = execute
+ */
+bool
+SetpointCommandShort_isSelect(SetpointCommandShort self);
+
+
+/*************************************************
+ * SetMultiPointCommandShort: InformationObject
+ ************************************************/
+
+typedef struct sSetMultiPointCommandShort* SetMultiPointCommandShort;
+
+void
+SetMultiPointCommandShort_destroy(SetMultiPointCommandShort self);
+
+/**
+ * \brief Create a short floating point set point command information object
+ *
+ * \param[in] self existing instance to reuse or NULL to create a new instance
+ * \param[in] ioa information object address
+ * \param[in] value short floating point number
+ * \param[in] selectCommand (S/E bit) if true send "select", otherwise "execute"
+ * \param[in] ql qualifier of set point command (0 = standard, 1..127 = reserved)
+ *
+ * \return the initialized instance
+ */
+SetMultiPointCommandShort
+SetMultiPointCommandShort_create(SetMultiPointCommandShort self,  int* ioa, float* value,int valnum, bool selectCommand, int ql);
+
+float SetMultiPointCommandShort_getValue(SetMultiPointCommandShort self);
+
+int
+SetMultiPointCommandShort_getQL(SetMultiPointCommandShort self);
 
 /**
  * \brief Return the value of the S/E bit of the qualifier of command

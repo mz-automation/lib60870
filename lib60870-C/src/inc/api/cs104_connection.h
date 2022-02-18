@@ -287,6 +287,8 @@ CS104_Connection_sendProcessCommand(CS104_Connection self, TypeID typeId, CS101_
 bool
 CS104_Connection_sendProcessCommandEx(CS104_Connection self, CS101_CauseOfTransmission cot, int ca, InformationObject sc);
 
+bool
+CS104_Connection_sendMultipointProcessCommandEx(CS104_Connection self, CS101_CauseOfTransmission cot, int ca, bool bsequence, int pointNum, InformationObject sc);
 
 /**
  * \brief Send a user specified ASDU
