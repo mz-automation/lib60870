@@ -4982,6 +4982,117 @@ SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, CS101_Ap
 
     return self;
 }
+/*************************************************
+ * SetMultiPointCommandNormalized : InformationObject
+ ************************************************/
+
+static bool
+SetMultiPointCommandNormalized_encode(SetMultiPointCommandNormalized self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+{
+    int size = isSequence ? 3 : (parameters->sizeOfIOA + 3);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
+    for (int i=0;i<self->val_num;i++)
+    {
+        Frame_appendBytes(frame, self->normalizedVal[i].encodedValue, 2);
+    }
+    
+    Frame_setNextByte(frame, self->qos);
+
+    return true;
+}
+
+struct sInformationObjectVFT setmultipointCommandNormalizedVFT = {
+        (EncodeFunction)SetMultiPointCommandNormalized_encode,
+        (DestroyFunction)SetMultiPointCommandNormalized_destroy
+};
+
+static void
+SetMultiPointCommandNormalized_initialize(SetMultiPointCommandNormalized self)
+{
+    self->virtualFunctionTable = &(setmultipointCommandNormalizedVFT);
+    self->type = C_SE_NE_1;
+}
+
+void
+SetMultiPointCommandNormalized_destroy(SetMultiPointCommandNormalized self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+SetMultiPointCommandNormalized
+SetMultiPointCommandNormalized_create(SetMultiPointCommandNormalized self, int ioa, float* value, int valnum, bool selectCommand, int ql)
+{
+    if (self == NULL)
+        self = (SetMultiPointCommandNormalized)GLOBAL_MALLOC(sizeof(struct sSetMultiPointCommandNormalized));
+
+    if (self) {
+        SetMultiPointCommandNormalized_initialize(self);
+
+        self->objectAddress = ioa;
+        self->val_num = valnum > 127 ? 127: valnum;
+        for (int i=0;i<valnum;i++)
+        {
+			int scaledValue = (int)((value[i] * 32767.5) - 0.5);
+			setScaledValue(self->normalizedVal[i].encodedValue, scaledValue);
+        }
+       
+        uint8_t qos = ql;
+        if (selectCommand) qos |= 0x80;
+
+        self->qos = qos;
+    }
+
+    return self;
+}
+
+float
+SetMultiPointCommandNormalized_getValue(SetMultiPointCommandNormalized self)
+{
+	float nv = ((float)getScaledValue(self->encodedValue) + 0.5) / 32767.5;
+
+	return nv;
+}
+
+int
+SetMultiPointCommandNormalized_getQL(SetMultiPointCommandNormalized self)
+{
+    return (int)(self->qos & 0x7f);
+}
+
+bool
+SetMultiPointCommandNormalized_isSelect(SetMultiPointCommandNormalized self)
+{
+    return ((self->qos & 0x80) == 0x80);
+}
+
+SetMultiPointCommandNormalized
+SetMultiPointCommandNormalized_getFromBuffer(SetMultiPointCommandNormalized self, CS101_AppLayerParameters parameters,
+    uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+{
+    if (self == NULL)
+        self = (SetMultiPointCommandNormalized)GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
+
+    if (self != NULL) {
+        SetMultiPointCommandNormalized_initialize(self);
+
+        if (!isSequence)
+        {
+			InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+			startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
+		self->encodedValue[0] = msg[startIndex++];
+		self->encodedValue[1] = msg[startIndex++];
+
+        /* QOS - qualifier of setpoint command */
+        self->qos = msg[startIndex++];
+    }
+
+    return self;
+}
 
 /**********************************************************************
  * SetpointCommandNormalizedWithCP56Time2a : SetpointCommandNormalized
@@ -5217,6 +5328,118 @@ SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, CS101_AppLayerPa
 
     return self;
 }
+
+/*************************************************
+ * SetMultiPointCommandScaled: InformationObject
+ ************************************************/
+
+static bool
+SetMultiPointCommandScaled_encode(SetMultiPointCommandScaled self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+{
+    int size = isSequence ? 3 : (parameters->sizeOfIOA + 3);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
+	for (int i = 0; i < self->val_num; i++)
+	{
+		Frame_appendBytes(frame, self->normalizedVal[i].encodedValue, 2);
+	}
+
+    Frame_setNextByte(frame, self->qos);
+
+    return true;
+}
+
+struct sInformationObjectVFT setmultipointCommandScaledVFT = {
+        (EncodeFunction)SetMultiPointCommandScaled_encode,
+        (DestroyFunction)SetMultiPointCommandScaled_destroy
+};
+
+static void
+SetMultiPointCommandScaled_initialize(SetMultiPointCommandScaled self)
+{
+    self->virtualFunctionTable = &(setmultipointCommandScaledVFT);
+    self->type = C_SE_NF_1;
+}
+
+void
+SetMultiPointCommandScaled_destroy(SetMultiPointCommandScaled self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+SetMultiPointCommandScaled
+SetMultiPointCommandScaled_create(SetMultiPointCommandScaled self, int ioa, int* value,int valnum, bool selectCommand, int ql)
+{
+    if (self == NULL)
+        self = (SetMultiPointCommandScaled)GLOBAL_MALLOC(sizeof(struct sSetMultiPointCommandScaled));
+
+    if (self) {
+        SetMultiPointCommandScaled_initialize(self);
+
+        self->objectAddress = ioa;
+
+        self->val_num = valnum > 127 ? 127 : valnum;
+		for (int i = 0; i < valnum; i++)
+		{
+			setScaledValue(self->normalizedVal[i].encodedValue, value[i]);
+		}
+
+        uint8_t qos = ql;
+
+        if (selectCommand) qos |= 0x80;
+
+        self->qos = qos;
+    }
+
+    return self;
+}
+
+int
+SetMultiPointCommandScaled_getValue(SetMultiPointCommandScaled self)
+{
+	return getScaledValue(self->encodedValue);
+}
+
+int
+SetMultiPointCommandScaled_getQL(SetMultiPointCommandScaled self)
+{
+    return (int)(self->qos & 0x7f);
+}
+
+bool
+SetMultiPointCommandScaled_isSelect(SetMultiPointCommandScaled self)
+{
+    return ((self->qos & 0x80) == 0x80);
+}
+
+SetMultiPointCommandScaled
+SetMultiPointCommandScaled_getFromBuffer(SetMultiPointCommandScaled self, CS101_AppLayerParameters parameters,
+    uint8_t* msg, int msgSize, int startIndex,bool isSequence)
+{
+	if (self == NULL)
+		self = (SetMultiPointCommandScaled)GLOBAL_MALLOC(sizeof(struct sSetMultiPointCommandScaled));
+
+	if (self != NULL) {
+        SetMultiPointCommandScaled_initialize(self);
+
+		if (!isSequence)
+		{
+			InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+			startIndex += parameters->sizeOfIOA; /* skip IOA */
+		}
+		self->encodedValue[0] = msg[startIndex++];
+		self->encodedValue[1] = msg[startIndex++];
+
+		/* QOS - qualifier of setpoint command */
+		self->qos = msg[startIndex++];
+	}
+
+	return self;
+}
+
 
 /**********************************************************************
  * SetpointCommandScaledWithCP56Time2a : SetpointCommandScaled
@@ -5463,6 +5686,142 @@ SetpointCommandShort_getFromBuffer(SetpointCommandShort self, CS101_AppLayerPara
         valueBytes[1] = msg [startIndex++];
         valueBytes[0] = msg [startIndex++];
 #endif
+
+
+        /* QOS - qualifier of setpoint command */
+        self->qos = msg[startIndex];
+    }
+
+    return self;
+}
+
+/*************************************************
+ * SetMultiPointCommandShort: InformationObject
+ ************************************************/
+
+static bool
+SetMultiPointCommandShort_encode(SetMultiPointCommandShort self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+{
+    int size = isSequence ? 5 : (parameters->sizeOfIOA + 5);
+
+    if (Frame_getSpaceLeft(frame) < size)
+        return false;
+
+    
+    int pointnum = self->val_num;
+    for (int i = 0; i < pointnum; i++)
+    {     
+		if (isSequence && i==0)
+		{
+            self->objectAddress = self->multi_objectAddress[0];
+			InformationObject_encodeBase((InformationObject)self, frame, parameters, false);
+		}
+        if (!isSequence)
+        {
+            self->objectAddress = self->multi_objectAddress[i];
+            InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
+        }
+	    uint8_t* valueBytes = (uint8_t*)&(self->multi_value[i]);
+    #if (ORDER_LITTLE_ENDIAN == 1)
+	    Frame_appendBytes(frame, valueBytes, 4);
+    #else
+	    Frame_setNextByte(frame, valueBytes[3]);
+	    Frame_setNextByte(frame, valueBytes[2]);
+	    Frame_setNextByte(frame, valueBytes[1]);
+	    Frame_setNextByte(frame, valueBytes[0]);
+    #endif
+    }
+    Frame_setNextByte(frame, self->qos);
+    return true;
+}
+
+struct sInformationObjectVFT setmultipointCommandShortVFT = {
+        (EncodeFunction)SetMultiPointCommandShort_encode,
+        (DestroyFunction)SetMultiPointCommandShort_destroy
+};
+
+static void
+SetMultiPointCommandShort_initialize(SetMultiPointCommandShort self)
+{
+    self->virtualFunctionTable = &(setmultipointCommandShortVFT);
+    self->type = C_SE_NG_1;
+}
+
+void
+SetMultiPointCommandShort_destroy(SetMultiPointCommandShort self)
+{
+    GLOBAL_FREEMEM(self);
+}
+
+SetMultiPointCommandShort
+SetMultiPointCommandShort_create(SetMultiPointCommandShort self, int* ioa, float* value, int valnum, bool selectCommand, int ql)
+{
+    if (self == NULL)
+        self = (SetMultiPointCommandShort)GLOBAL_MALLOC(sizeof(struct sSetMultiPointCommandShort));
+
+    if (self) {
+        SetMultiPointCommandShort_initialize(self);
+
+        self->multi_objectAddress = ioa;
+
+        self->multi_value=value;
+        self->val_num = valnum;
+        uint8_t qos = ql & 0x7f;
+
+        if (selectCommand) qos |= 0x80;
+
+        self->qos = qos;
+    }
+
+    return self;
+}
+
+float
+SetMultiPointCommandShort_getValue(SetMultiPointCommandShort self)
+{
+    return self->value;
+}
+
+int
+SetMultiPointCommandShort_getQL(SetMultiPointCommandShort self)
+{
+    return (int)(self->qos & 0x7f);
+}
+
+bool
+SetMultiPointCommandShort_isSelect(SetMultiPointCommandShort self)
+{
+    return ((self->qos & 0x80) == 0x80);
+}
+
+SetMultiPointCommandShort
+SetMultiPointCommandShort_getFromBuffer(SetMultiPointCommandShort self, CS101_AppLayerParameters parameters,
+    uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+{
+    if (self == NULL)
+        self = (SetMultiPointCommandShort)GLOBAL_MALLOC(sizeof(struct sSetMultiPointCommandShort));
+
+    if (self != NULL) {
+        SetMultiPointCommandShort_initialize(self);
+        if (!isSequence)
+        {
+			InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+			startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
+        
+			uint8_t* valueBytes = (uint8_t*)&(self->value);
+#if (ORDER_LITTLE_ENDIAN == 1)
+			valueBytes[0] = msg[startIndex++];
+			valueBytes[1] = msg[startIndex++];
+			valueBytes[2] = msg[startIndex++];
+			valueBytes[3] = msg[startIndex++];
+#else
+			valueBytes[3] = msg[startIndex++];
+			valueBytes[2] = msg[startIndex++];
+			valueBytes[1] = msg[startIndex++];
+			valueBytes[0] = msg[startIndex++];
+#endif
+		
 
         /* QOS - qualifier of setpoint command */
         self->qos = msg[startIndex];

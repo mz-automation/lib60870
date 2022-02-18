@@ -184,13 +184,25 @@ SetpointCommandNormalized
 SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+SetMultiPointCommandNormalized
+SetMultiPointCommandNormalized_getFromBuffer(SetMultiPointCommandNormalized self, CS101_AppLayerParameters parameters,
+	uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+
 SetpointCommandScaled
 SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
 
+SetMultiPointCommandScaled
+SetMultiPointCommandScaled_getFromBuffer(SetMultiPointCommandScaled self, CS101_AppLayerParameters parameters,
+    uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+
 SetpointCommandShort
 SetpointCommandShort_getFromBuffer(SetpointCommandShort self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex);
+
+SetMultiPointCommandShort
+SetMultiPointCommandShort_getFromBuffer(SetMultiPointCommandShort self, CS101_AppLayerParameters parameters,
+    uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 Bitstring32Command
 Bitstring32Command_getFromBuffer(Bitstring32Command self, CS101_AppLayerParameters parameters,
@@ -839,6 +851,23 @@ struct sSetpointCommandNormalized {
 
     uint8_t qos; /* Qualifier of setpoint command */
 };
+struct sNormalizedVal
+{
+    uint8_t encodedValue[2];
+};
+struct sSetMultiPointCommandNormalized {
+
+	int objectAddress;
+
+	TypeID type;
+
+	InformationObjectVFT virtualFunctionTable;
+
+ 	NormalizedVal normalizedVal[127];
+    int val_num;
+    uint8_t encodedValue[2];
+	uint8_t qos; /* Qualifier of setpoint command */
+};
 
 struct sSetpointCommandNormalizedWithCP56Time2a {
 
@@ -867,7 +896,23 @@ struct sSetpointCommandScaled {
 
     uint8_t qos; /* Qualifier of setpoint command */
 };
+struct sScaledVal
+{
+	uint8_t encodedValue[2];
+};
+struct sSetMultiPointCommandScaled {
 
+	int objectAddress;
+
+	TypeID type;
+
+	InformationObjectVFT virtualFunctionTable;
+
+	ScaledVal normalizedVal[127];
+	int val_num;
+    uint8_t encodedValue[2];
+	uint8_t qos; /* Qualifier of setpoint command */
+};
 struct sSetpointCommandScaledWithCP56Time2a {
 
     int objectAddress;
@@ -895,7 +940,22 @@ struct sSetpointCommandShort {
 
     uint8_t qos; /* Qualifier of setpoint command */
 };
+struct sSetMultiPointCommandShort {
 
+	int objectAddress;
+
+	TypeID type;
+
+	InformationObjectVFT virtualFunctionTable;
+
+    int* multi_objectAddress;
+	float* multi_value;
+    int val_num;
+	
+	float value;
+
+	uint8_t qos; /* Qualifier of setpoint command */
+};
 struct sSetpointCommandShortWithCP56Time2a {
 
     int objectAddress;
