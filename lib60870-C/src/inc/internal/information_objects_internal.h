@@ -858,11 +858,9 @@ struct sNormalizedVal
 struct sSetMultiPointCommandNormalized {
 
 	int objectAddress;
-
 	TypeID type;
-
 	InformationObjectVFT virtualFunctionTable;
-
+    int* multi_objectAddress;
  	NormalizedVal normalizedVal[127];
     int val_num;
     uint8_t encodedValue[2];
@@ -907,8 +905,8 @@ struct sSetMultiPointCommandScaled {
 	TypeID type;
 
 	InformationObjectVFT virtualFunctionTable;
-
-	ScaledVal normalizedVal[127];
+    int* multi_objectAddress;
+	ScaledVal scaledVal[127];
 	int val_num;
     uint8_t encodedValue[2];
 	uint8_t qos; /* Qualifier of setpoint command */

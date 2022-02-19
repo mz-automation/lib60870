@@ -4994,9 +4994,18 @@ SetMultiPointCommandNormalized_encode(SetMultiPointCommandNormalized self, Frame
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
     for (int i=0;i<self->val_num;i++)
     {
+		if (isSequence && i == 0)
+		{
+			self->objectAddress = self->multi_objectAddress[0];
+			InformationObject_encodeBase((InformationObject)self, frame, parameters, false);
+		}
+		if (!isSequence)
+		{
+			self->objectAddress = self->multi_objectAddress[i];
+			InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
+		}
         Frame_appendBytes(frame, self->normalizedVal[i].encodedValue, 2);
     }
     
@@ -5024,7 +5033,7 @@ SetMultiPointCommandNormalized_destroy(SetMultiPointCommandNormalized self)
 }
 
 SetMultiPointCommandNormalized
-SetMultiPointCommandNormalized_create(SetMultiPointCommandNormalized self, int ioa, float* value, int valnum, bool selectCommand, int ql)
+SetMultiPointCommandNormalized_create(SetMultiPointCommandNormalized self, int* ioa, float* value, int valnum, bool selectCommand, int ql)
 {
     if (self == NULL)
         self = (SetMultiPointCommandNormalized)GLOBAL_MALLOC(sizeof(struct sSetMultiPointCommandNormalized));
@@ -5032,7 +5041,7 @@ SetMultiPointCommandNormalized_create(SetMultiPointCommandNormalized self, int i
     if (self) {
         SetMultiPointCommandNormalized_initialize(self);
 
-        self->objectAddress = ioa;
+        self->multi_objectAddress = ioa;
         self->val_num = valnum > 127 ? 127: valnum;
         for (int i=0;i<valnum;i++)
         {
@@ -5341,10 +5350,20 @@ SetMultiPointCommandScaled_encode(SetMultiPointCommandScaled self, Frame frame, 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
+    
 	for (int i = 0; i < self->val_num; i++)
 	{
-		Frame_appendBytes(frame, self->normalizedVal[i].encodedValue, 2);
+		if (isSequence && i == 0)
+		{
+			self->objectAddress = self->multi_objectAddress[0];
+			InformationObject_encodeBase((InformationObject)self, frame, parameters, false);
+		}
+		if (!isSequence)
+		{
+			self->objectAddress = self->multi_objectAddress[i];
+			InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
+		}
+		Frame_appendBytes(frame, self->scaledVal[i].encodedValue, 2);
 	}
 
     Frame_setNextByte(frame, self->qos);
@@ -5371,7 +5390,7 @@ SetMultiPointCommandScaled_destroy(SetMultiPointCommandScaled self)
 }
 
 SetMultiPointCommandScaled
-SetMultiPointCommandScaled_create(SetMultiPointCommandScaled self, int ioa, int* value,int valnum, bool selectCommand, int ql)
+SetMultiPointCommandScaled_create(SetMultiPointCommandScaled self, int* ioa, int* value,int valnum, bool selectCommand, int ql)
 {
     if (self == NULL)
         self = (SetMultiPointCommandScaled)GLOBAL_MALLOC(sizeof(struct sSetMultiPointCommandScaled));
@@ -5379,12 +5398,12 @@ SetMultiPointCommandScaled_create(SetMultiPointCommandScaled self, int ioa, int*
     if (self) {
         SetMultiPointCommandScaled_initialize(self);
 
-        self->objectAddress = ioa;
+        self->multi_objectAddress = ioa;
 
         self->val_num = valnum > 127 ? 127 : valnum;
 		for (int i = 0; i < valnum; i++)
 		{
-			setScaledValue(self->normalizedVal[i].encodedValue, value[i]);
+			setScaledValue(self->scaledVal[i].encodedValue, value[i]);
 		}
 
         uint8_t qos = ql;
@@ -5707,7 +5726,6 @@ SetMultiPointCommandShort_encode(SetMultiPointCommandShort self, Frame frame, CS
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    
     int pointnum = self->val_num;
     for (int i = 0; i < pointnum; i++)
     {     

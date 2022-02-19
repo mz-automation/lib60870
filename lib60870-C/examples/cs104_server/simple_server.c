@@ -183,7 +183,7 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
 
         return true;
     }
-	if (CS101_ASDU_getTypeID(asdu) == 136) //1¨¦¨°??¡¥¨¦¨¨?¡§?¦Ì¡ê?¨°???¡À¡§??¡ã¨¹o??¨¤??¨¦¨¨?¡§?¦Ì?¡é2?¡ä?¨º¡À
+	if (CS101_ASDU_getTypeID(asdu) == C_SE_NE_1)
 	{
 		printf("  received  muliti SetpointCommandScaled:\n");
 		if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION)
@@ -203,14 +203,11 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
 		IMasterConnection_sendASDU(connection, asdu);
 		return true;
 	}
-	if (CS101_ASDU_getTypeID(asdu) == 137) //¡À¨º?¨¨?¡¥¨¦¨¨?¡§?¦Ì¡ê?¨°???¡À¡§??¡ã¨¹o??¨¤??¨¦¨¨?¡§?¦Ì?¡é2?¡ä?¨º¡À
+	if (CS101_ASDU_getTypeID(asdu) == C_SE_NF_1)
 	{
 		printf("  received  muliti SetpointCommandScaled:\n");
 		if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION)
 		{
-			
-
-			//¨º1¨®??¨®?¨²?a??¡À¡§??
 			int i;
 			for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
 			{
@@ -226,7 +223,7 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
 		IMasterConnection_sendASDU(connection, asdu);
 		return true;
 	}
-	if (CS101_ASDU_getTypeID(asdu) == 138) //?¨¬??¦Ì?¨¦¨¨?¡§?¦Ì¡ê?¨°???¡À¡§??¡ã¨¹o??¨¤??¨¦¨¨?¡§?¦Ì?¡é2?¡ä?¨º¡À
+	if (CS101_ASDU_getTypeID(asdu) == C_SE_NG_1)
 	{
 		printf("  received  muliti SetpointCommandShort:\n");
 		if (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION)
