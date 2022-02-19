@@ -1248,7 +1248,7 @@ SetMultiPointCommandNormalized_destroy(SetMultiPointCommandNormalized self);
  * \return the initialized instance
  */
 SetMultiPointCommandNormalized
-SetMultiPointCommandNormalized_create(SetMultiPointCommandNormalized self, int ioa, float* value, int valnum, bool selectCommand, int ql);
+SetMultiPointCommandNormalized_create(SetMultiPointCommandNormalized self, int* ioa, float* value, int valnum, bool selectCommand, int ql);
 
 float
 SetMultiPointCommandNormalized_getValue(SetMultiPointCommandNormalized self);
@@ -1324,7 +1324,7 @@ SetMultiPointCommandScaled_destroy(SetMultiPointCommandScaled self);
  * \return the initialized instance
  */
 SetMultiPointCommandScaled
-SetMultiPointCommandScaled_create(SetMultiPointCommandScaled self, int ioa, int* value, int valnum, bool selectCommand, int ql);
+SetMultiPointCommandScaled_create(SetMultiPointCommandScaled self, int* ioa, int* value, int valnum, bool selectCommand, int ql);
 
 int
 SetMultiPointCommandScaled_getValue(SetMultiPointCommandScaled self);

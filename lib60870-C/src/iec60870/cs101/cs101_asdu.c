@@ -1203,8 +1203,8 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
         retVal = (InformationObject) QueryLog_getFromBuffer((QueryLog) io, self->parameters, self->payload, self->payloadSize, 0);
 
         break;
-   case C_SE_NE_1:
-		elementSize =  2;//1¡§|¡§¡ã???£¤?|¨¬?¨¢??¡§2¡§oy
+   case C_SE_NE_1:/* 136 - Set Multipoint command, normalized */
+		elementSize =  2;
 			if (CS101_ASDU_isSequence(self)) {
 				retVal = (InformationObject)SetMultiPointCommandNormalized_getFromBuffer((SetMultiPointCommandNormalized)io, self->parameters,
 					self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
@@ -1214,8 +1214,8 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
 				retVal = (InformationObject)SetMultiPointCommandNormalized_getFromBuffer((SetMultiPointCommandNormalized)io, self->parameters,
 					self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
         break;
-	case C_SE_NF_1:
-		elementSize = 2;//?¨¤¡§o?¡§¡§??£¤?|¨¬?¨¢??¡§2¡§oy
+	case C_SE_NF_1:/* 137 -Set Multipoint command, scaled value*/
+		elementSize = 2;
 		if (CS101_ASDU_isSequence(self)) {
 			retVal = (InformationObject)SetMultiPointCommandScaled_getFromBuffer((SetMultiPointCommandScaled)io, self->parameters,
 				self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
@@ -1225,8 +1225,8 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
 			retVal = (InformationObject)SetMultiPointCommandScaled_getFromBuffer((SetMultiPointCommandScaled)io, self->parameters,
 				self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
 		break;
-	case C_SE_NG_1:
-		elementSize = 4;//?¡§???|¨¬??|¨¬?¨¢??¡§2¡§oy
+	case C_SE_NG_1:/* 138 -Set Multipoint command, short value*/
+		elementSize = 4;
 		if (CS101_ASDU_isSequence(self)) {
 			retVal = (InformationObject)SetMultiPointCommandShort_getFromBuffer((SetMultiPointCommandShort)io, self->parameters,
 				self->payload, self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);

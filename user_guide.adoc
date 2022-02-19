@@ -828,9 +828,9 @@ The library supports the following ASDU (application service data unit) types.
 | F_SG_NA_1(125) | File segment | + | +
 | F_DR_TA_1(126) | File directory | + | +
 | F_SC_NB_1(127) | Query log | + | +
-| C_SE_NA_1(136) | Set Multipoint command, normalized value (-1.0 ... +1.0)| + | +
-| C_SE_NB_1(137) | Set Multipoint command, scaled value (-32768 ... +32767) | + | +
-| C_SE_NC_1(138) | Set Multipoint command, short value (FLOAT32)| + | +
+| C_SE_NE_1(136) | Set Multipoint command, normalized value (-1.0 ... +1.0)| + | +
+| C_SE_NF_1(137) | Set Multipoint command, scaled value (-32768 ... +32767) | + | +
+| C_SE_NG_1(138) | Set Multipoint command, short value (FLOAT32)| + | +
 
 |===
 
