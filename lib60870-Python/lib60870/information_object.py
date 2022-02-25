@@ -61,7 +61,7 @@ class IOBase():
         return output + ")"
 
     def __eq__(self, other):
-        for field in self._fields_ :
+        for field in self._fields_:
             if field[0] == "virtualFunctionTable":
                 continue
             if field not in other._fields_:
