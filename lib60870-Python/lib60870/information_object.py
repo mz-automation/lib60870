@@ -1254,6 +1254,15 @@ class Bitstring32WithCP56Time2a(ctypes.Structure, IOBase):
             c_uint32(value),
             timestamp.pointer).contents
 
+    def get_value(self):
+        lib.BitString32_getValue.restype = c_uint32
+        return lib.BitString32_getValue(pBitString32(self))
+
+    def get_quality(self):
+        lib.BitString32_getQuality.restype = c_uint8
+        value = lib.BitString32_getQuality(pBitString32(self))
+        return QualityDescriptor(value)
+
     def get_timestamp(self):
         lib.Bitstring32WithCP56Time2a_getTimestamp.restype = pCP56Time2a
         return lib.Bitstring32WithCP56Time2a_getTimestamp(pBitstring32WithCP56Time2a(self)).contents
