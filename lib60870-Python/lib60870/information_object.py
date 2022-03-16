@@ -85,6 +85,9 @@ class IOBase():
     def get_value(self):
         return None
 
+    def get_quality(self):
+        return None
+
     def get_timestamp(self):
         return None
 
