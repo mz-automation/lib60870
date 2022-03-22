@@ -3133,11 +3133,14 @@ getPeerAddress(Socket socket, char* ipAddress)
 static bool
 callConnectionRequestHandler(CS104_Slave self, Socket newSocket)
 {
+    char ipAddress[60];
+
+    char* ipAddrStr = getPeerAddress(newSocket, ipAddress);
+
+    if (ipAddrStr == NULL)
+        return false;
+
     if (self->connectionRequestHandler != NULL) {
-        char ipAddress[60];
-
-        char* ipAddrStr = getPeerAddress(newSocket, ipAddress);
-
         return self->connectionRequestHandler(self->connectionRequestHandlerParameter,
                 ipAddrStr);
     }
@@ -3219,28 +3222,32 @@ handleConnectionsThreadless(CS104_Slave self)
 
                     char* ipAddrStr = getPeerAddress(newSocket, ipAddress);
 
-                    CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
+                    if (ipAddrStr) {
+                        CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
 
-                    if (matchingGroup != NULL) {
-                        connection = getFreeConnection(self);
+                        if (matchingGroup != NULL) {
+                            connection = getFreeConnection(self);
 
-                        if (connection) {
-                            if (MasterConnection_initEx(connection, newSocket, matchingGroup)) {
-                                if (matchingGroup->name) {
-                                    DEBUG_PRINT("CS104 SLAVE: Add connection to group: %s\n", matchingGroup->name);
+                            if (connection) {
+                                if (MasterConnection_initEx(connection, newSocket, matchingGroup)) {
+                                    if (matchingGroup->name) {
+                                        DEBUG_PRINT("CS104 SLAVE: Add connection to group: %s\n", matchingGroup->name);
+                                    }
+                                }
+                                else {
+                                    decreaseConnectionCounter(self);
+                                    connection = NULL;
                                 }
                             }
-                            else {
-                                decreaseConnectionCounter(self);
-                                connection = NULL;
-                            }
-                        }
 
+                        }
+                        else {
+                            DEBUG_PRINT("CS104 SLAVE: Found no matching redundancy group -> close connection\n");
+                        }
                     }
                     else {
-                        DEBUG_PRINT("CS104 SLAVE: Found no matching redundancy group -> close connection\n");
+                        DEBUG_PRINT("CS104 SLAVE: cannot determine peer IP address -> close connection\n");
                     }
-
 
                 }
                 else {
@@ -3354,28 +3361,32 @@ serverThread (void* parameter)
 
                     char* ipAddrStr = getPeerAddress(newSocket, ipAddress);
 
-                    CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
+                    if (ipAddrStr) {
+                        CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
 
-                    if (matchingGroup != NULL) {
-                        connection = getFreeConnection(self);
+                        if (matchingGroup != NULL) {
+                            connection = getFreeConnection(self);
 
-                        if (connection) {
-                            if (MasterConnection_initEx(connection, newSocket, matchingGroup)) {
-                                if (matchingGroup->name) {
-                                    DEBUG_PRINT("CS104 SLAVE: Add connection to group: %s\n", matchingGroup->name);
+                            if (connection) {
+                                if (MasterConnection_initEx(connection, newSocket, matchingGroup)) {
+                                    if (matchingGroup->name) {
+                                        DEBUG_PRINT("CS104 SLAVE: Add connection to group: %s\n", matchingGroup->name);
+                                    }
+                                }
+                                else {
+                                    decreaseConnectionCounter(self);
+                                    connection = NULL;
                                 }
                             }
-                            else {
-                                decreaseConnectionCounter(self);
-                                connection = NULL;
-                            }
-                        }
 
+                        }
+                        else {
+                            DEBUG_PRINT("CS104 SLAVE: Found no matching redundancy group -> close connection\n");
+                        }
                     }
                     else {
-                        DEBUG_PRINT("CS104 SLAVE: Found no matching redundancy group -> close connection\n");
+                        DEBUG_PRINT("CS104 SLAVE: cannot determine peer IP address -> close connection\n");
                     }
-
 
                 }
                 else {
