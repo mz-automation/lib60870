@@ -177,7 +177,60 @@ main(int argc, char** argv)
         printf("Connect failed!\n");
 
     Thread_sleep(1000);
-
+	{
+		float fv[5];
+		fv[0] = 1.1;
+		fv[1] = 2.2;
+		fv[2] = 3.3;
+		fv[3] = 4.4;
+		fv[4] = 5.5;
+		int addr[5];
+		addr[0] = 0x6201;
+		addr[1] = 0x6204;
+		addr[2] = 0x6206;
+		addr[3] = 0x6208;
+		addr[4] = 0x6209;
+		InformationObject sc = (InformationObject)SetMultiPointCommandNormalized_create(NULL, addr, fv, 5, false, 0);//批量短浮点遥调
+		printf("Send MultiPointCommandnormalized command 136\n");
+		CS104_Connection_sendMultipointProcessCommandEx(con, CS101_COT_ACTIVATION, 1, false, 5, sc);
+		InformationObject_destroy(sc);
+	}
+	{
+		int fv[5];
+		fv[0] = 1;
+		fv[1] = 2;
+		fv[2] = 3;
+		fv[3] = 4;
+		fv[4] = 5;
+		int addr[5];
+		addr[0] = 0x6201;
+		addr[1] = 0x6204;
+		addr[2] = 0x6206;
+		addr[3] = 0x6208;
+		addr[4] = 0x6209;
+		InformationObject sc = (InformationObject)SetMultiPointCommandScaled_create(NULL, addr, fv, 5, false, 0);//批量短浮点遥调
+		printf("Send MultiPointCommandscaled command 137\n");
+		CS104_Connection_sendMultipointProcessCommandEx(con, CS101_COT_ACTIVATION, 1, false, 5, sc);
+		InformationObject_destroy(sc);
+	}
+	{
+		float fv[5];
+		fv[0] = 1.1;
+		fv[1] = 2.2;
+		fv[2] = 3.3;
+		fv[3] = 4.4;
+		fv[4] = 5.5;
+		int addr[5];
+		addr[0] = 0x6201;
+		addr[1] = 0x6204;
+		addr[2] = 0x6206;
+		addr[3] = 0x6208;
+		addr[4] = 0x6209;
+		InformationObject sc = (InformationObject)SetMultiPointCommandShort_create(NULL, addr, fv, 5, false, 0);//批量短浮点遥调
+		printf("Send MultiPointCommandShort command 138\n");
+		CS104_Connection_sendMultipointProcessCommandEx(con, CS101_COT_ACTIVATION, 1, false, 5, sc);
+		InformationObject_destroy(sc);
+	}
     CS104_Connection_destroy(con);
 
     printf("exit\n");

@@ -1187,7 +1187,24 @@ CS104_Connection_sendProcessCommandEx(CS104_Connection self, CS101_CauseOfTransm
 
     return sendASDUInternal(self, frame);
 }
+bool
+CS104_Connection_sendMultipointProcessCommandEx(CS104_Connection self, CS101_CauseOfTransmission cot, int ca, bool bsequence, int pointNum, InformationObject sc)
+{
+    if (pointNum>127)
+    {
+        return false;
+    }
+	Frame frame = (Frame)T104Frame_create();
 
+	TypeID typeId = InformationObject_getType(sc);
+
+    int vsqVal = (bsequence<<7 )|pointNum;
+	encodeIdentificationField(self, frame, typeId, vsqVal /* SQ:false; NumIX:1 */, cot, ca);
+
+	InformationObject_encode(sc, frame, (CS101_AppLayerParameters) & (self->alParameters), bsequence);
+
+	return sendASDUInternal(self, frame);
+}
 bool
 CS104_Connection_sendASDU(CS104_Connection self, CS101_ASDU asdu)
 {
