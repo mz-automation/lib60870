@@ -152,6 +152,12 @@ IF(UNIX)
          -lm
      )
   ENDIF (CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
+
+  configure_file(
+    ${CMAKE_CURRENT_LIST_DIR}/lib60870.pc.in
+    ${CMAKE_CURRENT_BINARY_DIR}/lib60870.pc @ONLY
+  )
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/lib60870.pc" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/pkgconfig")
 ENDIF(UNIX)
 IF(MINGW)
   target_link_libraries(lib60870-shared ws2_32 iphlpapi)
