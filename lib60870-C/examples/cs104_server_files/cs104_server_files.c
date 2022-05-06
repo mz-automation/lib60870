@@ -247,7 +247,7 @@ getNextFile (void* parameter, CS101_IFileProvider continueAfter)
 }
 
 static CS101_IFileProvider
-getFile (void* parameter, int ca, int ioa, uint8_t nof)
+getFile (void* parameter, int ca, int ioa, uint16_t nof, int* errCode)
 {
     printf("getFile %i:%i (type:%i)\n", ca, ioa, nof);
 
