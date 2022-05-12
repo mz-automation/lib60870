@@ -4934,7 +4934,7 @@ SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float 
 float
 SetpointCommandNormalized_getValue(SetpointCommandNormalized self)
 {
-    float nv = ((float) getScaledValue(self->encodedValue) + 0.5) / 32767.5;
+    float nv = ((float) getScaledValue(self->encodedValue) + 0.5f) / 32767.5f;
 
     return nv;
 }

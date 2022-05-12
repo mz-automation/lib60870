@@ -399,65 +399,66 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
             break;
 
         case F_LS_NA_1: /* Last Segment/Section */
+            {
+                DEBUG_PRINT ("Received F_LS_NA_1 (last segment/section)\n");
 
-            DEBUG_PRINT ("Received F_LS_NA_1 (last segment/section)\n");
+                FileLastSegmentOrSection lastSection = (FileLastSegmentOrSection) CS101_ASDU_getElementEx(asdu, (InformationObject) ioBuf, 0);
 
-            FileLastSegmentOrSection lastSection = (FileLastSegmentOrSection) CS101_ASDU_getElementEx(asdu, (InformationObject) ioBuf, 0);
+                uint8_t lsq = FileLastSegmentOrSection_getLSQ(lastSection);
 
-            uint8_t lsq = FileLastSegmentOrSection_getLSQ(lastSection);
+                if (self->state == RECEIVE_SECTION) {
 
-            if (self->state == RECEIVE_SECTION) {
+                    if (lsq == 3 /* SECTION_TRANSFER_WITHOUT_DEACT */) {
 
-                if (lsq == 3 /* SECTION_TRANSFER_WITHOUT_DEACT */) {
+                        DEBUG_PRINT("Send segment ACK for NoS=%i\n", FileLastSegmentOrSection_getNameOfSection(lastSection));
 
-                    DEBUG_PRINT("Send segment ACK for NoS=%i\n", FileLastSegmentOrSection_getNameOfSection(lastSection));
+                        sendFileAck(self, connection, oa, FileLastSegmentOrSection_getNameOfSection(lastSection), 3 /* POS_ACK_SECTION */);
 
-                    sendFileAck(self, connection, oa, FileLastSegmentOrSection_getNameOfSection(lastSection), 3 /* POS_ACK_SECTION */);
+                        self->lastSendTime = Hal_getTimeInMs();
+                        self->state = WAITING_FOR_SECTION_READY;
 
-                    self->lastSendTime = Hal_getTimeInMs();
-                    self->state = WAITING_FOR_SECTION_READY;
+                    }
+                    else if (lsq == 2 /* FILE_TRANSFER_WITH_DEACT */) {
+                        /* master aborted transfer */
 
-                }
-                else if (lsq == 2 /* FILE_TRANSFER_WITH_DEACT */) {
-                    /* master aborted transfer */
+                        if (self->fileReceiver) {
+                            self->fileReceiver->finished(self->fileReceiver, CS101_FILE_ERROR_ABORTED_BY_REMOTE);
+                        }
 
-                    if (self->fileReceiver) {
-                        self->fileReceiver->finished(self->fileReceiver, CS101_FILE_ERROR_ABORTED_BY_REMOTE);
+                        self->state = UNSELECTED_IDLE;
+                    }
+                    else {
+                        DEBUG_PRINT("Unexpected LSQ\n");
                     }
 
-                    self->state = UNSELECTED_IDLE;
                 }
-                else {
-                    DEBUG_PRINT("Unexpected LSQ\n");
-                }
+                else if (self->state == WAITING_FOR_SECTION_READY) {
 
-            }
-            else if (self->state == WAITING_FOR_SECTION_READY) {
+                    if (lsq == 1 /* FILE_TRANSFER_WITHOUT_DEACT */) {
+                        DEBUG_PRINT("Send file ACK\n");
 
-                if (lsq == 1 /* FILE_TRANSFER_WITHOUT_DEACT */) {
-                    DEBUG_PRINT("Send file ACK\n");
+                        sendFileAck(self, connection, oa, FileLastSegmentOrSection_getNameOfSection(lastSection), 1 /* POS_ACK_FILE */);
 
-                    sendFileAck(self, connection, oa, FileLastSegmentOrSection_getNameOfSection(lastSection), 1 /* POS_ACK_FILE */);
+                        self->lastSendTime = Hal_getTimeInMs();
 
-                    self->lastSendTime = Hal_getTimeInMs();
+                        if (self->fileReceiver) {
+                            self->fileReceiver->finished(self->fileReceiver, CS101_FILE_ERROR_SUCCESS);
+                        }
 
-                    if (self->fileReceiver) {
-                        self->fileReceiver->finished(self->fileReceiver, CS101_FILE_ERROR_SUCCESS);
+                        self->state = UNSELECTED_IDLE;
                     }
+                    else if (lsq == 2 /* FILE_TRANSFER_WITH_DEACT */) {
+                        /* master aborted transfer */
 
-                    self->state = UNSELECTED_IDLE;
-                }
-                else if (lsq == 2 /* FILE_TRANSFER_WITH_DEACT */) {
-                    /* master aborted transfer */
+                        if (self->fileReceiver) {
+                            self->fileReceiver->finished(self->fileReceiver, CS101_FILE_ERROR_ABORTED_BY_REMOTE);
+                        }
 
-                    if (self->fileReceiver) {
-                        self->fileReceiver->finished(self->fileReceiver, CS101_FILE_ERROR_ABORTED_BY_REMOTE);
+                        self->state = UNSELECTED_IDLE;
                     }
-
-                    self->state = UNSELECTED_IDLE;
-                }
-                else {
-                    DEBUG_PRINT("Unexpected LSQ\n");
+                    else {
+                        DEBUG_PRINT("Unexpected LSQ\n");
+                    }
                 }
             }
 
