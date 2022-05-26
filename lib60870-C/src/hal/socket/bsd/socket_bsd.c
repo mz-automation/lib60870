@@ -184,7 +184,7 @@ Socket_activateTcpKeepAlive(Socket self, int idleTime, int interval, int count)
 }
 
 static bool
-prepareServerAddress(const char* address, int port, struct sockaddr_in* sockaddr)
+prepareAddress(const char* address, int port, struct sockaddr_in* sockaddr)
 {
 
 	memset((char *) sockaddr , 0, sizeof(struct sockaddr_in));
@@ -231,7 +231,7 @@ TcpServerSocket_create(const char* address, int port)
     if ((fd = socket(AF_INET, SOCK_STREAM, 0)) >= 0) {
         struct sockaddr_in serverAddress;
 
-        if (!prepareServerAddress(address, port, &serverAddress)) {
+        if (!prepareAddress(address, port, &serverAddress)) {
             close(fd);
             return NULL;
         }
@@ -277,6 +277,8 @@ ServerSocket_accept(ServerSocket self)
 
         if (conSocket) {
             conSocket->fd = fd;
+
+            setSocketNonBlocking(conSocket);
 
             activateTcpNoDelay(conSocket);
         }
@@ -373,7 +375,7 @@ Socket_bind(Socket self, const char* srcAddress, int srcPort)
 {
     struct sockaddr_in localAddress;
 
-    if (!prepareServerAddress(srcAddress, srcPort, &localAddress))
+    if (!prepareAddress(srcAddress, srcPort, &localAddress))
         return false;
 
     int result = bind(self->fd, (struct sockaddr*)&localAddress, sizeof(localAddress));
@@ -399,7 +401,7 @@ Socket_connectAsync(Socket self, const char* address, int port)
     if (DEBUG_SOCKET)
         printf("SOCKET: connect: %s:%i\n", address, port);
 
-    if (!prepareServerAddress(address, port, &serverAddress))
+    if (!prepareAddress(address, port, &serverAddress))
         return false;
 
     fd_set fdSet;
