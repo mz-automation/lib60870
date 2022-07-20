@@ -832,6 +832,11 @@ CS104_Connection_connectAsync(CS104_Connection self)
     self->close = false;
 
 #if (CONFIG_USE_THREADS == 1)
+    if (self->connectionHandlingThread) {
+            Thread_destroy(self->connectionHandlingThread);
+            self->connectionHandlingThread = NULL;
+    }
+
     self->connectionHandlingThread = Thread_create(handleConnection, (void*) self, false);
 
     if (self->connectionHandlingThread)
