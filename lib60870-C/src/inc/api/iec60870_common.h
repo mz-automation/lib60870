@@ -422,6 +422,17 @@ CS101_ASDU_initializeStatic(CS101_StaticASDU self, CS101_AppLayerParameters para
         bool isTest, bool isNegative);
 
 /**
+ * \brief Create a new ASDU that is an exact copy of the ASDU
+ * 
+ * \param self ASDU instance to be copied
+ * \param clone static ASDU instance where to store the cloned ASDU or NULL. When this parameter is NULL the function will allocate the memory for the clone
+ * 
+ * \return the cloned ASDU instance
+ */
+CS101_ASDU
+CS101_ASDU_clone(CS101_ASDU self, CS101_StaticASDU clone);
+
+/**
  * Get the ASDU payload
  *
  * The payload is the ASDU message part after the ASDU header (type ID, VSQ, COT, CASDU)

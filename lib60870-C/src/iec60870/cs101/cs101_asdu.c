@@ -96,6 +96,29 @@ CS101_ASDU_create(CS101_AppLayerParameters parameters, bool isSequence, CS101_Ca
 }
 
 CS101_ASDU
+CS101_ASDU_clone(CS101_ASDU self, CS101_StaticASDU clone)
+{
+    if (clone == NULL) {
+        clone = (CS101_StaticASDU) GLOBAL_MALLOC(sizeof(sCS101_StaticASDU));
+    }
+
+    if (clone) {
+        CS101_ASDU_initializeStatic(clone, self->parameters, CS101_ASDU_isSequence(self), 
+            CS101_ASDU_getCOT(self), CS101_ASDU_getOA(self), CS101_ASDU_getCA(self), CS101_ASDU_isTest(self), CS101_ASDU_isNegative(self));
+
+        uint8_t* payload = CS101_ASDU_getPayload(self);
+        int payloadSize = CS101_ASDU_getPayloadSize(self);
+
+        CS101_ASDU_setTypeID((CS101_ASDU)clone, CS101_ASDU_getTypeID(self));
+        CS101_ASDU_setNumberOfElements((CS101_ASDU)clone, CS101_ASDU_getNumberOfElements(self));
+
+        CS101_ASDU_addPayload((CS101_ASDU)clone, payload, payloadSize);
+    }
+
+    return (CS101_ASDU) clone;
+}
+
+CS101_ASDU
 CS101_ASDU_initializeStatic(CS101_StaticASDU self, CS101_AppLayerParameters parameters, bool isSequence, CS101_CauseOfTransmission cot, int oa, int ca,
         bool isTest, bool isNegative)
 {
@@ -189,6 +212,9 @@ CS101_ASDU_getPayloadSize(CS101_ASDU self)
 bool
 CS101_ASDU_addPayload(CS101_ASDU self, uint8_t* buffer, int size)
 {
+    if (buffer == NULL)
+        return false;
+
     if (self->payloadSize + self->asduHeaderLength + size <= 256) {
         memcpy(self->payload + self->payloadSize, buffer, size);
         self->payloadSize += size;

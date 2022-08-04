@@ -5221,6 +5221,41 @@ test_CS101_ASDU_addUntilOverflow(void)
     CS101_ASDU_destroy(asdu);
 }
 
+void
+test_CS101_ASDU_clone(void)
+{
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+    int i = 0;
+
+    for (i = 0; i < 60; i++) {
+        InformationObject io = (InformationObject) SinglePointInformation_create(NULL, 100 + i, true, IEC60870_QUALITY_GOOD);
+
+        bool added = CS101_ASDU_addInformationObject(asdu, io);
+
+        TEST_ASSERT_TRUE(added);
+
+        InformationObject_destroy(io);
+
+        TEST_ASSERT_EQUAL_INT(i + 1, CS101_ASDU_getNumberOfElements(asdu));
+    }
+
+    CS101_ASDU clonedAsdu = CS101_ASDU_clone(asdu, NULL);
+
+    TEST_ASSERT_NOT_NULL(clonedAsdu);
+    TEST_ASSERT_EQUAL_INT(CS101_ASDU_getCA(asdu), CS101_ASDU_getCA(clonedAsdu));
+    TEST_ASSERT_EQUAL_INT(CS101_ASDU_getOA(asdu), CS101_ASDU_getOA(clonedAsdu));
+    TEST_ASSERT_EQUAL_INT(CS101_ASDU_getCOT(asdu), CS101_ASDU_getCOT(clonedAsdu));
+    TEST_ASSERT_EQUAL_INT(CS101_ASDU_getTypeID(asdu), CS101_ASDU_getTypeID(clonedAsdu));
+    TEST_ASSERT_EQUAL_INT(CS101_ASDU_getNumberOfElements(asdu), CS101_ASDU_getNumberOfElements(clonedAsdu));
+    TEST_ASSERT_EQUAL_INT(CS101_ASDU_getPayloadSize(asdu), CS101_ASDU_getPayloadSize(clonedAsdu));
+    TEST_ASSERT_EQUAL_INT(0, memcmp(CS101_ASDU_getPayload(asdu), CS101_ASDU_getPayload(clonedAsdu), CS101_ASDU_getPayloadSize(clonedAsdu)));
+
+    CS101_ASDU_destroy(asdu);
+    CS101_ASDU_destroy(clonedAsdu);
+}
+
+
 #if (LIB60870_HAS_TLS_SUPPORT == 1)
 
 void
@@ -5457,6 +5492,7 @@ main(int argc, char** argv)
 #endif /* #if (LIB60870_HAS_TLS_SUPPORT == 1) */
 
     RUN_TEST(test_ASDUsetGetNumberOfElements);
+    RUN_TEST(test_CS101_ASDU_clone);
 
     return UNITY_END();
 }
