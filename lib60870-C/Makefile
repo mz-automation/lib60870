@@ -63,6 +63,7 @@ LIB_API_HEADER_FILES += src/hal/inc/hal_thread.h
 LIB_API_HEADER_FILES += src/hal/inc/hal_socket.h
 LIB_API_HEADER_FILES += src/hal/inc/hal_serial.h
 LIB_API_HEADER_FILES += src/hal/inc/hal_base.h
+LIB_API_HEADER_FILES += src/common/inc/linked_list.h
 LIB_API_HEADER_FILES += src/inc/api/cs101_information_objects.h
 LIB_API_HEADER_FILES += src/inc/api/cs101_master.h
 LIB_API_HEADER_FILES += src/inc/api/cs101_slave.h
