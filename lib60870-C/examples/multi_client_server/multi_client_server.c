@@ -4,7 +4,6 @@
 #include <string.h>
 #include <signal.h>
 
-#include "iec60870_slave.h"
 #include "cs104_slave.h"
 
 #include "hal_thread.h"
