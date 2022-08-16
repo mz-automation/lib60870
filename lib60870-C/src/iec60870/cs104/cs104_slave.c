@@ -1191,7 +1191,8 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
         self->rawMessageHandler = NULL;
         self->maxLowPrioQueueSize = maxLowPrioQueueSize;
         self->maxHighPrioQueueSize = maxHighPrioQueueSize;
-
+		self->asduQueue = NULL;
+		
         {
             int i;
 
@@ -2338,7 +2339,11 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             DEBUG_PRINT("CS104 SLAVE: Rcvd S(%i) (own sendcounter = %i)\n", seqNo, self->sendCount);
 
             if (checkSequenceNumber(self, seqNo) == false)
-                return false;
+			{
+				if (abs(seqNo - self->sendCount) <= self->slave->conParameters.k) return true; // ::TODO:: move to checkSequenceNumber()
+
+				return false;
+			}
         }
 
         else {
