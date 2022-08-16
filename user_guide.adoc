@@ -617,7 +617,7 @@ readHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, int 
 		CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(cs104Slave);
 		
 		sCS101_StaticASDU _asdu;
-		CS101_ADSU newAsdu = CS101_ASDU_initializeStatic(_asdu, alParams, false, CS101_COT_REQUEST,
+		CS101_ADSU newAsdu = CS101_ASDU_initializeStatic(&_asdu, alParams, false, CS101_COT_REQUEST,
 		        0, 1, false, false);
 		
 		CS101_ASDU_addInformationObject(newAsdu, io);
