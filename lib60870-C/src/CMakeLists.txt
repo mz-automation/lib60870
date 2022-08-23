@@ -1,173 +1,167 @@
-
-set (lib_common_SRCS
-./file-service/file_server.c
-./iec60870/apl/cpXXtime2a.c
-./iec60870/cs101/cs101_asdu.c
-./iec60870/cs101/cs101_bcr.c
-./iec60870/cs101/cs101_information_objects.c
-./iec60870/cs101/cs101_master_connection.c
-./iec60870/cs101/cs101_master.c
-./iec60870/cs101/cs101_queue.c
-./iec60870/cs101/cs101_slave.c
-./iec60870/cs104/cs104_connection.c
-./iec60870/cs104/cs104_frame.c
-./iec60870/cs104/cs104_slave.c
-./iec60870/link_layer/buffer_frame.c
-./iec60870/link_layer/link_layer.c
-./iec60870/link_layer/serial_transceiver_ft_1_2.c
-./iec60870/frame.c
-./iec60870/lib60870_common.c
+add_library(lib60870)
+add_library(lib60870::lib60870 ALIAS lib60870)
+set_target_properties(lib60870 PROPERTIES
+  OUTPUT_NAME lib60870
+  SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}
+  WINDOWS_EXPORT_ALL_SYMBOLS ON
 )
 
-if (BUILD_COMMON)
-list (APPEND lib_common_SRCS ./common/linked_list.c)
-endif (BUILD_COMMON)
-
-if (BUILD_HAL)
-
-set (lib_linux_SRCS
-./hal/serial/linux/serial_port_linux.c
-./hal/socket/linux/socket_linux.c
-./hal/thread/linux/thread_linux.c
-./hal/time/unix/time.c
-./hal/memory/lib_memory.c
+target_sources(lib60870
+  PRIVATE
+    file-service/file_server.c
+    iec60870/apl/cpXXtime2a.c
+    iec60870/cs101/cs101_asdu.c
+    iec60870/cs101/cs101_bcr.c
+    iec60870/cs101/cs101_information_objects.c
+    iec60870/cs101/cs101_master_connection.c
+    iec60870/cs101/cs101_master.c
+    iec60870/cs101/cs101_queue.c
+    iec60870/cs101/cs101_slave.c
+    iec60870/cs104/cs104_connection.c
+    iec60870/cs104/cs104_frame.c
+    iec60870/cs104/cs104_slave.c
+    iec60870/link_layer/buffer_frame.c
+    iec60870/link_layer/link_layer.c
+    iec60870/link_layer/serial_transceiver_ft_1_2.c
+    iec60870/frame.c
+    iec60870/lib60870_common.c
 )
 
-set (lib_windows_SRCS
-./hal/serial/win32/serial_port_win32.c
-./hal/socket/win32/socket_win32.c
-./hal/thread/win32/thread_win32.c
-./hal/time/win32/time.c
-./hal/memory/lib_memory.c
+target_include_directories(lib60870
+  PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/file-service>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc/api>"
+    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib60870>"
+  PRIVATE
+    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/config>"
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc/internal>"
 )
 
-set (lib_bsd_SRCS
-./hal/serial/linux/serial_port_linux.c
-./hal/socket/bsd/socket_bsd.c
-./hal/thread/bsd/thread_bsd.c
-./hal/time/unix/time.c
-./hal/memory/lib_memory.c
-)
-
-set (lib_macos_SRCS
-./hal/serial/linux/serial_port_linux.c
-./hal/socket/bsd/socket_bsd.c
-./hal/thread/macos/thread_macos.c
-./hal/time/unix/time.c
-./hal/memory/lib_memory.c
-)
-
-endif (BUILD_HAL)
-
-IF(WIN32)
-
-IF(MSVC)
-set_source_files_properties(${lib_common_SRCS} ${lib_windows_SRCS}
-                                       PROPERTIES LANGUAGE CXX)
-ENDIF()
-
-set (library_SRCS
-    ${lib_common_SRCS}
-    ${lib_windows_SRCS}
-)
-
-set (CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS}\"/DEF:${CMAKE_CURRENT_SOURCE_DIR}/vs/lib60870.def\"") 
-
-ELSEIF(UNIX)
-IF(APPLE)
-set (library_SRCS
-    ${lib_common_SRCS}
-    ${lib_macos_SRCS}
-)
-ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
-set (library_SRCS
-    ${lib_common_SRCS}
-    ${lib_bsd_SRCS}
-)
-ELSE()
-set (library_SRCS
-    ${lib_common_SRCS}
-    ${lib_linux_SRCS}	
-)
-ENDIF(APPLE)
-ENDIF(WIN32)
-
-IF(WITH_MBEDTLS)
-
-list (APPEND library_SRCS ${tls_SRCS})
-list (APPEND library_SRCS ./hal/tls/mbedtls/tls_mbedtls.c)
-
-add_definitions(-DLIB60870_HAS_TLS_SUPPORT=1)
-
-ENDIF(WITH_MBEDTLS)
-
-include (GenerateExportHeader)
-
-set(RES_FILES "")
-if ( WIN32 )
-	# Adding RC resource file for adding information to the archive
-	set(RES_FILES "${CMAKE_CURRENT_BINARY_DIR}/version.rc")
-	message(STATUS "Generating RC file : ${RES_FILES}")
-	configure_file(
-			${CMAKE_CURRENT_SOURCE_DIR}/version.rc.in
-			${RES_FILES}
-			@ONLY)
-	if( MINGW )
-		set(CMAKE_RC_COMPILER_INIT windres)
-		ENABLE_LANGUAGE(RC)
-		SET(CMAKE_RC_COMPILE_OBJECT
-		"<CMAKE_RC_COMPILER> <FLAGS> -O coff <DEFINES> -i <SOURCE> -o <OBJECT>")
-	endif(MINGW)
-	set(library_SRCS ${library_SRCS} ${RES_FILES})
-endif( WIN32 )
-
-add_library (lib60870-shared SHARED ${library_SRCS} )
-
-set_target_properties(lib60870-shared PROPERTIES
-           OUTPUT_NAME lib60870
-           SOVERSION "${LIB_VERSION_MAJOR}.${LIB_VERSION_MINOR}.${LIB_VERSION_PATCH}"
-	   WINDOWS_EXPORT_ALL_SYMBOLS true
-)
-
-
-GENERATE_EXPORT_HEADER(lib60870-shared
-			BASE_NAME lib60870-shared
-			EXPORT_MACRO_NAME lib60870-shared_EXPORT
-			EXPORT_FILE_NAME lib60870-shared_export.h
-			STATIC_DEFINE lib60870-shared_BUILT_AS_STATIC
-)
-
-add_library (lib60870 STATIC ${library_SRCS})
-
-IF(UNIX)
-  IF (CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
-     target_link_libraries (lib60870
-         -lpthread
-         -lm
-         -lrt
-     )
-  ELSE ()
-     target_link_libraries (lib60870
-         -lpthread
-         -lm
-     )
-  ENDIF (CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
-
-  configure_file(
-    ${CMAKE_CURRENT_LIST_DIR}/lib60870.pc.in
-    ${CMAKE_CURRENT_BINARY_DIR}/lib60870.pc @ONLY
+if(LIB60870_BUILD_COMMON)
+  target_sources(lib60870
+    PRIVATE
+      common/linked_list.c
   )
-  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/lib60870.pc" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/pkgconfig")
-ENDIF(UNIX)
-IF(MINGW)
-  target_link_libraries(lib60870-shared ws2_32 iphlpapi)
-  target_link_libraries(lib60870 ws2_32 iphlpapi)
-ENDIF(MINGW)
 
+  target_include_directories(lib60870
+    PUBLIC
+      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/common/inc>"
+  )
+endif()
 
+if(LIB60870_BUILD_HAL)
+  include(CheckLibraryExists)
+  check_library_exists(rt clock_gettime "time.h" CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
 
-install (TARGETS lib60870 lib60870-shared
-	RUNTIME DESTINATION bin COMPONENT Applications
-	ARCHIVE DESTINATION lib COMPONENT Libraries
-    LIBRARY DESTINATION lib COMPONENT Libraries
+  find_package(Threads REQUIRED)
+
+  target_compile_definitions(lib60870
+    PRIVATE
+      $<$<STREQUAL:${CMAKE_C_BYTE_ORDER},BIG_ENDIAN>:PLATFORM_IS_BIGENDIAN=1>
+  )
+
+  target_include_directories(lib60870
+    PUBLIC
+      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hal/inc>"
+  )
+
+  target_link_libraries(lib60870
+    PRIVATE
+      Threads::Threads
+  )
+
+  if(WIN32)
+    configure_file(version.rc.in "${CMAKE_CURRENT_BINARY_DIR}/version.rc" @ONLY)
+
+    target_sources(lib60870
+      PRIVATE
+        hal/serial/win32/serial_port_win32.c
+        hal/socket/win32/socket_win32.c
+        hal/thread/win32/thread_win32.c
+        hal/time/win32/time.c
+        hal/memory/lib_memory.c
+        "${CMAKE_CURRENT_BINARY_DIR}/version.rc"
+    )
+
+    target_link_libraries(lib60870
+      PRIVATE
+        ws2_32
+        iphlpapi
+    )
+  elseif(UNIX)
+    if(APPLE)
+      target_sources(lib60870
+        PRIVATE
+          hal/serial/linux/serial_port_linux.c
+          hal/socket/bsd/socket_bsd.c
+          hal/thread/macos/thread_macos.c
+          hal/time/unix/time.c
+          hal/memory/lib_memory.c
+      )
+    elseif(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
+      target_sources(lib60870
+        PRIVATE
+          hal/serial/linux/serial_port_linux.c
+          hal/socket/bsd/socket_bsd.c
+          hal/thread/bsd/thread_bsd.c
+          hal/time/unix/time.c
+          hal/memory/lib_memory.c
+      )
+    else()
+      target_sources(lib60870
+        PRIVATE
+          hal/serial/linux/serial_port_linux.c
+          hal/socket/linux/socket_linux.c
+          hal/thread/linux/thread_linux.c
+          hal/time/unix/time.c
+          hal/memory/lib_memory.c
+      )
+    endif()
+
+    target_link_libraries(lib60870
+      PRIVATE
+        $<$<BOOL:${CONFIG_SYSTEM_HAS_CLOCK_GETTIME}>:rt>
+        m
+    )
+  endif()
+endif()
+
+if(LIB60870_WITH_MBEDTLS)
+  target_sources(lib60870
+    PRIVATE
+      hal/tls/mbedtls/tls_mbedtls.c
+  )
+  target_compile_definitions(lib60870
+    PUBLIC
+      LIB60870_HAS_TLS_SUPPORT=1
+    PRIVATE
+      CONFIG_CS104_SUPPORT_TLS=1
+      MBEDTLS_CONFIG_FILE="mbedtls_config.h"
+  )
+
+  target_include_directories(lib60870
+    PRIVATE
+      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hal/tls/mbedtls>"
+      # TODO: The currently used mbedtls version does not carry this usage requirement
+      "$<BUILD_INTERFACE:${dependencyMbedtlsPath}/include>"
+  )
+
+  target_link_libraries(lib60870
+    PRIVATE
+      mbedtls
+      mbedx509
+      mbedcrypto
+  )
+endif()
+
+install(TARGETS lib60870
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Applications
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Libraries
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Libraries
 )
+if(UNIX)
+  configure_file(lib60870.pc.in "${CMAKE_CURRENT_BINARY_DIR}/lib60870.pc" @ONLY)
+  install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/lib60870.pc" DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig COMPONENT Libraries
+  )
+endif()
