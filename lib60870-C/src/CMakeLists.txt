@@ -26,26 +26,64 @@ target_sources(lib60870
     iec60870/frame.c
     iec60870/lib60870_common.c
 )
+target_sources(lib60870
+  PUBLIC FILE_SET apiHeaders
+  TYPE HEADERS
+  BASE_DIRS
+    common/inc
+    file-service
+    hal/inc
+    inc/api
+  FILES
+    common/inc/linked_list.h
+    file-service/cs101_file_service.h
+    hal/inc/hal_base.h
+    hal/inc/hal_serial.h
+    hal/inc/hal_socket.h
+    hal/inc/hal_thread.h
+    hal/inc/hal_time.h
+    hal/inc/tls_config.h
+    inc/api/cs101_information_objects.h
+    inc/api/cs101_master.h
+    inc/api/cs101_slave.h
+    inc/api/cs104_connection.h
+    inc/api/cs104_slave.h
+    inc/api/iec60870_common.h
+    inc/api/iec60870_master.h
+    inc/api/iec60870_slave.h
+    inc/api/link_layer_parameters.h
+)
+target_sources(lib60870
+  PRIVATE FILE_SET internalHeaders
+  TYPE HEADERS
+  BASE_DIRS
+    inc/internal
+  FILES
+    inc/internal/apl_types_internal.h
+    inc/internal/buffer_frame.h
+    inc/internal/cs101_asdu_internal.h
+    inc/internal/cs101_queue.h
+    inc/internal/cs104_frame.h
+    inc/internal/frame.h
+    inc/internal/information_objects_internal.h
+    inc/internal/lib60870_internal.h
+    inc/internal/link_layer.h
+    inc/internal/link_layer_private.h
+    inc/internal/platform_endian.h
+    inc/internal/serial_transceiver_ft_1_2.h
+)
 
 target_include_directories(lib60870
   PUBLIC
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/file-service>"
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc/api>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib60870>"
   PRIVATE
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/config>"
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc/internal>"
 )
 
 if(LIB60870_BUILD_COMMON)
   target_sources(lib60870
     PRIVATE
       common/linked_list.c
-  )
-
-  target_include_directories(lib60870
-    PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/common/inc>"
   )
 endif()
 
@@ -55,14 +93,20 @@ if(LIB60870_BUILD_HAL)
 
   find_package(Threads REQUIRED)
 
+  target_sources(lib60870
+    PRIVATE FILE_SET internalHeaders
+    TYPE HEADERS
+    BASE_DIRS
+      hal/inc
+    FILES
+      hal/inc/lib_memory.h
+      hal/inc/platform_endian.h
+      hal/inc/tls_socket.h
+  )
+
   target_compile_definitions(lib60870
     PRIVATE
       $<$<STREQUAL:${CMAKE_C_BYTE_ORDER},BIG_ENDIAN>:PLATFORM_IS_BIGENDIAN=1>
-  )
-
-  target_include_directories(lib60870
-    PUBLIC
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hal/inc>"
   )
 
   target_link_libraries(lib60870
@@ -131,6 +175,15 @@ if(LIB60870_WITH_MBEDTLS)
     PRIVATE
       hal/tls/mbedtls/tls_mbedtls.c
   )
+  target_sources(lib60870
+    PRIVATE FILE_SET internalHeaders
+    TYPE HEADERS
+    BASE_DIRS
+      hal/tls/mbedtls
+    FILES
+      hal/tls/mbedtls/mbedtls_config.h
+  )
+
   target_compile_definitions(lib60870
     PUBLIC
       LIB60870_HAS_TLS_SUPPORT=1
@@ -141,7 +194,6 @@ if(LIB60870_WITH_MBEDTLS)
 
   target_include_directories(lib60870
     PRIVATE
-      "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/hal/tls/mbedtls>"
       # TODO: The currently used mbedtls version does not carry this usage requirement
       "$<BUILD_INTERFACE:${dependencyMbedtlsPath}/include>"
   )
@@ -158,6 +210,7 @@ install(TARGETS lib60870
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Applications
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Libraries
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Libraries
+  FILE_SET apiHeaders DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/lib60870 COMPONENT Development
 )
 if(UNIX)
   configure_file(lib60870.pc.in "${CMAKE_CURRENT_BINARY_DIR}/lib60870.pc" @ONLY)
