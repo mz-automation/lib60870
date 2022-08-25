@@ -57,8 +57,10 @@ target_sources(lib60870
   PRIVATE FILE_SET internalHeaders
   TYPE HEADERS
   BASE_DIRS
+    "${PROJECT_SOURCE_DIR}/config"
     inc/internal
   FILES
+    "${PROJECT_SOURCE_DIR}/config/lib60870_config.h"
     inc/internal/apl_types_internal.h
     inc/internal/buffer_frame.h
     inc/internal/cs101_asdu_internal.h
@@ -78,8 +80,6 @@ target_include_directories(lib60870
     # Expose internals if requested by consuming target. This is only used by tests, don't use for anything else!
     "$<BUILD_INTERFACE:$<$<BOOL:$<TARGET_PROPERTY:LIB60870_PRIVATE_ACCESS>>:${CMAKE_CURRENT_SOURCE_DIR}/inc/internal>>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/lib60870>"
-  PRIVATE
-    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/config>"
 )
 
 if(LIB60870_BUILD_COMMON)
