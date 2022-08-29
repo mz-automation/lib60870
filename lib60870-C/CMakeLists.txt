@@ -27,7 +27,18 @@ endif()
 include(GNUInstallDirs)
 
 if(LIB60870_WITH_MBEDTLS)
-  add_subdirectory("${dependencyMbedtlsPath}")
+  if(EXISTS "${dependencyMbedtlsPath}")
+    add_subdirectory("${dependencyMbedtlsPath}")
+  else()
+    include(FetchContent)
+    FetchContent_Declare(mbedtls
+      GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
+      GIT_TAG cf4667126010c665341f9e50ef691b7ef8294188
+    )
+    FetchContent_MakeAvailable(mbedtls)
+    # Update the path to be able to add the currently missing include path usage requirement
+    FetchContent_GetProperties(mbedtls SOURCE_DIR dependencyMbedtlsPath)
+  endif()
 endif()
 
 add_subdirectory(src)
