@@ -20,6 +20,7 @@ else()
 endif()
 cmake_dependent_option(LIB60870_WITH_MBEDTLS "Use mbedtls for TLS support" ${defaultWithMbedtls} "LIB60870_BUILD_HAL" OFF)
 unset(defaultWithMbedtls)
+option(LIB60870_INSTALL "Create installation targets" ON)
 
 if(PROJECT_IS_TOP_LEVEL AND LIB60870_BUILD_TESTS)
   include(CTest)
