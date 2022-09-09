@@ -3,7 +3,7 @@
  *
  * TLS socket API for protocol libraries using TCP/IP
  *
- * Copyright 2017-2018 Michael Zillgith, MZ Automation GmbH
+ * Copyright 2017-2021 Michael Zillgith, MZ Automation GmbH
  *
  * Abstraction layer for different TLS implementations
  *
@@ -59,13 +59,13 @@ typedef struct sTLSSocket* TLSSocket;
  *
  * \return new TLS connection instance
  */
-TLSSocket
+PAL_API TLSSocket
 TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClientCert);
 
 /**
  * \brief Perform a new TLS handshake/session renegotiation
  */
-bool
+PAL_API bool
 TLSSocket_performHandshake(TLSSocket self);
 
 /**
@@ -75,7 +75,7 @@ TLSSocket_performHandshake(TLSSocket self);
  *
  * \return the certificate byte buffer
  */
-uint8_t*
+PAL_API uint8_t*
 TLSSocket_getPeerCertificate(TLSSocket self, int* certSize);
 
 /**
@@ -90,7 +90,7 @@ TLSSocket_getPeerCertificate(TLSSocket self, int* certSize);
  *
  * \return the number of bytes read or -1 if an error occurred
  */
-int
+PAL_API int
 TLSSocket_read(TLSSocket self, uint8_t* buf, int size);
 
 /**
@@ -102,13 +102,13 @@ TLSSocket_read(TLSSocket self, uint8_t* buf, int size);
  *
  * \return number of bytes transmitted of -1 in case of an error
  */
-int
+PAL_API int
 TLSSocket_write(TLSSocket self, uint8_t* buf, int size);
 
 /**
  * \brief Closes the TLS connection and released all resources
  */
-void
+PAL_API void
 TLSSocket_close(TLSSocket self);
 
 /*! @} */

@@ -4,7 +4,6 @@
 #include <string.h>
 #include <signal.h>
 
-#include "iec60870_slave.h"
 #include "cs104_slave.h"
 
 #include "hal_thread.h"
@@ -121,18 +120,25 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
         if  (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION) {
             InformationObject io = CS101_ASDU_getElement(asdu, 0);
 
-            if (InformationObject_getObjectAddress(io) == 5000) {
-                SingleCommand sc = (SingleCommand) io;
+            if (io) {
 
-                printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
-                        SingleCommand_getState(sc));
+                if (InformationObject_getObjectAddress(io) == 5000) {
+                    SingleCommand sc = (SingleCommand) io;
 
-                CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                    printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
+                            SingleCommand_getState(sc));
+
+                    CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                }
+                else
+                    CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
+
+                InformationObject_destroy(io);
             }
-            else
-                CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
-
-            InformationObject_destroy(io);
+            else {
+                printf("ERROR: ASDU contains no information object!\n");
+                return true;
+            }
         }
         else
             CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
@@ -204,6 +210,16 @@ main(int argc, char** argv)
         goto exit_program;
     }
 
+    CS101_ASDU newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_INITIALIZED, 0, 1, false, false);
+
+    InformationObject io = (InformationObject) EndOfInitialization_create(NULL, 0);
+
+    CS101_ASDU_addInformationObject(newAsdu, io);
+
+    InformationObject_destroy(io);
+
+    CS104_Slave_enqueueASDU(slave, newAsdu);
+
     int16_t scaledValue = 0;
 
     while (running) {
@@ -227,10 +243,7 @@ main(int argc, char** argv)
 
         InformationObject_destroy(io);
 
-        /* Add ASDU to slave event queue - don't release the ASDU afterwards!
-         * The ASDU will be released by the Slave instance when the ASDU
-         * has been sent.
-         */
+        /* Add ASDU to slave event queue */
         CS104_Slave_enqueueASDU(slave, newAsdu);
 
         CS101_ASDU_destroy(newAsdu);

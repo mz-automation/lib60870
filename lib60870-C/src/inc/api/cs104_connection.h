@@ -25,7 +25,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "tls_socket.h"
+#include "tls_config.h"
 #include "iec60870_master.h"
 
 #ifdef __cplusplus
@@ -73,6 +73,19 @@ CS104_Connection_create(const char* hostname, int tcpPort);
  */
 CS104_Connection
 CS104_Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguration tlsConfig);
+
+
+/**
+ * \brief Set the local IP address and port to be used by the client
+ * 
+ * NOTE: This function is optional. When not used the OS decides what IP address and TCP port to use.
+ * 
+ * \param self CS104_Connection instance
+ * \param localIpAddress the local IP address or hostname as C string
+ * \param localPort the local TCP port to use. When < 1 the OS will chose the TCP port to use.
+ */
+void
+CS104_Connection_setLocalAddress(CS104_Connection self, const char* localIpAddress, int localPort);
 
 /**
  * \brief Set the CS104 specific APCI parameters.
@@ -233,6 +246,18 @@ CS104_Connection_sendClockSyncCommand(CS104_Connection self, int ca, CP56Time2a 
  */
 bool
 CS104_Connection_sendTestCommand(CS104_Connection self, int ca);
+
+/**
+ * \brief Send a test command with timestamp (C_TS_TA_1 typeID: 107)
+ *
+ * \param ca Common address of the slave/server
+ * \param tsc test sequence counter
+ * \param timestamp CP56Time2a timestamp
+ *
+ * \return true if message was sent, false otherwise
+ */
+bool
+CS104_Connection_sendTestCommandWithTimestamp(CS104_Connection self, int ca, uint16_t tsc, CP56Time2a timestamp);
 
 /**
  * \brief Send a process command to the controlled (or other) station

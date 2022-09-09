@@ -85,7 +85,10 @@ static void
 setMillisecond(uint8_t* encodedValue, int value)
 {
     int millies = encodedValue[0] + (encodedValue[1] * 0x100);
-    millies = (millies / 1000) * 1000;
+
+    /* erase sub-second part */
+    millies = millies - (millies % 1000);
+
     millies = millies + value;
 
     encodedValue[0] = (uint8_t) (millies & 0xff);
@@ -427,6 +430,8 @@ CP32Time2a_setSummerTime(CP32Time2a self, bool value)
 void
 CP32Time2a_setFromMsTimestamp(CP32Time2a self, uint64_t timestamp)
 {
+    memset(self->encodedValue, 0, 4);
+
     time_t timeVal = timestamp / 1000;
 
     int msPart = timestamp % 1000;
@@ -476,8 +481,9 @@ CP56Time2a_createFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
 void
 CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
 {
-    time_t timeVal = timestamp / 1000;
+    memset(self->encodedValue, 0, 7);
 
+    time_t timeVal = timestamp / 1000;
     int msPart = timestamp % 1000;
 
     struct tm tmTime;

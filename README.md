@@ -12,7 +12,7 @@ Features:
 - CS 104 redundancy group support
 - portable C99 code
 
-Please also consider the User Guide.
+Please also consider the User Guide and the API reference documentation (https://support.mz-automation.de/doc/lib60870/latest/)
 
 
 ## Compiling and running the examples:
@@ -49,11 +49,11 @@ This can be done by using the *WITHOUT_HAL* and *WITHOUT_COMMON* defines when ca
 
 ## Building with TLS support
 
-The library can be build with support for TLS. In order to do so you have to download mbedtls version 2.6.0.
+The library can be build with support for TLS. In order to do so you have to download mbedtls version 2.16.12.
 
 Unpack the mbedtls tarball in the dependencies folder so that a folder
 
-dependencies/mbedtls-2.6.0
+dependencies/mbedtls-2.16.12
 
 exists.
 

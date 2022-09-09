@@ -1,24 +1,10 @@
 /*
  *  serial_port_linux.c
  *
- *  Copyright 2017 MZ Automation GmbH
+ *  Copyright 2013-2021 Michael Zillgith
  *
- *  This file is part of lib60870-C
- *
- *  lib60870-C is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  lib60870-C is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with lib60870-C.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  See COPYING file for the complete license text.
+ *  This file is part of Platform Abstraction Layer (libpal)
+ *  for libiec61850, libmms, and lib60870.
  */
 
 #include "lib_memory.h"
@@ -29,6 +15,8 @@
 #include <termios.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <sys/select.h>
 
 #include "hal_serial.h"
 #include "hal_time.h"
@@ -60,7 +48,7 @@ SerialPort_create(const char* interfaceName, int baudRate, uint8_t dataBits, cha
         self->lastSentTime = 0;
         self->timeout.tv_sec = 0;
         self->timeout.tv_usec = 100000; /* 100 ms */
-        strncpy(self->interfaceName, interfaceName, 100);
+        strncpy(self->interfaceName, interfaceName, 99);
         self->lastError = SERIAL_PORT_ERROR_NONE;
     }
 
@@ -263,7 +251,7 @@ SerialPort_readByte(SerialPort self)
 int
 SerialPort_write(SerialPort self, uint8_t* buffer, int startPos, int bufSize)
 {
-    //TODO assure minimum line idle time
+    /* TODO assure minimum line idle time? */
 
     self->lastError = SERIAL_PORT_ERROR_NONE;
 

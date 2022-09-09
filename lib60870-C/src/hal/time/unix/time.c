@@ -1,28 +1,14 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  time.c
  *
- *  This file is part of lib60870-C
+ *  Copyright 2013-2021 Michael Zillgith
  *
- *  lib60870-C is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  lib60870-C is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with lib60870-C.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  See COPYING file for the complete license text.
+ *  This file is part of Platform Abstraction Layer (libpal)
+ *  for libiec61850, libmms, and lib60870.
  */
 
-#include <time.h>
-#include <stdint.h>
-
 #include "hal_time.h"
+#include <time.h>
 
 #ifdef CONFIG_SYSTEM_HAS_CLOCK_GETTIME
 uint64_t
@@ -38,7 +24,7 @@ Hal_getTimeInMs()
 
 #include <sys/time.h>
 
-uint64_t
+msSinceEpoch
 Hal_getTimeInMs()
 {
     struct timeval now;
@@ -47,6 +33,35 @@ Hal_getTimeInMs()
 
     return ((uint64_t) now.tv_sec * 1000LL) + (now.tv_usec / 1000);
 }
+
+nsSinceEpoch
+Hal_getTimeInNs()
+{
+    struct timespec now;
+
+    clock_gettime(CLOCK_REALTIME, &now);
+
+    nsSinceEpoch nsTime = now.tv_sec * 1000000000UL;
+    nsTime += now.tv_nsec;
+
+    return nsTime;
+}
+
+bool
+Hal_setTimeInNs(nsSinceEpoch nsTime)
+{
+    struct timespec tv;
+
+    tv.tv_sec = nsTime / 1000000000UL;
+    tv.tv_nsec = nsTime % 1000000000UL;
+
+    if (clock_settime(CLOCK_REALTIME, &tv) < 0) {
+        return false;
+    }
+
+    return true;
+}
+
 
 #endif
 

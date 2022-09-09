@@ -1,5 +1,51 @@
+Changes to version 2.3.1
+------------------------
+
+- TLS support now requires mbedtls 2.16.12
+- CS104 client/master: add support to specify local interface/IP address
+- Macos HAL layer: replaced semaphores by mutex
+- updated HAL layer
+- fix - Possible buffer overflow when formatting IPv6 addresses (#96)
+- fixed - write to queueEntry is not protected (#99)
+- fixed bug in CS101_ASDU_setNumberOfElements (#91)
+- CS104 slave: fixed problem in TEST-FR con timeout handling
+- CS101 master: fixed problem not sending broadcast messages (#88)
+- CS101 slave: fixed potential crash when application layer parameters don't match
+- CS104 server: fixed - receiving I or S frame while in STOPDT should close connection
+
+
+Changes to version 2.3.0
+------------------------
+- CS104 slave: send time sync response only to requesting client (#87)
+- fixed a bug in StatusAndStatusChangeDetection type decoding
+- fixed problem in TLS integration layer
+- fixed wrong type in return value of TestCommandWithCP56Time2a_getCounter
+- CS104 slave: close all open connections when server is stopped in non-treaded mode
+- added QueryLog (F_SC_NB_1) information object type
+- CS 101 slave: release plugin list in destroy function (#80)
+- CS104 client: Added function CS104_Connection_sendTestCommandWithTimestamp to send C_TS_TA_1 test command
+- CS104 slave: added support to handle test command C_TS_TA_1
+- added missing value for IEC60870_QCC_FRZ_COUNTER_RESET (#78)
+- CS104 slave: remove message from queue when confirmation received (see #77)
+- CS104 master: confirm all received I messages before sending STOPDT ACT or closing the connection
+- CS 104 slave: fixed bugs when TLS connection initilization fails (#75)
+- fixed potential memory leak in CS104_Connection_connectAsync
+- fixed wrong argument type of StepCommandWithCP56Time2a_destroy (#74)
+- single point and double point information objects ignore invalid quality flags (#72)
+
+Changes to version 2.2.1
+------------------------
+- CS104 slave: fixed problems in queue handling (#67)
+- added missing return statement in CS101_ASDU_addPayload(#68)
+- CS101_ASDU_addInformationObject now checks for correct object type
+- windows socket driver: fixed - fail to detect peer close when read from socket
+- fixed bug in BitString32 encoding (see #65)
+- fixed - null pointer access when calling CS104_Slave_destroy without server running before (issue #64)
+- added Bitstring32X_createEx functions to keep API backward compatible and allow setting of quality (issue #63)
+
 Changes to version 2.2.0
 ------------------------
+- CS 101/104 slave: improved stability when receiving corrupted messages
 - CS 101/104 slave: added plugin interface
 - CS101 master: fixed setting of own address in balanced mode (#51)
 - CS101 slave: fixed bug in queue size initialization

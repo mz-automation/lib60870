@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016, 2017 MZ Automation GmbH
+ *  Copyright 2016-2019 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -40,6 +40,7 @@ struct sASDUFrame {
 static void
 asduFrame_destroy(Frame self)
 {
+    UNUSED_PARAMETER(self);
 }
 
 static void
@@ -92,6 +93,29 @@ CS101_ASDU_create(CS101_AppLayerParameters parameters, bool isSequence, CS101_Ca
         CS101_ASDU_initializeStatic(self, parameters, isSequence, cot, oa, ca, isTest, isNegative);
 
     return (CS101_ASDU) self;
+}
+
+CS101_ASDU
+CS101_ASDU_clone(CS101_ASDU self, CS101_StaticASDU clone)
+{
+    if (clone == NULL) {
+        clone = (CS101_StaticASDU) GLOBAL_MALLOC(sizeof(sCS101_StaticASDU));
+    }
+
+    if (clone) {
+        CS101_ASDU_initializeStatic(clone, self->parameters, CS101_ASDU_isSequence(self), 
+            CS101_ASDU_getCOT(self), CS101_ASDU_getOA(self), CS101_ASDU_getCA(self), CS101_ASDU_isTest(self), CS101_ASDU_isNegative(self));
+
+        uint8_t* payload = CS101_ASDU_getPayload(self);
+        int payloadSize = CS101_ASDU_getPayloadSize(self);
+
+        CS101_ASDU_setTypeID((CS101_ASDU)clone, CS101_ASDU_getTypeID(self));
+        CS101_ASDU_setNumberOfElements((CS101_ASDU)clone, CS101_ASDU_getNumberOfElements(self));
+
+        CS101_ASDU_addPayload((CS101_ASDU)clone, payload, payloadSize);
+    }
+
+    return (CS101_ASDU) clone;
 }
 
 CS101_ASDU
@@ -188,9 +212,13 @@ CS101_ASDU_getPayloadSize(CS101_ASDU self)
 bool
 CS101_ASDU_addPayload(CS101_ASDU self, uint8_t* buffer, int size)
 {
+    if (buffer == NULL)
+        return false;
+
     if (self->payloadSize + self->asduHeaderLength + size <= 256) {
         memcpy(self->payload + self->payloadSize, buffer, size);
         self->payloadSize += size;
+        return true;
     }
     else
         return false;
@@ -231,16 +259,21 @@ CS101_ASDU_addInformationObject(CS101_ASDU self, InformationObject io)
     }
     else if (numberOfElements < 0x7f) {
 
-        if (CS101_ASDU_isSequence(self)) {
+        /* Check if type of information object is matching ASDU type */
 
-            /* check that new information object has correct IOA */
-            if (InformationObject_getObjectAddress(io) == (getFirstIOA(self) + CS101_ASDU_getNumberOfElements(self)))
-                encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, true);
-            else
-                encoded = false;
-        }
-        else {
-            encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);;
+        if (self->asdu[0] == (uint8_t) InformationObject_getType(io)) {
+
+            if (CS101_ASDU_isSequence(self)) {
+
+                /* check that new information object has correct IOA */
+                if (InformationObject_getObjectAddress(io) == (getFirstIOA(self) + CS101_ASDU_getNumberOfElements(self)))
+                    encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, true);
+                else
+                    encoded = false;
+            }
+            else {
+                encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);;
+            }
         }
     }
 
@@ -399,9 +432,8 @@ CS101_ASDU_getNumberOfElements(CS101_ASDU self)
 void
 CS101_ASDU_setNumberOfElements(CS101_ASDU self, int numberOfElements)
 {
-    uint8_t noe = ((uint8_t) numberOfElements) & 0x7f;
-
-    self->asdu[1] |= noe;
+    self->asdu[1] &= 0x80;
+    self->asdu[1] |= ((uint8_t) numberOfElements) & 0x7f;
 }
 
 InformationObject
@@ -1102,6 +1134,12 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
 
         break;
 
+    case C_TS_TA_1: /* 107 - Test command with time */
+
+        retVal = (InformationObject) TestCommandWithCP56Time2a_getFromBuffer((TestCommandWithCP56Time2a) io, self->parameters, self->payload, self->payloadSize, 0);
+
+        break;
+
     case P_ME_NA_1: /* 110 - Parameter of measured values, normalized value */
 
         elementSize = self->parameters->sizeOfIOA + 3;
@@ -1183,6 +1221,12 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
         else
             retVal  = (InformationObject) FileDirectory_getFromBuffer((FileDirectory) io, self->parameters,
                     self->payload, self->payloadSize, index * (self->parameters->sizeOfIOA + elementSize), false);
+
+        break;
+
+    case F_SC_NB_1: /* 127 - QueryLog */
+
+        retVal = (InformationObject) QueryLog_getFromBuffer((QueryLog) io, self->parameters, self->payload, self->payloadSize, 0);
 
         break;
 

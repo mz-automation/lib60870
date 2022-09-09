@@ -155,18 +155,24 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
         if  (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION) {
             InformationObject io = CS101_ASDU_getElement(asdu, 0);
 
-            if (InformationObject_getObjectAddress(io) == 5000) {
-                SingleCommand sc = (SingleCommand) io;
+            if (io) {
+                if (InformationObject_getObjectAddress(io) == 5000) {
+                    SingleCommand sc = (SingleCommand) io;
 
-                printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
-                        SingleCommand_getState(sc));
+                    printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
+                            SingleCommand_getState(sc));
 
-                CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                    CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                }
+                else
+                    CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
+
+                InformationObject_destroy(io);
             }
-            else
-                CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
-
-            InformationObject_destroy(io);
+            else {
+                printf("ERROR: message has no valid information object\n");
+                return true;
+            }
         }
         else
             CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
@@ -280,8 +286,20 @@ main(int argc, char** argv)
      */
     CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
 
-    /* get the connection parameters - we need them to create correct ASDUs */
+    /* get the connection parameters - we need them to create correct ASDUs -
+     * you can also modify the parameters here when default parameters are not to be used */
     CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    /* when you have to tweak the APCI parameters (t0-t3, k, w) you can access them here */
+    CS104_APCIParameters apciParams = CS104_Slave_getConnectionParameters(slave);
+
+    printf("APCI parameters:\n");
+    printf("  t0: %i\n", apciParams->t0);
+    printf("  t1: %i\n", apciParams->t1);
+    printf("  t2: %i\n", apciParams->t2);
+    printf("  t3: %i\n", apciParams->t3);
+    printf("  k: %i\n", apciParams->k);
+    printf("  w: %i\n", apciParams->w);
 
     /* set the callback handler for the clock synchronization command */
     CS104_Slave_setClockSyncHandler(slave, clockSyncHandler, NULL);
@@ -324,10 +342,7 @@ main(int argc, char** argv)
 
         InformationObject_destroy(io);
 
-        /* Add ASDU to slave event queue - don't release the ASDU afterwards!
-         * The ASDU will be released by the Slave instance when the ASDU
-         * has been sent.
-         */
+        /* Add ASDU to slave event queue */
         CS104_Slave_enqueueASDU(slave, newAsdu);
 
         CS101_ASDU_destroy(newAsdu);

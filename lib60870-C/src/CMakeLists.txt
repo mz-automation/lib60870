@@ -1,5 +1,6 @@
 
 set (lib_common_SRCS
+./file-service/file_server.c
 ./iec60870/apl/cpXXtime2a.c
 ./iec60870/cs101/cs101_asdu.c
 ./iec60870/cs101/cs101_bcr.c
@@ -41,8 +42,17 @@ set (lib_windows_SRCS
 )
 
 set (lib_bsd_SRCS
+./hal/serial/linux/serial_port_linux.c
 ./hal/socket/bsd/socket_bsd.c
 ./hal/thread/bsd/thread_bsd.c
+./hal/time/unix/time.c
+./hal/memory/lib_memory.c
+)
+
+set (lib_macos_SRCS
+./hal/serial/linux/serial_port_linux.c
+./hal/socket/bsd/socket_bsd.c
+./hal/thread/macos/thread_macos.c
 ./hal/time/unix/time.c
 ./hal/memory/lib_memory.c
 )
@@ -67,7 +77,7 @@ ELSEIF(UNIX)
 IF(APPLE)
 set (library_SRCS
     ${lib_common_SRCS}
-    ${lib_bsd_SRCS}
+    ${lib_macos_SRCS}
 )
 ELSEIF(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
 set (library_SRCS
@@ -86,6 +96,8 @@ IF(WITH_MBEDTLS)
 
 list (APPEND library_SRCS ${tls_SRCS})
 list (APPEND library_SRCS ./hal/tls/mbedtls/tls_mbedtls.c)
+
+add_definitions(-DLIB60870_HAS_TLS_SUPPORT=1)
 
 ENDIF(WITH_MBEDTLS)
 
@@ -140,6 +152,12 @@ IF(UNIX)
          -lm
      )
   ENDIF (CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
+
+  configure_file(
+    ${CMAKE_CURRENT_LIST_DIR}/lib60870.pc.in
+    ${CMAKE_CURRENT_BINARY_DIR}/lib60870.pc @ONLY
+  )
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/lib60870.pc" DESTINATION "${CMAKE_INSTALL_PREFIX}/share/pkgconfig")
 ENDIF(UNIX)
 IF(MINGW)
   target_link_libraries(lib60870-shared ws2_32 iphlpapi)
