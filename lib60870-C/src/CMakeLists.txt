@@ -194,12 +194,6 @@ if(LIB60870_WITH_MBEDTLS)
       MBEDTLS_CONFIG_FILE="mbedtls_config.h"
   )
 
-  target_include_directories(lib60870
-    PRIVATE
-      # TODO: The currently used mbedtls version does not carry this usage requirement
-      "$<BUILD_INTERFACE:${dependencyMbedtlsPath}/include>"
-  )
-
   target_link_libraries(lib60870
     PRIVATE
       mbedtls

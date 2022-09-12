@@ -37,9 +37,12 @@ if(LIB60870_WITH_MBEDTLS)
       GIT_TAG cf4667126010c665341f9e50ef691b7ef8294188
     )
     FetchContent_MakeAvailable(mbedtls-extern)
-    # Update the path to be able to add the currently missing include path usage requirement
     FetchContent_GetProperties(mbedtls-extern SOURCE_DIR dependencyMbedtlsPath)
   endif()
+  # TODO: The currently used mbedtls version does not carry this usage requirement
+  foreach(mbedlib IN ITEMS mbedtls mbedx509 mbedcrypto)
+    target_include_directories(${mbedlib} INTERFACE "$<BUILD_INTERFACE:${dependencyMbedtlsPath}/include>")
+  endforeach()
 endif()
 
 add_subdirectory(src)
