@@ -26,10 +26,11 @@ class T104Connection():
         self.con = pT104Connection(lib.T104Connection_create(c_char_p(ip), c_uint16(port)))
 
     def __del__(self):
-        # clear callbacks. If a final callback is required, call disconnect before the connection is deleted
-        lib.T104Connection_setConnectionHandler(self.con, None, None)
-        lib.T104Connection_setASDUReceivedHandler(self.con, None, None)
-        self.destroy()
+        if hasattr(self, "con"):
+            # clear callbacks. If a final callback is required, call disconnect before the connection is deleted
+            lib.T104Connection_setConnectionHandler(self.con, None, None)
+            lib.T104Connection_setASDUReceivedHandler(self.con, None, None)
+            self.destroy()
 
     def destroy(self):
         lib.T104Connection_destroy(self.con)
