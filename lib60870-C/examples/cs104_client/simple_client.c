@@ -92,6 +92,9 @@ asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
             SinglePointInformation_destroy(io);
         }
     }
+    else if (CS101_ASDU_getTypeID(asdu) == C_TS_TA_1) {
+        printf("  test command with timestamp\n");
+    }
 
     return true;
 }
@@ -101,6 +104,8 @@ main(int argc, char** argv)
 {
     const char* ip = "localhost";
     uint16_t port = IEC_60870_5_104_DEFAULT_PORT;
+    const char* localIp = NULL;
+    int localPort = -1;
 
     if (argc > 1)
         ip = argv[1];
@@ -108,11 +113,24 @@ main(int argc, char** argv)
     if (argc > 2)
         port = atoi(argv[2]);
 
+    if (argc > 3)
+        localIp = argv[3];
+
+    if (argc > 4)
+        port = atoi(argv[4]);
+
     printf("Connecting to: %s:%i\n", ip, port);
     CS104_Connection con = CS104_Connection_create(ip, port);
 
+    CS101_AppLayerParameters alParams = CS104_Connection_getAppLayerParameters(con);
+    alParams->originatorAddress = 3;
+
     CS104_Connection_setConnectionHandler(con, connectionHandler, NULL);
     CS104_Connection_setASDUReceivedHandler(con, asduReceivedHandler, NULL);
+
+    /* optional bind to local IP address/interface */
+    if (localIp)
+        CS104_Connection_setLocalAddress(con, localIp, localPort);
 
     /* uncomment to log messages */
     CS104_Connection_setRawMessageHandler(con, rawMessageHandler, NULL);
@@ -127,6 +145,11 @@ main(int argc, char** argv)
         CS104_Connection_sendInterrogationCommand(con, CS101_COT_ACTIVATION, 1, IEC60870_QOI_STATION);
 
         Thread_sleep(5000);
+
+        struct sCP56Time2a testTimestamp;
+        CP56Time2a_createFromMsTimestamp(&testTimestamp, Hal_getTimeInMs());
+
+        CS104_Connection_sendTestCommandWithTimestamp(con, 1, 0x4938, &testTimestamp);
 
 #if 0
         InformationObject sc = (InformationObject)

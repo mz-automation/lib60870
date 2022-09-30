@@ -163,12 +163,21 @@ IMasterConnection_getApplicationLayerParameters(IMasterConnection self);
  * Plugin interface to add functionality to the slave (e.g. file server)
  */
 
+typedef enum
+{
+    CS101_PLUGIN_RESULT_NOT_HANDLED = 0,
+    CS101_PLUGIN_RESULT_HANDLED = 1,
+    CS101_PLUGIN_RESULT_INVALID_ASDU = 2
+} CS101_SlavePlugin_Result;
 
+/**
+ * \brief Plugin interface for CS101 or CS104 slaves
+ */
 typedef struct sCS101_SlavePlugin* CS101_SlavePlugin;
 
 struct sCS101_SlavePlugin
 {
-    bool (*handleAsdu) (void* parameter, IMasterConnection connection, CS101_ASDU asdu);
+    CS101_SlavePlugin_Result (*handleAsdu) (void* parameter, IMasterConnection connection, CS101_ASDU asdu);
     void (*runTask) (void* parameter, IMasterConnection connection);
 
     void* parameter;

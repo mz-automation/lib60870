@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -22,6 +22,8 @@
 #ifndef SRC_INC_INFORMATION_OBJECTS_H_
 #define SRC_INC_INFORMATION_OBJECTS_H_
 
+#include "iec60870_common.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -37,95 +39,6 @@ extern "C" {
  *
  * @{
  */
-
-/**
- * \brief Message type IDs
- */
-typedef enum {
-    M_SP_NA_1 = 1,
-    M_SP_TA_1 = 2,
-    M_DP_NA_1 = 3,
-    M_DP_TA_1 = 4,
-    M_ST_NA_1 = 5,
-    M_ST_TA_1 = 6,
-    M_BO_NA_1 = 7,
-    M_BO_TA_1 = 8,
-    M_ME_NA_1 = 9,
-    M_ME_TA_1 = 10,
-    M_ME_NB_1 = 11,
-    M_ME_TB_1 = 12,
-    M_ME_NC_1 = 13,
-    M_ME_TC_1 = 14,
-    M_IT_NA_1 = 15,
-    M_IT_TA_1 = 16,
-    M_EP_TA_1 = 17,
-    M_EP_TB_1 = 18,
-    M_EP_TC_1 = 19,
-    M_PS_NA_1 = 20,
-    M_ME_ND_1 = 21,
-    M_SP_TB_1 = 30,
-    M_DP_TB_1 = 31,
-    M_ST_TB_1 = 32,
-    M_BO_TB_1 = 33,
-    M_ME_TD_1 = 34,
-    M_ME_TE_1 = 35,
-    M_ME_TF_1 = 36,
-    M_IT_TB_1 = 37,
-    M_EP_TD_1 = 38,
-    M_EP_TE_1 = 39,
-    M_EP_TF_1 = 40,
-    S_IT_TC_1 = 41,
-    C_SC_NA_1 = 45,
-    C_DC_NA_1 = 46,
-    C_RC_NA_1 = 47,
-    C_SE_NA_1 = 48,
-    C_SE_NB_1 = 49,
-    C_SE_NC_1 = 50,
-    C_BO_NA_1 = 51,
-    C_SC_TA_1 = 58,
-    C_DC_TA_1 = 59,
-    C_RC_TA_1 = 60,
-    C_SE_TA_1 = 61,
-    C_SE_TB_1 = 62,
-    C_SE_TC_1 = 63,
-    C_BO_TA_1 = 64,
-    M_EI_NA_1 = 70,
-    S_CH_NA_1 = 81,
-    S_RP_NA_1 = 82,
-    S_AR_NA_1 = 83,
-    S_KR_NA_1 = 84,
-    S_KS_NA_1 = 85,
-    S_KC_NA_1 = 86,
-    S_ER_NA_1 = 87,
-    S_US_NA_1 = 90,
-    S_UQ_NA_1 = 91,
-    S_UR_NA_1 = 92,
-    S_UK_NA_1 = 93,
-    S_UA_NA_1 = 94,
-    S_UC_NA_1 = 95,
-    C_IC_NA_1 = 100,
-    C_CI_NA_1 = 101,
-    C_RD_NA_1 = 102,
-    C_CS_NA_1 = 103,
-    C_TS_NA_1 = 104,
-    C_RP_NA_1 = 105,
-    C_CD_NA_1 = 106,
-    C_TS_TA_1 = 107,
-    P_ME_NA_1 = 110,
-    P_ME_NB_1 = 111,
-    P_ME_NC_1 = 112,
-    P_AC_NA_1 = 113,
-    F_FR_NA_1 = 120,
-    F_SR_NA_1 = 121,
-    F_SC_NA_1 = 122,
-    F_LS_NA_1 = 123,
-    F_AF_NA_1 = 124,
-    F_SG_NA_1 = 125,
-    F_DR_TA_1 = 126,
-    F_SC_NB_1 = 127
-} IEC60870_5_TypeID;
-
-typedef IEC60870_5_TypeID TypeID;
 
 const char*
 TypeID_toString(TypeID self);
@@ -280,7 +193,7 @@ typedef uint8_t QualifierOfCIC;
 #define IEC60870_QCC_FRZ_READ                 0x00
 #define IEC60870_QCC_FRZ_FREEZE_WITHOUT_RESET 0x40
 #define IEC60870_QCC_FRZ_FREEZE_WITH_RESET    0x80
-#define IEC60870_QCC_FRZ_COUNTER_RESET
+#define IEC60870_QCC_FRZ_COUNTER_RESET        0xc0
 
 /**
  * \brief QRP (Qualifier of reset process command) according to IEC 60870-5-101:2003 7.2.6.27
@@ -373,8 +286,6 @@ StatusAndStatusChangeDetection_getCD(StatusAndStatusChangeDetection self, int in
 /************************************************
  * InformationObject
  ************************************************/
-
-typedef struct sInformationObject* InformationObject;
 
 /**
  * \brief return the size in memory of a generic InformationObject instance
@@ -587,6 +498,9 @@ BitString32_destroy(BitString32 self);
 BitString32
 BitString32_create(BitString32 self, int ioa, uint32_t value);
 
+BitString32
+BitString32_createEx(BitString32 self, int ioa, uint32_t value, QualityDescriptor quality);
+
 uint32_t
 BitString32_getValue(BitString32 self);
 
@@ -605,6 +519,9 @@ Bitstring32WithCP24Time2a_destroy(Bitstring32WithCP24Time2a self);
 Bitstring32WithCP24Time2a
 Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, CP24Time2a timestamp);
 
+Bitstring32WithCP24Time2a
+Bitstring32WithCP24Time2a_createEx(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP24Time2a timestamp);
+
 CP24Time2a
 Bitstring32WithCP24Time2a_getTimestamp(Bitstring32WithCP24Time2a self);
 
@@ -619,6 +536,9 @@ Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self);
 
 Bitstring32WithCP56Time2a
 Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, CP56Time2a timestamp);
+
+Bitstring32WithCP56Time2a
+Bitstring32WithCP56Time2a_createEx(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP56Time2a timestamp);
 
 CP56Time2a
 Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self);
@@ -1621,7 +1541,7 @@ DoubleCommandWithCP56Time2a_getTimestamp(DoubleCommandWithCP56Time2a self);
 typedef struct sStepCommandWithCP56Time2a* StepCommandWithCP56Time2a;
 
 void
-StepCommandWithCP56Time2a_destroy(StepCommand self);
+StepCommandWithCP56Time2a_destroy(StepCommandWithCP56Time2a self);
 
 StepCommandWithCP56Time2a
 StepCommandWithCP56Time2a_create(StepCommandWithCP56Time2a self, int ioa, StepCommandValue command, bool selectCommand, int qu, CP56Time2a timestamp);
@@ -1758,6 +1678,33 @@ TestCommand_destroy(TestCommand self);
 
 bool
 TestCommand_isValid(TestCommand self);
+
+/*************************************************
+ * TestCommandWithCP56Time2a : InformationObject
+ ************************************************/
+
+typedef struct sTestCommandWithCP56Time2a* TestCommandWithCP56Time2a;
+
+/**
+ * \brief Create a test command with CP56Time2a timestamp information object
+ *
+ * \param[in] self existing instance to use or NULL to create a new instance
+ * \param[in] tsc test sequence counter
+ * \param[in] timestamp
+ *
+ * \return the new or initialized instance
+ */
+TestCommandWithCP56Time2a
+TestCommandWithCP56Time2a_create(TestCommandWithCP56Time2a self, uint16_t tsc, CP56Time2a timestamp);
+
+void
+TestCommandWithCP56Time2a_destroy(TestCommandWithCP56Time2a self);
+
+uint16_t
+TestCommandWithCP56Time2a_getCounter(TestCommandWithCP56Time2a self);
+
+CP56Time2a
+TestCommandWithCP56Time2a_getTimestamp(TestCommandWithCP56Time2a self);
 
 /*************************************************
  * ResetProcessCommand : InformationObject
@@ -2131,6 +2078,28 @@ FileDirectory_getCreationTime(FileDirectory self);
 
 void
 FileDirectory_destroy(FileDirectory self);
+
+/*************************************************
+ * QueryLog: InformationObject
+ *************************************************/
+
+typedef struct sQueryLog* QueryLog;
+
+QueryLog
+QueryLog_create(QueryLog self, int ioa, uint16_t nof, CP56Time2a rangeStartTime, CP56Time2a rangeStopTime);
+
+uint16_t
+QueryLog_getNOF(QueryLog self);
+
+CP56Time2a
+QueryLog_getRangeStartTime(QueryLog self);
+
+
+CP56Time2a
+QueryLog_getRangeStopTime(QueryLog self);
+
+void
+QueryLog_destroy(QueryLog self);
 
 /**
  * @}

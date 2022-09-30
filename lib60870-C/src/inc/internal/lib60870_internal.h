@@ -36,4 +36,6 @@ lib60870_debug_print(const char *format, ...);
 #define IEC60870_5_104_MAX_ASDU_LENGTH 249
 #define IEC60870_5_104_APCI_LENGTH 6
 
+#define UNUSED_PARAMETER(x) (void)(x)
+
 #endif /* SRC_INC_INTERNAL_LIB60870_INTERNAL_H_ */

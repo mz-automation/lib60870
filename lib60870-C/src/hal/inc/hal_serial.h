@@ -1,31 +1,16 @@
 /*
  *  hal_serial.h
  *
- *  Copyright 2017 MZ Automation GmbH
+ *  Copyright 2013-2021 Michael Zillgith
  *
- *  This file is part of lib60870-C
- *
- *  lib60870-C is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  lib60870-C is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with lib60870-C.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  See COPYING file for the complete license text.
+ *  This file is part of Platform Abstraction Layer (libpal)
+ *  for libiec61850, libmms, and lib60870.
  */
 
 #ifndef SRC_IEC60870_LINK_LAYER_SERIAL_PORT_H_
 #define SRC_IEC60870_LINK_LAYER_SERIAL_PORT_H_
 
-#include <stdint.h>
-#include <stdbool.h>
+#include "hal_base.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,13 +57,13 @@ typedef enum {
  *
  * \return the new SerialPort instance
  */
-SerialPort
+PAL_API SerialPort
 SerialPort_create(const char* interfaceName, int baudRate, uint8_t dataBits, char parity, uint8_t stopBits);
 
 /**
  * \brief Destroy the SerialPort instance and release all resources
  */
-void
+PAL_API void
 SerialPort_destroy(SerialPort self);
 
 /**
@@ -86,13 +71,13 @@ SerialPort_destroy(SerialPort self);
  *
  * \return true in case of success, false otherwise (use \ref SerialPort_getLastError for a detailed error code)
  */
-bool
+PAL_API bool
 SerialPort_open(SerialPort self);
 
 /**
  * \brief Close (release) the serial interface
  */
-void
+PAL_API void
 SerialPort_close(SerialPort self);
 
 /**
@@ -100,7 +85,7 @@ SerialPort_close(SerialPort self);
  *
  * \return the baud rate in baud
  */
-int
+PAL_API int
 SerialPort_getBaudRate(SerialPort self);
 
 /**
@@ -108,13 +93,13 @@ SerialPort_getBaudRate(SerialPort self);
  *
  * \param timeout the timeout value in ms.
  */
-void
+PAL_API void
 SerialPort_setTimeout(SerialPort self, int timeout);
 
 /**
  * \brief Discard all data in the input buffer of the serial interface
  */
-void
+PAL_API void
 SerialPort_discardInBuffer(SerialPort self);
 
 /**
@@ -122,7 +107,7 @@ SerialPort_discardInBuffer(SerialPort self);
  *
  * \return number of read bytes of -1 in case of an error
  */
-int
+PAL_API int
 SerialPort_readByte(SerialPort self);
 
 /**
@@ -134,13 +119,13 @@ SerialPort_readByte(SerialPort self);
  *
  * \return number of bytes written, or -1 in case of an error
  */
-int
+PAL_API int
 SerialPort_write(SerialPort self, uint8_t* buffer, int startPos, int numberOfBytes);
 
 /**
  * \brief Get the error code of the last operation
  */
-SerialPortError
+PAL_API SerialPortError
 SerialPort_getLastError(SerialPort self);
 
 /*! @} */

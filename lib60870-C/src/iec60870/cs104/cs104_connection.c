@@ -29,6 +29,7 @@
 #include "cs104_frame.h"
 #include "hal_thread.h"
 #include "hal_socket.h"
+#include "tls_socket.h"
 #include "hal_time.h"
 #include "lib_memory.h"
 
@@ -60,15 +61,25 @@ static struct sCS101_AppLayerParameters defaultAppLayerParameters = {
 #define HOST_NAME_MAX 64
 #endif
 
+typedef enum {
+    STATE_IDLE = 0,
+    STATE_INACTIVE = 1,
+    STATE_ACTIVE = 2,
+    STATE_WAITING_FOR_STARTDT_CON = 3,
+    STATE_WAITING_FOR_STOPDT_CON = 4
+} CS104_ConState;
+
 typedef struct {
     uint64_t sentTime; /* required for T1 timeout */
     int seqNo;
 } SentASDU;
 
-
 struct sCS104_Connection {
     char hostname[HOST_NAME_MAX + 1];
     int tcpPort;
+
+    char* localIpAddress;
+    int localTcpPort;
 
     struct sCS104_APCIParameters parameters;
     struct sCS101_AppLayerParameters alParameters;
@@ -86,6 +97,7 @@ struct sCS104_Connection {
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore sentASDUsLock;
+    Semaphore socketWriteLock;
 #endif
 
 #if (CONFIG_USE_THREADS == 1)
@@ -110,6 +122,8 @@ struct sCS104_Connection {
     bool running;
     bool failure;
     bool close;
+
+    CS104_ConState conState;
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     TLSConfiguration tlsConfig;
@@ -170,12 +184,18 @@ prepareSMessage(uint8_t* msg)
 static void
 sendSMessage(CS104_Connection self)
 {
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->socketWriteLock);
+#endif
     uint8_t* msg = self->sMessage;
 
     msg [4] = (uint8_t) ((self->receiveCount % 128) * 2);
     msg [5] = (uint8_t) (self->receiveCount / 128);
 
     writeToSocket(self, msg, 6);
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->socketWriteLock);
+#endif
 }
 
 static int
@@ -183,7 +203,13 @@ sendIMessage(CS104_Connection self, Frame frame)
 {
     T104Frame_prepareToSend((T104Frame) frame, self->sendCount, self->receiveCount);
 
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->socketWriteLock);
+#endif
     writeToSocket(self, T104Frame_getBuffer(frame), T104Frame_getMsgSize(frame));
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->socketWriteLock);
+#endif
 
     self->sendCount = (self->sendCount + 1) % 32768;
 
@@ -196,13 +222,16 @@ sendIMessage(CS104_Connection self, Frame frame)
 static CS104_Connection
 createConnection(const char* hostname, int tcpPort)
 {
-    CS104_Connection self = (CS104_Connection) GLOBAL_MALLOC(sizeof(struct sCS104_Connection));
+    CS104_Connection self = (CS104_Connection) GLOBAL_CALLOC(1, sizeof(struct sCS104_Connection));
 
     if (self != NULL) {
         strncpy(self->hostname, hostname, HOST_NAME_MAX);
         self->tcpPort = tcpPort;
         self->parameters = defaultAPCIParameters;
         self->alParameters = defaultAppLayerParameters;
+
+        self->localIpAddress = NULL;
+        self->localTcpPort = -1;
 
         self->receivedHandler = NULL;
         self->receivedHandlerParameter = NULL;
@@ -215,6 +244,7 @@ createConnection(const char* hostname, int tcpPort)
 
 #if (CONFIG_USE_SEMAPHORES == 1)
         self->sentASDUsLock = Semaphore_create(1);
+        self->socketWriteLock = Semaphore_create(1);
 #endif
 
 #if (CONFIG_USE_THREADS == 1)
@@ -227,6 +257,8 @@ createConnection(const char* hostname, int tcpPort)
 #endif
 
         self->sentASDUs = NULL;
+
+        self->conState = STATE_IDLE;
 
         prepareSMessage(self->sMessage);
     }
@@ -294,6 +326,8 @@ resetConnection(CS104_Connection self)
 
     self->outstandingTestFCConMessages = 0;
     self->uMessageTimeout = 0;
+
+    self->conState = STATE_IDLE;
 
     resetT3Timeout(self);
 }
@@ -426,9 +460,31 @@ CS104_Connection_destroy(CS104_Connection self)
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_destroy(self->sentASDUsLock);
+    Semaphore_destroy(self->socketWriteLock);
 #endif
 
+    if (self->localIpAddress) {
+        GLOBAL_FREEMEM(self->localIpAddress);
+        self->localIpAddress = NULL;
+    }
+
     GLOBAL_FREEMEM(self);
+}
+
+void
+CS104_Connection_setLocalAddress(CS104_Connection self, const char* localIpAddress, int localPort)
+{
+    if (self) {
+        if (self->localIpAddress) {
+            GLOBAL_FREEMEM(self->localIpAddress);
+            self->localIpAddress = NULL;
+        }
+
+        if (localIpAddress) {
+            self->localIpAddress = strdup(localIpAddress);
+            self->localTcpPort = localPort;
+        }
+    }
 }
 
 void
@@ -558,6 +614,15 @@ checkConfirmTimeout(CS104_Connection self, uint64_t currentTime)
     return false;
 }
 
+static void
+confirmOutstandingMessages(CS104_Connection self)
+{
+    self->lastConfirmationTime = Hal_getTimeInMs();
+    self->unconfirmedReceivedIMessages = 0;
+    self->timeoutT2Trigger = false;
+    sendSMessage(self);
+}
+
 static bool
 checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
 {
@@ -610,7 +675,13 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
 
         if (buffer[2] == 0x43) { /* Check for TESTFR_ACT message */
             DEBUG_PRINT("Send TESTFR_CON\n");
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_wait(self->socketWriteLock);
+#endif
             writeToSocket(self, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_post(self->socketWriteLock);
+#endif
         }
         else if (buffer[2] == 0x83) { /* TESTFR_CON */
             DEBUG_PRINT("Rcvd TESTFR_CON\n");
@@ -618,16 +689,27 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
         }
         else if (buffer[2] == 0x07) { /* STARTDT_ACT */
             DEBUG_PRINT("Send STARTDT_CON\n");
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_wait(self->socketWriteLock);
+#endif
             writeToSocket(self, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_post(self->socketWriteLock);
+#endif
+            self->conState = STATE_ACTIVE;
         }
         else if (buffer[2] == 0x0b) { /* STARTDT_CON */
             DEBUG_PRINT("Received STARTDT_CON\n");
+
+            self->conState = STATE_ACTIVE;
 
             if (self->connectionHandler != NULL)
                 self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STARTDT_CON_RECEIVED);
         }
         else if (buffer[2] == 0x23) { /* STOPDT_CON */
             DEBUG_PRINT("Received STOPDT_CON\n");
+
+            self->conState = STATE_INACTIVE;
 
             if (self->connectionHandler != NULL)
                 self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STOPDT_CON_RECEIVED);
@@ -642,7 +724,6 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
         if (checkSequenceNumber(self, seqNo) == false)
             return false;
     }
-
 
     resetT3Timeout(self);
 
@@ -667,8 +748,13 @@ handleTimeouts(CS104_Connection self)
         }
         else {
             DEBUG_PRINT("U message T3 timeout\n");
-
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_wait(self->socketWriteLock);
+#endif
             writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE);
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_post(self->socketWriteLock);
+#endif
             self->uMessageTimeout = currentTime + (self->parameters.t1 * 1000);
             self->outstandingTestFCConMessages++;
 
@@ -679,12 +765,7 @@ handleTimeouts(CS104_Connection self)
     if (self->unconfirmedReceivedIMessages > 0) {
 
         if (checkConfirmTimeout(self, currentTime)) {
-
-            self->lastConfirmationTime = currentTime;
-            self->unconfirmedReceivedIMessages = 0;
-            self->timeoutT2Trigger = false;
-
-            sendSMessage(self); /* send confirmation message */
+            confirmOutstandingMessages(self);
         }
     }
 
@@ -728,97 +809,112 @@ handleConnection(void* parameter)
 
     self->socket = TcpSocket_create();
 
-    Socket_setConnectTimeout(self->socket, self->connectTimeoutInMs);
+    if (self->socket) {
+        Socket_setConnectTimeout(self->socket, self->connectTimeoutInMs);
 
-    if (Socket_connect(self->socket, self->hostname, self->tcpPort)) {
+        if (self->localIpAddress) {
+            Socket_bind(self->socket, self->localIpAddress, self->localTcpPort);
+        }
+
+        if (Socket_connect(self->socket, self->hostname, self->tcpPort)) {
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
-        if (self->tlsConfig != NULL) {
-            self->tlsSocket = TLSSocket_create(self->socket, self->tlsConfig, false);
+            if (self->tlsConfig != NULL) {
+                self->tlsSocket = TLSSocket_create(self->socket, self->tlsConfig, false);
 
-            if (self->tlsSocket)
-                self->running = true;
+                if (self->tlsSocket)
+                    self->running = true;
+                else
+                    self->failure = true;
+            }
             else
-                self->failure = true;
-        }
-        else
-            self->running = true;
+                self->running = true;
 #else
-        self->running = true;
+            self->running = true;
 #endif
 
-        if (self->running) {
+            if (self->running) {
 
-            /* Call connection handler */
-            if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_OPENED);
+                self->conState = STATE_INACTIVE;
 
-            HandleSet handleSet = Handleset_new();
+                /* Call connection handler */
+                if (self->connectionHandler != NULL)
+                    self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_OPENED);
 
-            bool loopRunning = true;
+                HandleSet handleSet = Handleset_new();
 
-            while (loopRunning) {
+                bool loopRunning = true;
 
-                Handleset_reset(handleSet);
-                Handleset_addSocket(handleSet, self->socket);
+                while (loopRunning) {
 
-                if (Handleset_waitReady(handleSet, 100)) {
-                    int bytesRec = receiveMessage(self);
+                    Handleset_reset(handleSet);
+                    Handleset_addSocket(handleSet, self->socket);
 
-                    if (bytesRec == -1) {
-                        loopRunning = false;
-                        self->failure = true;
-                    }
+                    if (Handleset_waitReady(handleSet, 100)) {
+                        int bytesRec = receiveMessage(self);
 
-                    if (bytesRec > 0) {
-
-                        if (self->rawMessageHandler)
-                            self->rawMessageHandler(self->rawMessageHandlerParameter, self->recvBuffer, bytesRec, false);
-
-                        if (checkMessage(self, self->recvBuffer, bytesRec) == false) {
-                            /* close connection on error */
+                        if (bytesRec == -1) {
                             loopRunning = false;
                             self->failure = true;
                         }
+
+                        if (bytesRec > 0) {
+
+                            if (self->rawMessageHandler)
+                                self->rawMessageHandler(self->rawMessageHandlerParameter, self->recvBuffer, bytesRec, false);
+
+                            if (checkMessage(self, self->recvBuffer, bytesRec) == false) {
+                                /* close connection on error */
+                                loopRunning = false;
+                                self->failure = true;
+                            }
+                        }
+
+                        if ((self->unconfirmedReceivedIMessages >= self->parameters.w) || (self->conState == STATE_WAITING_FOR_STOPDT_CON)) {
+                            confirmOutstandingMessages(self);
+                        }
                     }
 
-                    if (self->unconfirmedReceivedIMessages >= self->parameters.w) {
-                        self->lastConfirmationTime = Hal_getTimeInMs();
-                        self->unconfirmedReceivedIMessages = 0;
-                        self->timeoutT2Trigger = false;
-                        sendSMessage(self);
-                    }
+                    if (handleTimeouts(self) == false)
+                        loopRunning = false;
+
+                    if (self->close)
+                        loopRunning = false;
                 }
 
-                if (handleTimeouts(self) == false)
-                    loopRunning = false;
+                Handleset_destroy(handleSet);
 
-                if (self->close)
-                    loopRunning = false;
+                /* Call connection handler */
+                if (self->connectionHandler != NULL)
+                    self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_CLOSED);
+
             }
-
-            Handleset_destroy(handleSet);
-
-            /* Call connection handler */
-            if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_CLOSED);
-
         }
+        else {
+            self->failure = true;
+        }
+
+        /* Confirm all unconfirmed received I-messages before closing the connection */
+        if (self->unconfirmedReceivedIMessages > 0) {
+            confirmOutstandingMessages(self);
+        }
+
+    #if (CONFIG_CS104_SUPPORT_TLS == 1)
+        if (self->tlsSocket)
+            TLSSocket_close(self->tlsSocket);
+    #endif
+
+        Socket_destroy(self->socket);
+
+        self->conState = STATE_IDLE;
     }
     else {
-        self->failure = true;
+    	DEBUG_PRINT("Failed to create socket\n");
     }
 
-#if (CONFIG_CS104_SUPPORT_TLS == 1)
-    if (self->tlsSocket)
-        TLSSocket_close(self->tlsSocket);
-#endif
-
-    Socket_destroy(self->socket);
+    self->running = false;
 
     DEBUG_PRINT("EXIT CONNECTION HANDLING THREAD\n");
-
-    self->running = false;
 
     return NULL;
 }
@@ -833,8 +929,8 @@ CS104_Connection_connectAsync(CS104_Connection self)
 
 #if (CONFIG_USE_THREADS == 1)
     if (self->connectionHandlingThread) {
-            Thread_destroy(self->connectionHandlingThread);
-            self->connectionHandlingThread = NULL;
+        Thread_destroy(self->connectionHandlingThread);
+        self->connectionHandlingThread = NULL;
     }
 
     self->connectionHandlingThread = Thread_create(handleConnection, (void*) self, false);
@@ -913,13 +1009,29 @@ encodeIOA(CS104_Connection self, Frame frame, int ioa)
 void
 CS104_Connection_sendStartDT(CS104_Connection self)
 {
+    self->conState = STATE_WAITING_FOR_STARTDT_CON;
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->socketWriteLock);
+#endif
     writeToSocket(self, STARTDT_ACT_MSG, STARTDT_ACT_MSG_SIZE);
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->socketWriteLock);
+#endif
 }
 
 void
 CS104_Connection_sendStopDT(CS104_Connection self)
 {
+    confirmOutstandingMessages(self);
+
+    self->conState = STATE_WAITING_FOR_STOPDT_CON;
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->socketWriteLock);
+#endif
     writeToSocket(self, STOPDT_ACT_MSG, STOPDT_ACT_MSG_SIZE);
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->socketWriteLock);
+#endif
 }
 
 static void
@@ -1035,6 +1147,16 @@ CS104_Connection_sendTestCommand(CS104_Connection self, int ca)
     T104Frame_setNextByte(frame, 0x55);
 
     return sendASDUInternal(self, frame);
+}
+
+bool
+CS104_Connection_sendTestCommandWithTimestamp(CS104_Connection self, int ca, uint16_t tsc, CP56Time2a timestamp)
+{
+    struct sTestCommandWithCP56Time2a _testCommand;
+
+    TestCommandWithCP56Time2a testCommand = TestCommandWithCP56Time2a_create(&_testCommand, tsc, timestamp);
+
+    return CS104_Connection_sendProcessCommandEx(self, CS101_COT_ACTIVATION, ca, (InformationObject) testCommand);
 }
 
 bool

@@ -1,29 +1,16 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  socket_hal.h
  *
- *  This file is part of lib60870-C
+ *  Copyright 2013-2021 Michael Zillgith
  *
- *  lib60870-C is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  lib60870-C is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with lib60870-C.  If not, see <http://www.gnu.org/licenses/>.
- *
- *  See COPYING file for the complete license text.
+ *  This file is part of Platform Abstraction Layer (libpal)
+ *  for libiec61850, libmms, and lib60870.
  */
 
 #ifndef SOCKET_HAL_H_
 #define SOCKET_HAL_H_
 
-#include <stdint.h>
-#include <stdbool.h>
+#include "hal_base.h"
 
 /**
  * \file hal_socket.h
@@ -56,34 +43,51 @@ extern "C" {
 /** Opaque reference for a server socket instance */
 typedef struct sServerSocket* ServerSocket;
 
+typedef struct sUdpSocket* UdpSocket;
+
 /** Opaque reference for a client or connection socket instance */
 typedef struct sSocket* Socket;
 
 /** Opaque reference for a set of server and socket handles */
 typedef struct sHandleSet* HandleSet;
 
+/** State of an asynchronous connect */
+typedef enum
+{
+    SOCKET_STATE_CONNECTING = 0,
+    SOCKET_STATE_FAILED = 1,
+    SOCKET_STATE_CONNECTED = 2
+} SocketState;
+
+
 /**
  * \brief Create a new connection handle set (HandleSet)
  *
  * \return new HandleSet instance
  */
-HandleSet
+PAL_API HandleSet
 Handleset_new(void);
 
 /**
  * \brief Reset the handle set for reuse
  */
-void
+PAL_API void
 Handleset_reset(HandleSet self);
 
 /**
- * \brief add a soecket to an existing handle set
+ * \brief add a socket to an existing handle set
  *
  * \param self the HandleSet instance
  * \param sock the socket to add
  */
-void
+PAL_API void
 Handleset_addSocket(HandleSet self, const Socket sock);
+
+/**
+ * \brief remove a socket from an existing handle set
+ */
+void
+Handleset_removeSocket(HandleSet self, const Socket sock);
 
 /**
  * \brief wait for a socket to become ready
@@ -100,7 +104,7 @@ Handleset_addSocket(HandleSet self, const Socket sock);
  *   or 0 if no data is pending on any of the monitored connections.
  *   The function shall return -1 if a socket error occures.
  */
-int
+PAL_API int
 Handleset_waitReady(HandleSet self, unsigned int timeoutMs);
 
 /**
@@ -108,7 +112,7 @@ Handleset_waitReady(HandleSet self, unsigned int timeoutMs);
  *
  * \param self the HandleSet instance to destroy
  */
-void
+PAL_API void
 Handleset_destroy(HandleSet self);
 
 /**
@@ -121,11 +125,34 @@ Handleset_destroy(HandleSet self);
  *
  * \return the newly create TcpServerSocket instance
  */
-ServerSocket
+PAL_API ServerSocket
 TcpServerSocket_create(const char* address, int port);
 
+PAL_API UdpSocket
+UdpSocket_create(void);
 
-void
+PAL_API bool
+UdpSocket_bind(UdpSocket self, const char* address, int port);
+
+PAL_API bool
+UdpSocket_sendTo(UdpSocket self, const char* address, int port, uint8_t* msg, int msgSize);
+
+/**
+ * \brief Receive data from UDP socket (store data and (optionally) the IP address of the sender
+ *
+ * \param self UDP socket instance
+ * \param address (optional) buffer to store the IP address as string
+ * \param maxAddrSize (optional) size of the provided buffer to store the IP address
+ * \param msg buffer to store the UDP message data
+ * \param msgSize the maximum size of the message to receive
+ *
+ * \return number of received bytes or -1 in case of an error
+ */
+PAL_API int
+UdpSocket_receiveFrom(UdpSocket self, char* address, int maxAddrSize, uint8_t* msg, int msgSize);
+
+
+PAL_API void
 ServerSocket_listen(ServerSocket self);
 
 /**
@@ -142,12 +169,24 @@ ServerSocket_listen(ServerSocket self);
  *
  * \return handle of the new connection socket or NULL if no new connection is available
  */
-Socket
+PAL_API Socket
 ServerSocket_accept(ServerSocket self);
 
+/**
+ * \brief active TCP keep alive for socket and set keep alive parameters
+ *
+ * NOTE: implementation is mandatory for IEC 61850 MMS
+ *
+ * \param self server socket instance
+ * \param idleTime time (in s) between last received message and first keep alive message
+ * \param interval time (in s) between subsequent keep alive messages if no ACK received
+ * \param count number of not missing keep alive ACKs until socket is considered dead
+ */
+PAL_API void
+Socket_activateTcpKeepAlive(Socket self, int idleTime, int interval, int count);
 
 /**
- * \brief set the maximum number of pending connection in the queue
+ * \brief set the maximum number of pending connections in the queue
  *
  * Implementation of this function is OPTIONAL.
  *
@@ -155,7 +194,7 @@ ServerSocket_accept(ServerSocket self);
  * \param backlog the number of pending connections in the queue
  *
  */
-void
+PAL_API void
 ServerSocket_setBacklog(ServerSocket self, int backlog);
 
 /**
@@ -167,7 +206,7 @@ ServerSocket_setBacklog(ServerSocket self, int backlog);
  *
  * \param self server socket instance
  */
-void
+PAL_API void
 ServerSocket_destroy(ServerSocket self);
 
 /**
@@ -177,7 +216,7 @@ ServerSocket_destroy(ServerSocket self);
  *
  * \return a new client socket instance.
  */
-Socket
+PAL_API Socket
 TcpSocket_create(void);
 
 /**
@@ -186,8 +225,22 @@ TcpSocket_create(void);
  * \param self the client socket instance
  * \param timeoutInMs the timeout in ms
  */
-void
+PAL_API void
 Socket_setConnectTimeout(Socket self, uint32_t timeoutInMs);
+
+/**
+ * \brief bind a socket to a particular IP address and port (for TcpSocket)
+ * 
+ * NOTE: Don't use the socket when this functions returns false!
+ * 
+ * \param self the client socket instance
+ * \param srcAddress the local IP address or hostname as C string
+ * \param srcPort the local TCP port to use. When < 1 the OS will chose the TCP port to use.
+ * 
+ * \return true in case of success, false otherwise
+ */ 
+PAL_API bool
+Socket_bind(Socket self, const char* srcAddress, int srcPort);
 
 /**
  * \brief connect to a server
@@ -207,8 +260,14 @@ Socket_setConnectTimeout(Socket self, uint32_t timeoutInMs);
  *
  * \return true if the connection was established successfully, false otherwise
  */
-bool
+PAL_API bool
 Socket_connect(Socket self, const char* address, int port);
+
+PAL_API bool
+Socket_connectAsync(Socket self, const char* address, int port);
+
+PAL_API SocketState
+Socket_checkAsyncConnectState(Socket self);
 
 /**
  * \brief read from socket to local buffer (non-blocking)
@@ -226,7 +285,7 @@ Socket_connect(Socket self, const char* address, int port);
  *
  * \return the number of bytes read or -1 if an error occurred
  */
-int
+PAL_API int
 Socket_read(Socket self, uint8_t* buf, int size);
 
 /**
@@ -238,40 +297,41 @@ Socket_read(Socket self, uint8_t* buf, int size);
  *
  * \return number of bytes transmitted of -1 in case of an error
  */
-int
+PAL_API int
 Socket_write(Socket self, uint8_t* buf, int size);
+
+PAL_API char*
+Socket_getLocalAddress(Socket self);
 
 /**
  * \brief Get the address of the peer application (IP address and port number)
  *
- * The peer address has to be returned as
+ * The peer address has to be returned as null terminated string
  *
- * Implementation of this function is MANDATORY until version 0.9.5
- *
- * \deprecated starting from version 0.9.5 library uses Socket_getPeerAddressStatic
+ * Implementation of this function is MANDATORY (libiec61850)
  *
  * \param self the client, connection or server socket instance
  *
  * \return the IP address and port number as strings separated by the ':' character.
  */
-char*
+PAL_API char*
 Socket_getPeerAddress(Socket self);
 
 /**
  * \brief Get the address of the peer application (IP address and port number)
  *
- * The peer address has to be returned as
+ * The peer address has to be returned as null terminated string
  *
- * Implementation of this function is MANDATORY
+ * Implementation of this function is MANDATORY (lib60870)
  *
  * \param self the client, connection or server socket instance
  * \param peerAddressString a string to store the peer address (the string should have space
- *        for at least 60 characters)
+ *        for at least 54 characters)
  *
  * \return the IP address and port number as strings separated by the ':' character. If the
  *         address is an IPv6 address the IP part is encapsulated in square brackets.
  */
-char*
+PAL_API char*
 Socket_getPeerAddressStatic(Socket self, char* peerAddressString);
 
 /**
@@ -284,7 +344,7 @@ Socket_getPeerAddressStatic(Socket self, char* peerAddressString);
  *
  * \param self the client, connection or server socket instance
  */
-void
+PAL_API void
 Socket_destroy(Socket self);
 
 /*! @} */

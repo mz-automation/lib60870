@@ -305,6 +305,18 @@ CS104_Slave_stopThreadless(CS104_Slave self);
 void
 CS104_Slave_tick(CS104_Slave self);
 
+/*
+ * \brief Gets the number of ASDU in the low-priority queue
+ *
+ * NOTE: Mode CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP is not supported by this function.
+ *
+ * \param redGroup the redundancy group to use or NULL for single redundancy mode
+ *
+ * \return the number of ASDU in the low-priority queue
+ */
+int
+CS104_Slave_getNumberOfQueueEntries(CS104_Slave self, CS104_RedundancyGroup redGroup);
+
 /**
  * \brief Add an ASDU to the low-priority queue of the slave (use for periodic and spontaneous messages)
  *
