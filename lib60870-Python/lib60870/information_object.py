@@ -180,7 +180,7 @@ class InformationObject(ctypes.Structure, IOBase):
         ('virtualFunctionTable', pInformationObjectVFT)
         ]
 
-    def __init__(self, ioa):
+    def __init__(self, ioa, *args, **kwargs):
         self.objectAddress = ioa
         self.virtualFunctionTable = None
         self.type = lib60870.TypeID.INVALID.c_value
@@ -1695,6 +1695,7 @@ class DoubleCommand(ctypes.Structure, IOBase):
         lib.DoubleCommand_isSelect.restype = c_bool
         return lib.DoubleCommand_isSelect(pDoubleCommand(self))
 
+
 pDoubleCommand = ctypes.POINTER(DoubleCommand)
 
 
@@ -2820,44 +2821,48 @@ class FileDirectory(ctypes.Structure, IOBase):
 pFileDirectory = ctypes.POINTER(FileDirectory)
 
 
-def build_command(command_type, **kwargs):
-    ioa = kwargs["ioa"]
-    value = kwargs["value"]
+def build_ioa(type_id, ioa, value, **kwargs):
     command = kwargs.get("value", value)
     selectCommand = kwargs.get("selectCommand", False)
+    quality = kwargs.get("quality", QualityDescriptor.IEC60870_QUALITY_GOOD)
     qu = kwargs.get("qu", 0)
     ql = kwargs.get("ql", 0)
     as_scaled = kwargs.get("as_scaled", False)
     timestamp = kwargs.get("timestamp", None)
 
-    if command_type == SingleCommand:
+    if type_id == SingleCommand:
         return SingleCommand(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu)
-    if command_type == DoubleCommand:
+    if type_id == DoubleCommand:
         return DoubleCommand(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu)
-    if command_type == StepCommand:
+    if type_id == StepCommand:
         return StepCommand(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu)
-    if command_type == SetpointCommandNormalized:
+    if type_id == SetpointCommandNormalized:
         return SetpointCommandNormalized(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, as_scaled=as_scaled)
-    if command_type == SetpointCommandScaled:
+    if type_id == SetpointCommandScaled:
         return SetpointCommandScaled(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql)
-    if command_type == SetpointCommandShort:
+    if type_id == SetpointCommandShort:
         return SetpointCommandShort(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql)
-    if command_type == Bitstring32Command:
+    if type_id == Bitstring32Command:
         return Bitstring32Command(ioa=ioa, value=value)
-    if command_type == SingleCommandWithCP56Time2a:
+    if type_id == SingleCommandWithCP56Time2a:
         return SingleCommandWithCP56Time2a(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu, timestamp=timestamp)
-    if command_type == DoubleCommandWithCP56Time2a:
+    if type_id == DoubleCommandWithCP56Time2a:
         return DoubleCommandWithCP56Time2a(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu, timestamp=timestamp)
-    if command_type == StepCommandWithCP56Time2a:
+    if type_id == StepCommandWithCP56Time2a:
         return StepCommandWithCP56Time2a(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu, timestamp=timestamp)
-    if command_type == SetpointCommandNormalizedWithCP56Time2a:
+    if type_id == SetpointCommandNormalizedWithCP56Time2a:
         return SetpointCommandNormalizedWithCP56Time2a(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, as_scaled=as_scaled, timestamp=timestamp)
-    if command_type == SetpointCommandScaledWithCP56Time2a:
+    if type_id == SetpointCommandScaledWithCP56Time2a:
         return SetpointCommandScaledWithCP56Time2a(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, timestamp=timestamp)
-    if command_type == SetpointCommandShortWithCP56Time2a:
+    if type_id == SetpointCommandShortWithCP56Time2a:
         return SetpointCommandShortWithCP56Time2a(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, timestamp=timestamp)
-    if command_type == Bitstring32CommandWithCP56Time2a:
+    if type_id == Bitstring32CommandWithCP56Time2a:
         return Bitstring32CommandWithCP56Time2a(ioa=ioa, value=value, timestamp=timestamp)
+    get_io_type_from_type_id(type_id)(ioa=ioa, value=value, quality=quality)
+
+
+def build_command(command_type, *args, **kwargs):
+    return build_ioa(type_id=command_type, *args, **kwargs)
 
 
 def is_normalized(type_id):
