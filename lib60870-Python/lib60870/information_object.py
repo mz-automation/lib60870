@@ -2822,6 +2822,7 @@ pFileDirectory = ctypes.POINTER(FileDirectory)
 
 
 def build_ioa(type_id, ioa, value, **kwargs):
+    io_type = get_io_type_from_type_id(type_id)
     command = kwargs.get("value", value)
     selectCommand = kwargs.get("selectCommand", False)
     quality = kwargs.get("quality", QualityDescriptor.IEC60870_QUALITY_GOOD)
@@ -2830,39 +2831,35 @@ def build_ioa(type_id, ioa, value, **kwargs):
     as_scaled = kwargs.get("as_scaled", False)
     timestamp = kwargs.get("timestamp", None)
 
-    if type_id == SingleCommand:
+    if io_type == SingleCommand:
         return SingleCommand(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu)
-    if type_id == DoubleCommand:
+    if io_type == DoubleCommand:
         return DoubleCommand(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu)
-    if type_id == StepCommand:
+    if io_type == StepCommand:
         return StepCommand(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu)
-    if type_id == SetpointCommandNormalized:
+    if io_type == SetpointCommandNormalized:
         return SetpointCommandNormalized(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, as_scaled=as_scaled)
-    if type_id == SetpointCommandScaled:
+    if io_type == SetpointCommandScaled:
         return SetpointCommandScaled(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql)
-    if type_id == SetpointCommandShort:
+    if io_type == SetpointCommandShort:
         return SetpointCommandShort(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql)
-    if type_id == Bitstring32Command:
+    if io_type == Bitstring32Command:
         return Bitstring32Command(ioa=ioa, value=value)
-    if type_id == SingleCommandWithCP56Time2a:
+    if io_type == SingleCommandWithCP56Time2a:
         return SingleCommandWithCP56Time2a(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu, timestamp=timestamp)
-    if type_id == DoubleCommandWithCP56Time2a:
+    if io_type == DoubleCommandWithCP56Time2a:
         return DoubleCommandWithCP56Time2a(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu, timestamp=timestamp)
-    if type_id == StepCommandWithCP56Time2a:
+    if io_type == StepCommandWithCP56Time2a:
         return StepCommandWithCP56Time2a(ioa=ioa, command=command, selectCommand=selectCommand, qu=qu, timestamp=timestamp)
-    if type_id == SetpointCommandNormalizedWithCP56Time2a:
+    if io_type == SetpointCommandNormalizedWithCP56Time2a:
         return SetpointCommandNormalizedWithCP56Time2a(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, as_scaled=as_scaled, timestamp=timestamp)
-    if type_id == SetpointCommandScaledWithCP56Time2a:
+    if io_type == SetpointCommandScaledWithCP56Time2a:
         return SetpointCommandScaledWithCP56Time2a(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, timestamp=timestamp)
-    if type_id == SetpointCommandShortWithCP56Time2a:
+    if io_type == SetpointCommandShortWithCP56Time2a:
         return SetpointCommandShortWithCP56Time2a(ioa=ioa, value=value, selectCommand=selectCommand, ql=ql, timestamp=timestamp)
-    if type_id == Bitstring32CommandWithCP56Time2a:
+    if io_type == Bitstring32CommandWithCP56Time2a:
         return Bitstring32CommandWithCP56Time2a(ioa=ioa, value=value, timestamp=timestamp)
-    get_io_type_from_type_id(type_id)(ioa=ioa, value=value, quality=quality)
-
-
-def build_command(command_type, *args, **kwargs):
-    return build_ioa(type_id=command_type, *args, **kwargs)
+    return io_type(ioa=ioa, value=value, quality=quality)
 
 
 def is_normalized(type_id):
