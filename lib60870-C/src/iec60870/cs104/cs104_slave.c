@@ -3175,6 +3175,7 @@ callConnectionRequestHandler(CS104_Slave self, Socket newSocket)
         return true;
 }
 
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
 static CS104_RedundancyGroup
 getMatchingRedundancyGroup(CS104_Slave self, char* ipAddrStr)
 {
@@ -3206,6 +3207,7 @@ getMatchingRedundancyGroup(CS104_Slave self, char* ipAddrStr)
 
     return matchingGroup;
 }
+#endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
 
 /* handle TCP connections in non-threaded mode */
 static void
