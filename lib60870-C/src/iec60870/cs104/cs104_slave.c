@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2019 MZ Automation GmbH
+ *  Copyright 2016-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -126,24 +126,14 @@ struct sMessageQueue {
 typedef struct sMessageQueue* MessageQueue;
 
 static void
-MessageQueue_initialize(MessageQueue self, int maxQueueSize)
+MessageQueue_initialize(MessageQueue self)
 {
-    self->size = maxQueueSize * (sizeof(struct sMessageQueueEntryInfo) + 256);
-
-    self->buffer = (uint8_t*) GLOBAL_CALLOC(1, self->size);
-
-    DEBUG_PRINT("CS104 SLAVE: event queue buffer size: %i bytes\n", self->size);
-
     self->entryCounter = 0;
 
     self->firstEntry = NULL;
     self->lastEntry = NULL;
     self->lastInBufferEntry = NULL;
     self->entryId = 1;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    self->queueLock = Semaphore_create(1);
-#endif
 }
 
 static MessageQueue
@@ -151,8 +141,20 @@ MessageQueue_create(int maxQueueSize)
 {
     MessageQueue self = (MessageQueue) GLOBAL_MALLOC(sizeof(struct sMessageQueue));
 
-    if (self != NULL)
-        MessageQueue_initialize(self, maxQueueSize);
+    if (self) {
+
+        self->size = maxQueueSize * (sizeof(struct sMessageQueueEntryInfo) + 256);
+
+        DEBUG_PRINT("CS104 SLAVE: event queue buffer size: %i bytes\n", self->size);
+
+        self->buffer = (uint8_t*) GLOBAL_CALLOC(1, self->size);
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        self->queueLock = Semaphore_create(1);
+#endif
+
+        MessageQueue_initialize(self);
+    }
 
     return self;
 }
@@ -525,21 +527,13 @@ struct sHighPriorityASDUQueue {
 typedef struct sHighPriorityASDUQueue* HighPriorityASDUQueue;
 
 static void
-HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self, int maxQueueSize)
+HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self)
 {
-    self->size = maxQueueSize * (sizeof(uint16_t) + 256);
-
-    self->buffer = (uint8_t*) GLOBAL_CALLOC(1, self->size);
-
     self->entryCounter = 0;
 
     self->firstEntry = NULL;
     self->lastEntry = NULL;
     self->lastInBufferEntry = NULL;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    self->queueLock = Semaphore_create(1);
-#endif
 }
 
 static HighPriorityASDUQueue
@@ -547,8 +541,18 @@ HighPriorityASDUQueue_create(int maxQueueSize)
 {
     HighPriorityASDUQueue self = (HighPriorityASDUQueue) GLOBAL_MALLOC(sizeof(struct sHighPriorityASDUQueue));
 
-    if (self != NULL)
-        HighPriorityASDUQueue_initialize(self, maxQueueSize);
+    if (self) {
+
+        self->size = maxQueueSize * (sizeof(uint16_t) + 256);
+
+        self->buffer = (uint8_t*) GLOBAL_CALLOC(1, self->size);
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        self->queueLock = Semaphore_create(1);
+#endif
+
+        HighPriorityASDUQueue_initialize(self);
+    }
 
     return self;
 }
@@ -556,7 +560,7 @@ HighPriorityASDUQueue_create(int maxQueueSize)
 static void
 HighPriorityASDUQueue_destroy(HighPriorityASDUQueue self)
 {
-    if (self){
+    if (self) {
         if (self->buffer)
             GLOBAL_FREEMEM(self->buffer);
 
@@ -1167,6 +1171,24 @@ initializeConnectionSpecificQueues(CS104_Slave self)
     for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
         self->masterConnections[i]->lowPrioQueue = MessageQueue_create(self->maxLowPrioQueueSize);
         self->masterConnections[i]->highPrioQueue = HighPriorityASDUQueue_create(self->maxHighPrioQueueSize);
+    }
+}
+
+static void
+deleteConnectionSpecificQueues(CS104_Slave self)
+{
+    int i;
+
+    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+        if (self->masterConnections[i]->lowPrioQueue) {
+            MessageQueue_destroy(self->masterConnections[i]->lowPrioQueue);
+            self->masterConnections[i]->lowPrioQueue = NULL;
+        }
+
+        if (self->masterConnections[i]->highPrioQueue) {
+            HighPriorityASDUQueue_destroy(self->masterConnections[i]->highPrioQueue);
+            self->masterConnections[i]->highPrioQueue = NULL;
+        }
     }
 }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1) */
@@ -3212,12 +3234,6 @@ handleConnectionsThreadless(CS104_Slave self)
                 }
 #endif
 
-#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
-                if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
-                    lowPrioQueue = MessageQueue_create(self->maxLowPrioQueueSize);
-                    highPrioQueue = HighPriorityASDUQueue_create(self->maxHighPrioQueueSize);
-                }
-#endif
                 MasterConnection connection = NULL;
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
@@ -3255,8 +3271,20 @@ handleConnectionsThreadless(CS104_Slave self)
                     }
 
                 }
-                else {
+                else
+#endif /* CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS */
+                {
                     connection = getFreeConnection(self);
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+                    if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
+                        lowPrioQueue = connection->lowPrioQueue;
+                        MessageQueue_initialize(lowPrioQueue);
+
+                        highPrioQueue = connection->highPrioQueue;
+                        HighPriorityASDUQueue_initialize(highPrioQueue);
+                    }
+#endif /* CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS */
 
                     if (connection) {
                         if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue) == false) {
@@ -3264,18 +3292,7 @@ handleConnectionsThreadless(CS104_Slave self)
                             connection = NULL;
                         }
                     }
-
                 }
-#else
-                connection = getFreeConnection(self);
-
-                if (connection) {
-                    if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue) == false) {
-                        decreaseConnectionCounter(self);
-                        connection = NULL;
-                    }
-                }
-#endif
 
                 if (connection) {
 
@@ -3655,6 +3672,12 @@ CS104_Slave_stopThreadless(CS104_Slave self)
         ServerSocket_destroy(self->serverSocket);
         self->serverSocket = NULL;
     }
+
+#if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
+        if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
+            deleteConnectionSpecificQueues(self);
+        }
+#endif
 
     CS104_Slave_closeAllConnections(self);
 }
