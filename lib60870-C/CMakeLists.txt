@@ -86,6 +86,12 @@ set(API_HEADERS
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/link_layer_parameters.h
 )
 
+include(CheckCCompilerFlag)
+
+check_c_compiler_flag("-Wredundant-decls" SUPPORT_REDUNDANT_DECLS)
+if (SUPPORT_REDUNDANT_DECLS)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wredundant-decls")
+endif(SUPPORT_REDUNDANT_DECLS)
 
 # write the detected stuff to this file
 # configure_file(config/lib60870_config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config/lib60870_config.h)

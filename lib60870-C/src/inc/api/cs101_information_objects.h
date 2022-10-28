@@ -1897,9 +1897,6 @@ typedef struct sFileReady* FileReady;
 FileReady
 FileReady_create(FileReady self, int ioa, uint16_t nof, uint32_t lengthOfFile, bool positive);
 
-void
-FileReady_destroy(FileReady self);
-
 uint8_t
 FileReady_getFRQ(FileReady self);
 
