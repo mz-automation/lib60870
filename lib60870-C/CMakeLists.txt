@@ -72,6 +72,7 @@ set(API_HEADERS
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_thread.h
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_socket.h
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_serial.h
+	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_memory.h
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_base.h
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/tls_config.h
 	${CMAKE_CURRENT_LIST_DIR}/src/common/inc/linked_list.h

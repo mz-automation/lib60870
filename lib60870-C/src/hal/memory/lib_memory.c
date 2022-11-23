@@ -27,10 +27,38 @@ Memory_installExceptionHandler(MemoryExceptionHandler handler, void* parameter)
     exceptionHandlerParameter = parameter;
 }
 
+memAllocFuncs memAllocFns = {
+        .mallocFn = malloc,
+        .callocFn = calloc,
+        .reallocFn = realloc,
+        .freeFn = free,
+};
+
+memAllocFuncs
+memSetAllocators(memAllocFuncs *override)
+{
+    memAllocFuncs orig = memAllocFns;
+
+    memAllocFns = *override;
+
+    return orig;
+}
+
+void
+memResetAllocators(void)
+{
+    memAllocFns = (memAllocFuncs) {
+            .mallocFn = malloc,
+            .callocFn = calloc,
+            .reallocFn = realloc,
+            .freeFn = free,
+    };
+}
+
 void*
 Memory_malloc(size_t size)
 {
-    void* memory = malloc(size);
+    void* memory = memAllocFns.mallocFn(size);
 
     if (memory == NULL)
         noMemoryAvailableHandler();
@@ -42,7 +70,7 @@ Memory_malloc(size_t size)
 void*
 Memory_calloc(size_t nmemb, size_t size)
 {
-    void* memory = calloc(nmemb, size);
+    void* memory = memAllocFns.callocFn(nmemb, size);
 
     if (memory == NULL)
         noMemoryAvailableHandler();
@@ -54,7 +82,7 @@ Memory_calloc(size_t nmemb, size_t size)
 void *
 Memory_realloc(void *ptr, size_t size)
 {
-    void* memory = realloc(ptr, size);
+    void* memory = memAllocFns.reallocFn(ptr, size);
 
     if (memory == NULL)
         noMemoryAvailableHandler();
@@ -65,6 +93,6 @@ Memory_realloc(void *ptr, size_t size)
 void
 Memory_free(void* memb)
 {
-    free(memb);
+    memAllocFns.freeFn(memb);
 }
 
