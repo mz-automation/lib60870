@@ -136,7 +136,7 @@ T104Frame_destroy(Frame super)
 #if (CONFIG_LIB60870_STATIC_FRAMES == 1)
     self->allocated = 0;
 #else
-    free(self);
+    GLOBAL_FREEMEM(self);
 #endif
 }
 
