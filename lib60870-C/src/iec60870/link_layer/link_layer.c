@@ -1105,10 +1105,14 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
 
     case PLL_IDLE:
 
-        self->waitingForResponse = false;
         self->originalSendTime = 0;
-        self->lastSendTime = 0;
         self->sendLinkLayerTestFunction = false;
+
+        SendFixedFrame(self->linkLayer, LL_FC_09_REQUEST_LINK_STATUS, self->otherStationAddress, true, self->linkLayer->dir, false, false);
+
+        self->lastSendTime = currentTime;
+        self->waitingForResponse = true;
+
         newState = PLL_EXECUTE_REQUEST_STATUS_OF_LINK;
 
         break;
@@ -1123,10 +1127,7 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
             }
 
             if (currentTime > (self->lastSendTime + self->linkLayer->linkLayerParameters->timeoutForAck)) {
-
-                SendFixedFrame(self->linkLayer, LL_FC_09_REQUEST_LINK_STATUS, self->otherStationAddress, true, self->linkLayer->dir, false, false);
-
-                self->lastSendTime = currentTime;
+                newState = PLL_IDLE;
             }
 
         }
