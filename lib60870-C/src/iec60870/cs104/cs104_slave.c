@@ -1051,6 +1051,10 @@ struct sCS104_Slave {
     bool isRunning;
     bool stopRunning;
 
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore stateLock; /* protect isStarting, isRunning, stopRunning */
+#endif
+
     int tcpPort;
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS)
@@ -1193,6 +1197,60 @@ deleteConnectionSpecificQueues(CS104_Slave self)
 }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1) */
 
+static bool
+isRunning(CS104_Slave self)
+{
+    bool isRunning;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->stateLock);
+#endif
+
+    isRunning = self->isRunning;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->stateLock);
+#endif
+
+    return isRunning;
+}
+
+static bool
+isStarting(CS104_Slave self)
+{
+    bool isStarting;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->stateLock);
+#endif
+
+    isStarting = self->isStarting;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->stateLock);
+#endif
+
+    return isStarting;
+}
+
+static bool
+isStopRunningSet(CS104_Slave self)
+{
+    bool isStopRunningSet;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->stateLock);
+#endif
+
+    isStopRunningSet = self->stopRunning;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->stateLock);
+#endif
+
+    return isStopRunningSet;
+}
+
 static MasterConnection
 MasterConnection_create(CS104_Slave slave);
 
@@ -1230,6 +1288,7 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
         self->maxOpenConnections = CONFIG_CS104_MAX_CLIENT_CONNECTIONS;
 #if (CONFIG_USE_SEMAPHORES == 1)
         self->openConnectionsLock = Semaphore_create(1);
+        self->stateLock = Semaphore_create(1);
 #endif
 
 #if (CONFIG_USE_THREADS == 1)
@@ -2723,8 +2782,9 @@ connectionHandlingThread(void* parameter)
             }
         }
 
-        if (handleTimeouts(self) == false)
+        if (handleTimeouts(self) == false) {
             self->isRunning = false;
+        }
 
         if (self->isRunning)
             if (self->isActive)
@@ -3332,16 +3392,33 @@ serverThread (void* parameter)
 
     if (self->serverSocket == NULL) {
         DEBUG_PRINT("CS104 SLAVE: Cannot create server socket\n");
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_wait(self->stateLock);
+#endif
         self->isStarting = false;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_post(self->stateLock);
+#endif
+
         goto exit_function;
     }
 
     ServerSocket_listen(self->serverSocket);
 
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->stateLock);
+#endif
+
     self->isRunning = true;
     self->isStarting = false;
 
-    while (self->stopRunning == false) {
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->stateLock);
+#endif
+
+    while (isStopRunningSet(self) == false) {
         Socket newSocket = ServerSocket_accept(self->serverSocket);
 
         if (newSocket != NULL) {
@@ -3457,8 +3534,16 @@ serverThread (void* parameter)
     if (self->serverSocket)
         Socket_destroy((Socket) self->serverSocket);
 
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->stateLock);
+#endif
+
     self->isRunning = false;
     self->stopRunning = false;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->stateLock);
+#endif
 
 exit_function:
     return NULL;
@@ -3565,10 +3650,18 @@ void
 CS104_Slave_start(CS104_Slave self)
 {
 #if ((CONFIG_USE_THREADS == 1) && (CONFIG_USE_SEMAPHORES == 1))
-    if (self->isRunning == false) {
+    if (isRunning(self) == false) {
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_wait(self->stateLock);
+#endif
 
         self->isStarting = true;
         self->stopRunning = false;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_post(self->stateLock);
+#endif
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
         if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
@@ -3589,7 +3682,7 @@ CS104_Slave_start(CS104_Slave self)
 
         Thread_start(self->listeningThread);
 
-        while (self->isStarting)
+        while (isStarting(self))
             Thread_sleep(1);
     }
 #else
@@ -3624,7 +3717,7 @@ CS104_Slave_getNumberOfQueueEntries(CS104_Slave self, CS104_RedundancyGroup redG
 void
 CS104_Slave_startThreadless(CS104_Slave self)
 {
-    if (self->isRunning == false) {
+    if (isRunning(self) == false) {
 
 #if (CONFIG_USE_THREADS == 1)
         self->isThreadlessMode = true;
@@ -3652,13 +3745,31 @@ CS104_Slave_startThreadless(CS104_Slave self)
 
         if (self->serverSocket == NULL) {
             DEBUG_PRINT("CS104 SLAVE: Cannot create server socket\n");
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_wait(self->stateLock);
+#endif
+
             self->isStarting = false;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_post(self->stateLock);
+#endif
+
             goto exit_function;
         }
 
         ServerSocket_listen(self->serverSocket);
 
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_wait(self->stateLock);
+#endif
+
         self->isRunning = true;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_post(self->stateLock);
+#endif
     }
 
 exit_function:
@@ -3694,7 +3805,7 @@ CS104_Slave_tick(CS104_Slave self)
 bool
 CS104_Slave_isRunning(CS104_Slave self)
 {
-    return self->isRunning;
+    return isRunning(self);
 }
 
 void
@@ -3707,10 +3818,18 @@ CS104_Slave_stop(CS104_Slave self)
 #if (CONFIG_USE_THREADS == 1)
     }
     else {
-        if (self->isRunning) {
+        if (isRunning(self)) {
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_wait(self->stateLock);
+#endif
             self->stopRunning = true;
 
-            while (self->isRunning)
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_post(self->stateLock);
+#endif
+
+            while (isRunning(self))
                 Thread_sleep(1);
         }
 
@@ -3769,6 +3888,7 @@ CS104_Slave_destroy(CS104_Slave self)
 
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_destroy(self->openConnectionsLock);
+        Semaphore_destroy(self->stateLock);
 #endif
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
