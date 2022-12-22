@@ -1,7 +1,7 @@
 /*
  *  link_layer.c
  *
- *  Copyright 2017 MZ Automation GmbH
+ *  Copyright 2017-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -20,7 +20,6 @@
  *
  *  See COPYING file for the complete license text.
  */
-
 
 #include <stdbool.h>
 #include <string.h>
@@ -314,7 +313,6 @@ SendVariableLengthFrame(LinkLayer self, uint8_t fc, int address, bool prm, bool 
     SerialTransceiverFT12_sendMessage(self->transceiver, buffer, bufPos);
 }
 
-
 static bool
 checkFCB(LL_Sec_Unb self, bool fcb)
 {
@@ -594,8 +592,6 @@ ParserHeaderSecondaryUnbalanced(void* parameter, uint8_t* msg, int msgSize)
     LinkLayerSecondaryUnbalanced_handleMessage(self, fc, isBroadcast, fcb, fcv, msg, userDataStart, userDataLength);
 }
 
-
-
 static void
 HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msgSize)
 {
@@ -610,7 +606,7 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
     bool prm = true;
     int fc = 0;
 
-    bool isAck = false;
+    bool isSingleCharAck = false;
 
     if (msg [0] == 0x68) {
 
@@ -651,7 +647,7 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
             address += msg [3] * 0x100;
 
     } else if (msg [0] == 0xe5) {
-        isAck = true;
+        isSingleCharAck = true;
         fc = LL_FC_00_ACK;
         prm = false; /* single char ACK is only sent by secondary station */
         DEBUG_PRINT ("Received single char ACK\n");
@@ -661,7 +657,7 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
         return;
     }
 
-    if (isAck == false) {
+    if (isSingleCharAck == false) {
 
         /* check checksum */
         uint8_t checksum = 0;
@@ -998,6 +994,8 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
         if (primaryState == PLL_EXECUTE_RESET_REMOTE_LINK) {
             newState = PLL_LINK_LAYERS_AVAILABLE;
             llpb_setNewState(self, LL_STATE_AVAILABLE);
+
+            self->waitingForResponse = false;
         }
         else if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM) {
 
@@ -1006,9 +1004,17 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
             newState = PLL_LINK_LAYERS_AVAILABLE;
             llpb_setNewState(self, LL_STATE_AVAILABLE);
+
+            self->waitingForResponse = false;
+        }
+        else if (primaryState == PLL_EXECUTE_REQUEST_STATUS_OF_LINK) {
+            /* stay in state and wait for response */
+            DEBUG_PRINT ("ACK (FC 00) unexpected -> expected status-of-link (FC 11)\n");
+        }
+        else {
+            self->waitingForResponse = false;
         }
 
-        self->waitingForResponse = false;
         break;
 
     case LL_FC_01_NACK:
@@ -1075,7 +1081,6 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
         }
 
         break;
-
 
     default:
 
@@ -1258,7 +1263,6 @@ struct sLinkLayerBalanced {
     struct sLinkLayerSecondaryBalanced secondaryLinkLayer;
 };
 
-
 LinkLayerBalanced
 LinkLayerBalanced_create(
         int linkLayerAddress,
@@ -1311,7 +1315,6 @@ LinkLayerBalanced_setIdleTimeout(LinkLayerBalanced self, int timeoutInMs)
     self->primaryLinkLayer.idleTimeout = timeoutInMs;
 }
 
-
 void
 LinkLayerBalanced_setDIR(LinkLayerBalanced self, bool dir)
 {
@@ -1358,7 +1361,6 @@ LinkLayerBalanced_run(LinkLayerBalanced self)
  *
  *******************************************************/
 
-
 typedef struct sLinkLayerSlaveConnection* LinkLayerSlaveConnection;
 
 struct sLinkLayerPrimaryUnbalanced {
@@ -1383,8 +1385,6 @@ struct sLinkLayerPrimaryUnbalanced {
     IEC60870_LinkLayerStateChangedHandler stateChangedHandler;
     void* stateChangedHandlerParameter;
 };
-
-
 
 LinkLayerPrimaryUnbalanced
 LinkLayerPrimaryUnbalanced_create(SerialTransceiverFT12 transceiver, LinkLayerParameters linkLayerParameters,
@@ -1911,8 +1911,6 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
 
     self->primaryState = newState;
 }
-
-
 
 static LinkLayerSlaveConnection
 LinkLayerPrimaryUnbalanced_getSlaveConnection(LinkLayerPrimaryUnbalanced self, int slaveAddress)
