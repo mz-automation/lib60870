@@ -5,6 +5,7 @@ lib60870 library for IEC 60870-5 based protocols in C
 The current implementation contains code for the IEC 60870-5-101 (application layer and serial link layer) and IEC 60870-5-104 (protocool over TCP/IP) specifications.
 
 Features:
+
 - support for all application layer message types
 - master and slave
 - balanced and unbalanced link layers (for CS 101 serial communication)
