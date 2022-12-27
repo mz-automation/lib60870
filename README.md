@@ -34,7 +34,9 @@ To build the library in a separate folder create a new folder as subdirectory of
 the project folder and run cmake to create the build files:
 
 `mkdir build`
+
 `cd build`
+
 `cmake ..`
 
 ## Building without common code and HAL

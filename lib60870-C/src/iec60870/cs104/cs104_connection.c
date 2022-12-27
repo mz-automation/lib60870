@@ -785,7 +785,7 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
 
 exit_function:
 
-    return true;
+    return retVal;
 }
 
 static bool

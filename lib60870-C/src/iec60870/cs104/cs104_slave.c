@@ -2810,33 +2810,6 @@ handleTimeouts(MasterConnection self)
 }
 
 static void
-CS104_Slave_removeConnection(CS104_Slave self, MasterConnection connection)
-{
-#if (CONFIG_USE_SEMAPHORES)
-    Semaphore_wait(self->openConnectionsLock);
-#endif
-
-    self->openConnections--;
-
-    int i;
-
-    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
-        if (self->masterConnections[i] == connection) {
-            self->masterConnections[i]->isUsed = false;
-            break;
-        }
-    }
-
-    MessageQueue_setWaitingForTransmissionWhenNotConfirmed(connection->lowPrioQueue);
-
-    MasterConnection_deinit(connection);
-
-#if (CONFIG_USE_SEMAPHORES)
-    Semaphore_post(self->openConnectionsLock);
-#endif
-}
-
-static void
 CS104_Slave_closeAllConnections(CS104_Slave self) 
 {
 #if (CONFIG_USE_SEMAPHORES)
