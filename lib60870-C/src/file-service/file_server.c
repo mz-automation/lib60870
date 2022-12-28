@@ -35,7 +35,6 @@ typedef enum
     WAITING_FOR_FILE_ACK,
     SEND_ABORT,
     TRANSFER_COMPLETED,
-
     WAITING_FOR_SECTION_READY,
     RECEIVE_SECTION,
 } FileServerState;
@@ -804,6 +803,9 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
             break;
 
+        default:
+            DEBUG_PRINT("Received unexpected type ID %i in file service\n", typeId);
+            break;
         }
 
         result = CS101_PLUGIN_RESULT_HANDLED;

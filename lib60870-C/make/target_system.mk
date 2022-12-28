@@ -163,7 +163,7 @@ ifeq ($(TARGET), WIN32)
 PROJECT_BINARY_NAME := $(PROJECT_BINARY_NAME).exe
 endif
 
-LIB_NAME = $(LIB_OBJS_DIR)/lib60870.a
+LIB_NAME = $(LIB_OBJS_DIR)/liblib60870.a
 
 TEST_NAME = $(LIB_OBJS_DIR)/tests.exe
 
@@ -173,13 +173,13 @@ LDFLAGS += -arch i386
 endif
 
 ifeq ($(TARGET), WIN32)
-DYN_LIB_NAME = $(LIB_OBJS_DIR)/60870.dll
+DYN_LIB_NAME = $(LIB_OBJS_DIR)/lib60870.dll
 else 
 
 ifeq ($(TARGET), BSD)
-DYN_LIB_NAME = $(LIB_OBJS_DIR)/lib60870.dylib
+DYN_LIB_NAME = $(LIB_OBJS_DIR)/liblib60870.dylib
 else
-DYN_LIB_NAME = $(LIB_OBJS_DIR)/lib60870.so
+DYN_LIB_NAME = $(LIB_OBJS_DIR)/liblib60870.so
 endif
 
 endif
