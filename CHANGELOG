@@ -9,6 +9,7 @@ Changes to version 2.3.2
 - fixed - TLS: configured CRL are ignored (#117)
 - integrated code to serve files
 - other small bug fixes and improvements
+- CS104 client: added connection event when connect failed
 
 
 Changes to version 2.3.1

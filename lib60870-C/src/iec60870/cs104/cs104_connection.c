@@ -1051,7 +1051,11 @@ handleConnection(void* parameter)
 
 #if (CONFIG_USE_SEMAPHORES == 1)
             Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */   
+#endif /* (CONFIG_USE_SEMAPHORES == 1) */
+
+            /* Call connection handler */
+            if (self->connectionHandler != NULL)
+                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_FAILED);
         }
 
 #if (CONFIG_USE_SEMAPHORES == 1)

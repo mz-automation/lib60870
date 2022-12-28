@@ -5091,7 +5091,6 @@ test_CS104_MasterSlave_CreateDestroyLoop(void)
 	}
 }
 
-
 void
 test_CS104_Connection_ConnectTimeout(void)
 {
@@ -5169,6 +5168,72 @@ test_CS104_Connection_UseAfterServerClosedConnection(void)
     TEST_ASSERT_FALSE(result);
 
     CS104_Connection_destroy(con);
+}
+
+static CS104_ConnectionEvent test_CS104_Connection_async_timeout_event;
+
+static void
+test_CS104_Connection_async_timeout_connectionHandler (void* parameter, CS104_Connection connection, CS104_ConnectionEvent event)
+{
+    test_CS104_Connection_async_timeout_event = event;
+}
+
+void
+test_CS104_Connection_async_success(void)
+{
+    test_CS104_Connection_async_timeout_event = -1;
+
+    CS104_Slave slave = NULL;
+    CS104_Connection con = NULL;
+
+    slave = CS104_Slave_create(100, 100);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+    CS104_Slave_start(slave);
+
+    con = CS104_Connection_create("127.0.0.1", 20004);
+
+	TEST_ASSERT_NOT_NULL(con);
+
+    CS104_APCIParameters apciParameters = CS104_Connection_getAPCIParameters(con);
+    apciParameters->t0 = 1;
+
+    CS104_Connection_setConnectionHandler(con, test_CS104_Connection_async_timeout_connectionHandler, NULL);
+
+	CS104_Connection_connectAsync(con);
+
+    Thread_sleep(500);
+
+    TEST_ASSERT_EQUAL_INT(CS104_CONNECTION_OPENED, test_CS104_Connection_async_timeout_event);
+
+	CS104_Connection_destroy(con);
+
+    CS104_Slave_destroy(slave);
+}
+
+void
+test_CS104_Connection_async_timeout(void)
+{
+    test_CS104_Connection_async_timeout_event = -1;
+
+    CS104_Connection con = CS104_Connection_create("192.168.3.120", 2404);
+
+	TEST_ASSERT_NOT_NULL(con);
+
+    CS104_APCIParameters apciParameters = CS104_Connection_getAPCIParameters(con);
+    apciParameters->t0 = 1;
+
+    CS104_Connection_setConnectionHandler(con, test_CS104_Connection_async_timeout_connectionHandler, NULL);
+
+	CS104_Connection_connectAsync(con);
+
+    Thread_sleep(2000);
+
+    TEST_ASSERT_EQUAL_INT(CS104_CONNECTION_FAILED, test_CS104_Connection_async_timeout_event);
+
+	CS104_Connection_destroy(con);
 }
 
 void
@@ -6362,6 +6427,10 @@ main(int argc, char** argv)
 
     RUN_TEST(test_CS104_Connection_UseAfterClose);
     RUN_TEST(test_CS104_Connection_UseAfterServerClosedConnection);
+
+    RUN_TEST(test_CS104_Connection_async_success);
+    RUN_TEST(test_CS104_Connection_async_timeout);
+
     RUN_TEST(test_CS101_ASDU_addObjectOfWrongType);
     RUN_TEST(test_CS101_ASDU_addUntilOverflow);
 
