@@ -15,7 +15,7 @@ sigint_handler(int signalId)
 }
 
 static Semaphore lastEventLock = NULL;
-static CS104_ConnectionEvent lastEvent = -1;
+static CS104_ConnectionEvent lastEvent = CS104_CONNECTION_CLOSED;
 
 /* Callback handler to log sent or received messages (optional) */
 static void

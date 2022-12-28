@@ -1089,8 +1089,6 @@ test_CS104SlaveEventQueue1()
 
     int16_t scaledValue = 0;
 
-    int i;
-
     for (int i = 0; i < 15; i++) {
         CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
 
@@ -1182,8 +1180,6 @@ test_CS104SlaveEventQueueOverflow()
 
     int16_t scaledValue = 0;
 
-    int i;
-
     for (int i = 0; i < 300; i++) {
         CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
 
@@ -1274,8 +1270,6 @@ test_CS104SlaveEventQueueOverflow2()
     info.lastScaledValue = 0;
 
     int16_t scaledValue = 0;
-
-    int i;
 
     for (int i = 0; i < 300; i++) {
         CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
@@ -4753,7 +4747,7 @@ void
 test_DelayAcquisitionCommand(void)
 {
     DelayAcquisitionCommand dac;
-    uint8_t time1 = Hal_getTimeInMs();
+    uint64_t time1 = Hal_getTimeInMs();
 
     struct sCP16Time2a delay;
 
@@ -5181,7 +5175,7 @@ test_CS104_Connection_async_timeout_connectionHandler (void* parameter, CS104_Co
 void
 test_CS104_Connection_async_success(void)
 {
-    test_CS104_Connection_async_timeout_event = -1;
+    test_CS104_Connection_async_timeout_event = CS104_CONNECTION_CLOSED;
 
     CS104_Slave slave = NULL;
     CS104_Connection con = NULL;
@@ -5216,7 +5210,7 @@ test_CS104_Connection_async_success(void)
 void
 test_CS104_Connection_async_timeout(void)
 {
-    test_CS104_Connection_async_timeout_event = -1;
+    test_CS104_Connection_async_timeout_event = CS104_CONNECTION_CLOSED;
 
     CS104_Connection con = CS104_Connection_create("192.168.3.120", 2404);
 
