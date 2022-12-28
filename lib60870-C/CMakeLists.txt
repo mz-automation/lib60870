@@ -56,10 +56,10 @@ include_directories(
 if(WITH_MBEDTLS)
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/src/hal/tls/mbedtls
-    ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12/include
+    ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.28/include
 )
 
-file(GLOB tls_SRCS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12/library/*.c)
+file(GLOB tls_SRCS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.28/library/*.c)
 
 add_definitions(-DCONFIG_CS104_SUPPORT_TLS=1)
 add_definitions(-DMBEDTLS_CONFIG_FILE="mbedtls_config.h")
