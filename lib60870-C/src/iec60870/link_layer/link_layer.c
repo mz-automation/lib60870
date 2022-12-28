@@ -861,7 +861,6 @@ LinkLayerSecondaryBalanced_handleMessage(LinkLayerSecondaryBalanced self, uint8_
         SendFixedFrame(self->linkLayer, LL_FC_15_SERVICE_NOT_IMPLEMENTED, self->linkLayer->address, false, self->linkLayer->dir, false, false);
 
         break;
-
     }
 }
 
@@ -1378,8 +1377,6 @@ struct sLinkLayerPrimaryUnbalanced {
     struct sLinkLayer _linkLayer;
     LinkLayer linkLayer;
 
-    struct sLinkLayerParameters linkLayerParameters;
-
     LinkedList slaveConnections;
 
     IEC60870_LinkLayerStateChangedHandler stateChangedHandler;
@@ -1402,10 +1399,9 @@ LinkLayerPrimaryUnbalanced_create(SerialTransceiverFT12 transceiver, LinkLayerPa
         self->applicationLayer = applicationLayer;
         self->applicationLayerParam = applicationLayerParam;
 
-        self->linkLayerParameters = *linkLayerParameters;
         self->linkLayer = &(self->_linkLayer);
 
-        LinkLayer_init(self->linkLayer, 0, transceiver, &(self->linkLayerParameters));
+        LinkLayer_init(self->linkLayer, 0, transceiver, linkLayerParameters);
 
         self->linkLayer->llPriUnbalanced = self;
 
