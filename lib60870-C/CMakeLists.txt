@@ -36,11 +36,11 @@ option(BUILD_TESTS "Build the tests" ON)
 
 if(BUILD_HAL)
 
-if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12)
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.28)
 set(WITH_MBEDTLS 1)
 else()
-message("NOTE: mbedtls 2.16.12 is required for TLS support!")
-endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12)
+message("NOTE: mbedtls 2.28 is required for TLS support!")
+endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.28)
 
 endif(BUILD_HAL)
 

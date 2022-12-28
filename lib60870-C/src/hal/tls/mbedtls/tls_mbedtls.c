@@ -754,8 +754,6 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
         mbedtls_ssl_set_bio(&(self->ssl), socket, (mbedtls_ssl_send_t*) writeFunction,
                 (mbedtls_ssl_recv_t*) readFunction, NULL);
 
-        bool reuseSession = false;
-
         if (configuration->useSessionResumption) {
             if (configuration->conf.endpoint == MBEDTLS_SSL_IS_CLIENT) {
                 if (configuration->savedSession && configuration->savedSessionTime > 0) {
@@ -770,7 +768,6 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
                         }
                         else {
                             DEBUG_PRINT("TLS", "resume TLS session\n");
-                            reuseSession = true;
                         }
                     }
                     else {
