@@ -33,6 +33,9 @@ connectionHandler (void* parameter, CS104_Connection connection, CS104_Connectio
     case CS104_CONNECTION_CLOSED:
         printf("Connection closed\n");
         break;
+    case CS104_CONNECTION_FAILED:
+        printf("Failed to connect\n");
+        break;
     case CS104_CONNECTION_STARTDT_CON_RECEIVED:
         printf("Received STARTDT_CON\n");
         break;
