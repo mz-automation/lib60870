@@ -179,6 +179,7 @@ CS101_Master_createEx(SerialPort serialPort, LinkLayerParameters llParameters, C
             self->linkLayerParameters.addressLength = 1;
             self->linkLayerParameters.timeoutForAck = 200;
             self->linkLayerParameters.timeoutRepeat = 1000;
+            self->linkLayerParameters.timeoutLinkState = 5000;
             self->linkLayerParameters.useSingleCharACK = true;
         }
 
@@ -232,11 +233,11 @@ void
 CS101_Master_run(CS101_Master self)
 {
     if (self->unbalancedLinkLayer) {
-
         LinkLayerPrimaryUnbalanced_run(self->unbalancedLinkLayer);
     }
-    else
+    else {
         LinkLayerBalanced_run(self->balancedLinkLayer);
+    }
 }
 
 #if (CONFIG_USE_THREADS == 1)
