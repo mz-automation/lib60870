@@ -319,6 +319,9 @@ typedef enum {
 
 /**
  * \brief Handler that is called when the connection is established or closed
+ * 
+ * \note Calling \ref CS104_Connection_destroy or \ref CS104_Connection_close inside
+ * of the callback causes a memory leak!
  *
  * \param parameter user provided parameter
  * \param connection the connection object
