@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2018 MZ Automation GmbH
+ *  Copyright 2016-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -132,6 +132,8 @@ CS104_Connection_getAppLayerParameters(CS104_Connection self);
 
 /**
  * \brief Sets the timeout for connecting to the server (in ms)
+ * 
+ * \deprecated Function has no effect! Set T0 parameter instead.
  *
  * \param self
  * \param millies timeout value in ms
@@ -307,12 +309,12 @@ CS104_Connection_sendASDU(CS104_Connection self, CS101_ASDU asdu);
 void
 CS104_Connection_setASDUReceivedHandler(CS104_Connection self, CS101_ASDUReceivedHandler handler, void* parameter);
 
-
 typedef enum {
     CS104_CONNECTION_OPENED = 0,
     CS104_CONNECTION_CLOSED = 1,
     CS104_CONNECTION_STARTDT_CON_RECEIVED = 2,
-    CS104_CONNECTION_STOPDT_CON_RECEIVED = 3
+    CS104_CONNECTION_STOPDT_CON_RECEIVED = 3,
+    CS104_CONNECTION_FAILED = 4
 } CS104_ConnectionEvent;
 
 /**

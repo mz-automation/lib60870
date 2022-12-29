@@ -5,11 +5,14 @@ lib60870 library for IEC 60870-5 based protocols in C
 The current implementation contains code for the IEC 60870-5-101 (application layer and serial link layer) and IEC 60870-5-104 (protocool over TCP/IP) specifications.
 
 Features:
+
 - support for all application layer message types
 - master and slave
 - balanced and unbalanced link layers (for CS 101 serial communication)
 - client/server for CS 104 TCP/IP communication
 - CS 104 redundancy group support
+- CS101 slave/CS104 server: file service support
+- Supports most TLS features required by IEC 62351-3 (third party code mbedtls required)
 - portable C99 code
 
 Please also consider the User Guide and the API reference documentation (https://support.mz-automation.de/doc/lib60870/latest/)
@@ -34,7 +37,9 @@ To build the library in a separate folder create a new folder as subdirectory of
 the project folder and run cmake to create the build files:
 
 `mkdir build`
+
 `cd build`
+
 `cmake ..`
 
 ## Building without common code and HAL
@@ -49,11 +54,11 @@ This can be done by using the *WITHOUT_HAL* and *WITHOUT_COMMON* defines when ca
 
 ## Building with TLS support
 
-The library can be build with support for TLS. In order to do so you have to download mbedtls version 2.16.12.
+The library can be build with support for TLS. In order to do so you have to download mbedtls version 2.28.x.
 
 Unpack the mbedtls tarball in the dependencies folder so that a folder
 
-dependencies/mbedtls-2.16.12
+dependencies/mbedtls-2.28
 
 exists.
 
@@ -80,9 +85,11 @@ For details please have a look at the _User Guide_.
 
 ## Contact:
 
-The library is developed and supported my MZ Automation GmbH.
+The library is developed by Michael Zillgith and supported by MZ Automation GmbH.
 
 For bug reports, hints or support please contact info@mz-automation.de
+
+
 
 ## Licensing
 
@@ -98,4 +105,4 @@ Support and commercial license options are provided by MZ Automation GmbH. Pleas
 
 If you want to contribute to the improvement and development of the library please send me comments, feature requests, bug reports, or patches.
 
-For more than trivial contributions I require you to sign a Contributor License Agreement. Please contact info@mz-automation.de.
+For more than trivial contributions I require you to sign a Contributor License Agreement. Please contact info@libiec61850.ccom

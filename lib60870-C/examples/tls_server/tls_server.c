@@ -169,6 +169,23 @@ connectionRequestHandler(void* parameter, const char* ipAddress)
 #endif
 }
 
+static void
+securityEventHandler(void* parameter, TLSEventLevel eventLevel, int eventCode, const char* msg, TLSConnection con)
+{
+    (void)parameter;
+
+    char peerAddrBuf[60];
+    char* peerAddr = NULL;
+    const char* tlsVersion = "unknown";
+
+    if (con) {
+        peerAddr = TLSConnection_getPeerAddress(con, peerAddrBuf);
+        tlsVersion = TLSConfigVersion_toString(TLSConnection_getTLSVersion(con));
+    }
+
+    printf("[SECURITY EVENT] %s (t: %i, c: %i, version: %s remote-ip: %s)\n", msg, eventLevel, eventCode, tlsVersion, peerAddr);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -176,6 +193,10 @@ main(int argc, char** argv)
     signal(SIGINT, sigint_handler);
 
     TLSConfiguration tlsConfig = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig, securityEventHandler, NULL);
+
+    TLSConfiguration_setMinTlsVersion(tlsConfig, TLS_VERSION_TLS_1_2);
 
     TLSConfiguration_setChainValidation(tlsConfig, false);
     TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
@@ -185,6 +206,8 @@ main(int argc, char** argv)
     TLSConfiguration_addCACertificateFromFile(tlsConfig, "root.cer");
 
     TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "client1.cer");
+
+    TLSConfiguration_setRenegotiationTime(tlsConfig, 1000);
 
     /* create a new slave/server instance */
     CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig);

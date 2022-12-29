@@ -3,8 +3,6 @@ README
 
 Please add optional dependencies in this folder
 
-For TLS support with mbedtls download the source tarball of version 2.16.12 and extract here in the subfolder
+For TLS support with mbedtls download the source tarball of version 2.28.x and extract here in the subfolder
 
-mbedtls-2.16.12
-
-
+Rename the extracted mbedtls folder to mbedtls-2.28 (otherwise the build script cannot find the folder and will compile the library without TLS support).
