@@ -72,7 +72,7 @@ typedef struct sCS101_Slave* CS101_Slave;
  * \return the new slave instance
  */
 CS101_Slave
-CS101_Slave_create(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode);
+CS101_Slave_create(SerialPort serialPort, const LinkLayerParameters llParameters, const CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode);
 
 /**
  * \brief Create a new balanced or unbalanced CS101 slave
@@ -89,7 +89,7 @@ CS101_Slave_create(SerialPort serialPort, LinkLayerParameters llParameters, CS10
  * \return the new slave instance
  */
 CS101_Slave
-CS101_Slave_createEx(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode,
+CS101_Slave_createEx(SerialPort serialPort, const LinkLayerParameters llParameters, const CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode,
         int class1QueueSize, int class2QueueSize);
 
 /**

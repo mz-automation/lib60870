@@ -250,13 +250,13 @@ void
 SingleEvent_setEventState(SingleEvent self, EventState eventState);
 
 EventState
-SingleEvent_getEventState(SingleEvent self);
+SingleEvent_getEventState(const SingleEvent self);
 
 void
 SingleEvent_setQDP(SingleEvent self, QualityDescriptorP qdp);
 
 QualityDescriptorP
-SingleEvent_getQDP(SingleEvent self);
+SingleEvent_getQDP(const SingleEvent self);
 
 
 typedef struct sStatusAndStatusChangeDetection tStatusAndStatusChangeDetection;
@@ -268,19 +268,19 @@ struct sStatusAndStatusChangeDetection {
 };
 
 uint16_t
-StatusAndStatusChangeDetection_getSTn(StatusAndStatusChangeDetection self);
+StatusAndStatusChangeDetection_getSTn(const StatusAndStatusChangeDetection self);
 
 uint16_t
-StatusAndStatusChangeDetection_getCDn(StatusAndStatusChangeDetection self);
+StatusAndStatusChangeDetection_getCDn(const StatusAndStatusChangeDetection self);
 
 void
 StatusAndStatusChangeDetection_setSTn(StatusAndStatusChangeDetection self, uint16_t value);
 
 bool
-StatusAndStatusChangeDetection_getST(StatusAndStatusChangeDetection self, int index);
+StatusAndStatusChangeDetection_getST(const StatusAndStatusChangeDetection self, int index);
 
 bool
-StatusAndStatusChangeDetection_getCD(StatusAndStatusChangeDetection self, int index);
+StatusAndStatusChangeDetection_getCD(const StatusAndStatusChangeDetection self, int index);
 
 
 /************************************************
@@ -338,7 +338,7 @@ typedef struct sSinglePointWithCP24Time2a* SinglePointWithCP24Time2a;
 
 SinglePointWithCP24Time2a
 SinglePointWithCP24Time2a_create(SinglePointWithCP24Time2a self, int ioa, bool value,
-        QualityDescriptor quality, CP24Time2a timestamp);
+        QualityDescriptor quality, const CP24Time2a timestamp);
 
 void
 SinglePointWithCP24Time2a_destroy(SinglePointWithCP24Time2a self);
@@ -354,7 +354,7 @@ typedef struct sSinglePointWithCP56Time2a* SinglePointWithCP56Time2a;
 
 SinglePointWithCP56Time2a
 SinglePointWithCP56Time2a_create(SinglePointWithCP56Time2a self, int ioa, bool value,
-        QualityDescriptor quality, CP56Time2a timestamp);
+        QualityDescriptor quality, const CP56Time2a timestamp);
 
 void
 SinglePointWithCP56Time2a_destroy(SinglePointWithCP56Time2a self);
@@ -393,7 +393,7 @@ DoublePointWithCP24Time2a_destroy(DoublePointWithCP24Time2a self);
 
 DoublePointWithCP24Time2a
 DoublePointWithCP24Time2a_create(DoublePointWithCP24Time2a self, int ioa, DoublePointValue value,
-        QualityDescriptor quality, CP24Time2a timestamp);
+        QualityDescriptor quality, const CP24Time2a timestamp);
 
 CP24Time2a
 DoublePointWithCP24Time2a_getTimestamp(DoublePointWithCP24Time2a self);
@@ -406,7 +406,7 @@ typedef struct sDoublePointWithCP56Time2a* DoublePointWithCP56Time2a;
 
 DoublePointWithCP56Time2a
 DoublePointWithCP56Time2a_create(DoublePointWithCP56Time2a self, int ioa, DoublePointValue value,
-        QualityDescriptor quality, CP56Time2a timestamp);
+        QualityDescriptor quality, const CP56Time2a timestamp);
 
 void
 DoublePointWithCP56Time2a_destroy(DoublePointWithCP56Time2a self);
@@ -464,7 +464,7 @@ StepPositionWithCP24Time2a_destroy(StepPositionWithCP24Time2a self);
 
 StepPositionWithCP24Time2a
 StepPositionWithCP24Time2a_create(StepPositionWithCP24Time2a self, int ioa, int value, bool isTransient,
-        QualityDescriptor quality, CP24Time2a timestamp);
+        QualityDescriptor quality, const CP24Time2a timestamp);
 
 CP24Time2a
 StepPositionWithCP24Time2a_getTimestamp(StepPositionWithCP24Time2a self);
@@ -481,7 +481,7 @@ StepPositionWithCP56Time2a_destroy(StepPositionWithCP56Time2a self);
 
 StepPositionWithCP56Time2a
 StepPositionWithCP56Time2a_create(StepPositionWithCP56Time2a self, int ioa, int value, bool isTransient,
-        QualityDescriptor quality, CP56Time2a timestamp);
+        QualityDescriptor quality, const CP56Time2a timestamp);
 
 CP56Time2a
 StepPositionWithCP56Time2a_getTimestamp(StepPositionWithCP56Time2a self);
@@ -517,10 +517,10 @@ void
 Bitstring32WithCP24Time2a_destroy(Bitstring32WithCP24Time2a self);
 
 Bitstring32WithCP24Time2a
-Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, CP24Time2a timestamp);
+Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, const CP24Time2a timestamp);
 
 Bitstring32WithCP24Time2a
-Bitstring32WithCP24Time2a_createEx(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP24Time2a timestamp);
+Bitstring32WithCP24Time2a_createEx(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, QualityDescriptor quality, const CP24Time2a timestamp);
 
 CP24Time2a
 Bitstring32WithCP24Time2a_getTimestamp(Bitstring32WithCP24Time2a self);
@@ -535,10 +535,10 @@ void
 Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self);
 
 Bitstring32WithCP56Time2a
-Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, CP56Time2a timestamp);
+Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, const CP56Time2a timestamp);
 
 Bitstring32WithCP56Time2a
-Bitstring32WithCP56Time2a_createEx(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP56Time2a timestamp);
+Bitstring32WithCP56Time2a_createEx(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, QualityDescriptor quality, const CP56Time2a timestamp);
 
 CP56Time2a
 Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self);
@@ -593,7 +593,7 @@ MeasuredValueNormalizedWithCP24Time2a_destroy(MeasuredValueNormalizedWithCP24Tim
 
 MeasuredValueNormalizedWithCP24Time2a
 MeasuredValueNormalizedWithCP24Time2a_create(MeasuredValueNormalizedWithCP24Time2a self, int ioa,
-            float value, QualityDescriptor quality, CP24Time2a timestamp);
+            float value, QualityDescriptor quality, const CP24Time2a timestamp);
 
 CP24Time2a
 MeasuredValueNormalizedWithCP24Time2a_getTimestamp(MeasuredValueNormalizedWithCP24Time2a self);
@@ -612,7 +612,7 @@ MeasuredValueNormalizedWithCP56Time2a_destroy(MeasuredValueNormalizedWithCP56Tim
 
 MeasuredValueNormalizedWithCP56Time2a
 MeasuredValueNormalizedWithCP56Time2a_create(MeasuredValueNormalizedWithCP56Time2a self, int ioa,
-            float value, QualityDescriptor quality, CP56Time2a timestamp);
+            float value, QualityDescriptor quality, const CP56Time2a timestamp);
 
 CP56Time2a
 MeasuredValueNormalizedWithCP56Time2a_getTimestamp(MeasuredValueNormalizedWithCP56Time2a self);
@@ -666,7 +666,7 @@ MeasuredValueScaledWithCP24Time2a_destroy(MeasuredValueScaledWithCP24Time2a self
 
 MeasuredValueScaledWithCP24Time2a
 MeasuredValueScaledWithCP24Time2a_create(MeasuredValueScaledWithCP24Time2a self, int ioa,
-        int value, QualityDescriptor quality, CP24Time2a timestamp);
+        int value, QualityDescriptor quality, const CP24Time2a timestamp);
 
 CP24Time2a
 MeasuredValueScaledWithCP24Time2a_getTimestamp(MeasuredValueScaledWithCP24Time2a self);
@@ -685,7 +685,7 @@ MeasuredValueScaledWithCP56Time2a_destroy(MeasuredValueScaledWithCP56Time2a self
 
 MeasuredValueScaledWithCP56Time2a
 MeasuredValueScaledWithCP56Time2a_create(MeasuredValueScaledWithCP56Time2a self, int ioa,
-        int value, QualityDescriptor quality, CP56Time2a timestamp);
+        int value, QualityDescriptor quality, const CP56Time2a timestamp);
 
 CP56Time2a
 MeasuredValueScaledWithCP56Time2a_getTimestamp(MeasuredValueScaledWithCP56Time2a self);
@@ -725,7 +725,7 @@ MeasuredValueShortWithCP24Time2a_destroy(MeasuredValueShortWithCP24Time2a self);
 
 MeasuredValueShortWithCP24Time2a
 MeasuredValueShortWithCP24Time2a_create(MeasuredValueShortWithCP24Time2a self, int ioa,
-        float value, QualityDescriptor quality, CP24Time2a timestamp);
+        float value, QualityDescriptor quality, const CP24Time2a timestamp);
 
 CP24Time2a
 MeasuredValueShortWithCP24Time2a_getTimestamp(MeasuredValueShortWithCP24Time2a self);
@@ -775,7 +775,7 @@ IntegratedTotals_destroy(IntegratedTotals self);
  * \return Reference to the new instance
  */
 IntegratedTotals
-IntegratedTotals_create(IntegratedTotals self, int ioa, BinaryCounterReading value);
+IntegratedTotals_create(IntegratedTotals self, int ioa, const BinaryCounterReading value);
 
 BinaryCounterReading
 IntegratedTotals_getBCR(IntegratedTotals self);
@@ -803,7 +803,7 @@ typedef struct sIntegratedTotalsWithCP24Time2a* IntegratedTotalsWithCP24Time2a;
  */
 IntegratedTotalsWithCP24Time2a
 IntegratedTotalsWithCP24Time2a_create(IntegratedTotalsWithCP24Time2a self, int ioa,
-        BinaryCounterReading value, CP24Time2a timestamp);
+        const BinaryCounterReading value, const CP24Time2a timestamp);
 
 void
 IntegratedTotalsWithCP24Time2a_destroy(IntegratedTotalsWithCP24Time2a self);
@@ -835,7 +835,7 @@ typedef struct sIntegratedTotalsWithCP56Time2a* IntegratedTotalsWithCP56Time2a;
  */
 IntegratedTotalsWithCP56Time2a
 IntegratedTotalsWithCP56Time2a_create(IntegratedTotalsWithCP56Time2a self, int ioa,
-        BinaryCounterReading value, CP56Time2a timestamp);
+        const BinaryCounterReading value, const CP56Time2a timestamp);
 
 void
 IntegratedTotalsWithCP56Time2a_destroy(IntegratedTotalsWithCP56Time2a self);
@@ -858,7 +858,7 @@ EventOfProtectionEquipment_destroy(EventOfProtectionEquipment self);
 
 EventOfProtectionEquipment
 EventOfProtectionEquipment_create(EventOfProtectionEquipment self, int ioa,
-        SingleEvent event, CP16Time2a elapsedTime, CP24Time2a timestamp);
+        const SingleEvent event, const CP16Time2a elapsedTime, const CP24Time2a timestamp);
 
 SingleEvent
 EventOfProtectionEquipment_getEvent(EventOfProtectionEquipment self);
@@ -877,7 +877,7 @@ typedef struct sPackedStartEventsOfProtectionEquipment* PackedStartEventsOfProte
 
 PackedStartEventsOfProtectionEquipment
 PackedStartEventsOfProtectionEquipment_create(PackedStartEventsOfProtectionEquipment self, int ioa,
-        StartEvent event, QualityDescriptorP qdp, CP16Time2a elapsedTime, CP24Time2a timestamp);
+        StartEvent event, QualityDescriptorP qdp, const CP16Time2a elapsedTime, const CP24Time2a timestamp);
 
 void
 PackedStartEventsOfProtectionEquipment_destroy(PackedStartEventsOfProtectionEquipment self);
@@ -905,7 +905,7 @@ PackedOutputCircuitInfo_destroy(PackedOutputCircuitInfo self);
 
 PackedOutputCircuitInfo
 PackedOutputCircuitInfo_create(PackedOutputCircuitInfo self, int ioa,
-        OutputCircuitInfo oci, QualityDescriptorP qdp, CP16Time2a operatingTime, CP24Time2a timestamp);
+        OutputCircuitInfo oci, QualityDescriptorP qdp, const CP16Time2a operatingTime, const CP24Time2a timestamp);
 
 OutputCircuitInfo
 PackedOutputCircuitInfo_getOCI(PackedOutputCircuitInfo self);
@@ -930,7 +930,7 @@ PackedSinglePointWithSCD_destroy(PackedSinglePointWithSCD self);
 
 PackedSinglePointWithSCD
 PackedSinglePointWithSCD_create(PackedSinglePointWithSCD self, int ioa,
-        StatusAndStatusChangeDetection scd, QualityDescriptor qds);
+        const StatusAndStatusChangeDetection scd, QualityDescriptor qds);
 
 QualityDescriptor
 PackedSinglePointWithSCD_getQuality(PackedSinglePointWithSCD self);
@@ -1006,7 +1006,7 @@ SingleCommandWithCP56Time2a_destroy(SingleCommandWithCP56Time2a self);
  * \return the initialized instance
  */
 SingleCommandWithCP56Time2a
-SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bool command, bool selectCommand, int qu, CP56Time2a timestamp);
+SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bool command, bool selectCommand, int qu, const CP56Time2a timestamp);
 
 /**
  * \brief Get the time stamp of the command.
@@ -1257,7 +1257,7 @@ ReadCommand_destroy(ReadCommand self);
 typedef struct sClockSynchronizationCommand* ClockSynchronizationCommand;
 
 ClockSynchronizationCommand
-ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa, CP56Time2a timestamp);
+ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa, const CP56Time2a timestamp);
 
 void
 ClockSynchronizationCommand_destroy(ClockSynchronizationCommand self);
@@ -1449,7 +1449,7 @@ EventOfProtectionEquipmentWithCP56Time2a_destroy(EventOfProtectionEquipmentWithC
 
 EventOfProtectionEquipmentWithCP56Time2a
 EventOfProtectionEquipmentWithCP56Time2a_create(EventOfProtectionEquipmentWithCP56Time2a self, int ioa,
-        SingleEvent event, CP16Time2a elapsedTime, CP56Time2a timestamp);
+        const SingleEvent event, const CP16Time2a elapsedTime, const CP56Time2a timestamp);
 
 SingleEvent
 EventOfProtectionEquipmentWithCP56Time2a_getEvent(EventOfProtectionEquipmentWithCP56Time2a self);
@@ -1471,7 +1471,7 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_destroy(PackedStartEventsOf
 PackedStartEventsOfProtectionEquipmentWithCP56Time2a
 
 PackedStartEventsOfProtectionEquipmentWithCP56Time2a_create(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, int ioa,
-        StartEvent event, QualityDescriptorP qdp, CP16Time2a elapsedTime, CP56Time2a timestamp);
+        StartEvent event, QualityDescriptorP qdp, const CP16Time2a elapsedTime, const CP56Time2a timestamp);
 
 StartEvent
 PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getEvent(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self);
@@ -1496,7 +1496,7 @@ PackedOutputCircuitInfoWithCP56Time2a_destroy(PackedOutputCircuitInfoWithCP56Tim
 
 PackedOutputCircuitInfoWithCP56Time2a
 PackedOutputCircuitInfoWithCP56Time2a_create(PackedOutputCircuitInfoWithCP56Time2a self, int ioa,
-        OutputCircuitInfo oci, QualityDescriptorP qdp, CP16Time2a operatingTime, CP56Time2a timestamp);
+        OutputCircuitInfo oci, QualityDescriptorP qdp, const CP16Time2a operatingTime, const CP56Time2a timestamp);
 
 OutputCircuitInfo
 PackedOutputCircuitInfoWithCP56Time2a_getOCI(PackedOutputCircuitInfoWithCP56Time2a self);
@@ -1520,7 +1520,7 @@ void
 DoubleCommandWithCP56Time2a_destroy(DoubleCommandWithCP56Time2a self);
 
 DoubleCommandWithCP56Time2a
-DoubleCommandWithCP56Time2a_create(DoubleCommandWithCP56Time2a self, int ioa, int command, bool selectCommand, int qu, CP56Time2a timestamp);
+DoubleCommandWithCP56Time2a_create(DoubleCommandWithCP56Time2a self, int ioa, int command, bool selectCommand, int qu, const CP56Time2a timestamp);
 
 int
 DoubleCommandWithCP56Time2a_getQU(DoubleCommandWithCP56Time2a self);
@@ -1544,7 +1544,7 @@ void
 StepCommandWithCP56Time2a_destroy(StepCommandWithCP56Time2a self);
 
 StepCommandWithCP56Time2a
-StepCommandWithCP56Time2a_create(StepCommandWithCP56Time2a self, int ioa, StepCommandValue command, bool selectCommand, int qu, CP56Time2a timestamp);
+StepCommandWithCP56Time2a_create(StepCommandWithCP56Time2a self, int ioa, StepCommandValue command, bool selectCommand, int qu, const CP56Time2a timestamp);
 
 int
 StepCommandWithCP56Time2a_getQU(StepCommandWithCP56Time2a self);
@@ -1568,7 +1568,7 @@ void
 SetpointCommandNormalizedWithCP56Time2a_destroy(SetpointCommandNormalizedWithCP56Time2a self);
 
 SetpointCommandNormalizedWithCP56Time2a
-SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, CP56Time2a timestamp);
+SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, const CP56Time2a timestamp);
 
 float
 SetpointCommandNormalizedWithCP56Time2a_getValue(SetpointCommandNormalizedWithCP56Time2a self);
@@ -1592,7 +1592,7 @@ void
 SetpointCommandScaledWithCP56Time2a_destroy(SetpointCommandScaledWithCP56Time2a self);
 
 SetpointCommandScaledWithCP56Time2a
-SetpointCommandScaledWithCP56Time2a_create(SetpointCommandScaledWithCP56Time2a self, int ioa, int value, bool selectCommand, int ql, CP56Time2a timestamp);
+SetpointCommandScaledWithCP56Time2a_create(SetpointCommandScaledWithCP56Time2a self, int ioa, int value, bool selectCommand, int ql, const CP56Time2a timestamp);
 
 int
 SetpointCommandScaledWithCP56Time2a_getValue(SetpointCommandScaledWithCP56Time2a self);
@@ -1616,7 +1616,7 @@ void
 SetpointCommandShortWithCP56Time2a_destroy(SetpointCommandShortWithCP56Time2a self);
 
 SetpointCommandShortWithCP56Time2a
-SetpointCommandShortWithCP56Time2a_create(SetpointCommandShortWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, CP56Time2a timestamp);
+SetpointCommandShortWithCP56Time2a_create(SetpointCommandShortWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, const CP56Time2a timestamp);
 
 float
 SetpointCommandShortWithCP56Time2a_getValue(SetpointCommandShortWithCP56Time2a self);
@@ -1637,7 +1637,7 @@ SetpointCommandShortWithCP56Time2a_getTimestamp(SetpointCommandShortWithCP56Time
 typedef struct sBitstring32CommandWithCP56Time2a* Bitstring32CommandWithCP56Time2a;
 
 Bitstring32CommandWithCP56Time2a
-Bitstring32CommandWithCP56Time2a_create(Bitstring32CommandWithCP56Time2a self, int ioa, uint32_t value, CP56Time2a timestamp);
+Bitstring32CommandWithCP56Time2a_create(Bitstring32CommandWithCP56Time2a self, int ioa, uint32_t value, const CP56Time2a timestamp);
 
 void
 Bitstring32CommandWithCP56Time2a_destroy(Bitstring32CommandWithCP56Time2a self);
@@ -1695,7 +1695,7 @@ typedef struct sTestCommandWithCP56Time2a* TestCommandWithCP56Time2a;
  * \return the new or initialized instance
  */
 TestCommandWithCP56Time2a
-TestCommandWithCP56Time2a_create(TestCommandWithCP56Time2a self, uint16_t tsc, CP56Time2a timestamp);
+TestCommandWithCP56Time2a_create(TestCommandWithCP56Time2a self, uint16_t tsc, const CP56Time2a timestamp);
 
 void
 TestCommandWithCP56Time2a_destroy(TestCommandWithCP56Time2a self);
@@ -1728,7 +1728,7 @@ ResetProcessCommand_getQRP(ResetProcessCommand self);
 typedef struct sDelayAcquisitionCommand* DelayAcquisitionCommand;
 
 DelayAcquisitionCommand
-DelayAcquisitionCommand_create(DelayAcquisitionCommand self, int ioa,  CP16Time2a delay);
+DelayAcquisitionCommand_create(DelayAcquisitionCommand self, int ioa,  const CP16Time2a delay);
 
 void
 DelayAcquisitionCommand_destroy(DelayAcquisitionCommand self);
@@ -2047,7 +2047,7 @@ FileSegment_destroy(FileSegment self);
 typedef struct sFileDirectory* FileDirectory;
 
 FileDirectory
-FileDirectory_create(FileDirectory self, int ioa, uint16_t nof, int lengthOfFile, uint8_t sof, CP56Time2a creationTime);
+FileDirectory_create(FileDirectory self, int ioa, uint16_t nof, int lengthOfFile, uint8_t sof, const CP56Time2a creationTime);
 
 uint16_t
 FileDirectory_getNOF(FileDirectory self);
@@ -2083,7 +2083,7 @@ FileDirectory_destroy(FileDirectory self);
 typedef struct sQueryLog* QueryLog;
 
 QueryLog
-QueryLog_create(QueryLog self, int ioa, uint16_t nof, CP56Time2a rangeStartTime, CP56Time2a rangeStopTime);
+QueryLog_create(QueryLog self, int ioa, uint16_t nof, const CP56Time2a rangeStartTime, const CP56Time2a rangeStopTime);
 
 uint16_t
 QueryLog_getNOF(QueryLog self);

@@ -603,8 +603,6 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
     int csStart = 0;
     int csIndex = 0;
     int address = 0; /* address can be ignored in balanced mode? */
-    bool prm = true;
-    int fc = 0;
 
     bool isSingleCharAck = false;
 
@@ -648,8 +646,6 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
 
     } else if (msg [0] == 0xe5) {
         isSingleCharAck = true;
-        fc = LL_FC_00_ACK;
-        prm = false; /* single char ACK is only sent by secondary station */
         DEBUG_PRINT ("Received single char ACK\n");
     }
     else {
@@ -673,8 +669,8 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
         }
 
         /* parse C field bits */
-        fc = c & 0x0f;
-        prm = ((c & 0x40) == 0x40);
+        uint8_t fc = c & 0x0f;
+        bool prm = ((c & 0x40) == 0x40);
 
         if (prm) { /* we are secondary link layer */
             bool fcb = ((c & 0x20) == 0x20);

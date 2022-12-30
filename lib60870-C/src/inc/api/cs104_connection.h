@@ -95,9 +95,10 @@ CS104_Connection_setLocalAddress(CS104_Connection self, const char* localIpAddre
  * the behavior is undefined.
  *
  * \param self CS104_Connection instance
+ * \param parameters the APCI layer parameters
  */
 void
-CS104_Connection_setAPCIParameters(CS104_Connection self, CS104_APCIParameters parameters);
+CS104_Connection_setAPCIParameters(CS104_Connection self, const CS104_APCIParameters parameters);
 
 /**
  * \brief Get the currently used CS104 specific APCI parameters
@@ -116,7 +117,7 @@ CS104_Connection_getAPCIParameters(CS104_Connection self);
  * \param parameters the application layer parameters
  */
 void
-CS104_Connection_setAppLayerParameters(CS104_Connection self, CS101_AppLayerParameters parameters);
+CS104_Connection_setAppLayerParameters(CS104_Connection self, const CS101_AppLayerParameters parameters);
 
 /**
  * \brief Return the currently used application layer parameter

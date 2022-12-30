@@ -527,7 +527,7 @@ CS104_Connection_setLocalAddress(CS104_Connection self, const char* localIpAddre
 }
 
 void
-CS104_Connection_setAPCIParameters(CS104_Connection self, CS104_APCIParameters parameters)
+CS104_Connection_setAPCIParameters(CS104_Connection self, const CS104_APCIParameters parameters)
 {
     self->parameters = *parameters;
 
@@ -535,7 +535,7 @@ CS104_Connection_setAPCIParameters(CS104_Connection self, CS104_APCIParameters p
 }
 
 void
-CS104_Connection_setAppLayerParameters(CS104_Connection self, CS101_AppLayerParameters parameters)
+CS104_Connection_setAppLayerParameters(CS104_Connection self, const CS101_AppLayerParameters parameters)
 {
     self->alParameters = *parameters;
 }

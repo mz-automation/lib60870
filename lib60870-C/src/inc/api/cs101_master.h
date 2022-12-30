@@ -65,7 +65,7 @@ typedef struct sCS101_Master* CS101_Master;
  * \return the new CS101_Master instance
  */
 CS101_Master
-CS101_Master_create(SerialPort port, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode mode);
+CS101_Master_create(SerialPort port, const LinkLayerParameters llParameters, const CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode mode);
 
 /**
  * \brief Create a new master instance and specify message queue size (for balanced mode)
@@ -79,7 +79,7 @@ CS101_Master_create(SerialPort port, LinkLayerParameters llParameters, CS101_App
  * \return the new CS101_Master instance
  */
 CS101_Master
-CS101_Master_createEx(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode,
+CS101_Master_createEx(SerialPort serialPort, const LinkLayerParameters llParameters, const CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode,
         int queueSize);
 
 /**

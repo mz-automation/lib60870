@@ -171,7 +171,7 @@ T104Frame_setNextByte(Frame super, uint8_t byte)
 }
 
 void
-T104Frame_appendBytes(Frame super, uint8_t* bytes, int numberOfBytes)
+T104Frame_appendBytes(Frame super, const uint8_t* bytes, int numberOfBytes)
 {
     T104Frame self = (T104Frame) super;
 
