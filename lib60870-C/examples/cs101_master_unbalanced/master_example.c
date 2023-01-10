@@ -19,6 +19,23 @@ sigint_handler(int signalId)
     running = false;
 }
 
+/* Callback handler to log sent or received messages (optional) */
+static void
+rawMessageHandler (void* parameter, uint8_t* msg, int msgSize, bool sent)
+{
+    if (sent)
+        printf("SEND: ");
+    else
+        printf("RCVD: ");
+
+    int i;
+    for (i = 0; i < msgSize; i++) {
+        printf("%02x ", msg[i]);
+    }
+
+    printf("\n");
+}
+
 static bool
 asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
 {
@@ -153,6 +170,9 @@ main(int argc, char** argv)
 
     /* set callback handler for link layer state changes */
     CS101_Master_setLinkLayerStateChanged(master, linkLayerStateChanged, NULL);
+
+    /* log messages */
+    CS101_Master_setRawMessageHandler(master, rawMessageHandler, NULL);
 
     CS101_Master_addSlave(master, 1);
     CS101_Master_addSlave(master, 2);

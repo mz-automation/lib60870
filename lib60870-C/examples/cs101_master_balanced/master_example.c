@@ -120,7 +120,6 @@ main(int argc, char** argv)
 
     CS101_Master master = CS101_Master_create(port, NULL, NULL, IEC60870_LINK_LAYER_BALANCED);
 
-
     CS101_Master_setOwnAddress(master, 2);
 
     /* Set the address of the slave (optional for balanced master */
@@ -132,11 +131,12 @@ main(int argc, char** argv)
     /* modify some of the default parameters */
     LinkLayerParameters llParams = CS101_Master_getLinkLayerParameters(master);
     llParams->useSingleCharACK = false;
+    llParams->addressLength = 1;
 
     /* set handler for link layer state changes */
     CS101_Master_setLinkLayerStateChanged(master, linkLayerStateChanged, NULL);
 
-    /* uncomment to log messages */
+    /* log messages */
     CS101_Master_setRawMessageHandler(master, rawMessageHandler, NULL);
 
     SerialPort_open(port);

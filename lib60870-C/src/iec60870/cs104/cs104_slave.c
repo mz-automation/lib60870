@@ -214,11 +214,11 @@ MessageQueue_countEntriesUntilEndOfBuffer(MessageQueue self, uint8_t* firstEntry
 
     uint8_t* entryPtr = firstEntry;
 
-    struct sMessageQueueEntryInfo entryInfo;
-
-    memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
-
     while (entryPtr) {
+
+        struct sMessageQueueEntryInfo entryInfo;
+
+        memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
 
         count++;
 
@@ -227,8 +227,6 @@ MessageQueue_countEntriesUntilEndOfBuffer(MessageQueue self, uint8_t* firstEntry
             break;
         else
             entryPtr = entryPtr + sizeof(struct sMessageQueueEntryInfo) + entryInfo.size;
-
-        memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
     }
 
     return count;
@@ -928,7 +926,7 @@ CS104_RedundancyGroup_addAllowedClient(CS104_RedundancyGroup self, const char* i
 }
 
 void
-CS104_RedundancyGroup_addAllowedClientEx(CS104_RedundancyGroup self, uint8_t* ipAddress, eCS104_IPAddressType addressType)
+CS104_RedundancyGroup_addAllowedClientEx(CS104_RedundancyGroup self, const uint8_t* ipAddress, eCS104_IPAddressType addressType)
 {
     if (self->allowedClients == NULL)
         self->allowedClients = LinkedList_create();
@@ -2240,19 +2238,19 @@ checkSequenceNumber(MasterConnection self, int seqNo)
 static bool
 MasterConnection_isRunning(MasterConnection self)
 {
-    bool isRunning;
+    bool retVal;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->stateLock);
 #endif
 
-    isRunning = self->isRunning;
+    retVal = self->isRunning;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->stateLock);
 #endif
 
-    return isRunning;
+    return retVal;
 }
 
 static bool
@@ -2782,14 +2780,14 @@ handleTimeouts(MasterConnection self)
     /* check if counterpart confirmed I message */
     if (self->oldestSentASDU != -1) {
 
+        /* check validity of sent time */
+
+        if (self->sentASDUs[self->oldestSentASDU].sentTime > currentTime) {
+            /* sent time is in the future (maybe caused by system time change) */
+            self->sentASDUs[self->oldestSentASDU].sentTime = currentTime;
+        }
+
         if (currentTime > self->sentASDUs[self->oldestSentASDU].sentTime) {
-
-            /* check validity of sent time */
-
-            if (self->sentASDUs[self->oldestSentASDU].sentTime > currentTime) {
-                /* sent time is in the future (maybe caused by system time change) */
-                self->sentASDUs[self->oldestSentASDU].sentTime = currentTime;
-            }
 
             if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->slave->conParameters.t1 * 1000)) {
                 timeoutsOk = false;

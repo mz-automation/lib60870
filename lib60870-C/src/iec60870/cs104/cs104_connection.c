@@ -527,7 +527,7 @@ CS104_Connection_setLocalAddress(CS104_Connection self, const char* localIpAddre
 }
 
 void
-CS104_Connection_setAPCIParameters(CS104_Connection self, CS104_APCIParameters parameters)
+CS104_Connection_setAPCIParameters(CS104_Connection self, const CS104_APCIParameters parameters)
 {
     self->parameters = *parameters;
 
@@ -535,7 +535,7 @@ CS104_Connection_setAPCIParameters(CS104_Connection self, CS104_APCIParameters p
 }
 
 void
-CS104_Connection_setAppLayerParameters(CS104_Connection self, CS101_AppLayerParameters parameters)
+CS104_Connection_setAppLayerParameters(CS104_Connection self, const CS101_AppLayerParameters parameters)
 {
     self->alParameters = *parameters;
 }
@@ -924,6 +924,8 @@ handleConnection(void* parameter)
 {
     CS104_Connection self = (CS104_Connection) parameter;
 
+    CS104_ConnectionEvent event = CS104_CONNECTION_OPENED;
+
     resetConnection(self);
 
     self->socket = TcpSocket_create();
@@ -973,7 +975,7 @@ handleConnection(void* parameter)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
                 /* Call connection handler */
-                if (self->connectionHandler != NULL)
+                if (self->connectionHandler)
                     self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_OPENED);
 
                 HandleSet handleSet = Handleset_new();
@@ -1037,10 +1039,8 @@ handleConnection(void* parameter)
 
                 Handleset_destroy(handleSet);
 
-                /* Call connection handler */
-                if (self->connectionHandler != NULL)
-                    self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_CLOSED);
-
+                /* register CLOSED event */
+                event = CS104_CONNECTION_CLOSED;
             }
         }
         else {
@@ -1053,9 +1053,8 @@ handleConnection(void* parameter)
             Semaphore_post(self->conStateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
-            /* Call connection handler */
-            if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_FAILED);
+            /* register CLOSED event */
+            event = CS104_CONNECTION_FAILED;
         }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -1093,6 +1092,12 @@ handleConnection(void* parameter)
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->conStateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
+
+    /* Call connection handler */
+    if ((event == CS104_CONNECTION_CLOSED) || (event == CS104_CONNECTION_FAILED)) {
+        if (self->connectionHandler)
+            self->connectionHandler(self->connectionHandlerParameter, self, event);
+    }
 
     return NULL;
 }
