@@ -1062,7 +1062,10 @@ struct sCS104_Slave {
     CS104_ServerMode serverMode;
 
     char* localAddress;
+
+#if (CONFIG_USE_THREADS == 1)
     Thread listeningThread;
+#endif
 
     ServerSocket serverSocket;
 
@@ -1304,7 +1307,10 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
         self->localAddress = NULL;
         self->tcpPort = CS104_DEFAULT_PORT;
         self->openConnections = 0;
+
+#if (CONFIG_USE_THREADS == 1)
         self->listeningThread = NULL;
+#endif
 
         self->serverSocket = NULL;
 
@@ -3148,7 +3154,7 @@ MasterConnection_initEx(MasterConnection self, Socket skt, CS104_RedundancyGroup
 }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
 
-
+#if (CONFIG_USE_THREADS == 1)
 static void
 MasterConnection_start(MasterConnection self)
 {
@@ -3165,6 +3171,7 @@ MasterConnection_start(MasterConnection self)
 
     Thread_start(self->connectionThread);
 }
+#endif /* (CONFIG_USE_THREADS == 1) */
 
 void
 MasterConnection_close(MasterConnection self)
@@ -3553,6 +3560,8 @@ handleConnectionsThreadless(CS104_Slave self)
     handleClientConnections(self);
 }
 
+#if (CONFIG_USE_THREADS == 1)
+
 static void*
 serverThread (void* parameter)
 {
@@ -3787,6 +3796,8 @@ serverThread (void* parameter)
 exit_function:
     return NULL;
 }
+
+#endif /* (CONFIG_USE_THREADS == 1) */
 
 void
 CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)

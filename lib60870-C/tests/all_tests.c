@@ -5017,6 +5017,16 @@ test_BitString32xx_encodeDecode(void)
 }
 
 void
+test_version_number(void)
+{
+    Lib60870VersionInfo version = Lib60870_getLibraryVersionInfo();
+
+    TEST_ASSERT_EQUAL_INT(2, version.major);
+    TEST_ASSERT_EQUAL_INT(3, version.minor);
+    TEST_ASSERT_EQUAL_INT(2, version.patch);
+}
+
+void
 test_CS104_Slave_CreateDestroy(void)
 {
 	CS104_Slave slave = CS104_Slave_create(100, 100);
@@ -6333,6 +6343,7 @@ int
 main(int argc, char** argv)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_version_number);
     RUN_TEST(test_CS104_Slave_CreateDestroy);
     RUN_TEST(test_CS104_MasterSlave_CreateDestroyLoop);
     RUN_TEST(test_CS104_Connection_CreateDestroy);
