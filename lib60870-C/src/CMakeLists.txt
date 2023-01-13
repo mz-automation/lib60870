@@ -97,7 +97,7 @@ endif()
 
 if(LIB60870_BUILD_HAL)
   include(CheckLibraryExists)
-  check_library_exists(rt clock_gettime "time.h" CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
+  check_library_exists(rt clock_gettime "time.h" LIB60870_SYSTEM_HAS_CLOCK_GETTIME)
 
   find_package(Threads REQUIRED)
 
@@ -172,7 +172,7 @@ if(LIB60870_BUILD_HAL)
 
     target_link_libraries(lib60870
       PRIVATE
-        $<$<BOOL:${CONFIG_SYSTEM_HAS_CLOCK_GETTIME}>:rt>
+        $<$<BOOL:${LIB60870_SYSTEM_HAS_CLOCK_GETTIME}>:rt>
         m
     )
   endif()
