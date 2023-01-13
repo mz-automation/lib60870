@@ -1,3 +1,9 @@
+include(CheckCCompilerFlag)
+check_c_compiler_flag("-Wredundant-decls" LIB60870_COMPILER_SUPPORT_REDUNDANT_DECLS)
+if(LIB60870_COMPILER_SUPPORT_REDUNDANT_DECLS)
+  string(APPEND CMAKE_C_FLAGS " -Wredundant-decls")
+endif()
+
 add_library(lib60870)
 add_library(lib60870::lib60870 ALIAS lib60870)
 set_target_properties(lib60870 PROPERTIES
