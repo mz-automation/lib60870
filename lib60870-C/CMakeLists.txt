@@ -6,7 +6,7 @@ project(lib60870-C VERSION 2.3.1 LANGUAGES C
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/third_party/cmake/modules")
 
-set(dependencyMbedtlsPath "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/mbedtls-2.16.12")
+set(dependencyMbedtlsPath "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/mbedtls-2.28.2")
 
 include(CMakeDependentOption)
 option(LIB60870_BUILD_HAL "Build the platform abstraction layer (HAL)" ON)
@@ -34,15 +34,11 @@ if(LIB60870_WITH_MBEDTLS)
     include(FetchContent)
     FetchContent_Declare(mbedtls-extern
       GIT_REPOSITORY https://github.com/Mbed-TLS/mbedtls.git
-      GIT_TAG cf4667126010c665341f9e50ef691b7ef8294188
+      GIT_TAG 89f040a5c938985c5f30728baed21e49d0846a53
     )
     FetchContent_MakeAvailable(mbedtls-extern)
     FetchContent_GetProperties(mbedtls-extern SOURCE_DIR dependencyMbedtlsPath)
   endif()
-  # TODO: The currently used mbedtls version does not carry this usage requirement
-  foreach(mbedlib IN ITEMS mbedtls mbedx509 mbedcrypto)
-    target_include_directories(${mbedlib} INTERFACE "$<BUILD_INTERFACE:${dependencyMbedtlsPath}/include>")
-  endforeach()
 endif()
 
 add_subdirectory(src)
