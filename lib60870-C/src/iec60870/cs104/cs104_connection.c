@@ -100,11 +100,6 @@ struct sCS104_Connection {
     int oldestSentASDU;  /* index of oldest entry in k-buffer */
     int newestSentASDU;  /* index of newest entry in k-buffer */
 
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore sentASDUsLock;
-    Semaphore socketWriteLock;
-#endif
-
 #if (CONFIG_USE_THREADS == 1)
     Thread connectionHandlingThread;
 #endif
@@ -193,39 +188,20 @@ prepareSMessage(uint8_t* msg)
 static void
 sendSMessage(CS104_Connection self)
 {
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->socketWriteLock);
-#endif
     uint8_t* msg = self->sMessage;
 
     msg [4] = (uint8_t) ((self->receiveCount % 128) * 2);
     msg [5] = (uint8_t) (self->receiveCount / 128);
 
     writeToSocket(self, msg, 6);
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->socketWriteLock);
-#endif
 }
 
 static int
 sendIMessage(CS104_Connection self, Frame frame)
 {
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif
-
     T104Frame_prepareToSend((T104Frame) frame, self->sendCount, self->receiveCount);
 
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->socketWriteLock);
-#endif
-
     writeToSocket(self, T104Frame_getBuffer(frame), T104Frame_getMsgSize(frame));
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->socketWriteLock);
-#endif
 
     self->sendCount = (self->sendCount + 1) % 32768;
 
@@ -233,10 +209,6 @@ sendIMessage(CS104_Connection self, Frame frame)
     self->timeoutT2Trigger = false;
 
     int sendCount = self->sendCount;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif
 
     return sendCount;
 }
@@ -265,8 +237,6 @@ createConnection(const char* hostname, int tcpPort)
         self->rawMessageHandlerParameter = NULL;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
-        self->sentASDUsLock = Semaphore_create(1);
-        self->socketWriteLock = Semaphore_create(1);
         self->conStateLock = Semaphore_create(1);
 #endif
 
@@ -365,10 +335,6 @@ resetConnection(CS104_Connection self)
 static bool
 checkSequenceNumber(CS104_Connection self, int seqNo)
 {
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->sentASDUsLock);
-#endif
-
     /* check if received sequence number is valid */
 
     bool seqNoIsValid = false;
@@ -417,8 +383,6 @@ checkSequenceNumber(CS104_Connection self, int seqNo)
                 if (seqNo == oldestValidSeqNo)
                     break;
 
-
-
                 if (self->sentASDUs [self->oldestSentASDU].seqNo == seqNo) {
                     /* we arrived at the seq# that has been confirmed */
 
@@ -444,13 +408,8 @@ checkSequenceNumber(CS104_Connection self, int seqNo)
         }
     }
 
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->sentASDUsLock);
-#endif
-
     return seqNoIsValid;
 }
-
 
 static bool
 isSentBufferFull(CS104_Connection self)
@@ -497,8 +456,6 @@ CS104_Connection_destroy(CS104_Connection self)
         GLOBAL_FREEMEM(self->sentASDUs);
 
 #if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_destroy(self->sentASDUsLock);
-    Semaphore_destroy(self->socketWriteLock);
     Semaphore_destroy(self->conStateLock);
 #endif
 
@@ -700,7 +657,6 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
 
             goto exit_function;
         }
-            
 
         self->receiveCount = (self->receiveCount + 1) % 32768;
         self->unconfirmedReceivedIMessages++;
@@ -728,13 +684,8 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
 
         if (buffer[2] == 0x43) { /* Check for TESTFR_ACT message */
             DEBUG_PRINT("Send TESTFR_CON\n");
-#if (CONFIG_USE_SEMAPHORES == 1)
-            Semaphore_wait(self->socketWriteLock);
-#endif
+
             writeToSocket(self, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
-#if (CONFIG_USE_SEMAPHORES == 1)
-            Semaphore_post(self->socketWriteLock);
-#endif
         }
         else if (buffer[2] == 0x83) { /* TESTFR_CON */
             DEBUG_PRINT("Rcvd TESTFR_CON\n");
@@ -742,13 +693,9 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
         }
         else if (buffer[2] == 0x07) { /* STARTDT_ACT */
             DEBUG_PRINT("Send STARTDT_CON\n");
-#if (CONFIG_USE_SEMAPHORES == 1)
-            Semaphore_wait(self->socketWriteLock);
-#endif
+
             writeToSocket(self, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
-#if (CONFIG_USE_SEMAPHORES == 1)
-            Semaphore_post(self->socketWriteLock);
-#endif
+
             self->conState = STATE_ACTIVE;
         }
         else if (buffer[2] == 0x0b) { /* STARTDT_CON */
@@ -810,13 +757,9 @@ handleTimeouts(CS104_Connection self)
         }
         else {
             DEBUG_PRINT("U message T3 timeout\n");
-#if (CONFIG_USE_SEMAPHORES == 1)
-            Semaphore_wait(self->socketWriteLock);
-#endif
+
             writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE);
-#if (CONFIG_USE_SEMAPHORES == 1)
-            Semaphore_post(self->socketWriteLock);
-#endif
+
             self->uMessageTimeout = currentTime + (self->parameters.t1 * 1000);
             self->outstandingTestFCConMessages++;
 
@@ -840,9 +783,6 @@ handleTimeouts(CS104_Connection self)
     }
 
     /* check if counterpart confirmed I messages */
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->sentASDUsLock);
-#endif
     if (self->oldestSentASDU != -1) {
         if (currentTime > self->sentASDUs[self->oldestSentASDU].sentTime) {
             if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->parameters.t1 * 1000)) {
@@ -851,9 +791,6 @@ handleTimeouts(CS104_Connection self)
             }
         }
     }
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->sentASDUsLock);
-#endif
 
 exit_function:
 
@@ -1025,9 +962,17 @@ handleConnection(void* parameter)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
                         }
 
+#if (CONFIG_USE_SEMAPHORES == 1)
+                        Semaphore_wait(self->conStateLock);
+#endif /* (CONFIG_USE_SEMAPHORES == 1) */
+
                         if ((self->unconfirmedReceivedIMessages >= self->parameters.w) || (self->conState == STATE_WAITING_FOR_STOPDT_CON)) {
                             confirmOutstandingMessages(self);
                         }
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+                        Semaphore_post(self->conStateLock);
+#endif /* (CONFIG_USE_SEMAPHORES == 1) */
                     }
 
                     if (handleTimeouts(self) == false)
@@ -1202,13 +1147,7 @@ CS104_Connection_sendStartDT(CS104_Connection self)
 
     self->conState = STATE_WAITING_FOR_STARTDT_CON;
 
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->socketWriteLock);
-#endif
     writeToSocket(self, STARTDT_ACT_MSG, STARTDT_ACT_MSG_SIZE);
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->socketWriteLock);
-#endif
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->conStateLock);
@@ -1226,13 +1165,7 @@ CS104_Connection_sendStopDT(CS104_Connection self)
 
     self->conState = STATE_WAITING_FOR_STOPDT_CON;
 
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->socketWriteLock);
-#endif
     writeToSocket(self, STOPDT_ACT_MSG, STOPDT_ACT_MSG_SIZE);
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->socketWriteLock);
-#endif
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->conStateLock);
@@ -1242,10 +1175,6 @@ CS104_Connection_sendStopDT(CS104_Connection self)
 static void
 sendIMessageAndUpdateSentASDUs(CS104_Connection self, Frame frame)
 {
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->sentASDUsLock);
-#endif
-
     int currentIndex = 0;
 
     if (self->oldestSentASDU == -1) {
@@ -1260,10 +1189,6 @@ sendIMessageAndUpdateSentASDUs(CS104_Connection self, Frame frame)
     self->sentASDUs [currentIndex].sentTime = Hal_getTimeInMs();
 
     self->newestSentASDU = currentIndex;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->sentASDUsLock);
-#endif
 }
 
 static bool
@@ -1272,10 +1197,19 @@ sendASDUInternal(CS104_Connection self, Frame frame)
     bool retVal = false;
 
     if (isRunning(self)) {
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_wait(self->conStateLock);
+#endif
+
         if (isSentBufferFull(self) == false) {
             sendIMessageAndUpdateSentASDUs(self, frame);
             retVal = true;
         }
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_post(self->conStateLock);
+#endif
     }
 
     T104Frame_destroy(frame);
