@@ -938,17 +938,19 @@ test_CS104SlaveConnectionIsRedundancyGroup_enqueueThreadFunction(void* parameter
 
         CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
-          InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
+        InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
 
-          scaledValue++;
+        scaledValue++;
 
-          CS101_ASDU_addInformationObject(newAsdu, io);
+        CS101_ASDU_addInformationObject(newAsdu, io);
 
-          InformationObject_destroy(io);
+        InformationObject_destroy(io);
 
-          CS104_Slave_enqueueASDU(info->slave, newAsdu);
+        CS104_Slave_enqueueASDU(info->slave, newAsdu);
 
-          CS101_ASDU_destroy(newAsdu);
+        CS101_ASDU_destroy(newAsdu);
+
+        Thread_sleep(10);
     }
 
     return NULL;
@@ -1022,15 +1024,86 @@ test_CS104SlaveSingleRedundancyGroup()
 
         CS104_Connection_sendStartDT(con);
 
-        Thread_sleep(10);
-
         CS104_Connection_close(con);
+
+        Thread_sleep(10);
     }
 
     info.running = false;
     Thread_destroy(enqueueThread);
 
     CS104_Connection_destroy(con);
+
+    CS104_Slave_destroy(slave);
+}
+
+static void
+test_CS104SlaveSingleRedundancyGroupMultipleConnectionsEventHandler(void* parameter, IMasterConnection connection, CS104_PeerConnectionEvent event)
+{
+    char ipAddrBuf[100];
+    ipAddrBuf[0] = 0;
+
+    IMasterConnection_getPeerAddress(connection, ipAddrBuf, 100);
+}
+
+void
+test_CS104SlaveSingleRedundancyGroupMultipleConnections()
+{
+    CS104_Slave slave = CS104_Slave_create(100, 100);
+
+    CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+    CS104_Slave_setMaxOpenConnections(slave, 20);
+    CS104_Slave_setConnectionEventHandler(slave, test_CS104SlaveSingleRedundancyGroupMultipleConnectionsEventHandler, NULL);
+
+    struct test_CS104SlaveConnectionIsRedundancyGroup_Info info;
+    info.running = true;
+    info.slave = slave;
+
+    CS104_Connection cons[3];
+    int conState[3]; /* 0 = idle, 1 = connected, 2 = START_DT sent */
+
+    cons[0] = CS104_Connection_create("127.0.0.1", 20004);
+    cons[1] = CS104_Connection_create("127.0.0.1", 20004);
+    cons[2] = CS104_Connection_create("127.0.0.1", 20004);
+
+    conState[0] = 0;
+    conState[1] = 0;
+    conState[2] = 0;
+
+    Thread enqueueThread = Thread_create(test_CS104SlaveConnectionIsRedundancyGroup_enqueueThreadFunction, &info, false);
+    Thread_start(enqueueThread);
+
+    int i;
+    for (i = 0; i < 200; i++) {
+
+        int con = rand() % 3;
+
+        if (conState[con] == 0) {
+            bool result = CS104_Connection_connect(cons[con]);
+            TEST_ASSERT_TRUE(result);
+            conState[con] = 1;
+        }
+        else if (conState[con] == 1) {
+            CS104_Connection_sendStartDT(cons[con]);
+            conState[con] = 2;
+        }
+        else if (conState[con] == 2) {
+            CS104_Connection_close(cons[con]);
+            conState[con] = 0;
+        }
+
+        Thread_sleep(5);
+    }
+
+    CS104_Connection_destroy(cons[0]);
+    CS104_Connection_destroy(cons[1]);
+    CS104_Connection_destroy(cons[2]);
+
+    info.running = false;
+    Thread_destroy(enqueueThread);
 
     CS104_Slave_destroy(slave);
 }
@@ -1050,7 +1123,6 @@ test_CS104SlaveEventQueue1_asduReceivedHandler (void* parameter, int address, CS
 
     if (CS101_ASDU_getCOT(asdu) == CS101_COT_SPONTANEOUS) {
         info->spontCount++;
-
 
         if (CS101_ASDU_getTypeID(asdu) == M_ME_NB_1) {
             static uint8_t ioBuf[250];
@@ -6421,6 +6493,7 @@ main(int argc, char** argv)
 
     RUN_TEST(test_CS104SlaveConnectionIsRedundancyGroup);
     RUN_TEST(test_CS104SlaveSingleRedundancyGroup);
+    RUN_TEST(test_CS104SlaveSingleRedundancyGroupMultipleConnections);
 
     RUN_TEST(test_CS104SlaveEventQueue1);
     RUN_TEST(test_CS104SlaveEventQueueOverflow);
