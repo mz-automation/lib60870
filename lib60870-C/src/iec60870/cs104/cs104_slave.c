@@ -2413,6 +2413,11 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             Semaphore_wait(self->stateLock);
 #endif
             if (frameSendSequenceNumber != self->receiveCount) {
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+                Semaphore_post(self->stateLock);
+#endif
+
                 DEBUG_PRINT("CS104 SLAVE: Sequence error - close connection");
                 return false;
             }
