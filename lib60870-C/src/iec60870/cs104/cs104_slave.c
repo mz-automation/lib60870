@@ -1408,20 +1408,6 @@ CS104_Slave_getOpenConnections(CS104_Slave self)
     return openConnections;
 }
 
-static void
-decreaseConnectionCounter(CS104_Slave self)
-{
-#if (CONFIG_USE_SEMAPHORES)
-    Semaphore_wait(self->openConnectionsLock);
-#endif
-
-    self->openConnections--;
-
-#if (CONFIG_USE_SEMAPHORES)
-    Semaphore_post(self->openConnectionsLock);
-#endif
-}
-
 static MasterConnection
 getFreeConnection(CS104_Slave self)
 {
@@ -2413,6 +2399,11 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             Semaphore_wait(self->stateLock);
 #endif
             if (frameSendSequenceNumber != self->receiveCount) {
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+                Semaphore_post(self->stateLock);
+#endif
+
                 DEBUG_PRINT("CS104 SLAVE: Sequence error - close connection");
                 return false;
             }
@@ -2838,8 +2829,8 @@ connectionHandlingThread(void* parameter)
         self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_CONNECTION_OPENED);
     }
 
-    while (MasterConnection_isRunning(self)) {
-
+    while (MasterConnection_isRunning(self))
+    {
         Handleset_reset(self->handleSet);
         Handleset_addSocket(self->handleSet, self->socket);
 
@@ -2907,9 +2898,11 @@ connectionHandlingThread(void* parameter)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
         }
 
-        if (MasterConnection_isRunning(self))
-            if (MasterConnection_isActive(self))
+        if (MasterConnection_isRunning(self)) {
+            if (MasterConnection_isActive(self)) {
                 isAsduWaiting = sendWaitingASDUs(self);
+            }
+        }
     }
 
     if (self->slave->connectionEventHandler) {
@@ -4141,14 +4134,15 @@ CS104_Slave_stop(CS104_Slave self)
         /*
          * Stop all connections
          * */
-#if (CONFIG_USE_SEMAPHORES == 1)
-        Semaphore_wait(self->openConnectionsLock);
-#endif
 
         {
             int i;
 
             for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+                Semaphore_wait(self->openConnectionsLock);
+#endif
 
                 MasterConnection connection = self->masterConnections[i];
 
@@ -4169,23 +4163,34 @@ CS104_Slave_stop(CS104_Slave self)
 
 #if (CONFIG_USE_THREADS == 1)
                         if (connection->connectionThread) {
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+                            Semaphore_post(self->openConnectionsLock);
+#endif
+
                             Thread_destroy(connection->connectionThread);
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+                            Semaphore_wait(self->openConnectionsLock);
+#endif
+
                             MasterConnection_deinit(connection);
 
                             connection->connectionThread = NULL;
                         }
-#endif
+#endif /* (CONFIG_USE_THREADS == 1) */
 
                         self->openConnections--;
                     }
 
                 }
-            }
-        }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
-        Semaphore_post(self->openConnectionsLock);
+                Semaphore_post(self->openConnectionsLock);
 #endif
+
+            }
+        }
 
         self->listeningThread = NULL;
     }
