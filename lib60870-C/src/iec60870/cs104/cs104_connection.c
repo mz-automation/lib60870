@@ -620,9 +620,11 @@ confirmOutstandingMessages(CS104_Connection self)
 }
 
 static bool
-checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
+checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize, bool* startDtReceived, bool* stopDtReceived)
 {
     bool retVal = true;
+    *startDtReceived = false;
+    *stopDtReceived = false;
 
     if ((buffer[2] & 1) == 0) { /* I format frame */
 
@@ -703,16 +705,14 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
 
             self->conState = STATE_ACTIVE;
 
-            if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STARTDT_CON_RECEIVED);
+            *startDtReceived = true;
         }
         else if (buffer[2] == 0x23) { /* STOPDT_CON */
             DEBUG_PRINT("Received STOPDT_CON\n");
 
             self->conState = STATE_INACTIVE;
 
-            if (self->connectionHandler != NULL)
-                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STOPDT_CON_RECEIVED);
+            *stopDtReceived = true;
         }
 
     }
@@ -946,11 +946,14 @@ handleConnection(void* parameter)
                             if (self->rawMessageHandler)
                                 self->rawMessageHandler(self->rawMessageHandlerParameter, self->recvBuffer, bytesRec, false);
 
+                            bool startDtRecevied = false;
+                            bool stopDtReceived = false;
+
 #if (CONFIG_USE_SEMAPHORES == 1)
                             Semaphore_wait(self->conStateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
-                            if (checkMessage(self, self->recvBuffer, bytesRec) == false) {
+                            if (checkMessage(self, self->recvBuffer, bytesRec, &startDtRecevied, &stopDtReceived) == false) {
                                 /* close connection on error */
                                 loopRunning = false;
 
@@ -960,6 +963,14 @@ handleConnection(void* parameter)
 #if (CONFIG_USE_SEMAPHORES == 1)
                             Semaphore_post(self->conStateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
+
+                            if (self->connectionHandler) {
+                                if (startDtRecevied)
+                                    self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STARTDT_CON_RECEIVED);
+
+                                if (stopDtReceived)
+                                    self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STARTDT_CON_RECEIVED);
+                            }
                         }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
