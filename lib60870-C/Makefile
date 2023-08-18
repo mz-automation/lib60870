@@ -74,6 +74,7 @@ LIB_API_HEADER_FILES += src/inc/api/iec60870_master.h
 LIB_API_HEADER_FILES += src/inc/api/iec60870_slave.h
 LIB_API_HEADER_FILES += src/inc/api/link_layer_parameters.h
 LIB_API_HEADER_FILES += src/hal/inc/tls_config.h
+LIB_API_HEADER_FILES += src/file-service/cs101_file_service.h
 
 LIB_TEST_SOURCES = tests/all_tests.c
 LIB_TEST_SOURCES += tests/unity/unity.c

@@ -85,6 +85,7 @@ set(API_HEADERS
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_information_objects.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs104_connection.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/link_layer_parameters.h
+	${CMAKE_CURRENT_LIST_DIR}/src/file-service/cs101_file_service.h
 )
 
 include(CheckCCompilerFlag)
