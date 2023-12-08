@@ -35,10 +35,10 @@ LIB_SOURCE_DIRS += src/hal/memory
 endif
 
 ifdef WITH_MBEDTLS
-LIB_SOURCE_DIRS += dependencies/mbedtls-2.16.12/library
+LIB_SOURCE_DIRS += dependencies/mbedtls-2.28/library
 LIB_SOURCE_DIRS += src/hal/tls/mbedtls
 LIB_INCLUDE_DIRS += src/hal/tls/mbedtls
-LIB_INCLUDE_DIRS += dependencies/mbedtls-2.16.12/include
+LIB_INCLUDE_DIRS += dependencies/mbedtls-2.28/include
 CFLAGS += -D'MBEDTLS_CONFIG_FILE="mbedtls_config.h"'
 CFLAGS += -D'CONFIG_CS104_SUPPORT_TLS=1'
 endif
@@ -74,6 +74,7 @@ LIB_API_HEADER_FILES += src/inc/api/iec60870_master.h
 LIB_API_HEADER_FILES += src/inc/api/iec60870_slave.h
 LIB_API_HEADER_FILES += src/inc/api/link_layer_parameters.h
 LIB_API_HEADER_FILES += src/hal/inc/tls_config.h
+LIB_API_HEADER_FILES += src/file-service/cs101_file_service.h
 
 LIB_TEST_SOURCES = tests/all_tests.c
 LIB_TEST_SOURCES += tests/unity/unity.c
@@ -113,7 +114,7 @@ static_checks:	lib
 	splint -preproc +posixlib +skip-sys-headers +gnuextensions $(LIB_INCLUDES) $(LIB_SOURCES)
 
 cppcheck:	lib
-	cppcheck --force --std=c99 --enable=all $(LIB_INCLUDES) $(LIB_SOURCES) 2> cppcheck-output.xml
+	cppcheck --xml --force --std=c99 --enable=all $(LIB_INCLUDES) $(LIB_SOURCES) 2> cppcheck-output.xml
 
 lib:	$(LIB_NAME)
 

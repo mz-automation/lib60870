@@ -14,6 +14,9 @@ connectionHandler (void* parameter, CS104_Connection connection, CS104_Connectio
     case CS104_CONNECTION_CLOSED:
         printf("Connection closed\n");
         break;
+    case CS104_CONNECTION_FAILED:
+        printf("Failed to connect\n");
+        break;
     case CS104_CONNECTION_STARTDT_CON_RECEIVED:
         printf("Received STARTDT_CON\n");
         break;
@@ -77,6 +80,23 @@ asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
     return true;
 }
 
+static void
+securityEventHandler(void* parameter, TLSEventLevel eventLevel, int eventCode, const char* msg, TLSConnection con)
+{
+    (void)parameter;
+
+    char peerAddrBuf[60];
+    char* peerAddr = NULL;
+    const char* tlsVersion = "unknown";
+
+    if (con) {
+        peerAddr = TLSConnection_getPeerAddress(con, peerAddrBuf);
+        tlsVersion = TLSConfigVersion_toString(TLSConnection_getTLSVersion(con));
+    }
+
+    printf("[SECURITY EVENT] %s (t: %i, c: %i, version: %s remote-ip: %s)\n", msg, eventLevel, eventCode, tlsVersion, peerAddr);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -88,6 +108,8 @@ main(int argc, char** argv)
 
     TLSConfiguration tlsConfig = TLSConfiguration_create();
 
+    TLSConfiguration_setEventHandler(tlsConfig, securityEventHandler, NULL);
+
     TLSConfiguration_setChainValidation(tlsConfig, true);
     TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig, true);
 
@@ -96,6 +118,8 @@ main(int argc, char** argv)
     TLSConfiguration_addCACertificateFromFile(tlsConfig, "root.cer");
 
     TLSConfiguration_addAllowedCertificateFromFile(tlsConfig, "server.cer");
+
+    //TLSConfiguration_setMaxTlsVersion(tlsConfig, TLS_VERSION_TLS_1_1);
 
     CS104_Connection con = CS104_Connection_createSecure(hostname, IEC_60870_5_104_DEFAULT_TLS_PORT, tlsConfig);
 

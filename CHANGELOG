@@ -1,3 +1,18 @@
+Changes to version 2.3.2
+------------------------
+
+- TLS support now requires mbedtls 2.28
+- updated HAL layer
+- Added new IEC 62351-3 related TLS features (session resumption, alarms, ...)
+- CS101 balanced link layer: Send request-status-of-link before calling reset-of-remote-link
+- CS101 unbalanced master: Send request-status-of-link before calling reset-of-remote-link, added delay before repeating request-status-of-link
+- added function CS101_ASDU_clone
+- fixed - TLS: configured CRL are ignored (#117)
+- integrated code to serve files
+- other small bug fixes and improvements
+- CS104 client: added connection event when connect failed
+
+
 Changes to version 2.3.1
 ------------------------
 

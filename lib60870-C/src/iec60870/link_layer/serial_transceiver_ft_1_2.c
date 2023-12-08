@@ -1,7 +1,7 @@
 /*
  *  serial_transceiver_ft_1_2.c
  *
- *  Copyright 2017 MZ Automation GmbH
+ *  Copyright 2017-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -194,7 +194,3 @@ sync_error:
 
     return;
 }
-
-
-
-

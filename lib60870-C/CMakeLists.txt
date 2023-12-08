@@ -12,7 +12,7 @@ ENABLE_TESTING()
 
 set(LIB_VERSION_MAJOR "2")
 set(LIB_VERSION_MINOR "3")
-set(LIB_VERSION_PATCH "1")
+set(LIB_VERSION_PATCH "2")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/third_party/cmake/modules/")
 
@@ -36,11 +36,11 @@ option(BUILD_TESTS "Build the tests" ON)
 
 if(BUILD_HAL)
 
-if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12)
+if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.28)
 set(WITH_MBEDTLS 1)
 else()
-message("NOTE: mbedtls 2.16.12 is required for TLS support!")
-endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12)
+message("NOTE: mbedtls 2.28 is required for TLS support!")
+endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.28)
 
 endif(BUILD_HAL)
 
@@ -56,10 +56,10 @@ include_directories(
 if(WITH_MBEDTLS)
 include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/src/hal/tls/mbedtls
-    ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12/include
+    ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.28/include
 )
 
-file(GLOB tls_SRCS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.16.12/library/*.c)
+file(GLOB tls_SRCS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.28/library/*.c)
 
 add_definitions(-DCONFIG_CS104_SUPPORT_TLS=1)
 add_definitions(-DMBEDTLS_CONFIG_FILE="mbedtls_config.h")
@@ -84,8 +84,15 @@ set(API_HEADERS
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_information_objects.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs104_connection.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/link_layer_parameters.h
+	${CMAKE_CURRENT_LIST_DIR}/src/file-service/cs101_file_service.h
 )
 
+include(CheckCCompilerFlag)
+
+check_c_compiler_flag("-Wredundant-decls" SUPPORT_REDUNDANT_DECLS)
+if (SUPPORT_REDUNDANT_DECLS)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wredundant-decls")
+endif(SUPPORT_REDUNDANT_DECLS)
 
 # write the detected stuff to this file
 # configure_file(config/lib60870_config.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config/lib60870_config.h)

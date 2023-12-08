@@ -1,7 +1,7 @@
 /*
  *  apl_types_internal.h
  *
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -38,22 +38,22 @@ void
 CS101_ASDU_encode(CS101_ASDU self, Frame frame);
 
 bool
-CP16Time2a_getFromBuffer (CP16Time2a self, uint8_t* msg, int msgSize, int startIndex);
+CP16Time2a_getFromBuffer (CP16Time2a self, const uint8_t* msg, int msgSize, int startIndex);
 
 uint8_t*
 CP16Time2a_getEncodedValue(CP16Time2a self);
 
 bool
-CP24Time2a_getFromBuffer (CP24Time2a self, uint8_t* msg, int msgSize, int startIndex);
+CP24Time2a_getFromBuffer (CP24Time2a self, const uint8_t* msg, int msgSize, int startIndex);
 
 bool
-CP32Time2a_getFromBuffer (CP32Time2a self, uint8_t* msg, int msgSize, int startIndex);
+CP32Time2a_getFromBuffer (CP32Time2a self, const uint8_t* msg, int msgSize, int startIndex);
 
 uint8_t*
 CP32Time2a_getEncodedValue(CP32Time2a self);
 
 bool
-CP56Time2a_getFromBuffer (CP56Time2a self, uint8_t* msg, int msgSize, int startIndex);
+CP56Time2a_getFromBuffer (CP56Time2a self, const uint8_t* msg, int msgSize, int startIndex);
 
 uint8_t*
 CP56Time2a_getEncodedValue(CP56Time2a self);

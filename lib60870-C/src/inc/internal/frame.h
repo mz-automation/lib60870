@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -32,7 +32,7 @@ struct sFrameVFT {
     void (*destroy)(Frame self);
     void (*resetFrame)(Frame self);
     void (*setNextByte)(Frame self, uint8_t byte);
-    void (*appendBytes)(Frame self, uint8_t* bytes, int numberOfBytes);
+    void (*appendBytes)(Frame self, const uint8_t* bytes, int numberOfBytes);
     int (*getMsgSize)(Frame self);
     uint8_t* (*getBuffer)(Frame self);
     int (*getSpaceLeft)(Frame self);

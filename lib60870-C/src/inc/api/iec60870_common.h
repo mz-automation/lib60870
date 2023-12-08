@@ -47,7 +47,7 @@ extern "C" {
 
 #define LIB60870_VERSION_MAJOR 2
 #define LIB60870_VERSION_MINOR 3
-#define LIB60870_VERSION_PATCH 1
+#define LIB60870_VERSION_PATCH 2
 
 /**
  * \brief lib60870 version information
@@ -589,7 +589,7 @@ CS101_ASDU_removeAllElements(CS101_ASDU self);
  * \brief Get the elapsed time in ms
  */
 int
-CP16Time2a_getEplapsedTimeInMs(CP16Time2a self);
+CP16Time2a_getEplapsedTimeInMs(const CP16Time2a self);
 
 /**
  * \brief set the elapsed time in ms
@@ -601,7 +601,7 @@ CP16Time2a_setEplapsedTimeInMs(CP16Time2a self, int value);
  * \brief Get the millisecond part of the time value
  */
 int
-CP24Time2a_getMillisecond(CP24Time2a self);
+CP24Time2a_getMillisecond(const CP24Time2a self);
 
 /**
  * \brief Set the millisecond part of the time value
@@ -613,7 +613,7 @@ CP24Time2a_setMillisecond(CP24Time2a self, int value);
  * \brief Get the second part of the time value
  */
 int
-CP24Time2a_getSecond(CP24Time2a self);
+CP24Time2a_getSecond(const CP24Time2a self);
 
 /**
  * \brief Set the second part of the time value
@@ -625,7 +625,7 @@ CP24Time2a_setSecond(CP24Time2a self, int value);
  * \brief Get the minute part of the time value
  */
 int
-CP24Time2a_getMinute(CP24Time2a self);
+CP24Time2a_getMinute(const CP24Time2a self);
 
 /**
  * \brief Set the minute part of the time value
@@ -637,7 +637,7 @@ CP24Time2a_setMinute(CP24Time2a self, int value);
  * \brief Check if the invalid flag of the time value is set
  */
 bool
-CP24Time2a_isInvalid(CP24Time2a self);
+CP24Time2a_isInvalid(const CP24Time2a self);
 
 /**
  * \brief Set the invalid flag of the time value
@@ -649,7 +649,7 @@ CP24Time2a_setInvalid(CP24Time2a self, bool value);
  * \brief Check if the substituted flag of the time value is set
  */
 bool
-CP24Time2a_isSubstituted(CP24Time2a self);
+CP24Time2a_isSubstituted(const CP24Time2a self);
 
 /**
  * \brief Set the substituted flag of the time value
@@ -671,44 +671,44 @@ void
 CP32Time2a_setFromMsTimestamp(CP32Time2a self, uint64_t timestamp);
 
 int
-CP32Time2a_getMillisecond(CP32Time2a self);
+CP32Time2a_getMillisecond(const CP32Time2a self);
 
 void
 CP32Time2a_setMillisecond(CP32Time2a self, int value);
 
 int
-CP32Time2a_getSecond(CP32Time2a self);
+CP32Time2a_getSecond(const CP32Time2a self);
 
 void
 CP32Time2a_setSecond(CP32Time2a self, int value);
 
 int
-CP32Time2a_getMinute(CP32Time2a self);
+CP32Time2a_getMinute(const CP32Time2a self);
 
 
 void
 CP32Time2a_setMinute(CP32Time2a self, int value);
 
 bool
-CP32Time2a_isInvalid(CP32Time2a self);
+CP32Time2a_isInvalid(const CP32Time2a self);
 
 void
 CP32Time2a_setInvalid(CP32Time2a self, bool value);
 
 bool
-CP32Time2a_isSubstituted(CP32Time2a self);
+CP32Time2a_isSubstituted(const CP32Time2a self);
 
 void
 CP32Time2a_setSubstituted(CP32Time2a self, bool value);
 
 int
-CP32Time2a_getHour(CP32Time2a self);
+CP32Time2a_getHour(const CP32Time2a self);
 
 void
 CP32Time2a_setHour(CP32Time2a self, int value);
 
 bool
-CP32Time2a_isSummerTime(CP32Time2a self);
+CP32Time2a_isSummerTime(const CP32Time2a self);
 
 void
 CP32Time2a_setSummerTime(CP32Time2a self, bool value);
@@ -723,13 +723,13 @@ CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp);
  * \brief Convert a 7 byte time to a ms timestamp
  */
 uint64_t
-CP56Time2a_toMsTimestamp(CP56Time2a self);
+CP56Time2a_toMsTimestamp(const CP56Time2a self);
 
 /**
  * \brief Get the ms part of a time value
  */
 int
-CP56Time2a_getMillisecond(CP56Time2a self);
+CP56Time2a_getMillisecond(const CP56Time2a self);
 
 /**
  * \brief Set the ms part of a time value
@@ -738,31 +738,31 @@ void
 CP56Time2a_setMillisecond(CP56Time2a self, int value);
 
 int
-CP56Time2a_getSecond(CP56Time2a self);
+CP56Time2a_getSecond(const CP56Time2a self);
 
 void
 CP56Time2a_setSecond(CP56Time2a self, int value);
 
 int
-CP56Time2a_getMinute(CP56Time2a self);
+CP56Time2a_getMinute(const CP56Time2a self);
 
 void
 CP56Time2a_setMinute(CP56Time2a self, int value);
 
 int
-CP56Time2a_getHour(CP56Time2a self);
+CP56Time2a_getHour(const CP56Time2a self);
 
 void
 CP56Time2a_setHour(CP56Time2a self, int value);
 
 int
-CP56Time2a_getDayOfWeek(CP56Time2a self);
+CP56Time2a_getDayOfWeek(const CP56Time2a self);
 
 void
 CP56Time2a_setDayOfWeek(CP56Time2a self, int value);
 
 int
-CP56Time2a_getDayOfMonth(CP56Time2a self);
+CP56Time2a_getDayOfMonth(const CP56Time2a self);
 
 void
 CP56Time2a_setDayOfMonth(CP56Time2a self, int value);
@@ -773,7 +773,7 @@ CP56Time2a_setDayOfMonth(CP56Time2a self, int value);
  * \return value the month (1..12)
  */
 int
-CP56Time2a_getMonth(CP56Time2a self);
+CP56Time2a_getMonth(const CP56Time2a self);
 
 /**
  * \brief Set the month field of the time
@@ -789,7 +789,7 @@ CP56Time2a_setMonth(CP56Time2a self, int value);
  * \param value the year (0..99)
  */
 int
-CP56Time2a_getYear(CP56Time2a self);
+CP56Time2a_getYear(const CP56Time2a self);
 
 /**
  * \brief Set the year
@@ -800,19 +800,19 @@ void
 CP56Time2a_setYear(CP56Time2a self, int value);
 
 bool
-CP56Time2a_isSummerTime(CP56Time2a self);
+CP56Time2a_isSummerTime(const CP56Time2a self);
 
 void
 CP56Time2a_setSummerTime(CP56Time2a self, bool value);
 
 bool
-CP56Time2a_isInvalid(CP56Time2a self);
+CP56Time2a_isInvalid(const CP56Time2a self);
 
 void
 CP56Time2a_setInvalid(CP56Time2a self, bool value);
 
 bool
-CP56Time2a_isSubstituted(CP56Time2a self);
+CP56Time2a_isSubstituted(const CP56Time2a self);
 
 void
 CP56Time2a_setSubstituted(CP56Time2a self, bool value);

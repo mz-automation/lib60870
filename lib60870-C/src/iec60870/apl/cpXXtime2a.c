@@ -3,7 +3,7 @@
  *
  *  Implementation of the types CP16Time2a, CP24Time2a and CP56Time2a
  *
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -39,7 +39,7 @@
  **********************************/
 
 bool
-CP16Time2a_getFromBuffer (CP16Time2a self, uint8_t* msg, int msgSize, int startIndex)
+CP16Time2a_getFromBuffer (CP16Time2a self, const uint8_t* msg, int msgSize, int startIndex)
 {
     if (msgSize < startIndex + 2)
         return false;
@@ -53,7 +53,7 @@ CP16Time2a_getFromBuffer (CP16Time2a self, uint8_t* msg, int msgSize, int startI
 }
 
 int
-CP16Time2a_getEplapsedTimeInMs(CP16Time2a self)
+CP16Time2a_getEplapsedTimeInMs(const CP16Time2a self)
 {
     return (self->encodedValue[0] + (self->encodedValue[1] * 0x100));
 }
@@ -76,7 +76,7 @@ CP16Time2a_getEncodedValue(CP16Time2a self)
  ************************************/
 
 static int
-getMillisecond(uint8_t* encodedValue)
+getMillisecond(const uint8_t* encodedValue)
 {
     return (encodedValue[0] + (encodedValue[1] * 0x100)) % 1000;
 }
@@ -96,7 +96,7 @@ setMillisecond(uint8_t* encodedValue, int value)
 }
 
 static int
-getSecond(uint8_t* encodedValue)
+getSecond(const uint8_t* encodedValue)
 {
     return  (encodedValue[0] + (encodedValue[1] * 0x100)) / 1000;
 }
@@ -115,7 +115,7 @@ setSecond(uint8_t* encodedValue, int value)
 }
 
 static int
-getMinute(uint8_t* encodedValue)
+getMinute(const uint8_t* encodedValue)
 {
     return (encodedValue[2] & 0x3f);
 }
@@ -127,7 +127,7 @@ setMinute(uint8_t* encodedValue, int value)
 }
 
 static bool
-isInvalid(uint8_t* encodedValue)
+isInvalid(const uint8_t* encodedValue)
 {
     return ((encodedValue[2] & 0x80) != 0);
 }
@@ -142,7 +142,7 @@ setInvalid(uint8_t* encodedValue, bool value)
 }
 
 static bool
-isSubstituted(uint8_t* encodedValue)
+isSubstituted(const uint8_t* encodedValue)
 {
     return ((encodedValue[2] & 0x40) == 0x40);
 }
@@ -161,7 +161,7 @@ setSubstituted(uint8_t* encodedValue, bool value)
  **********************************/
 
 bool
-CP24Time2a_getFromBuffer (CP24Time2a self, uint8_t* msg, int msgSize, int startIndex)
+CP24Time2a_getFromBuffer (CP24Time2a self, const uint8_t* msg, int msgSize, int startIndex)
 {
     if (msgSize < startIndex + 3)
         return false;
@@ -175,7 +175,7 @@ CP24Time2a_getFromBuffer (CP24Time2a self, uint8_t* msg, int msgSize, int startI
 }
 
 int
-CP24Time2a_getMillisecond(CP24Time2a self)
+CP24Time2a_getMillisecond(const CP24Time2a self)
 {
     return getMillisecond(self->encodedValue);
 }
@@ -187,7 +187,7 @@ CP24Time2a_setMillisecond(CP24Time2a self, int value)
 }
 
 int
-CP24Time2a_getSecond(CP24Time2a self)
+CP24Time2a_getSecond(const CP24Time2a self)
 {
     return getSecond(self->encodedValue);
 }
@@ -199,7 +199,7 @@ CP24Time2a_setSecond(CP24Time2a self, int value)
 }
 
 int
-CP24Time2a_getMinute(CP24Time2a self)
+CP24Time2a_getMinute(const CP24Time2a self)
 {
     return getMinute(self->encodedValue);
 }
@@ -212,7 +212,7 @@ CP24Time2a_setMinute(CP24Time2a self, int value)
 }
 
 bool
-CP24Time2a_isInvalid(CP24Time2a self)
+CP24Time2a_isInvalid(const CP24Time2a self)
 {
     return isInvalid(self->encodedValue);
 }
@@ -224,7 +224,7 @@ CP24Time2a_setInvalid(CP24Time2a self, bool value)
 }
 
 bool
-CP24Time2a_isSubstituted(CP24Time2a self)
+CP24Time2a_isSubstituted(const CP24Time2a self)
 {
     return isSubstituted(self->encodedValue);
 }
@@ -322,7 +322,7 @@ CP32Time2a_create(CP32Time2a self)
 }
 
 bool
-CP32Time2a_getFromBuffer (CP32Time2a self, uint8_t* msg, int msgSize, int startIndex)
+CP32Time2a_getFromBuffer (CP32Time2a self, const uint8_t* msg, int msgSize, int startIndex)
 {
     if (msgSize < startIndex + 4)
         return false;
@@ -336,7 +336,7 @@ CP32Time2a_getFromBuffer (CP32Time2a self, uint8_t* msg, int msgSize, int startI
 }
 
 int
-CP32Time2a_getMillisecond(CP32Time2a self)
+CP32Time2a_getMillisecond(const CP32Time2a self)
 {
     return (self->encodedValue[0] + (self->encodedValue[1] * 0x100)) % 1000;
 }
@@ -352,7 +352,7 @@ CP32Time2a_setMillisecond(CP32Time2a self, int value)
 
 
 int
-CP32Time2a_getSecond(CP32Time2a self)
+CP32Time2a_getSecond(const CP32Time2a self)
 {
     return getSecond(self->encodedValue);
 }
@@ -364,7 +364,7 @@ CP32Time2a_setSecond(CP32Time2a self, int value)
 }
 
 int
-CP32Time2a_getMinute(CP32Time2a self)
+CP32Time2a_getMinute(const CP32Time2a self)
 {
     return getMinute(self->encodedValue);
 }
@@ -377,7 +377,7 @@ CP32Time2a_setMinute(CP32Time2a self, int value)
 }
 
 bool
-CP32Time2a_isInvalid(CP32Time2a self)
+CP32Time2a_isInvalid(const CP32Time2a self)
 {
     return isInvalid(self->encodedValue);
 }
@@ -389,7 +389,7 @@ CP32Time2a_setInvalid(CP32Time2a self, bool value)
 }
 
 bool
-CP32Time2a_isSubstituted(CP32Time2a self)
+CP32Time2a_isSubstituted(const CP32Time2a self)
 {
     return isSubstituted(self->encodedValue);
 }
@@ -401,7 +401,7 @@ CP32Time2a_setSubstituted(CP32Time2a self, bool value)
 }
 
 int
-CP32Time2a_getHour(CP32Time2a self)
+CP32Time2a_getHour(const CP32Time2a self)
 {
     return (self->encodedValue[3] & 0x1f);
 }
@@ -413,7 +413,7 @@ CP32Time2a_setHour(CP32Time2a self, int value)
 }
 
 bool
-CP32Time2a_isSummerTime(CP32Time2a self)
+CP32Time2a_isSummerTime(const CP32Time2a self)
 {
     return ((self->encodedValue[3] & 0x80) != 0);
 }
@@ -515,7 +515,7 @@ CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
 
 
 uint64_t
-CP56Time2a_toMsTimestamp(CP56Time2a self)
+CP56Time2a_toMsTimestamp(const CP56Time2a self)
 {
     struct tm tmTime;
 
@@ -534,7 +534,7 @@ CP56Time2a_toMsTimestamp(CP56Time2a self)
 }
 
 /* private */ bool
-CP56Time2a_getFromBuffer(CP56Time2a self, uint8_t* msg, int msgSize, int startIndex)
+CP56Time2a_getFromBuffer(CP56Time2a self, const uint8_t* msg, int msgSize, int startIndex)
 {
     if (msgSize < startIndex + 7)
         return false;
@@ -548,7 +548,7 @@ CP56Time2a_getFromBuffer(CP56Time2a self, uint8_t* msg, int msgSize, int startIn
 }
 
 int
-CP56Time2a_getMillisecond(CP56Time2a self)
+CP56Time2a_getMillisecond(const CP56Time2a self)
 {
     return getMillisecond(self->encodedValue);
 }
@@ -560,7 +560,7 @@ CP56Time2a_setMillisecond(CP56Time2a self, int value)
 }
 
 int
-CP56Time2a_getSecond(CP56Time2a self)
+CP56Time2a_getSecond(const CP56Time2a self)
 {
     return getSecond(self->encodedValue);
 }
@@ -572,7 +572,7 @@ CP56Time2a_setSecond(CP56Time2a self, int value)
 }
 
 int
-CP56Time2a_getMinute(CP56Time2a self)
+CP56Time2a_getMinute(const CP56Time2a self)
 {
     return getMinute(self->encodedValue);
 }
@@ -584,7 +584,7 @@ CP56Time2a_setMinute(CP56Time2a self, int value)
 }
 
 int
-CP56Time2a_getHour(CP56Time2a self)
+CP56Time2a_getHour(const CP56Time2a self)
 {
     return (self->encodedValue[3] & 0x1f);
 }
@@ -596,7 +596,7 @@ CP56Time2a_setHour(CP56Time2a self, int value)
 }
 
 int
-CP56Time2a_getDayOfWeek(CP56Time2a self)
+CP56Time2a_getDayOfWeek(const CP56Time2a self)
 {
     return ((self->encodedValue[4] & 0xe0) >> 5);
 }
@@ -608,7 +608,7 @@ CP56Time2a_setDayOfWeek(CP56Time2a self, int value)
 }
 
 int
-CP56Time2a_getDayOfMonth(CP56Time2a self)
+CP56Time2a_getDayOfMonth(const CP56Time2a self)
 {
     return (self->encodedValue[4] & 0x1f);
 }
@@ -620,7 +620,7 @@ CP56Time2a_setDayOfMonth(CP56Time2a self, int value)
 }
 
 int
-CP56Time2a_getMonth(CP56Time2a self)
+CP56Time2a_getMonth(const CP56Time2a self)
 {
     return (self->encodedValue[5] & 0x0f);
 }
@@ -632,7 +632,7 @@ CP56Time2a_setMonth(CP56Time2a self, int value)
 }
 
 int
-CP56Time2a_getYear(CP56Time2a self)
+CP56Time2a_getYear(const CP56Time2a self)
 {
     return (self->encodedValue[6] & 0x7f);
 }
@@ -646,7 +646,7 @@ CP56Time2a_setYear(CP56Time2a self, int value)
 }
 
 bool
-CP56Time2a_isSummerTime(CP56Time2a self)
+CP56Time2a_isSummerTime(const CP56Time2a self)
 {
     return ((self->encodedValue[3] & 0x80) != 0);
 }
@@ -661,7 +661,7 @@ CP56Time2a_setSummerTime(CP56Time2a self, bool value)
 }
 
 bool
-CP56Time2a_isInvalid(CP56Time2a self)
+CP56Time2a_isInvalid(const CP56Time2a self)
 {
     return isInvalid(self->encodedValue);
 }
@@ -673,7 +673,7 @@ CP56Time2a_setInvalid(CP56Time2a self, bool value)
 }
 
 bool
-CP56Time2a_isSubstituted(CP56Time2a self)
+CP56Time2a_isSubstituted(const CP56Time2a self)
 {
     return isSubstituted(self->encodedValue);
 }
