@@ -166,7 +166,7 @@ static struct sIPrimaryApplicationLayer cs101UnbalancedAppLayerInterface = {
  ********************************************/
 
 CS101_Master
-CS101_Master_createEx(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode,
+CS101_Master_createEx(SerialPort serialPort, const LinkLayerParameters llParameters, const CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode,
         int queueSize)
 {
     CS101_Master self = (CS101_Master) GLOBAL_MALLOC(sizeof(struct sCS101_Master));
@@ -179,6 +179,7 @@ CS101_Master_createEx(SerialPort serialPort, LinkLayerParameters llParameters, C
             self->linkLayerParameters.addressLength = 1;
             self->linkLayerParameters.timeoutForAck = 200;
             self->linkLayerParameters.timeoutRepeat = 1000;
+            self->linkLayerParameters.timeoutLinkState = 5000;
             self->linkLayerParameters.useSingleCharACK = true;
         }
 
@@ -223,7 +224,7 @@ CS101_Master_createEx(SerialPort serialPort, LinkLayerParameters llParameters, C
 }
 
 CS101_Master
-CS101_Master_create(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode)
+CS101_Master_create(SerialPort serialPort, const LinkLayerParameters llParameters, const CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode)
 {
     return CS101_Master_createEx(serialPort, llParameters, alParameters, linkLayerMode, CS101_MAX_QUEUE_SIZE);
 }
@@ -232,11 +233,11 @@ void
 CS101_Master_run(CS101_Master self)
 {
     if (self->unbalancedLinkLayer) {
-
         LinkLayerPrimaryUnbalanced_run(self->unbalancedLinkLayer);
     }
-    else
+    else {
         LinkLayerBalanced_run(self->balancedLinkLayer);
+    }
 }
 
 #if (CONFIG_USE_THREADS == 1)

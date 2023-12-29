@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 MZ Automation GmbH
+ *  Copyright 2013-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -116,7 +116,7 @@ LinkedList_add(LinkedList list, void* data)
 }
 
 bool
-LinkedList_remove(LinkedList list, void* data)
+LinkedList_remove(LinkedList list, const void* data)
 {
     LinkedList lastElement = list;
 

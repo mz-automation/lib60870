@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017 MZ Automation GmbH
+ *  Copyright 2013-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -116,7 +116,7 @@ LinkedList_add(LinkedList self, void* data);
  * \param data data to remove from the LinkedList instance
  */
 bool
-LinkedList_remove(LinkedList self, void* data);
+LinkedList_remove(LinkedList self, const void* data);
 
 /**
  * \brief Get the list element specified by index (starting with 0).

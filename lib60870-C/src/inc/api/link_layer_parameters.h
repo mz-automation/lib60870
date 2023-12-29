@@ -1,7 +1,7 @@
 /*
  *  link_layer_parameters.h
  *
- *  Copyright 2017 MZ Automation GmbH
+ *  Copyright 2017-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -44,6 +44,7 @@ struct sLinkLayerParameters {
     int timeoutForAck; /** timeout for link layer ACK in ms */
     int timeoutRepeat; /** timeout for repeated message transmission when no ACK received in ms */
     bool useSingleCharACK; /** use single char ACK for ACK (FC=0) or RESP_NO_USER_DATA (FC=9) */
+    int timeoutLinkState; /** interval to repeat request status of link (FC=9) after response timeout */
 };
 
 #ifdef __cplusplus

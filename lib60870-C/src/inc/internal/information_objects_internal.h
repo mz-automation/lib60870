@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -34,7 +34,7 @@ void
 InformationObject_setObjectAddress(InformationObject self, int ioa);
 
 int
-InformationObject_ParseObjectAddress(CS101_AppLayerParameters parameters, uint8_t* msg, int startIndex);
+InformationObject_ParseObjectAddress(CS101_AppLayerParameters parameters, const uint8_t* msg, int startIndex);
 
 SinglePointInformation
 SinglePointInformation_getFromBuffer(SinglePointInformation self, CS101_AppLayerParameters parameters,

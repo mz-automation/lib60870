@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -136,7 +136,7 @@ T104Frame_destroy(Frame super)
 #if (CONFIG_LIB60870_STATIC_FRAMES == 1)
     self->allocated = 0;
 #else
-    free(self);
+    GLOBAL_FREEMEM(self);
 #endif
 }
 
@@ -171,7 +171,7 @@ T104Frame_setNextByte(Frame super, uint8_t byte)
 }
 
 void
-T104Frame_appendBytes(Frame super, uint8_t* bytes, int numberOfBytes)
+T104Frame_appendBytes(Frame super, const uint8_t* bytes, int numberOfBytes)
 {
     T104Frame self = (T104Frame) super;
 
@@ -208,4 +208,3 @@ T104Frame_getSpaceLeft(Frame super)
 
     return (IEC60870_5_104_MAX_ASDU_LENGTH + IEC60870_5_104_APCI_LENGTH - self->msgSize);
 }
-

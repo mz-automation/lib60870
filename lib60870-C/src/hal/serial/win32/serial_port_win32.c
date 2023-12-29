@@ -7,6 +7,11 @@
 *  for libiec61850, libmms, and lib60870.
 */
 
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_NONSTDC_NO_DEPRECATE
+#endif
+
 #include <stdint.h>
 #include <stdio.h>
 
@@ -64,9 +69,10 @@ SerialPort_destroy(SerialPort self)
 bool
 SerialPort_open(SerialPort self)
 {
+    COMMTIMEOUTS timeouts = { 0 };
+
 	self->comPort = CreateFile(self->interfaceName, GENERIC_READ | GENERIC_WRITE,
 		0, NULL, OPEN_EXISTING, 0, NULL);
-
 
 	if (self->comPort == INVALID_HANDLE_VALUE) {
 		self->lastError = SERIAL_PORT_ERROR_OPEN_FAILED;
@@ -147,8 +153,6 @@ SerialPort_open(SerialPort self)
 		self->lastError = SERIAL_PORT_ERROR_INVALID_ARGUMENT;
 		goto exit_error;
 	}
-
-	COMMTIMEOUTS timeouts = { 0 };
 
 	timeouts.ReadIntervalTimeout = 100;
 	timeouts.ReadTotalTimeoutConstant = 50;

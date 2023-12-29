@@ -210,16 +210,6 @@ main(int argc, char** argv)
         goto exit_program;
     }
 
-    CS101_ASDU newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_INITIALIZED, 0, 1, false, false);
-
-    InformationObject io = (InformationObject) EndOfInitialization_create(NULL, 0);
-
-    CS101_ASDU_addInformationObject(newAsdu, io);
-
-    InformationObject_destroy(io);
-
-    CS104_Slave_enqueueASDU(slave, newAsdu);
-
     int16_t scaledValue = 0;
 
     while (running) {
@@ -231,22 +221,26 @@ main(int argc, char** argv)
             printf("Connected clients: %i\n", openConnections);
         }
 
+        CS101_ASDU periodicAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+        if (periodicAsdu) {
+            InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
+
+            if (io) {
+                scaledValue++;
+
+                CS101_ASDU_addInformationObject(periodicAsdu, io);
+
+                InformationObject_destroy(io);
+
+                /* Add ASDU to slave event queue */
+                CS104_Slave_enqueueASDU(slave, periodicAsdu);
+            }
+
+            CS101_ASDU_destroy(periodicAsdu);
+        }
+
         Thread_sleep(1000);
-
-        CS101_ASDU newAsdu = CS101_ASDU_create(appLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
-
-        InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
-
-        scaledValue++;
-
-        CS101_ASDU_addInformationObject(newAsdu, io);
-
-        InformationObject_destroy(io);
-
-        /* Add ASDU to slave event queue */
-        CS104_Slave_enqueueASDU(slave, newAsdu);
-
-        CS101_ASDU_destroy(newAsdu);
     }
 
     CS104_Slave_stop(slave);
