@@ -1031,23 +1031,25 @@ handleConnection(void* parameter)
 
         self->conState = STATE_IDLE;
 
+        self->running = false;
+
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_post(self->conStateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
     }
     else {
     	DEBUG_PRINT("Failed to create socket\n");
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_wait(self->conStateLock);
+#endif /* (CONFIG_USE_SEMAPHORES == 1) */
+
+        self->running = false;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+        Semaphore_post(self->conStateLock);
+#endif /* (CONFIG_USE_SEMAPHORES == 1) */
     }
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-    self->running = false;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
     /* Call connection handler */
     if ((event == CS104_CONNECTION_CLOSED) || (event == CS104_CONNECTION_FAILED)) {
