@@ -3812,8 +3812,6 @@ serverThread (void* parameter)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
                     }
-
-                    break;
                 }
             }
         }
