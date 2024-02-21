@@ -941,9 +941,6 @@ handleConnection(void* parameter)
                             if (self->rawMessageHandler)
                                 self->rawMessageHandler(self->rawMessageHandlerParameter, self->recvBuffer, bytesRec, false);
 
-                            bool startDtRecevied = false;
-                            bool stopDtReceived = false;
-
 #if (CONFIG_USE_SEMAPHORES == 1)
                             Semaphore_wait(self->conStateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
