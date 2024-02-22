@@ -2903,6 +2903,21 @@ connectionHandlingThread(void* parameter)
                 isAsduWaiting = sendWaitingASDUs(self);
             }
         }
+
+        /* call plugins */
+        if (self->slave->plugins) {
+
+            LinkedList pluginElem = LinkedList_getNext(self->slave->plugins);
+
+            while (pluginElem) {
+
+                CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
+
+                plugin->runTask(plugin->parameter, &(self->iMasterConnection));
+
+                pluginElem = LinkedList_getNext(pluginElem);
+            }
+        }
     }
 
     if (self->slave->connectionEventHandler) {
@@ -3812,8 +3827,6 @@ serverThread (void* parameter)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
                     }
-
-                    break;
                 }
             }
         }
