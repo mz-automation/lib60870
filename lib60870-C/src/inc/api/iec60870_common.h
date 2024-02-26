@@ -524,6 +524,18 @@ CS101_ASDU
 CS101_ASDU_clone(CS101_ASDU self, CS101_StaticASDU clone);
 
 /**
+ * \brief Create a new ASDU from raw message
+ * 
+ * \param parameters the application layer parameters used to encode the ASDU
+ * \param msg the message buffer
+ * \param msgLength size of the message
+ * 
+ * \return the new ASDU instance from raw message.
+ */
+CS101_ASDU
+CS101_ASDU_createFromBuffer(CS101_AppLayerParameters parameters, uint8_t* msg, int msgLength);
+
+/**
  * Get the ASDU payload
  *
  * The payload is the ASDU message part after the ASDU header (type ID, VSQ, COT, CASDU)
