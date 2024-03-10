@@ -1021,8 +1021,10 @@ handleConnection(void* parameter)
         }
 
     #if (CONFIG_CS104_SUPPORT_TLS == 1)
-        if (self->tlsSocket)
-            TLSSocket_close(self->tlsSocket);
+        if (self->tlsSocket) {
+          TLSSocket_close(self->tlsSocket);
+          self->tlsSocket = NULL;
+        }
     #endif
 
         Socket_destroy(self->socket);
