@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2019 MZ Automation GmbH
+ *  Copyright 2016-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -61,7 +61,7 @@ SingleEvent_setEventState(SingleEvent self, EventState eventState)
 }
 
 EventState
-SingleEvent_getEventState(SingleEvent self)
+SingleEvent_getEventState(const SingleEvent self)
 {
     return (EventState) (*self & 0x3);
 }
@@ -79,19 +79,19 @@ SingleEvent_setQDP(SingleEvent self, QualityDescriptorP qdp)
 }
 
 QualityDescriptorP
-SingleEvent_getQDP(SingleEvent self)
+SingleEvent_getQDP(const SingleEvent self)
 {
     return (QualityDescriptor) (*self & 0xfc);
 }
 
 uint16_t
-StatusAndStatusChangeDetection_getSTn(StatusAndStatusChangeDetection self)
+StatusAndStatusChangeDetection_getSTn(const StatusAndStatusChangeDetection self)
 {
     return (uint16_t) (self->encodedValue[0] + 256 * self->encodedValue[1]);
 }
 
 uint16_t
-StatusAndStatusChangeDetection_getCDn(StatusAndStatusChangeDetection self)
+StatusAndStatusChangeDetection_getCDn(const StatusAndStatusChangeDetection self)
 {
     return (uint16_t) (self->encodedValue[2] + 256 * self->encodedValue[3]);
 }
@@ -104,7 +104,7 @@ StatusAndStatusChangeDetection_setSTn(StatusAndStatusChangeDetection self, uint1
 }
 
 bool
-StatusAndStatusChangeDetection_getST(StatusAndStatusChangeDetection self, int index)
+StatusAndStatusChangeDetection_getST(const StatusAndStatusChangeDetection self, int index)
 {
     if ((index >= 0) && (index < 16))
         return ((int) (StatusAndStatusChangeDetection_getSTn(self) & (1 << index)) != 0);
@@ -113,7 +113,7 @@ StatusAndStatusChangeDetection_getST(StatusAndStatusChangeDetection self, int in
 }
 
 bool
-StatusAndStatusChangeDetection_getCD(StatusAndStatusChangeDetection self, int index)
+StatusAndStatusChangeDetection_getCD(const StatusAndStatusChangeDetection self, int index)
 {
     if ((index >= 0) && (index < 16))
         return ((int) (StatusAndStatusChangeDetection_getCDn(self) & (1 << index)) != 0);
@@ -184,7 +184,7 @@ InformationObject_encodeBase(InformationObject self, Frame frame, CS101_AppLayer
 }
 
 int
-InformationObject_ParseObjectAddress(CS101_AppLayerParameters parameters, uint8_t* msg, int startIndex)
+InformationObject_ParseObjectAddress(CS101_AppLayerParameters parameters, const uint8_t* msg, int startIndex)
 {
     /* parse information object address */
     int ioa = msg [startIndex];
@@ -504,12 +504,12 @@ StepPositionWithCP56Time2a_destroy(StepPositionWithCP56Time2a self)
 
 StepPositionWithCP56Time2a
 StepPositionWithCP56Time2a_create(StepPositionWithCP56Time2a self, int ioa, int value, bool isTransient,
-        QualityDescriptor quality, CP56Time2a timestamp)
+        QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (StepPositionWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sStepPositionWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         StepPositionWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -559,7 +559,7 @@ StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, CS101_
     if (self == NULL)
 		self = (StepPositionWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         StepPositionWithCP56Time2a_initialize(self);
 
         if (!isSequence) {
@@ -624,12 +624,12 @@ StepPositionWithCP24Time2a_destroy(StepPositionWithCP24Time2a self)
 
 StepPositionWithCP24Time2a
 StepPositionWithCP24Time2a_create(StepPositionWithCP24Time2a self, int ioa, int value, bool isTransient,
-        QualityDescriptor quality, CP24Time2a timestamp)
+        QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
         self = (StepPositionWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sStepPositionWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         StepPositionWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -680,7 +680,7 @@ StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, CS101_
     if (self == NULL)
 		self = (StepPositionWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         StepPositionWithCP24Time2a_initialize(self);
 
         if (!isSequence) {
@@ -749,12 +749,13 @@ DoublePointInformation_create(DoublePointInformation self, int ioa, DoublePointV
     if (self == NULL)
         self = (DoublePointInformation) GLOBAL_CALLOC(1, sizeof(struct sDoublePointInformation));
 
-    if (self != NULL)
+    if (self) {
         DoublePointInformation_initialize(self);
 
-    self->objectAddress = ioa;
-    self->value = value;
-    self->quality = quality & 0xf0;
+        self->objectAddress = ioa;
+        self->value = value;
+        self->quality = quality & 0xf0;
+    }
 
     return self;
 }
@@ -789,7 +790,7 @@ DoublePointInformation_getFromBuffer(DoublePointInformation self, CS101_AppLayer
     if (self == NULL)
 		self = (DoublePointInformation) GLOBAL_MALLOC(sizeof(struct sDoublePointInformation));
 
-    if (self != NULL) {
+    if (self) {
         DoublePointInformation_initialize(self);
 
         if (!isSequence) {
@@ -857,12 +858,12 @@ DoublePointWithCP24Time2a_initialize(DoublePointWithCP24Time2a self)
 
 DoublePointWithCP24Time2a
 DoublePointWithCP24Time2a_create(DoublePointWithCP24Time2a self, int ioa, DoublePointValue value,
-        QualityDescriptor quality, CP24Time2a timestamp)
+        QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
         self = (DoublePointWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sDoublePointWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         DoublePointWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -898,7 +899,7 @@ DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, CS101_Ap
     if (self == NULL)
 		self = (DoublePointWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         DoublePointWithCP24Time2a_initialize(self);
 
         if (!isSequence) {
@@ -920,7 +921,6 @@ DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, CS101_Ap
 
     return self;
 }
-
 
 /*******************************************
  * DoublePointWithCP56Time2a
@@ -948,8 +948,6 @@ DoublePointWithCP56Time2a_encode(DoublePointWithCP56Time2a self, Frame frame, CS
     return true;
 }
 
-
-
 struct sInformationObjectVFT doublePointWithCP56Time2aVFT = {
         (EncodeFunction) DoublePointWithCP56Time2a_encode,
         (DestroyFunction) DoublePointWithCP56Time2a_destroy
@@ -970,12 +968,12 @@ DoublePointWithCP56Time2a_initialize(DoublePointWithCP56Time2a self)
 
 DoublePointWithCP56Time2a
 DoublePointWithCP56Time2a_create(DoublePointWithCP56Time2a self, int ioa, DoublePointValue value,
-        QualityDescriptor quality, CP56Time2a timestamp)
+        QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (DoublePointWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sDoublePointWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         DoublePointWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -986,7 +984,6 @@ DoublePointWithCP56Time2a_create(DoublePointWithCP56Time2a self, int ioa, Double
 
     return self;
 }
-
 
 CP56Time2a
 DoublePointWithCP56Time2a_getTimestamp(DoublePointWithCP56Time2a self)
@@ -1012,7 +1009,7 @@ DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, CS101_Ap
     if (self == NULL)
 		self = (DoublePointWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         DoublePointWithCP56Time2a_initialize(self);
 
         if (!isSequence) {
@@ -1034,7 +1031,6 @@ DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, CS101_Ap
 
     return self;
 }
-
 
 /*******************************************
  * SinglePointWithCP24Time2a
@@ -1083,12 +1079,12 @@ SinglePointWithCP24Time2a_initialize(SinglePointWithCP24Time2a self)
 
 SinglePointWithCP24Time2a
 SinglePointWithCP24Time2a_create(SinglePointWithCP24Time2a self, int ioa, bool value,
-        QualityDescriptor quality, CP24Time2a timestamp)
+        QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
         self = (SinglePointWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sSinglePointWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         SinglePointWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -1124,7 +1120,7 @@ SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, CS101_Ap
     if (self == NULL)
 		self = (SinglePointWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         SinglePointWithCP24Time2a_initialize(self);
 
         if (!isSequence) {
@@ -1146,8 +1142,6 @@ SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, CS101_Ap
 
     return self;
 }
-
-
 
 /*******************************************
  * SinglePointWithCP56Time2a
@@ -1176,7 +1170,6 @@ SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, CS
     return true;
 }
 
-
 struct sInformationObjectVFT singlePointWithCP56Time2aVFT = {
         (EncodeFunction) SinglePointWithCP56Time2a_encode,
         (DestroyFunction) SinglePointWithCP56Time2a_destroy
@@ -1191,12 +1184,12 @@ SinglePointWithCP56Time2a_initialize(SinglePointWithCP56Time2a self)
 
 SinglePointWithCP56Time2a
 SinglePointWithCP56Time2a_create(SinglePointWithCP56Time2a self, int ioa, bool value,
-        QualityDescriptor quality, CP56Time2a timestamp)
+        QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (SinglePointWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sSinglePointWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         SinglePointWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -1220,7 +1213,6 @@ SinglePointWithCP56Time2a_getTimestamp(SinglePointWithCP56Time2a self)
     return &(self->timestamp);
 }
 
-
 SinglePointWithCP56Time2a
 SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
@@ -1239,7 +1231,7 @@ SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, CS101_Ap
     if (self == NULL)
 		self = (SinglePointWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         SinglePointWithCP56Time2a_initialize(self);
 
         if (!isSequence) {
@@ -1261,8 +1253,6 @@ SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, CS101_Ap
 
     return self;
 }
-
-
 
 /**********************************************
  * BitString32
@@ -1320,7 +1310,7 @@ BitString32_createEx(BitString32 self, int ioa, uint32_t value, QualityDescripto
     if (self == NULL)
          self = (BitString32) GLOBAL_CALLOC(1, sizeof(struct sBitString32));
 
-    if (self != NULL) {
+    if (self) {
         BitString32_initialize(self);
 
         self->objectAddress = ioa;
@@ -1361,7 +1351,7 @@ BitString32_getFromBuffer(BitString32 self, CS101_AppLayerParameters parameters,
     if (self == NULL)
 		self = (BitString32) GLOBAL_MALLOC(sizeof(struct sBitString32));
 
-    if (self != NULL) {
+    if (self) {
         BitString32_initialize(self);
 
         if (!isSequence) {
@@ -1433,18 +1423,18 @@ Bitstring32WithCP24Time2a_destroy(Bitstring32WithCP24Time2a self)
 }
 
 Bitstring32WithCP24Time2a
-Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, CP24Time2a timestamp)
+Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, const CP24Time2a timestamp)
 {
 	return Bitstring32WithCP24Time2a_createEx(self, ioa, value, IEC60870_QUALITY_GOOD, timestamp);
 }
 
 Bitstring32WithCP24Time2a
-Bitstring32WithCP24Time2a_createEx(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP24Time2a timestamp)
+Bitstring32WithCP24Time2a_createEx(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
          self = (Bitstring32WithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sBitstring32WithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         Bitstring32WithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -1480,7 +1470,7 @@ Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, CS101_Ap
     if (self == NULL)
 		self = (Bitstring32WithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32WithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         Bitstring32WithCP24Time2a_initialize(self);
 
         if (!isSequence) {
@@ -1555,18 +1545,18 @@ Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self)
 }
 
 Bitstring32WithCP56Time2a
-Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, CP56Time2a timestamp)
+Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, const CP56Time2a timestamp)
 {
 	return Bitstring32WithCP56Time2a_createEx(self, ioa, value, IEC60870_QUALITY_GOOD, timestamp);
 }
 
 Bitstring32WithCP56Time2a
-Bitstring32WithCP56Time2a_createEx(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, QualityDescriptor quality, CP56Time2a timestamp)
+Bitstring32WithCP56Time2a_createEx(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
          self = (Bitstring32WithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sBitstring32WithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         Bitstring32WithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -1577,7 +1567,6 @@ Bitstring32WithCP56Time2a_createEx(Bitstring32WithCP56Time2a self, int ioa, uint
 
     return self;
 }
-
 
 CP56Time2a
 Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self)
@@ -1603,7 +1592,7 @@ Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, CS101_Ap
     if (self == NULL)
 		self = (Bitstring32WithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32WithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         Bitstring32WithCP56Time2a_initialize(self);
 
         if (!isSequence) {
@@ -1630,13 +1619,12 @@ Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, CS101_Ap
     return self;
 }
 
-
 /**********************************************
  * MeasuredValueNormalized
  **********************************************/
 
 static int
-getScaledValue(uint8_t* encodedValue)
+getScaledValue(const uint8_t* encodedValue)
 {
     int value;
 
@@ -1705,7 +1693,7 @@ MeasuredValueNormalized_create(MeasuredValueNormalized self, int ioa, float valu
     if (self == NULL)
         self = (MeasuredValueNormalized) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalized));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueNormalized_initialize(self);
 
         self->objectAddress = ioa;
@@ -1763,7 +1751,7 @@ MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, CS101_AppLay
     if (self == NULL)
 		self = (MeasuredValueNormalized) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalized));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueNormalized_initialize(self);
 
         if (!isSequence) {
@@ -1798,7 +1786,9 @@ ParameterNormalizedValue_create(ParameterNormalizedValue self, int ioa, float va
     ParameterNormalizedValue pvn =
             MeasuredValueNormalized_create(self, ioa, value, (QualityDescriptor) quality);
 
-    pvn->type = P_ME_NA_1;
+    if (pvn) {
+        pvn->type = P_ME_NA_1;
+    }
 
     return pvn;
 }
@@ -1828,8 +1818,9 @@ ParameterNormalizedValue_getFromBuffer(ParameterNormalizedValue self, CS101_AppL
     MeasuredValueNormalized pvn =
             MeasuredValueNormalized_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
 
-    if (pvn)
+    if (pvn) {
         pvn->type = P_ME_NA_1;
+    }
 
     return (ParameterNormalizedValue) pvn;
 }
@@ -1879,7 +1870,7 @@ MeasuredValueNormalizedWithoutQuality_create(MeasuredValueNormalizedWithoutQuali
     if (self == NULL)
         self = (MeasuredValueNormalizedWithoutQuality) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalizedWithoutQuality));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueNormalizedWithoutQuality_initialize(self);
 
         self->objectAddress = ioa;
@@ -1929,7 +1920,7 @@ MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWitho
     if (self == NULL)
         self = (MeasuredValueNormalizedWithoutQuality) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithoutQuality));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueNormalizedWithoutQuality_initialize(self);
 
         if (!isSequence) {
@@ -1985,12 +1976,12 @@ MeasuredValueNormalizedWithCP24Time2a_destroy(MeasuredValueNormalizedWithCP24Tim
 
 MeasuredValueNormalizedWithCP24Time2a
 MeasuredValueNormalizedWithCP24Time2a_create(MeasuredValueNormalizedWithCP24Time2a self, int ioa,
-            float value, QualityDescriptor quality, CP24Time2a timestamp)
+            float value, QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
         self = (MeasuredValueNormalizedWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalizedWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueNormalizedWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -2003,7 +1994,6 @@ MeasuredValueNormalizedWithCP24Time2a_create(MeasuredValueNormalizedWithCP24Time
 
     return self;
 }
-
 
 CP24Time2a
 MeasuredValueNormalizedWithCP24Time2a_getTimestamp(MeasuredValueNormalizedWithCP24Time2a self)
@@ -2039,7 +2029,7 @@ MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithC
     if (self == NULL)
 		self = (MeasuredValueNormalizedWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueNormalizedWithCP24Time2a_initialize(self);
 
         if (!isSequence) {
@@ -2101,12 +2091,12 @@ MeasuredValueNormalizedWithCP56Time2a_destroy(MeasuredValueNormalizedWithCP56Tim
 
 MeasuredValueNormalizedWithCP56Time2a
 MeasuredValueNormalizedWithCP56Time2a_create(MeasuredValueNormalizedWithCP56Time2a self, int ioa,
-            float value, QualityDescriptor quality, CP56Time2a timestamp)
+            float value, QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (MeasuredValueNormalizedWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalizedWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueNormalizedWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -2119,7 +2109,6 @@ MeasuredValueNormalizedWithCP56Time2a_create(MeasuredValueNormalizedWithCP56Time
 
     return self;
 }
-
 
 CP56Time2a
 MeasuredValueNormalizedWithCP56Time2a_getTimestamp(MeasuredValueNormalizedWithCP56Time2a self)
@@ -2155,7 +2144,7 @@ MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithC
     if (self == NULL)
 		self = (MeasuredValueNormalizedWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueNormalizedWithCP56Time2a_initialize(self);
 
         if (!isSequence) {
@@ -2176,8 +2165,6 @@ MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithC
 
     return self;
 }
-
-
 
 /*******************************************
  * MeasuredValueScaled
@@ -2207,7 +2194,7 @@ MeasuredValueScaled_create(MeasuredValueScaled self, int ioa, int value, Quality
     if (self == NULL)
         self = (MeasuredValueScaled) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaled));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueScaled_initialize(self);
 
         self->objectAddress = ioa;
@@ -2268,7 +2255,7 @@ MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, CS101_AppLayerParame
     if (self == NULL)
 		self = (MeasuredValueScaled) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaled));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueScaled_initialize(self);
 
         if (!isSequence) {
@@ -2303,7 +2290,9 @@ ParameterScaledValue_create(ParameterScaledValue self, int ioa, int value, Quali
     ParameterScaledValue pvn =
             MeasuredValueScaled_create(self, ioa, value, qpm);
 
-    pvn->type = P_ME_NB_1;
+    if (pvn) {
+        pvn->type = P_ME_NB_1;
+    }
 
     return pvn;
 }
@@ -2333,12 +2322,12 @@ ParameterScaledValue_getFromBuffer(ParameterScaledValue self, CS101_AppLayerPara
     MeasuredValueScaled psv =
             MeasuredValueScaled_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
 
-    if (psv)
+    if (psv) {
         psv->type = P_ME_NB_1;
+    }
 
     return (ParameterScaledValue) psv;
 }
-
 
 /*******************************************
  * MeasuredValueScaledWithCP24Time2a
@@ -2379,12 +2368,12 @@ MeasuredValueScaledWithCP24Time2a_destroy(MeasuredValueScaledWithCP24Time2a self
 
 MeasuredValueScaledWithCP24Time2a
 MeasuredValueScaledWithCP24Time2a_create(MeasuredValueScaledWithCP24Time2a self, int ioa,
-        int value, QualityDescriptor quality, CP24Time2a timestamp)
+        int value, QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
         self = (MeasuredValueScaledWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaledWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueScaledWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -2430,7 +2419,7 @@ MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2
     if (self == NULL)
 		self = (MeasuredValueScaledWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueScaledWithCP24Time2a_initialize(self);
 
         if (!isSequence) {
@@ -2492,12 +2481,12 @@ MeasuredValueScaledWithCP56Time2a_destroy(MeasuredValueScaledWithCP56Time2a self
 
 MeasuredValueScaledWithCP56Time2a
 MeasuredValueScaledWithCP56Time2a_create(MeasuredValueScaledWithCP56Time2a self, int ioa,
-        int value, QualityDescriptor quality, CP56Time2a timestamp)
+        int value, QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (MeasuredValueScaledWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaledWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueScaledWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -2525,7 +2514,6 @@ MeasuredValueScaledWithCP56Time2a_setTimestamp(MeasuredValueScaledWithCP56Time2a
     }
 }
 
-
 MeasuredValueScaledWithCP56Time2a
 MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
@@ -2544,7 +2532,7 @@ MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2
     if (self == NULL)
 		self = (MeasuredValueScaledWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueScaledWithCP56Time2a_initialize(self);
 
         if (!isSequence) {
@@ -2621,7 +2609,7 @@ MeasuredValueShort_create(MeasuredValueShort self, int ioa, float value, Quality
     if (self == NULL)
         self = (MeasuredValueShort) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShort));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueShort_initialize(self);
 
         self->objectAddress = ioa;
@@ -2668,7 +2656,7 @@ MeasuredValueShort_getFromBuffer(MeasuredValueShort self, CS101_AppLayerParamete
     if (self == NULL)
 		self = (MeasuredValueShort) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShort));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueShort_initialize(self);
 
         if (!isSequence) {
@@ -2714,7 +2702,9 @@ ParameterFloatValue_create(ParameterFloatValue self, int ioa, float value, Quali
     ParameterFloatValue pvf =
             MeasuredValueShort_create(self, ioa, value, (QualityDescriptor) qpm);
 
-    pvf->type = P_ME_NC_1;
+    if (pvf) {
+        pvf->type = P_ME_NC_1;
+    }
 
     return pvf;
 }
@@ -2744,8 +2734,9 @@ ParameterFloatValue_getFromBuffer(ParameterFloatValue self, CS101_AppLayerParame
     ParameterFloatValue psv =
             MeasuredValueShort_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
 
-    if (psv)
+    if (psv) {
         psv->type = P_ME_NC_1;
+    }
 
     return (ParameterFloatValue) psv;
 }
@@ -2789,12 +2780,12 @@ MeasuredValueShortWithCP24Time2a_destroy(MeasuredValueShortWithCP24Time2a self)
 
 MeasuredValueShortWithCP24Time2a
 MeasuredValueShortWithCP24Time2a_create(MeasuredValueShortWithCP24Time2a self, int ioa,
-        float value, QualityDescriptor quality, CP24Time2a timestamp)
+        float value, QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
         self = (MeasuredValueShortWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShortWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueShortWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -2840,7 +2831,7 @@ MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a 
     if (self == NULL)
 		self = (MeasuredValueShortWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueShortWithCP24Time2a_initialize(self);
 
         if (!isSequence) {
@@ -2912,12 +2903,12 @@ MeasuredValueShortWithCP56Time2a_destroy(MeasuredValueShortWithCP56Time2a self)
 
 MeasuredValueShortWithCP56Time2a
 MeasuredValueShortWithCP56Time2a_create(MeasuredValueShortWithCP56Time2a self, int ioa,
-        float value, QualityDescriptor quality, CP56Time2a timestamp)
+        float value, QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (MeasuredValueShortWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShortWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueShortWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -2963,7 +2954,7 @@ MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a 
     if (self == NULL)
 		self = (MeasuredValueShortWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         MeasuredValueShortWithCP56Time2a_initialize(self);
 
         if (!isSequence) {
@@ -2995,7 +2986,6 @@ MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a 
 
     return self;
 }
-
 
 /*******************************************
  * IntegratedTotals
@@ -3035,12 +3025,12 @@ IntegratedTotals_destroy(IntegratedTotals self)
 }
 
 IntegratedTotals
-IntegratedTotals_create(IntegratedTotals self, int ioa, BinaryCounterReading value)
+IntegratedTotals_create(IntegratedTotals self, int ioa, const BinaryCounterReading value)
 {
     if (self == NULL)
         self = (IntegratedTotals) GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotals));
 
-    if (self != NULL) {
+    if (self) {
         IntegratedTotals_initialize(self);
 
         self->objectAddress = ioa;
@@ -3083,7 +3073,7 @@ IntegratedTotals_getFromBuffer(IntegratedTotals self, CS101_AppLayerParameters p
     if (self == NULL)
 		self = (IntegratedTotals) GLOBAL_MALLOC(sizeof(struct sIntegratedTotals));
 
-    if (self != NULL) {
+    if (self) {
         IntegratedTotals_initialize(self);
 
         if (!isSequence) {
@@ -3141,12 +3131,12 @@ IntegratedTotalsWithCP24Time2a_destroy(IntegratedTotalsWithCP24Time2a self)
 
 IntegratedTotalsWithCP24Time2a
 IntegratedTotalsWithCP24Time2a_create(IntegratedTotalsWithCP24Time2a self, int ioa,
-        BinaryCounterReading value, CP24Time2a timestamp)
+        const BinaryCounterReading value, const CP24Time2a timestamp)
 {
     if (self == NULL)
         self = (IntegratedTotalsWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotalsWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         IntegratedTotalsWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -3156,7 +3146,6 @@ IntegratedTotalsWithCP24Time2a_create(IntegratedTotalsWithCP24Time2a self, int i
 
     return self;
 }
-
 
 CP24Time2a
 IntegratedTotalsWithCP24Time2a_getTimestamp(IntegratedTotalsWithCP24Time2a self)
@@ -3173,7 +3162,6 @@ IntegratedTotalsWithCP24Time2a_setTimestamp(IntegratedTotalsWithCP24Time2a self,
         self->timestamp.encodedValue[i] = value->encodedValue[i];
     }
 }
-
 
 IntegratedTotalsWithCP24Time2a
 IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self, CS101_AppLayerParameters parameters,
@@ -3193,7 +3181,7 @@ IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self
     if (self == NULL)
 		self = (IntegratedTotalsWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP24Time2a));
 
-    if (self != NULL) {
+    if (self) {
         IntegratedTotalsWithCP24Time2a_initialize(self);
 
         if (!isSequence) {
@@ -3255,12 +3243,12 @@ IntegratedTotalsWithCP56Time2a_destroy(IntegratedTotalsWithCP56Time2a self)
 
 IntegratedTotalsWithCP56Time2a
 IntegratedTotalsWithCP56Time2a_create(IntegratedTotalsWithCP56Time2a self, int ioa,
-        BinaryCounterReading value, CP56Time2a timestamp)
+        const BinaryCounterReading value, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (IntegratedTotalsWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotalsWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         IntegratedTotalsWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -3287,7 +3275,6 @@ IntegratedTotalsWithCP56Time2a_setTimestamp(IntegratedTotalsWithCP56Time2a self,
     }
 }
 
-
 IntegratedTotalsWithCP56Time2a
 IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
@@ -3306,7 +3293,7 @@ IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self
     if (self == NULL)
 		self = (IntegratedTotalsWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         IntegratedTotalsWithCP56Time2a_initialize(self);
 
         if (!isSequence) {
@@ -3327,7 +3314,6 @@ IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self
 
     return self;
 }
-
 
 /***********************************************************************
  * EventOfProtectionEquipment : InformationObject
@@ -3372,12 +3358,12 @@ EventOfProtectionEquipment_destroy(EventOfProtectionEquipment self)
 
 EventOfProtectionEquipment
 EventOfProtectionEquipment_create(EventOfProtectionEquipment self, int ioa,
-        SingleEvent event, CP16Time2a elapsedTime, CP24Time2a timestamp)
+        const SingleEvent event, const CP16Time2a elapsedTime, const CP24Time2a timestamp)
 {
     if (self == NULL)
         self = (EventOfProtectionEquipment) GLOBAL_CALLOC(1, sizeof(struct sEventOfProtectionEquipment));
 
-    if (self != NULL) {
+    if (self) {
         EventOfProtectionEquipment_initialize(self);
 
         self->objectAddress = ioa;
@@ -3407,7 +3393,7 @@ EventOfProtectionEquipment_getFromBuffer(EventOfProtectionEquipment self, CS101_
     if (self == NULL)
         self = (EventOfProtectionEquipment) GLOBAL_MALLOC(sizeof(struct sEventOfProtectionEquipment));
 
-    if (self != NULL) {
+    if (self) {
         EventOfProtectionEquipment_initialize(self);
 
         if (!isSequence) {
@@ -3429,7 +3415,6 @@ EventOfProtectionEquipment_getFromBuffer(EventOfProtectionEquipment self, CS101_
 
     return self;
 }
-
 
 SingleEvent
 EventOfProtectionEquipment_getEvent(EventOfProtectionEquipment self)
@@ -3492,12 +3477,12 @@ EventOfProtectionEquipmentWithCP56Time2a_destroy(EventOfProtectionEquipmentWithC
 
 EventOfProtectionEquipmentWithCP56Time2a
 EventOfProtectionEquipmentWithCP56Time2a_create(EventOfProtectionEquipmentWithCP56Time2a self, int ioa,
-        SingleEvent event, CP16Time2a elapsedTime, CP56Time2a timestamp)
+        const SingleEvent event, const CP16Time2a elapsedTime, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (EventOfProtectionEquipmentWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sEventOfProtectionEquipmentWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         EventOfProtectionEquipmentWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -3545,7 +3530,7 @@ EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmen
     if (self == NULL)
         self = (EventOfProtectionEquipmentWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sEventOfProtectionEquipmentWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         EventOfProtectionEquipmentWithCP56Time2a_initialize(self);
 
         if (!isSequence) {
@@ -3613,12 +3598,12 @@ PackedStartEventsOfProtectionEquipment_destroy(PackedStartEventsOfProtectionEqui
 
 PackedStartEventsOfProtectionEquipment
 PackedStartEventsOfProtectionEquipment_create(PackedStartEventsOfProtectionEquipment self, int ioa,
-        StartEvent event, QualityDescriptorP qdp, CP16Time2a elapsedTime, CP24Time2a timestamp)
+        StartEvent event, QualityDescriptorP qdp, CP16Time2a const elapsedTime, const CP24Time2a timestamp)
 {
     if (self == NULL)
         self = (PackedStartEventsOfProtectionEquipment) GLOBAL_CALLOC(1, sizeof(struct sPackedStartEventsOfProtectionEquipment));
 
-    if (self != NULL) {
+    if (self) {
         PackedStartEventsOfProtectionEquipment_initialize(self);
 
         self->objectAddress = ioa;
@@ -3673,7 +3658,7 @@ PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtecti
     if (self == NULL)
         self = (PackedStartEventsOfProtectionEquipment) GLOBAL_MALLOC(sizeof(struct sPackedStartEventsOfProtectionEquipment));
 
-    if (self != NULL) {
+    if (self) {
         PackedStartEventsOfProtectionEquipment_initialize(self);
 
         if (!isSequence) {
@@ -3744,12 +3729,12 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_destroy(PackedStartEventsOf
 
 PackedStartEventsOfProtectionEquipmentWithCP56Time2a
 PackedStartEventsOfProtectionEquipmentWithCP56Time2a_create(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, int ioa,
-        StartEvent event, QualityDescriptorP qdp, CP16Time2a elapsedTime, CP56Time2a timestamp)
+        StartEvent event, QualityDescriptorP qdp, const CP16Time2a elapsedTime, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (PackedStartEventsOfProtectionEquipmentWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         PackedStartEventsOfProtectionEquipmentWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -3830,7 +3815,6 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(PackedStartEv
     return self;
 }
 
-
 /***********************************************************************
  * PacketOutputCircuitInfo : InformationObject
  ***********************************************************************/
@@ -3876,7 +3860,7 @@ PackedOutputCircuitInfo_destroy(PackedOutputCircuitInfo self)
 
 PackedOutputCircuitInfo
 PackedOutputCircuitInfo_create(PackedOutputCircuitInfo self, int ioa,
-        OutputCircuitInfo oci, QualityDescriptorP qdp, CP16Time2a operatingTime, CP24Time2a timestamp)
+        OutputCircuitInfo oci, QualityDescriptorP qdp, const CP16Time2a operatingTime, const CP24Time2a timestamp)
 {
     if (self == NULL)
         self = (PackedOutputCircuitInfo) GLOBAL_CALLOC(1, sizeof(struct sPackedOutputCircuitInfo));
@@ -3936,7 +3920,7 @@ PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, CS101_AppLay
     if (self == NULL)
         self = (PackedOutputCircuitInfo) GLOBAL_MALLOC(sizeof(struct sPackedOutputCircuitInfo));
 
-    if (self != NULL) {
+    if (self) {
         PacketOutputCircuitInfo_initialize(self);
 
         if (!isSequence) {
@@ -4007,7 +3991,7 @@ PackedOutputCircuitInfoWithCP56Time2a_destroy(PackedOutputCircuitInfoWithCP56Tim
 
 PackedOutputCircuitInfoWithCP56Time2a
 PackedOutputCircuitInfoWithCP56Time2a_create(PackedOutputCircuitInfoWithCP56Time2a self, int ioa,
-        OutputCircuitInfo oci, QualityDescriptorP qdp, CP16Time2a operatingTime, CP56Time2a timestamp)
+        OutputCircuitInfo oci, QualityDescriptorP qdp, const CP16Time2a operatingTime, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (PackedOutputCircuitInfoWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sPackedOutputCircuitInfoWithCP56Time2a));
@@ -4067,7 +4051,7 @@ PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithC
     if (self == NULL)
         self = (PackedOutputCircuitInfoWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sPackedOutputCircuitInfoWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         PackedOutputCircuitInfoWithCP56Time2a_initialize(self);
 
         if (!isSequence) {
@@ -4135,7 +4119,7 @@ PackedSinglePointWithSCD_destroy(PackedSinglePointWithSCD self)
 
 PackedSinglePointWithSCD
 PackedSinglePointWithSCD_create(PackedSinglePointWithSCD self, int ioa,
-        StatusAndStatusChangeDetection scd, QualityDescriptor qds)
+        const StatusAndStatusChangeDetection scd, QualityDescriptor qds)
 {
     if (self == NULL)
         self = (PackedSinglePointWithSCD) GLOBAL_CALLOC(1, sizeof(struct sPackedSinglePointWithSCD));
@@ -4202,7 +4186,6 @@ PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, CS101_AppL
 
     return self;
 }
-
 
 /*******************************************
  * SingleCommand
@@ -4297,7 +4280,7 @@ SingleCommand_getFromBuffer(SingleCommand self, CS101_AppLayerParameters paramet
     if (self == NULL)
 		self = (SingleCommand) GLOBAL_MALLOC(sizeof(struct sSingleCommand));
 
-    if (self != NULL) {
+    if (self) {
         SingleCommand_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -4350,7 +4333,7 @@ SingleCommandWithCP56Time2a_destroy(SingleCommandWithCP56Time2a self)
 }
 
 SingleCommandWithCP56Time2a
-SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bool command, bool selectCommand, int qu, CP56Time2a timestamp)
+SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bool command, bool selectCommand, int qu, const CP56Time2a timestamp)
 {
     if (self == NULL)
 		self = (SingleCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSingleCommandWithCP56Time2a));
@@ -4411,7 +4394,6 @@ SingleCommandWithCP56Time2a_getFromBuffer(SingleCommandWithCP56Time2a self, CS10
 
     return self;
 }
-
 
 /*******************************************
  * DoubleCommand : InformationObject
@@ -4524,7 +4506,6 @@ DoubleCommand_getFromBuffer(DoubleCommand self, CS101_AppLayerParameters paramet
  * DoubleCommandWithCP56Time2a : DoubleCommand
  **********************************************/
 
-
 static bool
 DoubleCommandWithCP56Time2a_encode(DoubleCommandWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
 {
@@ -4559,7 +4540,7 @@ DoubleCommandWithCP56Time2a_destroy(DoubleCommandWithCP56Time2a self)
 }
 
 DoubleCommandWithCP56Time2a
-DoubleCommandWithCP56Time2a_create(DoubleCommandWithCP56Time2a self, int ioa, int command, bool selectCommand, int qu, CP56Time2a timestamp)
+DoubleCommandWithCP56Time2a_create(DoubleCommandWithCP56Time2a self, int ioa, int command, bool selectCommand, int qu, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (DoubleCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sDoubleCommandWithCP56Time2a));
@@ -4616,7 +4597,7 @@ DoubleCommandWithCP56Time2a_getFromBuffer(DoubleCommandWithCP56Time2a self, CS10
     if (self == NULL)
         self = (DoubleCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sDoubleCommandWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         DoubleCommandWithCP56Time2a_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -4748,7 +4729,6 @@ StepCommand_getFromBuffer(StepCommand self, CS101_AppLayerParameters parameters,
     return self;
 }
 
-
 /*************************************************
  * StepCommandWithCP56Time2a : InformationObject
  *************************************************/
@@ -4787,7 +4767,7 @@ StepCommandWithCP56Time2a_destroy(StepCommandWithCP56Time2a self)
 }
 
 StepCommandWithCP56Time2a
-StepCommandWithCP56Time2a_create(StepCommandWithCP56Time2a self, int ioa, StepCommandValue command, bool selectCommand, int qu, CP56Time2a timestamp)
+StepCommandWithCP56Time2a_create(StepCommandWithCP56Time2a self, int ioa, StepCommandValue command, bool selectCommand, int qu, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (StepCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sStepCommandWithCP56Time2a));
@@ -4844,7 +4824,7 @@ StepCommandWithCP56Time2a_getFromBuffer(StepCommandWithCP56Time2a self, CS101_Ap
     if (self == NULL)
         self = (StepCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sStepCommandWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         StepCommandWithCP56Time2a_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -4866,7 +4846,6 @@ StepCommandWithCP56Time2a_getTimestamp(StepCommandWithCP56Time2a self)
 {
     return &(self->timestamp);
 }
-
 
 /*************************************************
  * SetpointCommandNormalized : InformationObject
@@ -4966,7 +4945,7 @@ SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, CS101_Ap
     if (self == NULL)
 		self = (SetpointCommandNormalized) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
 
-    if (self != NULL) {
+    if (self) {
         SetpointCommandNormalized_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -5021,7 +5000,7 @@ SetpointCommandNormalizedWithCP56Time2a_destroy(SetpointCommandNormalizedWithCP5
 }
 
 SetpointCommandNormalizedWithCP56Time2a
-SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, CP56Time2a timestamp)
+SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (SetpointCommandNormalizedWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalizedWithCP56Time2a));
@@ -5080,7 +5059,7 @@ SetpointCommandNormalizedWithCP56Time2a_getFromBuffer(SetpointCommandNormalizedW
     if (self == NULL)
         self = (SetpointCommandNormalizedWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalizedWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         SetpointCommandNormalizedWithCP56Time2a_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -5105,7 +5084,6 @@ SetpointCommandNormalizedWithCP56Time2a_getTimestamp(SetpointCommandNormalizedWi
 {
     return &(self->timestamp);
 }
-
 
 /*************************************************
  * SetpointCommandScaled: InformationObject
@@ -5256,7 +5234,7 @@ SetpointCommandScaledWithCP56Time2a_destroy(SetpointCommandScaledWithCP56Time2a 
 }
 
 SetpointCommandScaledWithCP56Time2a
-SetpointCommandScaledWithCP56Time2a_create(SetpointCommandScaledWithCP56Time2a self, int ioa, int value, bool selectCommand, int ql, CP56Time2a timestamp)
+SetpointCommandScaledWithCP56Time2a_create(SetpointCommandScaledWithCP56Time2a self, int ioa, int value, bool selectCommand, int ql, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (SetpointCommandScaledWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaledWithCP56Time2a));
@@ -5313,7 +5291,7 @@ SetpointCommandScaledWithCP56Time2a_getFromBuffer(SetpointCommandScaledWithCP56T
     if (self == NULL)
         self = (SetpointCommandScaledWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaledWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         SetpointCommandScaledWithCP56Time2a_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -5471,7 +5449,6 @@ SetpointCommandShort_getFromBuffer(SetpointCommandShort self, CS101_AppLayerPara
     return self;
 }
 
-
 /**********************************************************************
  * SetpointCommandShortWithCP56Time2a : SetpointCommandShort
  **********************************************************************/
@@ -5510,7 +5487,7 @@ SetpointCommandShortWithCP56Time2a_destroy(SetpointCommandShortWithCP56Time2a se
 }
 
 SetpointCommandShortWithCP56Time2a
-SetpointCommandShortWithCP56Time2a_create(SetpointCommandShortWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, CP56Time2a timestamp)
+SetpointCommandShortWithCP56Time2a_create(SetpointCommandShortWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (SetpointCommandShortWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandShortWithCP56Time2a));
@@ -5713,7 +5690,6 @@ Bitstring32Command_getFromBuffer(Bitstring32Command self, CS101_AppLayerParamete
     return self;
 }
 
-
 /*******************************************************
  * Bitstring32CommandWithCP56Time2a: Bitstring32Command
  *******************************************************/
@@ -5746,7 +5722,7 @@ Bitstring32CommandWithCP56Time2a_initialize(Bitstring32CommandWithCP56Time2a sel
 }
 
 Bitstring32CommandWithCP56Time2a
-Bitstring32CommandWithCP56Time2a_create(Bitstring32CommandWithCP56Time2a self, int ioa, uint32_t value, CP56Time2a timestamp)
+Bitstring32CommandWithCP56Time2a_create(Bitstring32CommandWithCP56Time2a self, int ioa, uint32_t value, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (Bitstring32CommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32CommandWithCP56Time2a));
@@ -5797,7 +5773,7 @@ Bitstring32CommandWithCP56Time2a_getFromBuffer(Bitstring32CommandWithCP56Time2a 
     if (self == NULL)
         self = (Bitstring32CommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32CommandWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self) {
         Bitstring32CommandWithCP56Time2a_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -5824,7 +5800,6 @@ Bitstring32CommandWithCP56Time2a_getFromBuffer(Bitstring32CommandWithCP56Time2a 
 
     return self;
 }
-
 
 /*************************************************
  * ReadCommand : InformationObject
@@ -5933,7 +5908,7 @@ ClockSynchronizationCommand_initialize(ClockSynchronizationCommand self)
 }
 
 ClockSynchronizationCommand
-ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa, CP56Time2a timestamp)
+ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa, const CP56Time2a timestamp)
 {
     if (self == NULL)
 		self = (ClockSynchronizationCommand) GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
@@ -5975,7 +5950,7 @@ ClockSynchronizationCommand_getFromBuffer(ClockSynchronizationCommand self, CS10
     if (self == NULL)
 		self = (ClockSynchronizationCommand) GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
 
-    if (self != NULL) {
+    if (self) {
         ClockSynchronizationCommand_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -6064,7 +6039,7 @@ InterrogationCommand_getFromBuffer(InterrogationCommand self, CS101_AppLayerPara
     if (self == NULL)
 		self = (InterrogationCommand) GLOBAL_MALLOC(sizeof(struct sInterrogationCommand));
 
-    if (self != NULL) {
+    if (self) {
         InterrogationCommand_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -6153,7 +6128,7 @@ CounterInterrogationCommand_getFromBuffer(CounterInterrogationCommand self, CS10
     if (self == NULL)
         self = (CounterInterrogationCommand) GLOBAL_MALLOC(sizeof(struct sCounterInterrogationCommand));
 
-    if (self != NULL) {
+    if (self) {
         CounterInterrogationCommand_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -6297,7 +6272,7 @@ TestCommandWithCP56Time2a_initialize(TestCommandWithCP56Time2a self)
 }
 
 TestCommandWithCP56Time2a
-TestCommandWithCP56Time2a_create(TestCommandWithCP56Time2a self, uint16_t tsc, CP56Time2a timestamp)
+TestCommandWithCP56Time2a_create(TestCommandWithCP56Time2a self, uint16_t tsc, const CP56Time2a timestamp)
 {
     if (self == NULL)
         self = (TestCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sTestCommandWithCP56Time2a));
@@ -6364,7 +6339,6 @@ TestCommandWithCP56Time2a_getFromBuffer(TestCommandWithCP56Time2a self, CS101_Ap
 
     return self;
 }
-
 
 /*************************************************
  * ResetProcessCommand : InformationObject
@@ -6487,7 +6461,7 @@ DelayAcquisitionCommand_initialize(DelayAcquisitionCommand self)
 }
 
 DelayAcquisitionCommand
-DelayAcquisitionCommand_create(DelayAcquisitionCommand self, int ioa,  CP16Time2a delay)
+DelayAcquisitionCommand_create(DelayAcquisitionCommand self, int ioa, const CP16Time2a delay)
 {
     if (self == NULL)
         self = (DelayAcquisitionCommand) GLOBAL_MALLOC(sizeof(struct sDelayAcquisitionCommand));
@@ -6544,7 +6518,6 @@ DelayAcquisitionCommand_getFromBuffer(DelayAcquisitionCommand self, CS101_AppLay
     return self;
 }
 
-
 /*******************************************
  * ParameterActivation : InformationObject
  *******************************************/
@@ -6582,7 +6555,6 @@ ParameterActivation_destroy(ParameterActivation self)
     GLOBAL_FREEMEM(self);
 }
 
-
 ParameterActivation
 ParameterActivation_create(ParameterActivation self, int ioa, QualifierOfParameterActivation qpa)
 {
@@ -6598,7 +6570,6 @@ ParameterActivation_create(ParameterActivation self, int ioa, QualifierOfParamet
 
     return self;
 }
-
 
 QualifierOfParameterActivation
 ParameterActivation_getQuality(ParameterActivation self)
@@ -6835,7 +6806,7 @@ FileReady_getFromBuffer(FileReady self, CS101_AppLayerParameters parameters,
     if (self == NULL)
        self = (FileReady) GLOBAL_MALLOC(sizeof(struct sFileReady));
 
-    if (self != NULL) {
+    if (self) {
         FileReady_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -6919,7 +6890,6 @@ SectionReady_create(SectionReady self, int ioa, uint16_t nof, uint8_t nos, uint3
     return self;
 }
 
-
 bool
 SectionReady_isNotReady(SectionReady self)
 {
@@ -6962,7 +6932,6 @@ SectionReady_destroy(SectionReady self)
     GLOBAL_FREEMEM(self);
 }
 
-
 SectionReady
 SectionReady_getFromBuffer(SectionReady self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex)
@@ -6999,7 +6968,6 @@ SectionReady_getFromBuffer(SectionReady self, CS101_AppLayerParameters parameter
 
     return self;
 };
-
 
 /*******************************************
  * FileCallOrSelect : InformationObject
@@ -7079,7 +7047,6 @@ FileCallOrSelect_destroy(FileCallOrSelect self)
 {
     GLOBAL_FREEMEM(self);
 }
-
 
 FileCallOrSelect
 FileCallOrSelect_getFromBuffer(FileCallOrSelect self, CS101_AppLayerParameters parameters,
@@ -7211,7 +7178,7 @@ FileLastSegmentOrSection_getFromBuffer(FileLastSegmentOrSection self, CS101_AppL
     if (self == NULL)
        self = (FileLastSegmentOrSection) GLOBAL_MALLOC(sizeof(struct sFileLastSegmentOrSection));
 
-    if (self != NULL) {
+    if (self) {
         FileLastSegmentOrSection_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -7269,7 +7236,7 @@ FileACK_create(FileACK self, int ioa, uint16_t nof, uint8_t nos, uint8_t afq)
     if (self == NULL)
        self = (FileACK) GLOBAL_MALLOC(sizeof(struct sFileACK));
 
-    if (self != NULL) {
+    if (self) {
         FileACK_initialize(self);
 
         self->objectAddress = ioa;
@@ -7320,7 +7287,7 @@ FileACK_getFromBuffer(FileACK self, CS101_AppLayerParameters parameters,
     if (self == NULL)
        self = (FileACK) GLOBAL_MALLOC(sizeof(struct sFileACK));
 
-    if (self != NULL) {
+    if (self) {
         FileACK_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -7337,7 +7304,6 @@ FileACK_getFromBuffer(FileACK self, CS101_AppLayerParameters parameters,
 
     return self;
 };
-
 
 /*************************************************
  * FileSegment : InformationObject
@@ -7381,7 +7347,7 @@ FileSegment_create(FileSegment self, int ioa, uint16_t nof, uint8_t nos, uint8_t
     if (self == NULL)
         self = (FileSegment) GLOBAL_MALLOC(sizeof(struct sFileSegment));
 
-    if (self != NULL) {
+    if (self) {
         FileSegment_initialize(self);
 
         self->objectAddress = ioa;
@@ -7455,7 +7421,7 @@ FileSegment_getFromBuffer(FileSegment self, CS101_AppLayerParameters parameters,
     if (self == NULL)
        self = (FileSegment) GLOBAL_MALLOC(sizeof(struct sFileSegment));
 
-    if (self != NULL) {
+    if (self) {
         FileSegment_initialize(self);
 
         InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
@@ -7516,12 +7482,12 @@ FileDirectory_initialize(FileDirectory self)
 }
 
 FileDirectory
-FileDirectory_create(FileDirectory self, int ioa, uint16_t nof, int lengthOfFile, uint8_t sof, CP56Time2a creationTime)
+FileDirectory_create(FileDirectory self, int ioa, uint16_t nof, int lengthOfFile, uint8_t sof, const CP56Time2a creationTime)
 {
     if (self == NULL)
         self = (FileDirectory) GLOBAL_MALLOC(sizeof(struct sFileDirectory));
 
-    if (self != NULL) {
+    if (self) {
         FileDirectory_initialize(self);
 
         self->objectAddress = ioa;
@@ -7604,7 +7570,7 @@ FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters paramet
     if (self == NULL)
        self = (FileDirectory) GLOBAL_MALLOC(sizeof(struct sFileDirectory));
 
-    if (self != NULL) {
+    if (self) {
 
         FileDirectory_initialize(self);
 
@@ -7666,12 +7632,12 @@ QueryLog_initialize(QueryLog self)
 }
 
 QueryLog
-QueryLog_create(QueryLog self, int ioa, uint16_t nof, CP56Time2a rangeStartTime, CP56Time2a rangeStopTime)
+QueryLog_create(QueryLog self, int ioa, uint16_t nof, const CP56Time2a rangeStartTime, const CP56Time2a rangeStopTime)
 {
     if (self == NULL)
         self = (QueryLog) GLOBAL_MALLOC(sizeof(struct sQueryLog));
 
-    if (self != NULL) {
+    if (self) {
         QueryLog_initialize(self);
 
         self->objectAddress = ioa;
@@ -7722,7 +7688,7 @@ QueryLog_getFromBuffer(QueryLog self, CS101_AppLayerParameters parameters,
     if (self == NULL)
        self = (QueryLog) GLOBAL_MALLOC(sizeof(struct sQueryLog));
 
-    if (self != NULL) {
+    if (self) {
 
         QueryLog_initialize(self);
 
@@ -7741,4 +7707,3 @@ QueryLog_getFromBuffer(QueryLog self, CS101_AppLayerParameters parameters,
 
     return self;
 }
-

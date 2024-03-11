@@ -1,7 +1,7 @@
 /*
  *  cs104_slave.h
  *
- *  Copyright 2017, 2018 MZ Automation GmbH
+ *  Copyright 2017-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -368,7 +368,7 @@ CS104_RedundancyGroup_addAllowedClient(CS104_RedundancyGroup self, const char* i
  * \param addressType type of the IP address (either IP_ADDRESS_TYPE_IPV4 or IP_ADDRESS_TYPE_IPV6)
  */
 void
-CS104_RedundancyGroup_addAllowedClientEx(CS104_RedundancyGroup self, uint8_t* ipAddress, eCS104_IPAddressType addressType);
+CS104_RedundancyGroup_addAllowedClientEx(CS104_RedundancyGroup self, const uint8_t* ipAddress, eCS104_IPAddressType addressType);
 
 /**
  * \brief Destroy the instance and release all resources.
@@ -379,7 +379,6 @@ CS104_RedundancyGroup_addAllowedClientEx(CS104_RedundancyGroup self, uint8_t* ip
  */
 void
 CS104_RedundancyGroup_destroy(CS104_RedundancyGroup self);
-
 
 /**
  * @}
@@ -392,6 +391,5 @@ CS104_RedundancyGroup_destroy(CS104_RedundancyGroup self);
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif /* SRC_INC_API_CS104_SLAVE_H_ */

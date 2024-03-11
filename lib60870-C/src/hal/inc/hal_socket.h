@@ -322,11 +322,11 @@ Socket_getPeerAddress(Socket self);
  *
  * The peer address has to be returned as null terminated string
  *
- * Implementation of this function is MANDATORY (lib60870)
+ * Implementation of this function is MANDATORY (lib60870 and libiec61850)
  *
  * \param self the client, connection or server socket instance
  * \param peerAddressString a string to store the peer address (the string should have space
- *        for at least 54 characters)
+ *        for at least 60 characters)
  *
  * \return the IP address and port number as strings separated by the ':' character. If the
  *         address is an IPv6 address the IP part is encapsulated in square brackets.

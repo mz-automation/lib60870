@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016 MZ Automation GmbH
+ *  Copyright 2016-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -44,7 +44,7 @@ void
 T104Frame_setNextByte(Frame self, uint8_t byte);
 
 void
-T104Frame_appendBytes(Frame self, uint8_t* bytes, int numberOfBytes);
+T104Frame_appendBytes(Frame self, const uint8_t* bytes, int numberOfBytes);
 
 int
 T104Frame_getMsgSize(Frame self);

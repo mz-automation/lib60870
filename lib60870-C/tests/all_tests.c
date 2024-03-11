@@ -8,6 +8,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifndef CONFIG_CS104_SUPPORT_TLS
+#define CONFIG_CS104_SUPPORT_TLS 0
+#endif
+
 #if WIN32
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0) 
 #endif
@@ -934,17 +938,19 @@ test_CS104SlaveConnectionIsRedundancyGroup_enqueueThreadFunction(void* parameter
 
         CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
-          InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
+        InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
 
-          scaledValue++;
+        scaledValue++;
 
-          CS101_ASDU_addInformationObject(newAsdu, io);
+        CS101_ASDU_addInformationObject(newAsdu, io);
 
-          InformationObject_destroy(io);
+        InformationObject_destroy(io);
 
-          CS104_Slave_enqueueASDU(info->slave, newAsdu);
+        CS104_Slave_enqueueASDU(info->slave, newAsdu);
 
-          CS101_ASDU_destroy(newAsdu);
+        CS101_ASDU_destroy(newAsdu);
+
+        Thread_sleep(10);
     }
 
     return NULL;
@@ -1018,15 +1024,86 @@ test_CS104SlaveSingleRedundancyGroup()
 
         CS104_Connection_sendStartDT(con);
 
-        Thread_sleep(10);
-
         CS104_Connection_close(con);
+
+        Thread_sleep(10);
     }
 
     info.running = false;
     Thread_destroy(enqueueThread);
 
     CS104_Connection_destroy(con);
+
+    CS104_Slave_destroy(slave);
+}
+
+static void
+test_CS104SlaveSingleRedundancyGroupMultipleConnectionsEventHandler(void* parameter, IMasterConnection connection, CS104_PeerConnectionEvent event)
+{
+    char ipAddrBuf[100];
+    ipAddrBuf[0] = 0;
+
+    IMasterConnection_getPeerAddress(connection, ipAddrBuf, 100);
+}
+
+void
+test_CS104SlaveSingleRedundancyGroupMultipleConnections()
+{
+    CS104_Slave slave = CS104_Slave_create(100, 100);
+
+    CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+    CS104_Slave_setMaxOpenConnections(slave, 20);
+    CS104_Slave_setConnectionEventHandler(slave, test_CS104SlaveSingleRedundancyGroupMultipleConnectionsEventHandler, NULL);
+
+    struct test_CS104SlaveConnectionIsRedundancyGroup_Info info;
+    info.running = true;
+    info.slave = slave;
+
+    CS104_Connection cons[3];
+    int conState[3]; /* 0 = idle, 1 = connected, 2 = START_DT sent */
+
+    cons[0] = CS104_Connection_create("127.0.0.1", 20004);
+    cons[1] = CS104_Connection_create("127.0.0.1", 20004);
+    cons[2] = CS104_Connection_create("127.0.0.1", 20004);
+
+    conState[0] = 0;
+    conState[1] = 0;
+    conState[2] = 0;
+
+    Thread enqueueThread = Thread_create(test_CS104SlaveConnectionIsRedundancyGroup_enqueueThreadFunction, &info, false);
+    Thread_start(enqueueThread);
+
+    int i;
+    for (i = 0; i < 200; i++) {
+
+        int con = rand() % 3;
+
+        if (conState[con] == 0) {
+            bool result = CS104_Connection_connect(cons[con]);
+            TEST_ASSERT_TRUE(result);
+            conState[con] = 1;
+        }
+        else if (conState[con] == 1) {
+            CS104_Connection_sendStartDT(cons[con]);
+            conState[con] = 2;
+        }
+        else if (conState[con] == 2) {
+            CS104_Connection_close(cons[con]);
+            conState[con] = 0;
+        }
+
+        Thread_sleep(5);
+    }
+
+    CS104_Connection_destroy(cons[0]);
+    CS104_Connection_destroy(cons[1]);
+    CS104_Connection_destroy(cons[2]);
+
+    info.running = false;
+    Thread_destroy(enqueueThread);
 
     CS104_Slave_destroy(slave);
 }
@@ -1046,7 +1123,6 @@ test_CS104SlaveEventQueue1_asduReceivedHandler (void* parameter, int address, CS
 
     if (CS101_ASDU_getCOT(asdu) == CS101_COT_SPONTANEOUS) {
         info->spontCount++;
-
 
         if (CS101_ASDU_getTypeID(asdu) == M_ME_NB_1) {
             static uint8_t ioBuf[250];
@@ -1084,8 +1160,6 @@ test_CS104SlaveEventQueue1()
     info.lastScaledValue = 0;
 
     int16_t scaledValue = 0;
-
-    int i;
 
     for (int i = 0; i < 15; i++) {
         CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
@@ -1178,8 +1252,6 @@ test_CS104SlaveEventQueueOverflow()
 
     int16_t scaledValue = 0;
 
-    int i;
-
     for (int i = 0; i < 300; i++) {
         CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
 
@@ -1270,8 +1342,6 @@ test_CS104SlaveEventQueueOverflow2()
     info.lastScaledValue = 0;
 
     int16_t scaledValue = 0;
-
-    int i;
 
     for (int i = 0; i < 300; i++) {
         CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
@@ -4749,7 +4819,7 @@ void
 test_DelayAcquisitionCommand(void)
 {
     DelayAcquisitionCommand dac;
-    uint8_t time1 = Hal_getTimeInMs();
+    uint64_t time1 = Hal_getTimeInMs();
 
     struct sCP16Time2a delay;
 
@@ -5019,6 +5089,16 @@ test_BitString32xx_encodeDecode(void)
 }
 
 void
+test_version_number(void)
+{
+    Lib60870VersionInfo version = Lib60870_getLibraryVersionInfo();
+
+    TEST_ASSERT_EQUAL_INT(2, version.major);
+    TEST_ASSERT_EQUAL_INT(3, version.minor);
+    TEST_ASSERT_EQUAL_INT(2, version.patch);
+}
+
+void
 test_CS104_Slave_CreateDestroy(void)
 {
 	CS104_Slave slave = CS104_Slave_create(100, 100);
@@ -5086,7 +5166,6 @@ test_CS104_MasterSlave_CreateDestroyLoop(void)
 		CS104_Connection_destroy(con);
 	}
 }
-
 
 void
 test_CS104_Connection_ConnectTimeout(void)
@@ -5165,6 +5244,72 @@ test_CS104_Connection_UseAfterServerClosedConnection(void)
     TEST_ASSERT_FALSE(result);
 
     CS104_Connection_destroy(con);
+}
+
+static CS104_ConnectionEvent test_CS104_Connection_async_timeout_event;
+
+static void
+test_CS104_Connection_async_timeout_connectionHandler (void* parameter, CS104_Connection connection, CS104_ConnectionEvent event)
+{
+    test_CS104_Connection_async_timeout_event = event;
+}
+
+void
+test_CS104_Connection_async_success(void)
+{
+    test_CS104_Connection_async_timeout_event = CS104_CONNECTION_CLOSED;
+
+    CS104_Slave slave = NULL;
+    CS104_Connection con = NULL;
+
+    slave = CS104_Slave_create(100, 100);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+    CS104_Slave_start(slave);
+
+    con = CS104_Connection_create("127.0.0.1", 20004);
+
+	TEST_ASSERT_NOT_NULL(con);
+
+    CS104_APCIParameters apciParameters = CS104_Connection_getAPCIParameters(con);
+    apciParameters->t0 = 1;
+
+    CS104_Connection_setConnectionHandler(con, test_CS104_Connection_async_timeout_connectionHandler, NULL);
+
+	CS104_Connection_connectAsync(con);
+
+    Thread_sleep(500);
+
+    TEST_ASSERT_EQUAL_INT(CS104_CONNECTION_OPENED, test_CS104_Connection_async_timeout_event);
+
+	CS104_Connection_destroy(con);
+
+    CS104_Slave_destroy(slave);
+}
+
+void
+test_CS104_Connection_async_timeout(void)
+{
+    test_CS104_Connection_async_timeout_event = CS104_CONNECTION_CLOSED;
+
+    CS104_Connection con = CS104_Connection_create("192.168.3.120", 2404);
+
+	TEST_ASSERT_NOT_NULL(con);
+
+    CS104_APCIParameters apciParameters = CS104_Connection_getAPCIParameters(con);
+    apciParameters->t0 = 1;
+
+    CS104_Connection_setConnectionHandler(con, test_CS104_Connection_async_timeout_connectionHandler, NULL);
+
+	CS104_Connection_connectAsync(con);
+
+    Thread_sleep(2000);
+
+    TEST_ASSERT_EQUAL_INT(CS104_CONNECTION_FAILED, test_CS104_Connection_async_timeout_event);
+
+	CS104_Connection_destroy(con);
 }
 
 void
@@ -5255,30 +5400,68 @@ test_CS101_ASDU_clone(void)
     CS101_ASDU_destroy(clonedAsdu);
 }
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
 
-#if (LIB60870_HAS_TLS_SUPPORT == 1)
+struct secEventInfo {
+    int eventHandlerCalled;
+    int eventCodes[100];
+};
+
+static void
+securityEventHandler(void* parameter, TLSEventLevel eventLevel, int eventCode, const char* msg, TLSConnection con)
+{
+    struct secEventInfo* eventInfo = (struct secEventInfo*)parameter;
+
+    char peerAddrBuf[60];
+    char* peerAddr = NULL;
+    const char* tlsVersion = "unknown";
+
+    if (con) {
+        peerAddr = TLSConnection_getPeerAddress(con, peerAddrBuf);
+        tlsVersion = TLSConfigVersion_toString(TLSConnection_getTLSVersion(con));
+    }
+
+    printf("[SECURITY EVENT] %s (t: %i, c: %i, version: %s remote-ip: %s)\n", msg, eventLevel, eventCode, tlsVersion, peerAddr);
+
+    if (eventInfo) {
+        eventInfo->eventCodes[eventInfo->eventHandlerCalled] = eventCode;
+        eventInfo->eventHandlerCalled++;
+    }
+}
 
 void
 test_CS104_MasterSlave_TLSConnectSuccess(void)
 {
+    bool res = false;
+
     TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, NULL);
 
     TLSConfiguration_setChainValidation(tlsConfig1, true);
 
-    TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server-key.pem", NULL);
-    TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server.cer");
-    TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root.cer");
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
 
     TLSConfiguration tlsConfig2 = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig2, true);
     TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
 
-    TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client1-key.pem", NULL);
-    TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client1.cer");
-    TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root.cer");
+    /* use valid certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
 
-    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig2, "server.cer");
+    res = TLSConfiguration_addAllowedCertificateFromFile(tlsConfig2, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
 
     CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
 
@@ -5304,11 +5487,75 @@ test_CS104_MasterSlave_TLSConnectSuccess(void)
     TLSConfiguration_destroy(tlsConfig2);
 }
 
+void
+test_CS104_MasterSlave_TLSConnectSuccessWithoutSeparateCACert(void)
+{
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, NULL);
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1_chain.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "server_CA1_1_chain.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    /* use expired certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    res = TLSConfiguration_addAllowedCertificateFromFile(tlsConfig2, "server_CA1_1_chain.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
 
 void
 test_CS104_MasterSlave_TLSConnectFails(void)
 {
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
     TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
 
     TLSConfiguration_setChainValidation(tlsConfig1, true);
 
@@ -5317,11 +5564,497 @@ test_CS104_MasterSlave_TLSConnectFails(void)
     TLSConfiguration_setChainValidation(tlsConfig2, true);
     TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
 
-    TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client1-key.pem", NULL);
-    TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client1.cer");
-    TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root.cer");
+    /* use valid certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
 
-    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig2, "server.cer");
+    res = TLSConfiguration_addAllowedCertificateFromFile(tlsConfig2, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    TEST_ASSERT_EQUAL_INT(1, eventInfo.eventHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_ALM_ALGO_NOT_SUPPORTED, eventInfo.eventCodes[0]);
+}
+
+void
+test_CS104_MasterSlave_TLSVersionMismatch(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setMinTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    TLSConfiguration_setMinTlsVersion(tlsConfig2, TLS_VERSION_TLS_1_1);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig2, TLS_VERSION_TLS_1_1);
+
+    /* use valid certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    res = TLSConfiguration_addAllowedCertificateFromFile(tlsConfig2, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    TEST_ASSERT_EQUAL_INT(1, eventInfo.eventHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_ALM_UNSECURE_COMMUNICATION, eventInfo.eventCodes[0]);
+}
+
+void
+test_CS104_MasterSlave_TLSCertificateExpired(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+
+    TLSConfiguration_setMinTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);;
+
+    /* use expired certificate */
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_1.key", NULL);
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_1.pem");
+    TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+
+    TLSConfiguration_setMinTlsVersion(tlsConfig2, TLS_VERSION_TLS_1_2);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    TEST_ASSERT_EQUAL_INT(2, eventInfo.eventHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_ALM_CERT_EXPIRED, eventInfo.eventCodes[0]);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED, eventInfo.eventCodes[1]);
+}
+
+void
+test_CS104_MasterSlave_TLSCertificateRevoked(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    res = TLSConfiguration_addCRLFromFile(tlsConfig1, "test.crl");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);;
+
+    /* use revoked certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    TEST_ASSERT_EQUAL_INT(2, eventInfo.eventHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_ALM_CERT_REVOKED, eventInfo.eventCodes[0]);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED, eventInfo.eventCodes[1]);
+}
+
+void
+test_CS104_MasterSlave_TLSRenegotiateAfterCRLUpdate(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    // res = TLSConfiguration_addCRLFromFile(tlsConfig1, "test.crl");
+    // TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);;
+
+    /* use revoked certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration_setRenegotiationTime(tlsConfig1, 10000);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_sendStartDT(con);
+
+    res = TLSConfiguration_addCRLFromFile(tlsConfig1, "test.crl");
+    TEST_ASSERT_TRUE(res);
+
+    CS101_ASDU newAsdu = CS101_ASDU_create(CS104_Slave_getAppLayerParameters(slave), false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
+
+    InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, 1, IEC60870_QUALITY_GOOD);
+
+    CS101_ASDU_addInformationObject(newAsdu, io);
+
+    InformationObject_destroy(io);
+
+    CS104_Slave_enqueueASDU(slave, newAsdu);
+
+    CS101_ASDU_destroy(newAsdu);
+
+    Thread_sleep(1000);
+
+    TEST_ASSERT_EQUAL_INT(1, eventInfo.eventHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_INF_SESSION_RENEGOTIATION, eventInfo.eventCodes[0]);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
+
+void
+test_CS104_MasterSlave_TLSCertificateRevokedBeforeRenegotiation(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration_setRenegotiationTime(tlsConfig1, 1000);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);;
+
+    /* use revoked certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_sendStartDT(con);
+
+    /* update CRL -> expect renegotiation to fail! */
+    res = TLSConfiguration_addCRLFromFile(tlsConfig1, "test.crl");
+    TEST_ASSERT_TRUE(res);
+
+    Thread_sleep(1500);
+
+    CS101_ASDU newAsdu = CS101_ASDU_create(CS104_Slave_getAppLayerParameters(slave), false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
+
+    InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, 1, IEC60870_QUALITY_GOOD);
+
+    CS101_ASDU_addInformationObject(newAsdu, io);
+
+    InformationObject_destroy(io);
+
+    CS104_Slave_enqueueASDU(slave, newAsdu);
+
+    CS101_ASDU_destroy(newAsdu);
+
+    Thread_sleep(1500);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    TEST_ASSERT_TRUE(eventInfo.eventHandlerCalled > 0);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_INF_SESSION_RENEGOTIATION, eventInfo.eventCodes[0]);
+}
+
+void
+test_CS104_MasterSlave_TLSCertificateRevokedBeforeReconnect(void)
+{
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_enableSessionResumption(tlsConfig1, false);
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, NULL);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration_setRenegotiationTime(tlsConfig1, 1000);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);;
+
+    /* use revoked certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_close(con);
+
+    /* update CRL -> expect renegotiation to fail! */
+    res = TLSConfiguration_addCRLFromFile(tlsConfig1, "test.crl");
+    TEST_ASSERT_TRUE(res);
+
+    result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
+
+void
+test_CS104_MasterSlave_TLSUnknownCertificate(void)
+{
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig1, true);
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, NULL);
+
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig1, "client_CA1_3.pem");
+
+    TLSConfiguration_setMinTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);;
+
+    /* use expired certificate */
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_4.key", NULL);
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_4.pem");
+    TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+
+    TLSConfiguration_setMinTlsVersion(tlsConfig2, TLS_VERSION_TLS_1_2);
 
     CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
 
@@ -5347,7 +6080,294 @@ test_CS104_MasterSlave_TLSConnectFails(void)
     TLSConfiguration_destroy(tlsConfig2);
 }
 
-#endif /* #if (LIB60870_HAS_TLS_SUPPORT == 1) */
+void
+test_CS104_MasterSlave_TLSUseSessionResumption(void)
+{
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_enableSessionResumption(tlsConfig1, true);
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_enableSessionResumption(tlsConfig2, true);
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    /* use valid certificate */
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig2, "server_CA1_1.pem");
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_destroy(con);
+
+    printf("New connection should use the old TLS session\n");
+
+    con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
+
+void
+test_CS104_MasterSlave_TLSCertificateSessionResumptionExpiredAtClient(void)
+{
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, NULL);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration_setRenegotiationTime(tlsConfig1, 1000);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_enableSessionResumption(tlsConfig2, true);
+    TLSConfiguration_setSessionResumptionInterval(tlsConfig2, 1);
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+
+    /* use revoked certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_close(con);
+
+    Thread_sleep(1500);
+
+    /* update CRL -> expect renegotiation to fail! */
+    res = TLSConfiguration_addCRLFromFile(tlsConfig1, "test.crl");
+    TEST_ASSERT_TRUE(res);
+
+    result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
+
+void
+test_CS104_MasterSlave_TLSCertificateSessionResumptionExpiredAtServer(void)
+{
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_enableSessionResumption(tlsConfig1, true);
+    TLSConfiguration_setSessionResumptionInterval(tlsConfig1, 1);
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, NULL);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration_setRenegotiationTime(tlsConfig1, 1000);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_enableSessionResumption(tlsConfig2, true);
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+
+    /* use revoked certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_close(con);
+
+    Thread_sleep(2000);
+
+    /* update CRL -> expect renegotiation to fail! */
+    res = TLSConfiguration_addCRLFromFile(tlsConfig1, "test.crl");
+    TEST_ASSERT_TRUE(res);
+
+    result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
+
+void
+test_CS104_MasterSlave_TLSReuseConfigurationWithSessionResumption(void)
+{
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_enableSessionResumption(tlsConfig1, true);
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_enableSessionResumption(tlsConfig2, true);
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    /* use valid certificate */
+    TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+
+    TLSConfiguration_addAllowedCertificateFromFile(tlsConfig2, "server_CA1_1.pem");
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_destroy(con);
+
+    con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    Thread_sleep(500);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
+
+#endif /* #if (CONFIG_CS104_SUPPORT_TLS == 1) */
 
 void
 test_ASDUsetGetNumberOfElements(void)
@@ -5395,6 +6415,7 @@ int
 main(int argc, char** argv)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_version_number);
     RUN_TEST(test_CS104_Slave_CreateDestroy);
     RUN_TEST(test_CS104_MasterSlave_CreateDestroyLoop);
     RUN_TEST(test_CS104_Connection_CreateDestroy);
@@ -5472,6 +6493,7 @@ main(int argc, char** argv)
 
     RUN_TEST(test_CS104SlaveConnectionIsRedundancyGroup);
     RUN_TEST(test_CS104SlaveSingleRedundancyGroup);
+    RUN_TEST(test_CS104SlaveSingleRedundancyGroupMultipleConnections);
 
     RUN_TEST(test_CS104SlaveEventQueue1);
     RUN_TEST(test_CS104SlaveEventQueueOverflow);
@@ -5483,13 +6505,29 @@ main(int argc, char** argv)
 
     RUN_TEST(test_CS104_Connection_UseAfterClose);
     RUN_TEST(test_CS104_Connection_UseAfterServerClosedConnection);
+
+    RUN_TEST(test_CS104_Connection_async_success);
+    RUN_TEST(test_CS104_Connection_async_timeout);
+
     RUN_TEST(test_CS101_ASDU_addObjectOfWrongType);
     RUN_TEST(test_CS101_ASDU_addUntilOverflow);
 
-#if (LIB60870_HAS_TLS_SUPPORT == 1)
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
     RUN_TEST(test_CS104_MasterSlave_TLSConnectSuccess);
+    RUN_TEST(test_CS104_MasterSlave_TLSConnectSuccessWithoutSeparateCACert);
     RUN_TEST(test_CS104_MasterSlave_TLSConnectFails);
-#endif /* #if (LIB60870_HAS_TLS_SUPPORT == 1) */
+    RUN_TEST(test_CS104_MasterSlave_TLSVersionMismatch);
+    RUN_TEST(test_CS104_MasterSlave_TLSCertificateExpired);
+    RUN_TEST(test_CS104_MasterSlave_TLSCertificateRevoked);
+    RUN_TEST(test_CS104_MasterSlave_TLSRenegotiateAfterCRLUpdate);
+    RUN_TEST(test_CS104_MasterSlave_TLSCertificateRevokedBeforeRenegotiation);
+    RUN_TEST(test_CS104_MasterSlave_TLSCertificateRevokedBeforeReconnect);
+    RUN_TEST(test_CS104_MasterSlave_TLSUnknownCertificate);
+    RUN_TEST(test_CS104_MasterSlave_TLSUseSessionResumption);
+    RUN_TEST(test_CS104_MasterSlave_TLSCertificateSessionResumptionExpiredAtClient);
+    RUN_TEST(test_CS104_MasterSlave_TLSCertificateSessionResumptionExpiredAtServer);
+    RUN_TEST(test_CS104_MasterSlave_TLSReuseConfigurationWithSessionResumption);
+#endif /* #if (CONFIG_CS104_SUPPORT_TLS == 1) */
 
     RUN_TEST(test_ASDUsetGetNumberOfElements);
     RUN_TEST(test_CS101_ASDU_clone);

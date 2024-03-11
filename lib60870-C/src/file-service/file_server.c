@@ -35,7 +35,6 @@ typedef enum
     WAITING_FOR_FILE_ACK,
     SEND_ABORT,
     TRANSFER_COMPLETED,
-
     WAITING_FOR_SECTION_READY,
     RECEIVE_SECTION,
 } FileServerState;
@@ -587,9 +586,9 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
             DEBUG_PRINT("Received call/select F_SC_NA_1\n");
 
-            FileCallOrSelect sc = (FileCallOrSelect) CS101_ASDU_getElementEx(asdu, (InformationObject) ioBuf, 0);
-
-            if (CS101_ASDU_getCOT(asdu) == CS101_COT_FILE_TRANSFER) {
+            if (CS101_ASDU_getCOT(asdu) == CS101_COT_FILE_TRANSFER)
+            {
+                FileCallOrSelect sc = (FileCallOrSelect) CS101_ASDU_getElementEx(asdu, (InformationObject) ioBuf, 0);
 
                 uint8_t scq = FileCallOrSelect_getSCQ(sc);
                 int ioa = InformationObject_getObjectAddress((InformationObject) sc);
@@ -804,6 +803,9 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
             break;
 
+        default:
+            DEBUG_PRINT("Received unexpected type ID %i in file service\n", typeId);
+            break;
         }
 
         result = CS101_PLUGIN_RESULT_HANDLED;
