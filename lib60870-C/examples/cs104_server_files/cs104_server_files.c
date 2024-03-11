@@ -362,7 +362,7 @@ main(int argc, char** argv)
 
     CS104_Slave_addPlugin(slave, CS101_FileServer_getSlavePlugin(fileServer));
 
-    CS104_Slave_startThreadless(slave);
+    CS104_Slave_start(slave);
 
     if (CS104_Slave_isRunning(slave) == false) {
         printf("Starting server failed!\n");
@@ -373,10 +373,8 @@ main(int argc, char** argv)
 
     uint64_t nextSendTime = Hal_getTimeInMs() + 1000;
 
-    while (running) {
-
-        CS104_Slave_tick(slave);
-
+    while (running)
+    {
         if (Hal_getTimeInMs() >= nextSendTime) {
 
             nextSendTime += 1000;
@@ -398,7 +396,7 @@ main(int argc, char** argv)
         Thread_sleep(1);
     }
 
-    CS104_Slave_stopThreadless(slave);
+    CS104_Slave_stop(slave);
 
 exit_program:
     CS104_Slave_destroy(slave);
