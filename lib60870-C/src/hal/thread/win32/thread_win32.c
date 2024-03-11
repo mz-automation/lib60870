@@ -38,9 +38,7 @@ threadRunner(LPVOID parameter)
 {
 	Thread thread = (Thread) parameter;
 
-	thread->function(thread->parameter);
-
-	return (DWORD)0;
+	return (UINT) thread->function(thread->parameter);
 }
 
 Thread

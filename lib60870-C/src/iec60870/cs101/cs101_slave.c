@@ -1,7 +1,7 @@
 /*
  *  cs101_slave.c
  *
- *  Copyright 2017-2022 Michael Zillgith
+ *  Copyright 2017 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -96,12 +96,14 @@ struct sCS101_Slave
 static void
 handleASDU(CS101_Slave self, CS101_ASDU asdu);
 
+
+
 /********************************************
  * ISecondaryApplicationLayer
  ********************************************/
 
 static bool
-IsClass1DataAvailable(void* parameter)
+IsClass1DataAvailable (void* parameter)
 {
     CS101_Slave self = (CS101_Slave) parameter;
 
@@ -109,7 +111,7 @@ IsClass1DataAvailable(void* parameter)
 }
 
 static Frame
-GetClass1Data(void* parameter, Frame frame)
+GetClass1Data (void* parameter, Frame frame)
 {
     CS101_Slave self = (CS101_Slave) parameter;
 
@@ -123,7 +125,7 @@ GetClass1Data(void* parameter, Frame frame)
 }
 
 static Frame
-GetClass2Data(void* parameter, Frame frame)
+GetClass2Data (void* parameter, Frame frame)
 {
     CS101_Slave self = (CS101_Slave) parameter;
 
@@ -137,7 +139,7 @@ GetClass2Data(void* parameter, Frame frame)
 }
 
 static bool
-HandleReceivedData(void* parameter, uint8_t* msg, bool isBroadcast, int userDataStart, int userDataLength)
+HandleReceivedData (void* parameter, uint8_t* msg, bool isBroadcast, int userDataStart, int userDataLength)
 {
     UNUSED_PARAMETER(isBroadcast);
 
@@ -158,7 +160,7 @@ HandleReceivedData(void* parameter, uint8_t* msg, bool isBroadcast, int userData
 }
 
 static void
-ResetCUReceived(void* parameter, bool onlyFCB)
+ResetCUReceived (void* parameter, bool onlyFCB)
 {
     CS101_Slave self = (CS101_Slave) parameter;
 
@@ -191,7 +193,7 @@ static struct sISecondaryApplicationLayer cs101UnbalancedAppLayerInterface = {
  * IBalancedApplicationLayer
  ********************************************/
 static bool
-IsClass2DataAvailable(void* parameter)
+IsClass2DataAvailable (void* parameter)
 {
     CS101_Slave self = (CS101_Slave) parameter;
 
@@ -199,7 +201,7 @@ IsClass2DataAvailable(void* parameter)
 }
 
 static Frame
-IBalancedApplicationLayer_GetUserData(void* parameter, Frame frame)
+IBalancedApplicationLayer_GetUserData (void* parameter, Frame frame)
 {
     if (IsClass1DataAvailable(parameter))
         return GetClass1Data(parameter, frame);
@@ -210,7 +212,7 @@ IBalancedApplicationLayer_GetUserData(void* parameter, Frame frame)
 }
 
 static bool
-IBalancedApplicationLayer_HandleReceivedData(void* parameter, uint8_t* msg, bool isBroadcast, int userDataStart, int userDataLength)
+IBalancedApplicationLayer_HandleReceivedData (void* parameter, uint8_t* msg, bool isBroadcast, int userDataStart, int userDataLength)
 {
     return HandleReceivedData(parameter, msg, isBroadcast, userDataStart, userDataLength);
 }
@@ -290,7 +292,7 @@ static struct sCS101_AppLayerParameters defaultAppLayerParameters = {
 };
 
 CS101_Slave
-CS101_Slave_createEx(SerialPort serialPort, const LinkLayerParameters llParameters, const CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode,
+CS101_Slave_createEx(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode,
         int class1QueueSize, int class2QueueSize)
 {
     CS101_Slave self = (CS101_Slave) GLOBAL_MALLOC(sizeof(struct sCS101_Slave));
@@ -368,7 +370,7 @@ CS101_Slave_createEx(SerialPort serialPort, const LinkLayerParameters llParamete
 }
 
 CS101_Slave
-CS101_Slave_create(SerialPort serialPort, const LinkLayerParameters llParameters, const CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode)
+CS101_Slave_create(SerialPort serialPort, LinkLayerParameters llParameters, CS101_AppLayerParameters alParameters, IEC60870_LinkLayerMode linkLayerMode)
 {
     return CS101_Slave_createEx(serialPort, llParameters, alParameters, linkLayerMode, CS101_MAX_QUEUE_SIZE, CS101_MAX_QUEUE_SIZE);
 }

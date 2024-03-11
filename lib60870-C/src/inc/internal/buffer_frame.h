@@ -1,5 +1,5 @@
 /*
- *  Copyright 2017-2022 Michael Zillgith
+ *  Copyright 2017 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -50,7 +50,7 @@ void
 BufferFrame_setNextByte(Frame super, uint8_t byte);
 
 void
-BufferFrame_appendBytes(Frame super, const uint8_t* bytes, int numberOfBytes);
+BufferFrame_appendBytes(Frame super, uint8_t* bytes, int numberOfBytes);
 
 int
 BufferFrame_getMsgSize(Frame super);

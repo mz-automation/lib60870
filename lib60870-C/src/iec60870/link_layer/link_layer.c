@@ -1,7 +1,7 @@
 /*
  *  link_layer.c
  *
- *  Copyright 2017-2022 Michael Zillgith
+ *  Copyright 2017 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -20,6 +20,7 @@
  *
  *  See COPYING file for the complete license text.
  */
+
 
 #include <stdbool.h>
 #include <string.h>
@@ -313,6 +314,7 @@ SendVariableLengthFrame(LinkLayer self, uint8_t fc, int address, bool prm, bool 
     SerialTransceiverFT12_sendMessage(self->transceiver, buffer, bufPos);
 }
 
+
 static bool
 checkFCB(LL_Sec_Unb self, bool fcb)
 {
@@ -592,6 +594,8 @@ ParserHeaderSecondaryUnbalanced(void* parameter, uint8_t* msg, int msgSize)
     LinkLayerSecondaryUnbalanced_handleMessage(self, fc, isBroadcast, fcb, fcv, msg, userDataStart, userDataLength);
 }
 
+
+
 static void
 HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msgSize)
 {
@@ -603,8 +607,10 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
     int csStart = 0;
     int csIndex = 0;
     int address = 0; /* address can be ignored in balanced mode? */
+    bool prm = true;
+    int fc = 0;
 
-    bool isSingleCharAck = false;
+    bool isAck = false;
 
     if (msg [0] == 0x68) {
 
@@ -645,7 +651,9 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
             address += msg [3] * 0x100;
 
     } else if (msg [0] == 0xe5) {
-        isSingleCharAck = true;
+        isAck = true;
+        fc = LL_FC_00_ACK;
+        prm = false; /* single char ACK is only sent by secondary station */
         DEBUG_PRINT ("Received single char ACK\n");
     }
     else {
@@ -653,7 +661,7 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
         return;
     }
 
-    if (isSingleCharAck == false) {
+    if (isAck == false) {
 
         /* check checksum */
         uint8_t checksum = 0;
@@ -669,8 +677,8 @@ HandleMessageBalancedAndPrimaryUnbalanced(void* parameter, uint8_t* msg, int msg
         }
 
         /* parse C field bits */
-        uint8_t fc = c & 0x0f;
-        bool prm = ((c & 0x40) == 0x40);
+        fc = c & 0x0f;
+        prm = ((c & 0x40) == 0x40);
 
         if (prm) { /* we are secondary link layer */
             bool fcb = ((c & 0x20) == 0x20);
@@ -841,7 +849,7 @@ LinkLayerSecondaryBalanced_handleMessage(LinkLayerSecondaryBalanced self, uint8_
 
     case LL_FC_09_REQUEST_LINK_STATUS:
 
-        DEBUG_PRINT ("SLL - RECV FC 09 - REQUEST LINK STATUS\n");
+        DEBUG_PRINT ("SLL - RECV FC 09 - REQUEST LINK STATUS");
 
         DEBUG_PRINT ("SLL - SEND FC 11 - STATUS OF LINK\n");
 
@@ -857,6 +865,7 @@ LinkLayerSecondaryBalanced_handleMessage(LinkLayerSecondaryBalanced self, uint8_
         SendFixedFrame(self->linkLayer, LL_FC_15_SERVICE_NOT_IMPLEMENTED, self->linkLayer->address, false, self->linkLayer->dir, false, false);
 
         break;
+
     }
 }
 
@@ -871,8 +880,7 @@ typedef enum {
     PLL_LINK_LAYERS_AVAILABLE,
     PLL_EXECUTE_SERVICE_SEND_CONFIRM,
     PLL_EXECUTE_SERVICE_REQUEST_RESPOND,
-    PLL_SECONDARY_LINK_LAYER_BUSY, /* Only required in balanced link layer */
-    PLL_TIMEOUT /* only required in unbalanced link layer */
+    PLL_SECONDARY_LINK_LAYER_BUSY /* Only required in balanced link layer */
 } PrimaryLinkLayerState;
 
 struct sLinkLayerPrimaryBalanced {
@@ -990,8 +998,6 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
         if (primaryState == PLL_EXECUTE_RESET_REMOTE_LINK) {
             newState = PLL_LINK_LAYERS_AVAILABLE;
             llpb_setNewState(self, LL_STATE_AVAILABLE);
-
-            self->waitingForResponse = false;
         }
         else if (primaryState == PLL_EXECUTE_SERVICE_SEND_CONFIRM) {
 
@@ -1000,17 +1006,9 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
             newState = PLL_LINK_LAYERS_AVAILABLE;
             llpb_setNewState(self, LL_STATE_AVAILABLE);
-
-            self->waitingForResponse = false;
-        }
-        else if (primaryState == PLL_EXECUTE_REQUEST_STATUS_OF_LINK) {
-            /* stay in state and wait for response */
-            DEBUG_PRINT ("ACK (FC 00) unexpected -> expected status-of-link (FC 11)\n");
-        }
-        else {
-            self->waitingForResponse = false;
         }
 
+        self->waitingForResponse = false;
         break;
 
     case LL_FC_01_NACK:
@@ -1078,6 +1076,7 @@ LinkLayerPrimaryBalanced_handleMessage(LinkLayerPrimaryBalanced self, uint8_t fc
 
         break;
 
+
     default:
 
         DEBUG_PRINT ("UNEXPECTED SECONDARY LINK LAYER MESSAGE\n");
@@ -1102,14 +1101,10 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
 
     case PLL_IDLE:
 
+        self->waitingForResponse = false;
         self->originalSendTime = 0;
+        self->lastSendTime = 0;
         self->sendLinkLayerTestFunction = false;
-
-        SendFixedFrame(self->linkLayer, LL_FC_09_REQUEST_LINK_STATUS, self->otherStationAddress, true, self->linkLayer->dir, false, false);
-
-        self->lastSendTime = currentTime;
-        self->waitingForResponse = true;
-
         newState = PLL_EXECUTE_REQUEST_STATUS_OF_LINK;
 
         break;
@@ -1124,7 +1119,10 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
             }
 
             if (currentTime > (self->lastSendTime + self->linkLayer->linkLayerParameters->timeoutForAck)) {
-                newState = PLL_IDLE;
+
+                SendFixedFrame(self->linkLayer, LL_FC_09_REQUEST_LINK_STATUS, self->otherStationAddress, true, self->linkLayer->dir, false, false);
+
+                self->lastSendTime = currentTime;
             }
 
         }
@@ -1143,12 +1141,6 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
     case PLL_EXECUTE_RESET_REMOTE_LINK:
 
         if (self->waitingForResponse) {
-
-            if (self->lastSendTime > currentTime) {
-                /* last sent time not plausible! */
-                self->lastSendTime = currentTime;
-            }
-
             if (currentTime > (self->lastSendTime + self->linkLayer->linkLayerParameters->timeoutForAck)) {
                 self->waitingForResponse = false;
                 newState = PLL_IDLE;
@@ -1211,11 +1203,6 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
 
     case PLL_EXECUTE_SERVICE_SEND_CONFIRM:
 
-        if (self->lastSendTime > currentTime) {
-            /* last sent time not plausible! */
-            self->lastSendTime = currentTime;
-        }
-
         if (currentTime > (self->lastSendTime + self->linkLayer->linkLayerParameters->timeoutForAck)) {
 
             if (currentTime > (self->originalSendTime + self->linkLayer->linkLayerParameters->timeoutRepeat)) {
@@ -1271,6 +1258,7 @@ struct sLinkLayerBalanced {
     struct sLinkLayerSecondaryBalanced secondaryLinkLayer;
 };
 
+
 LinkLayerBalanced
 LinkLayerBalanced_create(
         int linkLayerAddress,
@@ -1323,6 +1311,7 @@ LinkLayerBalanced_setIdleTimeout(LinkLayerBalanced self, int timeoutInMs)
     self->primaryLinkLayer.idleTimeout = timeoutInMs;
 }
 
+
 void
 LinkLayerBalanced_setDIR(LinkLayerBalanced self, bool dir)
 {
@@ -1369,6 +1358,7 @@ LinkLayerBalanced_run(LinkLayerBalanced self)
  *
  *******************************************************/
 
+
 typedef struct sLinkLayerSlaveConnection* LinkLayerSlaveConnection;
 
 struct sLinkLayerPrimaryUnbalanced {
@@ -1386,11 +1376,15 @@ struct sLinkLayerPrimaryUnbalanced {
     struct sLinkLayer _linkLayer;
     LinkLayer linkLayer;
 
+    struct sLinkLayerParameters linkLayerParameters;
+
     LinkedList slaveConnections;
 
     IEC60870_LinkLayerStateChangedHandler stateChangedHandler;
     void* stateChangedHandlerParameter;
 };
+
+
 
 LinkLayerPrimaryUnbalanced
 LinkLayerPrimaryUnbalanced_create(SerialTransceiverFT12 transceiver, LinkLayerParameters linkLayerParameters,
@@ -1408,9 +1402,10 @@ LinkLayerPrimaryUnbalanced_create(SerialTransceiverFT12 transceiver, LinkLayerPa
         self->applicationLayer = applicationLayer;
         self->applicationLayerParam = applicationLayerParam;
 
+        self->linkLayerParameters = *linkLayerParameters;
         self->linkLayer = &(self->_linkLayer);
 
-        LinkLayer_init(self->linkLayer, 0, transceiver, linkLayerParameters);
+        LinkLayer_init(self->linkLayer, 0, transceiver, &(self->linkLayerParameters));
 
         self->linkLayer->llPriUnbalanced = self;
 
@@ -1721,6 +1716,7 @@ llsc_isMessageWaitingToSend(LinkLayerSlaveConnection self)
 static void
 LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
 {
+    /* TODO make timeouts dealing with time adjustments (time moves to past) */
     uint64_t currentTime = Hal_getTimeInMs();
 
     PrimaryLinkLayerState primaryState = self->primaryState;
@@ -1728,30 +1724,12 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
 
     switch (primaryState) {
 
-    case PLL_TIMEOUT:
-
-        if (self->lastSendTime > currentTime) {
-            /* last sent time not plausible! */
-            self->lastSendTime = currentTime;
-        }
-
-        if (currentTime > (self->lastSendTime + self->primaryLink->linkLayer->linkLayerParameters->timeoutLinkState)) {
-            newState = PLL_IDLE;
-        }
-
-        break;
-
     case PLL_IDLE:
 
+        self->waitingForResponse = false;
         self->originalSendTime = 0;
+        self->lastSendTime = 0;
         self->sendLinkLayerTestFunction = false;
-
-        DEBUG_PRINT ("[SLAVE %i] PLL - SEND FC 09 - REQUEST LINK STATUS\n", self->address);
-
-        SendFixedFrame(self->primaryLink->linkLayer, LL_FC_09_REQUEST_LINK_STATUS, self->address, true, false, false, false);
-
-        self->lastSendTime = currentTime;
-        self->waitingForResponse = true;
         newState = PLL_EXECUTE_REQUEST_STATUS_OF_LINK;
 
         break;
@@ -1760,15 +1738,13 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
 
         if (self->waitingForResponse) {
 
-            if (self->lastSendTime > currentTime) {
-                /* last sent time not plausible! */
-                self->lastSendTime = currentTime;
-            }
-
             if (currentTime > (self->lastSendTime + self->primaryLink->linkLayer->linkLayerParameters->timeoutForAck)) {
-                self->waitingForResponse = false;
+
+                DEBUG_PRINT ("[SLAVE %i] PLL - SEND FC 09 - REQUEST LINK STATUS\n", self->address);
+
+                SendFixedFrame(self->primaryLink->linkLayer, LL_FC_09_REQUEST_LINK_STATUS, self->address, true, false, false, false);
+
                 self->lastSendTime = currentTime;
-                newState = PLL_TIMEOUT;
             }
 
         }
@@ -1788,16 +1764,9 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
     case PLL_EXECUTE_RESET_REMOTE_LINK:
 
         if (self->waitingForResponse) {
-
-            if (self->lastSendTime > currentTime) {
-                /* last sent time not plausible! */
-                self->lastSendTime = currentTime;
-            }
-
             if (currentTime > (self->lastSendTime + self->primaryLink->linkLayer->linkLayerParameters->timeoutForAck)) {
                 self->waitingForResponse = false;
-                self->lastSendTime = currentTime;
-                newState = PLL_TIMEOUT;
+                newState = PLL_IDLE;
 
                 llsc_setState(self, LL_STATE_ERROR);
             }
@@ -1865,19 +1834,11 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
 
     case PLL_EXECUTE_SERVICE_SEND_CONFIRM:
 
-        if (self->lastSendTime > currentTime) {
-            /* last sent time not plausible! */
-            self->lastSendTime = currentTime;
-        }
-
         if (currentTime > (self->lastSendTime + self->primaryLink->linkLayer->linkLayerParameters->timeoutForAck)) {
 
             if (currentTime > (self->originalSendTime + self->primaryLink->linkLayer->linkLayerParameters->timeoutRepeat)) {
                 DEBUG_PRINT ("[SLAVE %i] TIMEOUT: ASDU not confirmed after repeated transmission\n", self->address);
-
-                self->waitingForResponse = false;
-                self->lastSendTime = currentTime;
-                newState = PLL_TIMEOUT;
+                newState = PLL_IDLE;
 
                 llsc_setState(self, LL_STATE_ERROR);
             }
@@ -1907,11 +1868,6 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
         break;
 
     case PLL_EXECUTE_SERVICE_REQUEST_RESPOND:
-
-        if (self->lastSendTime > currentTime) {
-            /* last sent time not plausible! */
-            self->lastSendTime = currentTime;
-        }
 
         if (currentTime > (self->lastSendTime + self->primaryLink->linkLayer->linkLayerParameters->timeoutForAck)) {
 
@@ -1956,6 +1912,8 @@ LinkLayerSlaveConnection_runStateMachine(LinkLayerSlaveConnection self)
     self->primaryState = newState;
 }
 
+
+
 static LinkLayerSlaveConnection
 LinkLayerPrimaryUnbalanced_getSlaveConnection(LinkLayerPrimaryUnbalanced self, int slaveAddress)
 {
@@ -1988,6 +1946,7 @@ LinkLayerPrimaryUnbalanced_addSlaveConnection(LinkLayerPrimaryUnbalanced self, i
 
         LinkedList_add(self->slaveConnections, newSlave);
     }
+
 }
 
 void
@@ -2146,8 +2105,7 @@ LinkLayerPrimaryUnbalanced_runStateMachine(LinkLayerPrimaryUnbalanced self)
             self->currentSlaveIndex = (self->currentSlaveIndex + 1) % LinkedList_size(self->slaveConnections);
         }
 
-        if (self->currentSlave)
-            LinkLayerSlaveConnection_runStateMachine(self->currentSlave);
+        LinkLayerSlaveConnection_runStateMachine(self->currentSlave);
     }
 }
 
