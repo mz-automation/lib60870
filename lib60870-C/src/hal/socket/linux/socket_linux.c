@@ -636,15 +636,8 @@ Socket_getPeerAddressStatic(Socket self, char* peerAddressString)
 {
     struct sockaddr_storage addr;
     socklen_t addrLen = sizeof(addr);
-    memset(&addr, 0, sizeof(addr));
 
-    if (getpeername(self->fd, (struct sockaddr*) &addr, &addrLen) == -1)
-    {
-        if (DEBUG_SOCKET)
-            printf("DEBUG_SOCKET: getpeername -> errno: %i\n", errno);
-
-        return NULL;
-    }
+    getpeername(self->fd, (struct sockaddr*) &addr, &addrLen);
 
     char addrString[INET6_ADDRSTRLEN + 7];
     int port;
@@ -664,7 +657,7 @@ Socket_getPeerAddressStatic(Socket self, char* peerAddressString)
         isIPv6 = true;
     }
     else
-        return NULL;
+        return NULL ;
 
     if (isIPv6)
         sprintf(peerAddressString, "[%s]:%i", addrString, port);

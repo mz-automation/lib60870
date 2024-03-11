@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2022 Michael Zillgith
+ *  Copyright 2016-2018 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -18,11 +18,6 @@
  *
  *  See COPYING file for the complete license text.
  */
-
-#ifdef _MSC_VER
-#define _CRT_SECURE_NO_WARNINGS
-#define _CRT_NONSTDC_NO_DEPRECATE
-#endif
 
 #include "cs104_connection.h"
 
@@ -100,6 +95,11 @@ struct sCS104_Connection {
     int oldestSentASDU;  /* index of oldest entry in k-buffer */
     int newestSentASDU;  /* index of newest entry in k-buffer */
 
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore sentASDUsLock;
+    Semaphore socketWriteLock;
+#endif
+
 #if (CONFIG_USE_THREADS == 1)
     Thread connectionHandlingThread;
 #endif
@@ -124,10 +124,6 @@ struct sCS104_Connection {
     bool close;
 
     CS104_ConState conState;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore conStateLock;
-#endif
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     TLSConfiguration tlsConfig;
@@ -188,12 +184,18 @@ prepareSMessage(uint8_t* msg)
 static void
 sendSMessage(CS104_Connection self)
 {
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->socketWriteLock);
+#endif
     uint8_t* msg = self->sMessage;
 
     msg [4] = (uint8_t) ((self->receiveCount % 128) * 2);
     msg [5] = (uint8_t) (self->receiveCount / 128);
 
     writeToSocket(self, msg, 6);
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->socketWriteLock);
+#endif
 }
 
 static int
@@ -201,16 +203,20 @@ sendIMessage(CS104_Connection self, Frame frame)
 {
     T104Frame_prepareToSend((T104Frame) frame, self->sendCount, self->receiveCount);
 
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->socketWriteLock);
+#endif
     writeToSocket(self, T104Frame_getBuffer(frame), T104Frame_getMsgSize(frame));
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->socketWriteLock);
+#endif
 
     self->sendCount = (self->sendCount + 1) % 32768;
 
     self->unconfirmedReceivedIMessages = false;
     self->timeoutT2Trigger = false;
 
-    int sendCount = self->sendCount;
-
-    return sendCount;
+    return self->sendCount;
 }
 
 static CS104_Connection
@@ -237,7 +243,8 @@ createConnection(const char* hostname, int tcpPort)
         self->rawMessageHandlerParameter = NULL;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
-        self->conStateLock = Semaphore_create(1);
+        self->sentASDUsLock = Semaphore_create(1);
+        self->socketWriteLock = Semaphore_create(1);
 #endif
 
 #if (CONFIG_USE_THREADS == 1)
@@ -291,13 +298,10 @@ resetT3Timeout(CS104_Connection self) {
     self->nextT3Timeout = Hal_getTimeInMs() + (self->parameters.t3 * 1000);
 }
 
+
 static void
 resetConnection(CS104_Connection self)
 {
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
     self->connectTimeoutInMs = self->parameters.t0 * 1000;
     self->recvBufPos = 0;
 
@@ -326,15 +330,16 @@ resetConnection(CS104_Connection self)
     self->conState = STATE_IDLE;
 
     resetT3Timeout(self);
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
 }
+
 
 static bool
 checkSequenceNumber(CS104_Connection self, int seqNo)
 {
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->sentASDUsLock);
+#endif
+
     /* check if received sequence number is valid */
 
     bool seqNoIsValid = false;
@@ -383,6 +388,8 @@ checkSequenceNumber(CS104_Connection self, int seqNo)
                 if (seqNo == oldestValidSeqNo)
                     break;
 
+
+
                 if (self->sentASDUs [self->oldestSentASDU].seqNo == seqNo) {
                     /* we arrived at the seq# that has been confirmed */
 
@@ -408,8 +415,13 @@ checkSequenceNumber(CS104_Connection self, int seqNo)
         }
     }
 
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->sentASDUsLock);
+#endif
+
     return seqNoIsValid;
 }
+
 
 static bool
 isSentBufferFull(CS104_Connection self)
@@ -428,16 +440,7 @@ isSentBufferFull(CS104_Connection self)
 void
 CS104_Connection_close(CS104_Connection self)
 {
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
     self->close = true;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
 #if (CONFIG_USE_THREADS == 1)
     if (self->connectionHandlingThread)
     {
@@ -456,7 +459,8 @@ CS104_Connection_destroy(CS104_Connection self)
         GLOBAL_FREEMEM(self->sentASDUs);
 
 #if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_destroy(self->conStateLock);
+    Semaphore_destroy(self->sentASDUsLock);
+    Semaphore_destroy(self->socketWriteLock);
 #endif
 
     if (self->localIpAddress) {
@@ -484,7 +488,7 @@ CS104_Connection_setLocalAddress(CS104_Connection self, const char* localIpAddre
 }
 
 void
-CS104_Connection_setAPCIParameters(CS104_Connection self, const CS104_APCIParameters parameters)
+CS104_Connection_setAPCIParameters(CS104_Connection self, CS104_APCIParameters parameters)
 {
     self->parameters = *parameters;
 
@@ -492,7 +496,7 @@ CS104_Connection_setAPCIParameters(CS104_Connection self, const CS104_APCIParame
 }
 
 void
-CS104_Connection_setAppLayerParameters(CS104_Connection self, const CS101_AppLayerParameters parameters)
+CS104_Connection_setAppLayerParameters(CS104_Connection self, CS101_AppLayerParameters parameters)
 {
     self->alParameters = *parameters;
 }
@@ -620,12 +624,8 @@ confirmOutstandingMessages(CS104_Connection self)
 }
 
 static bool
-checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize, bool* startDtReceived, bool* stopDtReceived)
+checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
 {
-    bool retVal = true;
-    *startDtReceived = false;
-    *stopDtReceived = false;
-
     if ((buffer[2] & 1) == 0) { /* I format frame */
 
         if (self->timeoutT2Trigger == false) {
@@ -635,9 +635,7 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize, bool* startDtR
 
         if (msgSize < 7) {
             DEBUG_PRINT("I msg too small!\n");
-            retVal =  false;
-
-            goto exit_function;
+            return false;
         }
 
         int frameSendSequenceNumber = ((buffer [3] * 0x100) + (buffer [2] & 0xfe)) / 2;
@@ -648,17 +646,11 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize, bool* startDtR
         /* check the receive sequence number N(R) - connection will be closed on an unexpected value */
         if (frameSendSequenceNumber != self->receiveCount) {
             DEBUG_PRINT("Sequence error: Close connection!");
-
-            retVal =  false;
-
-            goto exit_function;
+            return false;
         }
 
-        if (checkSequenceNumber(self, frameRecvSequenceNumber) == false) {
-            retVal =  false;
-
-            goto exit_function;
-        }
+        if (checkSequenceNumber(self, frameRecvSequenceNumber) == false)
+            return false;
 
         self->receiveCount = (self->receiveCount + 1) % 32768;
         self->unconfirmedReceivedIMessages++;
@@ -671,11 +663,8 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize, bool* startDtR
 
             CS101_ASDU_destroy(asdu);
         }
-        else {
-            retVal =  false;
-
-            goto exit_function;
-        }
+        else
+            return false;
 
     }
     else if ((buffer[2] & 0x03) == 0x03) { /* U format frame */
@@ -686,8 +675,13 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize, bool* startDtR
 
         if (buffer[2] == 0x43) { /* Check for TESTFR_ACT message */
             DEBUG_PRINT("Send TESTFR_CON\n");
-
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_wait(self->socketWriteLock);
+#endif
             writeToSocket(self, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE);
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_post(self->socketWriteLock);
+#endif
         }
         else if (buffer[2] == 0x83) { /* TESTFR_CON */
             DEBUG_PRINT("Rcvd TESTFR_CON\n");
@@ -695,9 +689,13 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize, bool* startDtR
         }
         else if (buffer[2] == 0x07) { /* STARTDT_ACT */
             DEBUG_PRINT("Send STARTDT_CON\n");
-
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_wait(self->socketWriteLock);
+#endif
             writeToSocket(self, STARTDT_CON_MSG, STARTDT_CON_MSG_SIZE);
-
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_post(self->socketWriteLock);
+#endif
             self->conState = STATE_ACTIVE;
         }
         else if (buffer[2] == 0x0b) { /* STARTDT_CON */
@@ -705,14 +703,16 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize, bool* startDtR
 
             self->conState = STATE_ACTIVE;
 
-            *startDtReceived = true;
+            if (self->connectionHandler != NULL)
+                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STARTDT_CON_RECEIVED);
         }
         else if (buffer[2] == 0x23) { /* STOPDT_CON */
             DEBUG_PRINT("Received STOPDT_CON\n");
 
             self->conState = STATE_INACTIVE;
 
-            *stopDtReceived = true;
+            if (self->connectionHandler != NULL)
+                self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STOPDT_CON_RECEIVED);
         }
 
     }
@@ -721,18 +721,13 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize, bool* startDtR
 
         DEBUG_PRINT("Rcvd S(%i) (own sendcounter = %i)\n", seqNo, self->sendCount);
 
-        if (checkSequenceNumber(self, seqNo) == false) {
-            retVal =  false;
-
-            goto exit_function;
-        }
+        if (checkSequenceNumber(self, seqNo) == false)
+            return false;
     }
 
     resetT3Timeout(self);
 
-exit_function:
-
-    return retVal;
+    return true;
 }
 
 static bool
@@ -741,10 +736,6 @@ handleTimeouts(CS104_Connection self)
     bool retVal = true;
 
     uint64_t currentTime = Hal_getTimeInMs();
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
     if (currentTime > self->nextT3Timeout) {
 
@@ -757,9 +748,13 @@ handleTimeouts(CS104_Connection self)
         }
         else {
             DEBUG_PRINT("U message T3 timeout\n");
-
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_wait(self->socketWriteLock);
+#endif
             writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE);
-
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_post(self->socketWriteLock);
+#endif
             self->uMessageTimeout = currentTime + (self->parameters.t1 * 1000);
             self->outstandingTestFCConMessages++;
 
@@ -783,6 +778,9 @@ handleTimeouts(CS104_Connection self)
     }
 
     /* check if counterpart confirmed I messages */
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->sentASDUsLock);
+#endif
     if (self->oldestSentASDU != -1) {
         if (currentTime > self->sentASDUs[self->oldestSentASDU].sentTime) {
             if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->parameters.t1 * 1000)) {
@@ -791,68 +789,14 @@ handleTimeouts(CS104_Connection self)
             }
         }
     }
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->sentASDUsLock);
+#endif
+
 
 exit_function:
 
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
     return retVal;
-}
-
-static bool
-isRunning(CS104_Connection self)
-{
-    bool isRunning;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-    isRunning = self->running;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-    return isRunning;
-}
-
-static bool
-isFailure(CS104_Connection self)
-{
-    bool isFailure;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-    isFailure = self->failure;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-    return isFailure;
-}
-
-static bool
-isClose(CS104_Connection self)
-{
-    bool isClose;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-    isClose = self->close;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-    return isClose;
 }
 
 #if (CONFIG_USE_THREADS == 1)
@@ -860,8 +804,6 @@ static void*
 handleConnection(void* parameter)
 {
     CS104_Connection self = (CS104_Connection) parameter;
-
-    CS104_ConnectionEvent event = CS104_CONNECTION_OPENED;
 
     resetConnection(self);
 
@@ -875,10 +817,6 @@ handleConnection(void* parameter)
         }
 
         if (Socket_connect(self->socket, self->hostname, self->tcpPort)) {
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-            Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
             if (self->tlsConfig != NULL) {
@@ -895,24 +833,12 @@ handleConnection(void* parameter)
             self->running = true;
 #endif
 
-#if (CONFIG_USE_SEMAPHORES == 1)
-            Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-            if (isRunning(self)) {
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-                Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
+            if (self->running) {
 
                 self->conState = STATE_INACTIVE;
 
-#if (CONFIG_USE_SEMAPHORES == 1)
-                Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
                 /* Call connection handler */
-                if (self->connectionHandler)
+                if (self->connectionHandler != NULL)
                     self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_OPENED);
 
                 HandleSet handleSet = Handleset_new();
@@ -929,16 +855,7 @@ handleConnection(void* parameter)
 
                         if (bytesRec == -1) {
                             loopRunning = false;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-                            Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
                             self->failure = true;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-                            Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
                         }
 
                         if (bytesRec > 0) {
@@ -946,76 +863,36 @@ handleConnection(void* parameter)
                             if (self->rawMessageHandler)
                                 self->rawMessageHandler(self->rawMessageHandlerParameter, self->recvBuffer, bytesRec, false);
 
-                            bool startDtRecevied = false;
-                            bool stopDtReceived = false;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-                            Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-                            if (checkMessage(self, self->recvBuffer, bytesRec, &startDtRecevied, &stopDtReceived) == false) {
+                            if (checkMessage(self, self->recvBuffer, bytesRec) == false) {
                                 /* close connection on error */
                                 loopRunning = false;
-
                                 self->failure = true;
                             }
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-                            Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-                            if (self->connectionHandler) {
-                                if (startDtRecevied)
-                                    self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STARTDT_CON_RECEIVED);
-
-                                if (stopDtReceived)
-                                    self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_STARTDT_CON_RECEIVED);
-                            }
                         }
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-                        Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
                         if ((self->unconfirmedReceivedIMessages >= self->parameters.w) || (self->conState == STATE_WAITING_FOR_STOPDT_CON)) {
                             confirmOutstandingMessages(self);
                         }
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-                        Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
                     }
 
                     if (handleTimeouts(self) == false)
                         loopRunning = false;
 
-                    if (isClose(self))
+                    if (self->close)
                         loopRunning = false;
                 }
 
                 Handleset_destroy(handleSet);
 
-                /* register CLOSED event */
-                event = CS104_CONNECTION_CLOSED;
+                /* Call connection handler */
+                if (self->connectionHandler != NULL)
+                    self->connectionHandler(self->connectionHandlerParameter, self, CS104_CONNECTION_CLOSED);
+
             }
         }
         else {
-#if (CONFIG_USE_SEMAPHORES == 1)
-            Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
             self->failure = true;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-            Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-            /* register CLOSED event */
-            event = CS104_CONNECTION_FAILED;
         }
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-        Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
         /* Confirm all unconfirmed received I-messages before closing the connection */
         if (self->unconfirmedReceivedIMessages > 0) {
@@ -1030,30 +907,14 @@ handleConnection(void* parameter)
         Socket_destroy(self->socket);
 
         self->conState = STATE_IDLE;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-        Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
     }
     else {
     	DEBUG_PRINT("Failed to create socket\n");
     }
 
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
     self->running = false;
 
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-    /* Call connection handler */
-    if ((event == CS104_CONNECTION_CLOSED) || (event == CS104_CONNECTION_FAILED)) {
-        if (self->connectionHandler)
-            self->connectionHandler(self->connectionHandlerParameter, self, event);
-    }
+    DEBUG_PRINT("EXIT CONNECTION HANDLING THREAD\n");
 
     return NULL;
 }
@@ -1062,17 +923,9 @@ handleConnection(void* parameter)
 void
 CS104_Connection_connectAsync(CS104_Connection self)
 {
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
     self->running = false;
     self->failure = false;
     self->close = false;
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
 #if (CONFIG_USE_THREADS == 1)
     if (self->connectionHandlingThread) {
@@ -1090,12 +943,16 @@ CS104_Connection_connectAsync(CS104_Connection self)
 bool
 CS104_Connection_connect(CS104_Connection self)
 {
+    self->running = false;
+    self->failure = false;
+    self->close = false;
+
     CS104_Connection_connectAsync(self);
 
-    while ((isRunning(self) == false) && (isFailure(self) == false))
+    while ((self->running == false) && (self->failure == false))
         Thread_sleep(1);
 
-    return isRunning(self);
+    return self->running;
 }
 
 void
@@ -1152,40 +1009,38 @@ encodeIOA(CS104_Connection self, Frame frame, int ioa)
 void
 CS104_Connection_sendStartDT(CS104_Connection self)
 {
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
     self->conState = STATE_WAITING_FOR_STARTDT_CON;
-
-    writeToSocket(self, STARTDT_ACT_MSG, STARTDT_ACT_MSG_SIZE);
-
 #if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
+    Semaphore_wait(self->socketWriteLock);
+#endif
+    writeToSocket(self, STARTDT_ACT_MSG, STARTDT_ACT_MSG_SIZE);
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->socketWriteLock);
+#endif
 }
 
 void
 CS104_Connection_sendStopDT(CS104_Connection self)
 {
-#if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_wait(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
     confirmOutstandingMessages(self);
 
     self->conState = STATE_WAITING_FOR_STOPDT_CON;
-
-    writeToSocket(self, STOPDT_ACT_MSG, STOPDT_ACT_MSG_SIZE);
-
 #if (CONFIG_USE_SEMAPHORES == 1)
-    Semaphore_post(self->conStateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */
+    Semaphore_wait(self->socketWriteLock);
+#endif
+    writeToSocket(self, STOPDT_ACT_MSG, STOPDT_ACT_MSG_SIZE);
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->socketWriteLock);
+#endif
 }
 
 static void
 sendIMessageAndUpdateSentASDUs(CS104_Connection self, Frame frame)
 {
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_wait(self->sentASDUsLock);
+#endif
+
     int currentIndex = 0;
 
     if (self->oldestSentASDU == -1) {
@@ -1200,6 +1055,10 @@ sendIMessageAndUpdateSentASDUs(CS104_Connection self, Frame frame)
     self->sentASDUs [currentIndex].sentTime = Hal_getTimeInMs();
 
     self->newestSentASDU = currentIndex;
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+    Semaphore_post(self->sentASDUsLock);
+#endif
 }
 
 static bool
@@ -1207,20 +1066,11 @@ sendASDUInternal(CS104_Connection self, Frame frame)
 {
     bool retVal = false;
 
-    if (isRunning(self)) {
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-        Semaphore_wait(self->conStateLock);
-#endif
-
+    if (self->running) {
         if (isSentBufferFull(self) == false) {
             sendIMessageAndUpdateSentASDUs(self, frame);
             retVal = true;
         }
-
-#if (CONFIG_USE_SEMAPHORES == 1)
-        Semaphore_post(self->conStateLock);
-#endif
     }
 
     T104Frame_destroy(frame);
