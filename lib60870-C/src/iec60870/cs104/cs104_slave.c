@@ -1901,8 +1901,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
             }
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -1927,8 +1929,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     return false;
             }
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -1952,8 +1956,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     return false;
             }
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -1998,8 +2004,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     return false;
             }
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -2007,16 +2015,16 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd test command C_TS_NA_1\n");
 
-        if (cot != CS101_COT_ACTIVATION) {
-            CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
-            CS101_ASDU_setNegative(asdu, true);
-        }
-        else
+        if (cot == CS101_COT_ACTIVATION) {
             CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+            sendASDUInternal(self, asdu);
 
-        sendASDUInternal(self, asdu);
-
-        messageHandled = true;
+            messageHandled = true;
+        }
+        else {
+            responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -2042,8 +2050,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
             }
 
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -2069,8 +2079,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
             }
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
