@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2023 Michael Zillgith
+ *  Copyright 2016-2024 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -53,15 +53,24 @@
 #error Illegal configuration: Define either CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP or CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP or CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS
 #endif
 
+typedef enum {
+    M_CON_STATE_STOPPED, /* only U frames allowed */
+    M_CON_STATE_STARTED, /* U, I, S frames allowed */
+    M_CON_STATE_UNCONFIRMED_STOPPED /* only U, S frames allowed */
+} MasterConnectionState;
+
 typedef struct sMasterConnection* MasterConnection;
 
-void
+static void
 MasterConnection_close(MasterConnection self);
 
-void
+static void
 MasterConnection_deactivate(MasterConnection self);
 
-void
+static bool
+MasterConnection_hasUnconfirmedMessages(MasterConnection self);
+
+static void
 MasterConnection_activate(MasterConnection self);
 
 
@@ -352,15 +361,16 @@ MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* entryId, uint8_t** 
 {
     uint8_t* buffer = NULL;
 
-    if (self->entryCounter != 0) {
-
+    if (self->entryCounter != 0)
+    {
         uint8_t* entryPtr = self->firstEntry;
 
         struct sMessageQueueEntryInfo entryInfo;
 
         memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
 
-        while (entryInfo.entryState != QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION) {
+        while (entryInfo.entryState != QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION)
+        {
             if (entryPtr == self->lastEntry)
                 break;
 
@@ -373,8 +383,8 @@ MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* entryId, uint8_t** 
             memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
         }
 
-        if (entryInfo.entryState == QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION) {
-
+        if (entryInfo.entryState == QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION)
+        {
             *entryId = entryInfo.entryId;
             *queueEntry = entryPtr;
             entryInfo.entryState = QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED;
@@ -389,6 +399,41 @@ MessageQueue_getNextWaitingASDU(MessageQueue self, uint64_t* entryId, uint8_t** 
     return buffer;
 }
 
+static bool
+MessageQueue_hasUnconfirmedIMessages(MessageQueue self)
+{
+    bool retVal = false;
+
+    if (self->entryCounter != 0)
+    {
+        uint8_t* entryPtr = self->firstEntry;
+
+        struct sMessageQueueEntryInfo entryInfo;
+
+        while (entryPtr)
+        {
+            memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
+
+            if (entryInfo.entryState == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED)
+            {
+                retVal = true;
+                break;
+            }
+
+            if (entryPtr == self->lastEntry)
+                break;
+
+            /* move to next entry */
+            if (entryPtr == self->lastInBufferEntry)
+                entryPtr = self->buffer;
+            else
+                entryPtr = entryPtr + sizeof(struct sMessageQueueEntryInfo) + entryInfo.size;
+        }
+    }
+
+    return retVal;
+}
+
 static void
 MessageQueue_setWaitingForTransmissionWhenNotConfirmed(MessageQueue self)
 {
@@ -396,14 +441,14 @@ MessageQueue_setWaitingForTransmissionWhenNotConfirmed(MessageQueue self)
     Semaphore_wait(self->queueLock);
 #endif
 
-    if (self->entryCounter != 0) {
-
+    if (self->entryCounter != 0)
+    {
         uint8_t* entryPtr = self->firstEntry;
 
         struct sMessageQueueEntryInfo entryInfo;
 
-        while (entryPtr) {
-
+        while (entryPtr)
+        {
             memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
 
             if (entryInfo.entryState == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED) {
@@ -448,9 +493,10 @@ MessageQueue_releaseAllQueuedASDUs(MessageQueue self)
 static void
 removeFirstEntry(MessageQueue self)
 {
-    if (self->firstEntry == self->lastInBufferEntry) {
-
-        if (self->firstEntry == self->lastEntry) {
+    if (self->firstEntry == self->lastInBufferEntry)
+    {
+        if (self->firstEntry == self->lastEntry)
+        {
             self->firstEntry = NULL;
             self->lastEntry = NULL;
             self->lastInBufferEntry = NULL;
@@ -460,7 +506,8 @@ removeFirstEntry(MessageQueue self)
             self->lastInBufferEntry = self->lastEntry;
         }
     }
-    else {
+    else
+    {
         struct sMessageQueueEntryInfo entryInfo;
 
         memcpy(&entryInfo, self->firstEntry, sizeof(struct sMessageQueueEntryInfo));
@@ -473,25 +520,24 @@ removeFirstEntry(MessageQueue self)
 static void
 MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_t entryId)
 {
-    if (self->entryCounter > 0) {
+    if (self->entryCounter > 0)
+    {
         /* entryId plausibility check */
         uint64_t entryIdDiff = self->entryId - 1 - entryId;
 
-        if (entryIdDiff < (unsigned) self->entryCounter) {
-
+        if (entryIdDiff < (unsigned) self->entryCounter)
+        {
             struct sMessageQueueEntryInfo entryInfo;
             memcpy(&entryInfo, queueEntry, sizeof(struct sMessageQueueEntryInfo));
 
             /* check if ASDU is matching */
-            if (entryInfo.entryId == entryId) {
+            if (entryInfo.entryId == entryId)
+            {
                 entryInfo.entryState = QUEUE_ENTRY_STATE_NOT_USED_OR_CONFIRMED;
                 memcpy(queueEntry, &entryInfo, sizeof(struct sMessageQueueEntryInfo));
 
                 if (queueEntry == self->firstEntry) {
                     removeFirstEntry(self);
-                }
-                else {
-                    DEBUG_PRINT("CS104 SLAVE: message queue corrupted (not first in buffer)\n");
                 }
             }
             else {
@@ -771,6 +817,41 @@ HighPriorityASDUQueue_resetConnectionQueue(HighPriorityASDUQueue self)
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
 #endif
+}
+
+static bool
+HighPriorityASDUQueue_hasUnconfirmedIMessages(HighPriorityASDUQueue self)
+{
+    bool retVal = false;
+
+    if (self->entryCounter != 0)
+    {
+        uint8_t* entryPtr = self->firstEntry;
+
+        struct sMessageQueueEntryInfo entryInfo;
+
+        while (entryPtr)
+        {
+            memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
+
+            if (entryInfo.entryState == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED)
+            {
+                retVal = true;
+                break;
+            }
+
+            if (entryPtr == self->lastEntry)
+                break;
+
+            /* move to next entry */
+            if (entryPtr == self->lastInBufferEntry)
+                entryPtr = self->buffer;
+            else
+                entryPtr = entryPtr + sizeof(struct sMessageQueueEntryInfo) + entryInfo.size;
+        }
+    }
+
+    return retVal;
 }
 
 /***************************************************
@@ -1092,6 +1173,7 @@ struct sMasterConnection {
 
     CS104_Slave slave;
 
+    MasterConnectionState state;
     unsigned int isUsed:1;
     unsigned int isActive:1;
     unsigned int isRunning:1;
@@ -1763,7 +1845,6 @@ isSentBufferFull(MasterConnection self)
         return false;
 }
 
-
 static void
 sendASDU(MasterConnection self, uint8_t* buffer, int msgSize, uint64_t entryId, uint8_t* queueEntry)
 {
@@ -1787,14 +1868,13 @@ sendASDU(MasterConnection self, uint8_t* buffer, int msgSize, uint64_t entryId, 
     printSendBuffer(self);
 }
 
-
 static bool
 sendASDUInternal(MasterConnection self, CS101_ASDU asdu)
 {
     bool asduSent;
 
-    if (self->isActive) {
-
+    if (self->isActive && self->state == M_CON_STATE_STARTED)
+    {
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->sentASDUsLock);
 #endif
@@ -1834,7 +1914,6 @@ sendASDUInternal(MasterConnection self, CS101_ASDU asdu)
 
     return asduSent;
 }
-
 
 static void
 responseCOTUnknown(CS101_ASDU asdu, MasterConnection self)
@@ -2153,10 +2232,12 @@ checkSequenceNumber(MasterConnection self, int seqNo)
             seqNoIsValid = true;
     }
 
-    if (seqNoIsValid) {
-        if (self->oldestSentASDU != -1) {
-
-            do {
+    if (seqNoIsValid)
+    {
+        if (self->oldestSentASDU != -1)
+        {
+            do
+            {
                 int oldestAsduSeqNo = self->sentASDUs[self->oldestSentASDU].seqNo;
 
                 if (counterOverflowDetected == false) {
@@ -2168,8 +2249,8 @@ checkSequenceNumber(MasterConnection self, int seqNo)
                     break;
 
                 /* remove from server (low-priority) queue if required */
-                if (self->sentASDUs[self->oldestSentASDU].queueEntry != NULL) {
-
+                if (self->sentASDUs[self->oldestSentASDU].queueEntry != NULL)
+                {
                     MessageQueue_lock(self->lowPrioQueue);
 
                     MessageQueue_markAsduAsConfirmed(self->lowPrioQueue,
@@ -2183,7 +2264,8 @@ checkSequenceNumber(MasterConnection self, int seqNo)
                     MessageQueue_unlock(self->lowPrioQueue);
                 }
 
-                if (oldestAsduSeqNo == seqNo) {
+                if (oldestAsduSeqNo == seqNo)
+                {
                     /* we arrived at the seq# that has been confirmed */
 
                     if (self->oldestSentASDU == self->newestSentASDU)
@@ -2358,8 +2440,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 {
     uint64_t currentTime = Hal_getTimeInMs();
 
-    if (msgSize >= 3) {
-
+    if (msgSize >= 3)
+    {
         if (buffer[0] != 0x68) {
             DEBUG_PRINT("CS104 SLAVE: Invalid START character!");
             return false;
@@ -2372,8 +2454,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             return false;
         }
 
-        if ((buffer[2] & 1) == 0) { /* I message */
-
+        if ((buffer[2] & 1) == 0) /* I message */
+        {
             if (msgSize < 7) {
                 DEBUG_PRINT("CS104 SLAVE: Received I msg too small!");
                 return false;
@@ -2382,6 +2464,18 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 #if (CONFIG_USE_SEMAPHORES == 1)
             Semaphore_wait(self->stateLock);
 #endif
+
+            if (self->state != M_CON_STATE_STARTED)
+            {
+                DEBUG_PRINT("CS104 SLAVE: Received I message while connection not active -> close connection");
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+                Semaphore_post(self->stateLock);
+#endif
+
+                return false;
+            }
+
             if (self->timeoutT2Triggered == false) {
                 self->timeoutT2Triggered = true;
                 self->lastConfirmationTime = currentTime; /* start timeout T2 */
@@ -2425,8 +2519,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             Semaphore_post(self->stateLock);
 #endif
 
-            if (MasterConnection_isActive(self)) {
-
+            if (MasterConnection_isActive(self))
+            {
                 CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->slave->alParameters), buffer + 6, msgSize - 6);
 
                 if (asdu) {
@@ -2471,7 +2565,10 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
         }
 
         /* Check for STOPDT_ACT message */
-        else if ((buffer [2] & 0x13) == 0x13) {
+        else if ((buffer [2] & 0x13) == 0x13)
+        {
+            DEBUG_PRINT("CS104 SLAVE: Received STARTDT_ACT\n");
+
             MasterConnection_deactivate(self);
 
             /* Send S-Message to confirm all outstanding messages */
@@ -2492,14 +2589,34 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             Semaphore_post(self->stateLock);
 #endif
 
-            DEBUG_PRINT("CS104 SLAVE: Send STOPDT_CON\n");
+            if(MasterConnection_hasUnconfirmedMessages(self)) {
+                DEBUG_PRINT("CS104 SLAVE: Unconfirmed messages after STOPDT_ACT -> pending unconfirmed stopped state\n");
+            }
+            else
+            {
+                DEBUG_PRINT("CS104 SLAVE: Send STOPDT_CON\n");
 
-            if (writeToSocket(self, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE) < 0)
-                return false;
+                self->state = M_CON_STATE_STOPPED;
+
+                if (writeToSocket(self, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE) < 0)
+                {
+                    #if (CONFIG_USE_SEMAPHORES == 1)
+                                Semaphore_post(self->stateLock);
+                    #endif
+
+                    return false;
+                }
+
+            }
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_post(self->stateLock);
+#endif
         }
 
         /* Check for TESTFR_CON message */
-        else if ((buffer[2] & 0x83) == 0x83) {
+        else if ((buffer[2] & 0x83) == 0x83)
+        {
             DEBUG_PRINT("CS104 SLAVE: Recv TESTFR_CON\n");
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -2512,14 +2629,33 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 #endif
         }
 
-        else if (buffer [2] == 0x01) { /* S-message */
-
+        else if (buffer [2] == 0x01) /* S-message */
+        {
             int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
 
             DEBUG_PRINT("CS104 SLAVE: Rcvd S(%i) (own sendcounter = %i)\n", seqNo, self->sendCount);
 
             if (checkSequenceNumber(self, seqNo) == false) {
                 DEBUG_PRINT("CS104 SLAVE: S message - sequence number mismatch");
+                return false;
+            }
+
+            if (self->state == M_CON_STATE_UNCONFIRMED_STOPPED)
+            {
+                if (MasterConnection_hasUnconfirmedMessages(self) == false)
+                {
+                    self->state = M_CON_STATE_STOPPED;
+
+                    DEBUG_PRINT("CS104 SLAVE: Send STOPDT_CON\n");
+
+                    if (writeToSocket(self, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE) < 0)
+                        return false;
+                }
+            }
+            else if (self->state == M_CON_STATE_STOPPED)
+            {
+                DEBUG_PRINT("CS104 SLAVE: S message in stopped state -> active close\n");
+                /* actively close connection */
                 return false;
             }
         }
@@ -3023,7 +3159,9 @@ MasterConnection_create(CS104_Slave slave)
 {
     MasterConnection self = (MasterConnection) GLOBAL_CALLOC(1, sizeof(struct sMasterConnection));
 
-    if (self != NULL) {
+    if (self != NULL)
+    {
+        self->state = M_CON_STATE_STOPPED;
         self->isUsed = false;
         self->slave = slave;
         self->maxSentASDUs = slave->conParameters.k;
@@ -3148,6 +3286,7 @@ MasterConnection_start(MasterConnection self)
     }
 
     self->isRunning = true;
+    self->state = M_CON_STATE_STOPPED;
 
     self->connectionThread =
            Thread_create((ThreadExecutionFunction) connectionHandlingThread,
@@ -3157,7 +3296,7 @@ MasterConnection_start(MasterConnection self)
 }
 #endif /* (CONFIG_USE_THREADS == 1) */
 
-void
+static void
 MasterConnection_close(MasterConnection self)
 {
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -3165,21 +3304,41 @@ MasterConnection_close(MasterConnection self)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
     self->isRunning = false;
+    self->state = M_CON_STATE_STOPPED;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 }
 
-void
+static bool
+MasterConnection_hasUnconfirmedMessages(MasterConnection self)
+{
+    bool retVal = false;
+
+    if (self->lowPrioQueue)
+    {
+        if (MessageQueue_hasUnconfirmedIMessages(self->lowPrioQueue))
+            return true;
+
+        if (HighPriorityASDUQueue_hasUnconfirmedIMessages(self->highPrioQueue))
+            return true;
+    }
+
+    return retVal;
+}
+
+static void
 MasterConnection_deactivate(MasterConnection self)
 {
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
-    if (self->isUsed) {
-        if (self->isActive == true) {
+    if (self->isUsed)
+    {
+        if (self->isActive == true)
+        {
             if (self->slave->connectionEventHandler) {
                  self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_DEACTIVATED);
             }
@@ -3187,13 +3346,14 @@ MasterConnection_deactivate(MasterConnection self)
     }
 
     self->isActive = false;
+    self->state = M_CON_STATE_UNCONFIRMED_STOPPED;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 }
 
-void
+static void
 MasterConnection_activate(MasterConnection self)
 {
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -3207,6 +3367,7 @@ MasterConnection_activate(MasterConnection self)
     }
 
     self->isActive = true;
+    self->state = M_CON_STATE_STARTED;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->stateLock);
