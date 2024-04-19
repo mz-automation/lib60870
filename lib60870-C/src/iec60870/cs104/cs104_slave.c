@@ -1980,8 +1980,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
             }
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -2006,8 +2008,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     return false;
             }
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -2031,8 +2035,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     return false;
             }
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -2077,8 +2083,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     return false;
             }
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -2086,16 +2094,16 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd test command C_TS_NA_1\n");
 
-        if (cot != CS101_COT_ACTIVATION) {
-            CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
-            CS101_ASDU_setNegative(asdu, true);
-        }
-        else
+        if (cot == CS101_COT_ACTIVATION) {
             CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+            sendASDUInternal(self, asdu);
 
-        sendASDUInternal(self, asdu);
-
-        messageHandled = true;
+            messageHandled = true;
+        }
+        else {
+            responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -2121,8 +2129,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
             }
 
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -2148,8 +2158,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
             }
         }
-        else
+        else {
             responseCOTUnknown(asdu, self);
+            messageHandled = true;
+        }
 
         break;
 
@@ -3037,6 +3049,21 @@ connectionHandlingThread(void* parameter)
         if (MasterConnection_isRunning(self)) {
             if (MasterConnection_isActive(self)) {
                 isAsduWaiting = sendWaitingASDUs(self);
+            }
+        }
+
+        /* call plugins */
+        if (self->slave->plugins) {
+
+            LinkedList pluginElem = LinkedList_getNext(self->slave->plugins);
+
+            while (pluginElem) {
+
+                CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
+
+                plugin->runTask(plugin->parameter, &(self->iMasterConnection));
+
+                pluginElem = LinkedList_getNext(pluginElem);
             }
         }
     }
@@ -3973,8 +4000,6 @@ serverThread (void* parameter)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
                     }
-
-                    break;
                 }
             }
         }

@@ -15,7 +15,7 @@ sigint_handler(int signalId)
 }
 
 static Semaphore lastEventLock = NULL;
-static CS104_ConnectionEvent lastEvent = CS104_CONNECTION_CLOSED;
+static CS104_ConnectionEvent lastEvent = -1;
 
 /* Callback handler to log sent or received messages (optional) */
 static void
@@ -164,8 +164,8 @@ main(int argc, char** argv)
 
     uint64_t lastGiSent = 0;
 
-    while (running) {
-
+    while (running)
+    {
         Semaphore_wait(lastEventLock);
 
         if (lastEvent == CS104_CONNECTION_OPENED) {
@@ -175,8 +175,10 @@ main(int argc, char** argv)
         else if (lastEvent == CS104_CONNECTION_CLOSED || lastEvent == CS104_CONNECTION_FAILED) {
             running = false;
         }
-        else {
-            if (startDTSent) {
+        else
+        {
+            if (startDTSent)
+            {
                 uint64_t currentTime = Hal_getTimeInMs();
 
                 if (currentTime < lastGiSent)
@@ -199,5 +201,3 @@ main(int argc, char** argv)
 
     printf("exit\n");
 }
-
-
