@@ -73,6 +73,9 @@ MasterConnection_hasUnconfirmedMessages(MasterConnection self);
 static void
 MasterConnection_activate(MasterConnection self);
 
+static bool
+MasterConnection_isActive(MasterConnection self);
+
 
 #define CS104_DEFAULT_PORT 2404
 
@@ -1175,7 +1178,6 @@ struct sMasterConnection {
 
     MasterConnectionState state;
     unsigned int isUsed:1;
-    unsigned int isActive:1;
     unsigned int isRunning:1;
     unsigned int timeoutT2Triggered:1;
     unsigned int waitingForTestFRcon:1;
@@ -1873,7 +1875,7 @@ sendASDUInternal(MasterConnection self, CS101_ASDU asdu)
 {
     bool asduSent;
 
-    if (self->isActive && self->state == M_CON_STATE_STARTED)
+    if (MasterConnection_isActive(self))
     {
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->sentASDUsLock);
@@ -1910,7 +1912,7 @@ sendASDUInternal(MasterConnection self, CS101_ASDU asdu)
         asduSent = false;
 
     if (asduSent == false)
-        DEBUG_PRINT("CS104 SLAVE: unable to send response (isActive=%i)\n", self->isActive);
+        DEBUG_PRINT("CS104 SLAVE: unable to send response (state=%i)\n", self->state);
 
     return asduSent;
 }
@@ -2338,7 +2340,8 @@ MasterConnection_isActive(MasterConnection self)
     Semaphore_wait(self->stateLock);
 #endif
 
-    isActive = self->isActive;
+    if (self->state == M_CON_STATE_STARTED)
+        isActive = true;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->stateLock);
@@ -3096,7 +3099,7 @@ _IMasterConnection_isReady(IMasterConnection self)
 {
     MasterConnection con = (MasterConnection) self->object;
 
-    if (con->isActive) {
+    if (MasterConnection_isActive(con)) {
         if (isSentBufferFull(con) == false)
             return true;
 
@@ -3232,9 +3235,9 @@ MasterConnection_create(CS104_Slave slave)
 static bool
 MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQueue, HighPriorityASDUQueue highPrioQueue)
 {
-    if (self) {
+    if (self)
+    {
         self->socket = skt;
-        self->isActive = false;
         self->isRunning = false;
         self->receiveCount = 0;
         self->sendCount = 0;
@@ -3364,7 +3367,7 @@ MasterConnection_deactivate(MasterConnection self)
 
     if (self->isUsed)
     {
-        if (self->isActive == true)
+        if (self->state == M_CON_STATE_STARTED)
         {
             if (self->slave->connectionEventHandler) {
                  self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_DEACTIVATED);
@@ -3372,7 +3375,6 @@ MasterConnection_deactivate(MasterConnection self)
         }
     }
 
-    self->isActive = false;
     self->state = M_CON_STATE_UNCONFIRMED_STOPPED;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -3387,13 +3389,12 @@ MasterConnection_activate(MasterConnection self)
     Semaphore_wait(self->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
-    if (self->isActive == false) {
+    if (self->state  != M_CON_STATE_STARTED) {
         if (self->slave->connectionEventHandler) {
              self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_ACTIVATED);
         }
     }
 
-    self->isActive = true;
     self->state = M_CON_STATE_STARTED;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -3437,7 +3438,7 @@ MasterConnection_handleTcpConnection(MasterConnection self)
 static void
 MasterConnection_executePeriodicTasks(MasterConnection self)
 {
-    if (self->isActive)
+    if (self->state == M_CON_STATE_STARTED)
         sendWaitingASDUs(self);
 
     if (handleTimeouts(self) == false)
@@ -3449,22 +3450,22 @@ handleClientConnections(CS104_Slave self)
 {
     HandleSet handleset = NULL;
 
-    if (self->openConnections > 0) {
-
+    if (self->openConnections > 0)
+    {
         int i;
 
         bool first = true;
 
-        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
-
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+        {
             MasterConnection con = self->masterConnections[i];
 
-            if (con && con->isUsed) {
-
-                if (con->isRunning) {
-
-                    if (first) {
-
+            if (con && con->isUsed)
+            {
+                if (con->isRunning)
+                {
+                    if (first)
+                    {
                         handleset = con->handleSet;
                         Handleset_reset(handleset);
 
@@ -3473,8 +3474,8 @@ handleClientConnections(CS104_Slave self)
 
                     Handleset_addSocket(handleset, con->socket);
                 }
-                else {
-
+                else
+                {
                     if (self->connectionEventHandler) {
                        self->connectionEventHandler(self->connectionEventHandlerParameter, &(con->iMasterConnection), CS104_CON_EVENT_CONNECTION_CLOSED);
                     }
@@ -3495,11 +3496,12 @@ handleClientConnections(CS104_Slave self)
         }
 
         /* handle incoming messages when available */
-        if (handleset != NULL) {
-
-            if (Handleset_waitReady(handleset, 1)) {
-
-                for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+        if (handleset != NULL)
+        {
+            if (Handleset_waitReady(handleset, 1))
+            {
+                for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+                {
                     MasterConnection con = self->masterConnections[i];
 
                     if (con != NULL && con->isUsed)
@@ -3510,20 +3512,23 @@ handleClientConnections(CS104_Slave self)
         }
 
         /* handle periodic tasks for running connections */
-        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+        {
             MasterConnection con = self->masterConnections[i];
 
-            if (con != NULL && con->isUsed) {
-                if (con->isRunning) {
+            if (con != NULL && con->isUsed)
+            {
+                if (con->isRunning)
+                {
                     MasterConnection_executePeriodicTasks(con);
 
                     /* call plugins */
-                    if (self->plugins) {
-
+                    if (self->plugins)
+                    {
                         LinkedList pluginElem = LinkedList_getNext(self->plugins);
 
-                        while (pluginElem) {
-
+                        while (pluginElem)
+                        {
                             CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
 
                             plugin->runTask(plugin->parameter, &(con->iMasterConnection));
@@ -3531,13 +3536,10 @@ handleClientConnections(CS104_Slave self)
                             pluginElem = LinkedList_getNext(pluginElem);
                         }
                     }
-
                 }
             }
         }
-
     }
-
 }
 
 static char*
