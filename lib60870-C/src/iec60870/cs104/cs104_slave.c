@@ -2693,7 +2693,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 static void
 MasterConnection_deinit(MasterConnection self)
 {
-    if (self) {
+    if (self)
+    {
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         if (self->tlsSocket != NULL)
             TLSSocket_close(self->tlsSocket);
@@ -2704,6 +2705,7 @@ MasterConnection_deinit(MasterConnection self)
             self->socket = NULL;
         }
 
+        self->state = M_CON_STATE_STOPPED;
     }
 }
 
@@ -3049,8 +3051,10 @@ connectionHandlingThread(void* parameter)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
         }
 
-        if (MasterConnection_isRunning(self)) {
-            if (MasterConnection_isActive(self)) {
+        if (MasterConnection_isRunning(self))
+        {
+            if (MasterConnection_isActive(self))
+            {
                 isAsduWaiting = sendWaitingASDUs(self);
             }
         }
@@ -3310,7 +3314,8 @@ MasterConnection_initEx(MasterConnection self, Socket skt, CS104_RedundancyGroup
 static void
 MasterConnection_start(MasterConnection self)
 {
-    if (self->connectionThread) {
+    if (self->connectionThread)
+    {
         Thread_destroy(self->connectionThread);
         self->connectionThread = NULL;
     }
@@ -3413,8 +3418,8 @@ MasterConnection_handleTcpConnection(MasterConnection self)
         self->isRunning = false;
     }
 
-    if ((bytesRec > 0) && (self->isRunning)) {
-
+    if ((bytesRec > 0) && (self->isRunning))
+    {
         if (self->slave->rawMessageHandler)
             self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
                     &(self->iMasterConnection), self->recvBuffer, bytesRec, false);
@@ -3422,8 +3427,8 @@ MasterConnection_handleTcpConnection(MasterConnection self)
         if (handleMessage(self, self->recvBuffer, bytesRec) == false)
             self->isRunning = false;
 
-        if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w) {
-
+        if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w)
+        {
             self->lastConfirmationTime = Hal_getTimeInMs();
 
             self->unconfirmedReceivedIMessages = 0;
@@ -3439,10 +3444,14 @@ static void
 MasterConnection_executePeriodicTasks(MasterConnection self)
 {
     if (self->state == M_CON_STATE_STARTED)
+    {
         sendWaitingASDUs(self);
+    }
 
     if (handleTimeouts(self) == false)
+    {
         self->isRunning = false;
+    }
 }
 
 static void
