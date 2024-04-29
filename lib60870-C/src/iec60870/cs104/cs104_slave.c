@@ -3198,9 +3198,8 @@ MasterConnection_create(CS104_Slave slave)
         self->state = M_CON_STATE_STOPPED;
         self->isUsed = false;
         self->slave = slave;
-        self->maxSentASDUs = slave->conParameters.k;
-        self->sentASDUs = (SentASDUSlave*) GLOBAL_CALLOC(self->maxSentASDUs, sizeof(SentASDUSlave));
-
+        self->maxSentASDUs = 0;
+        self->sentASDUs = NULL;
         self->iMasterConnection.object = self;
         self->iMasterConnection.getApplicationLayerParameters = _IMasterConnection_getApplicationLayerParameters;
         self->iMasterConnection.isReady = _IMasterConnection_isReady;
@@ -3246,6 +3245,27 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
         self->receiveCount = 0;
         self->sendCount = 0;
         self->recvBufPos = 0;
+
+        if (self->maxSentASDUs != self->slave->conParameters.k)
+        {
+            if (self->sentASDUs)
+            {
+                GLOBAL_FREEMEM(self->sentASDUs);
+                self->sentASDUs = NULL;
+            }
+        }
+
+        if (self->sentASDUs == NULL)
+        {
+            self->maxSentASDUs = self->slave->conParameters.k;
+            self->sentASDUs = (SentASDUSlave*) GLOBAL_CALLOC(self->maxSentASDUs, sizeof(SentASDUSlave));
+
+            if (self->sentASDUs == NULL)
+            {
+                DEBUG_PRINT("CS104 SLAVE: Failed to allocate memory for sent ASDU buffer\n");
+                return false;
+            }
+        }
 
         self->unconfirmedReceivedIMessages = 0;
         self->lastConfirmationTime = UINT64_MAX;
@@ -3638,19 +3658,19 @@ getMatchingRedundancyGroup(CS104_Slave self, char* ipAddrStr)
 static void
 handleConnectionsThreadless(CS104_Slave self)
 {
-    if ((self->maxOpenConnections < 1) || (self->openConnections < self->maxOpenConnections)) {
-
+    if ((self->maxOpenConnections < 1) || (self->openConnections < self->maxOpenConnections))
+    {
         Socket newSocket = ServerSocket_accept(self->serverSocket);
 
-        if (newSocket != NULL) {
-
+        if (newSocket != NULL)
+        {
             bool acceptConnection = true;
 
             if (acceptConnection)
                 acceptConnection = callConnectionRequestHandler(self, newSocket);
 
-            if (acceptConnection) {
-
+            if (acceptConnection)
+            {
                 MessageQueue lowPrioQueue = NULL;
                 HighPriorityASDUQueue highPrioQueue = NULL;
 
@@ -3664,24 +3684,26 @@ handleConnectionsThreadless(CS104_Slave self)
                 MasterConnection connection = NULL;
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
-                if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
-
+                if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
+                {
                     char ipAddress[60];
 
                     char* ipAddrStr = getPeerAddress(newSocket, ipAddress);
 
-                    if (ipAddrStr) {
+                    if (ipAddrStr)
+                    {
                         CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
 
-                        if (matchingGroup != NULL) {
-
+                        if (matchingGroup != NULL)
+                        {
 #if (CONFIG_USE_SEMAPHORES)
                             Semaphore_wait(self->openConnectionsLock);
 #endif
 
                             connection = getFreeConnection(self);
 
-                            if (connection) {
+                            if (connection)
+                            {
                                 if (MasterConnection_initEx(connection, newSocket, matchingGroup))
                                 {
                                     self->openConnections++;
@@ -3719,7 +3741,8 @@ handleConnectionsThreadless(CS104_Slave self)
                     connection = getFreeConnection(self);
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
-                    if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
+                    if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP)
+                    {
                         lowPrioQueue = connection->lowPrioQueue;
                         MessageQueue_initialize(lowPrioQueue);
 
@@ -3728,7 +3751,8 @@ handleConnectionsThreadless(CS104_Slave self)
                     }
 #endif /* CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS */
 
-                    if (connection) {
+                    if (connection)
+                    {
                         if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue)) {
                             self->openConnections++;
                         }
@@ -3744,8 +3768,8 @@ handleConnectionsThreadless(CS104_Slave self)
 
                 }
 
-                if (connection) {
-
+                if (connection)
+                {
                     connection->isRunning = true;
 
                     if (self->connectionEventHandler) {
