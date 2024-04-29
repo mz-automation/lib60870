@@ -6599,7 +6599,7 @@ main(int argc, char** argv)
 
     RUN_TEST(test_CS104SlaveConnectionIsRedundancyGroup);
     RUN_TEST(test_CS104SlaveSingleRedundancyGroup);
-    // RUN_TEST(test_CS104SlaveSingleRedundancyGroupMultipleConnections);
+    RUN_TEST(test_CS104SlaveSingleRedundancyGroupMultipleConnections);
 
     RUN_TEST(test_CS104SlaveEventQueue1);
     RUN_TEST(test_CS104SlaveEventQueueOverflow);

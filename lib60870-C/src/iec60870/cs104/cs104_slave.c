@@ -2334,7 +2334,7 @@ MasterConnection_isRunning(MasterConnection self)
 static bool
 MasterConnection_isActive(MasterConnection self)
 {
-    bool isActive;
+    bool isActive = false;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->stateLock);
@@ -2998,8 +2998,8 @@ connectionHandlingThread(void* parameter)
         else
             socketTimeout = 100;
 
-        if (Handleset_waitReady(self->handleSet, socketTimeout)) {
-
+        if (Handleset_waitReady(self->handleSet, socketTimeout))
+        {
             int bytesRec = receiveMessage(self);
 
             if (bytesRec == -1) {
@@ -3007,7 +3007,8 @@ connectionHandlingThread(void* parameter)
                 break;
             }
 
-            if (bytesRec > 0) {
+            if (bytesRec > 0)
+            {
                 DEBUG_PRINT("CS104 SLAVE: Connection: rcvd msg(%i bytes)\n", bytesRec);
 
                 if (self->slave->rawMessageHandler)
@@ -3026,8 +3027,8 @@ connectionHandlingThread(void* parameter)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
                 }
 
-                if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w) {
-
+                if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w)
+                {
                     self->lastConfirmationTime = Hal_getTimeInMs();
 
                     self->unconfirmedReceivedIMessages = 0;
@@ -3060,12 +3061,12 @@ connectionHandlingThread(void* parameter)
         }
 
         /* call plugins */
-        if (self->slave->plugins) {
-
+        if (self->slave->plugins)
+        {
             LinkedList pluginElem = LinkedList_getNext(self->slave->plugins);
 
-            while (pluginElem) {
-
+            while (pluginElem)
+            {
                 CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
 
                 plugin->runTask(plugin->parameter, &(self->iMasterConnection));
