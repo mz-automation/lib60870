@@ -2094,6 +2094,7 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
     case C_TS_NA_1: /* 104 - test command */
 
+#if (CONFIG_ALLOW_C_TS_NA_1_FOR_CS104 == 1)
         DEBUG_PRINT("CS104 SLAVE: Rcvd test command C_TS_NA_1\n");
 
         if (cot == CS101_COT_ACTIVATION) {
@@ -2106,6 +2107,11 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
             responseCOTUnknown(asdu, self);
             messageHandled = true;
         }
+#else
+        /* this command is not supported/allowed for IEC 104 */
+        DEBUG_PRINT("CS104 SLAVE: Rcvd test command C_TS_NA_1 -> not allowed\n");
+        messageHandled = false;
+#endif /* (CONFIG_ALLOW_C_TS_NA_1_FOR_CS104 == 1) */
 
         break;
 
@@ -2538,7 +2544,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             {
                 CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->slave->alParameters), buffer + 6, msgSize - 6);
 
-                if (asdu) {
+                if (asdu)
+                {
                     bool validAsdu = handleASDU(self, asdu);
 
                     CS101_ASDU_destroy(asdu);
