@@ -77,5 +77,7 @@
 /* number of not missing keepalive responses until socket is considered dead */
 #define CONFIG_TCP_KEEPALIVE_CNT 2
 
+/* test command without timestamp is not allowed for CS104. Set to 1 to enable it anyway. */
+#define CONFIG_ALLOW_C_TS_NA_1_FOR_CS104 0
 
 #endif /* CONFIG_LIB60870_CONFIG_H_ */
