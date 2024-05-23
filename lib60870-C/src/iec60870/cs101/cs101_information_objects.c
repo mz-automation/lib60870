@@ -43,7 +43,6 @@ struct sInformationObjectVFT {
 #endif
 };
 
-
 /*****************************************
  * Basic data types
  ****************************************/
@@ -4660,24 +4659,23 @@ StepCommand_destroy(StepCommand self)
 StepCommand
 StepCommand_create(StepCommand self, int ioa, StepCommandValue command, bool selectCommand, int qu)
 {
-    if (self == NULL) {
+    if (self == NULL)
 		self = (StepCommand) GLOBAL_MALLOC(sizeof(struct sStepCommand));
 
-        if (self == NULL)
-            return NULL;
-        else
-            StepCommand_initialize(self);
+    if (self)
+    {
+        StepCommand_initialize(self);
+
+        self->objectAddress = ioa;
+
+        uint8_t dcq = ((qu & 0x1f) * 4);
+
+        dcq += (uint8_t) (command & 0x03);
+
+        if (selectCommand) dcq |= 0x80;
+
+        self->dcq = dcq;
     }
-
-    self->objectAddress = ioa;
-
-    uint8_t dcq = ((qu & 0x1f) * 4);
-
-    dcq += (uint8_t) (command & 0x03);
-
-    if (selectCommand) dcq |= 0x80;
-
-    self->dcq = dcq;
 
     return self;
 }
