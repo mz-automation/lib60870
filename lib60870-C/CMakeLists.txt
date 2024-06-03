@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.23)
 
-project(lib60870-C VERSION 2.3.2 LANGUAGES C
+project(lib60870-C VERSION 2.3.3 LANGUAGES C
         DESCRIPTION "IEC 60870-5-101/104 master/slave library"
 )
 
