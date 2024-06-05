@@ -145,7 +145,8 @@ HandleReceivedData(void* parameter, uint8_t* msg, bool isBroadcast, int userData
 
     CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->alParameters), msg + userDataStart, userDataLength);
 
-    if (asdu) {
+    if (asdu)
+    {
         handleASDU(self, asdu);
 
         CS101_ASDU_destroy(asdu);
@@ -162,11 +163,12 @@ ResetCUReceived(void* parameter, bool onlyFCB)
 {
     CS101_Slave self = (CS101_Slave) parameter;
 
-    if (onlyFCB) {
+    if (onlyFCB)
+    {
         DEBUG_PRINT("CS101 slave: Reset FCB received\n");
-
     }
-    else {
+    else
+    {
         DEBUG_PRINT("CS101 slave: Reset CU received\n");
 
         if (self->resetCUHandler)
@@ -295,8 +297,8 @@ CS101_Slave_createEx(SerialPort serialPort, const LinkLayerParameters llParamete
 {
     CS101_Slave self = (CS101_Slave) GLOBAL_MALLOC(sizeof(struct sCS101_Slave));
 
-    if (self != NULL) {
-
+    if (self != NULL)
+    {
         self->asduHandler = NULL;
         self->interrogationHandler = NULL;
         self->counterInterrogationHandler = NULL;
@@ -330,23 +332,21 @@ CS101_Slave_createEx(SerialPort serialPort, const LinkLayerParameters llParamete
 
         self->linkLayerMode = linkLayerMode;
 
-        if (linkLayerMode == IEC60870_LINK_LAYER_UNBALANCED) {
-
+        if (linkLayerMode == IEC60870_LINK_LAYER_UNBALANCED)
+        {
             self->balancedLinkLayer = NULL;
 
             self->unbalancedLinkLayer = LinkLayerSecondaryUnbalanced_create(0, self->transceiver,
                     &(self->linkLayerParameters),
                     &cs101UnbalancedAppLayerInterface, self);
-
         }
-        else {
-
+        else
+        {
             self->unbalancedLinkLayer = NULL;
 
             self->balancedLinkLayer = LinkLayerBalanced_create(0, self->transceiver,
                     &(self->linkLayerParameters),
                     &cs101BalancedAppLayerInterface, self);
-
         }
 
         self->iMasterConnection.isReady = isReady;
@@ -376,8 +376,8 @@ CS101_Slave_create(SerialPort serialPort, const LinkLayerParameters llParameters
 void
 CS101_Slave_destroy(CS101_Slave self)
 {
-    if (self != NULL) {
-
+    if (self != NULL)
+    {
         if (self->unbalancedLinkLayer)
             LinkLayerSecondaryUnbalanced_destroy(self->unbalancedLinkLayer);
 
@@ -493,12 +493,12 @@ CS101_Slave_run(CS101_Slave self)
         LinkLayerBalanced_run(self->balancedLinkLayer);
 
     /* call plugins */
-    if (self->plugins) {
-
+    if (self->plugins)
+    {
         LinkedList pluginElem = LinkedList_getNext(self->plugins);
 
-        while (pluginElem) {
-
+        while (pluginElem)
+        {
             CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
 
             plugin->runTask(plugin->parameter, &(self->iMasterConnection));
@@ -528,7 +528,8 @@ void
 CS101_Slave_start(CS101_Slave self)
 {
 #if (CONFIG_USE_THREADS == 1)
-    if (self->workerThread == NULL) {
+    if (self->workerThread == NULL)
+    {
         self->workerThread = Thread_create(slaveMainThread, self, false);
         Thread_start(self->workerThread);
     }
@@ -539,15 +540,14 @@ void
 CS101_Slave_stop(CS101_Slave self)
 {
 #if (CONFIG_USE_THREADS == 1)
-    if (self->isRunning) {
+    if (self->isRunning)
+    {
         self->isRunning = false;
         Thread_destroy(self->workerThread);
         self->workerThread = NULL;
     }
 #endif /* (CONFIG_USE_THREADS == 1) */
 }
-
-
 
 CS101_AppLayerParameters
 CS101_Slave_getAppLayerParameters(CS101_Slave self)
@@ -626,7 +626,6 @@ responseCOTUnknown(CS101_ASDU asdu, IMasterConnection self)
     sendASDU(self, asdu);
 }
 
-
 /*
  * Handle received ASDUs
  *
@@ -641,8 +640,8 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
     if (self->plugins) {
         LinkedList pluginElem = LinkedList_getNext(self->plugins);
 
-        while (pluginElem) {
-
+        while (pluginElem)
+        {
             CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
 
             CS101_SlavePlugin_Result result = plugin->handleAsdu(plugin->parameter, &(self->iMasterConnection), asdu);
@@ -666,9 +665,10 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
         DEBUG_PRINT("Rcvd interrogation command C_IC_NA_1\n");
 
-        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_DEACTIVATION)) {
-            if (self->interrogationHandler != NULL) {
-
+        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_DEACTIVATION))
+        {
+            if (self->interrogationHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 InterrogationCommand irc = (InterrogationCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
@@ -692,20 +692,22 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
         DEBUG_PRINT("Rcvd counter interrogation command C_CI_NA_1\n");
 
-        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_DEACTIVATION)) {
-
-            if (self->counterInterrogationHandler != NULL) {
-
+        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_DEACTIVATION))
+        {
+            if (self->counterInterrogationHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 CounterInterrogationCommand cic = (CounterInterrogationCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (cic) {
+                if (cic)
+                {
                     if (self->counterInterrogationHandler(self->counterInterrogationHandlerParameter,
                             &(self->iMasterConnection), asdu, CounterInterrogationCommand_getQCC(cic)))
                         messageHandled = true;
                 }
-                else {
+                else
+                {
                     DEBUG_PRINT("Invalid message");
                     return;
                 }
@@ -720,9 +722,10 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
         DEBUG_PRINT("Rcvd read command C_RD_NA_1\n");
 
-        if (cot == CS101_COT_REQUEST) {
-            if (self->readHandler != NULL) {
-
+        if (cot == CS101_COT_REQUEST)
+        {
+            if (self->readHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 ReadCommand rc = (ReadCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
@@ -746,20 +749,22 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
         DEBUG_PRINT("Rcvd clock sync command C_CS_NA_1\n");
 
-        if (cot == CS101_COT_ACTIVATION) {
-
-            if (self->clockSyncHandler != NULL) {
-
+        if (cot == CS101_COT_ACTIVATION)
+        {
+            if (self->clockSyncHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 ClockSynchronizationCommand csc = (ClockSynchronizationCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (csc) {
+                if (csc)
+                {
                     if (self->clockSyncHandler(self->clockSyncHandlerParameter,
                             &(self->iMasterConnection), asdu, ClockSynchronizationCommand_getTime(csc)))
                         messageHandled = true;
 
-                    if (messageHandled) {
+                    if (messageHandled)
+                    {
                         /* send ACT-CON message */
                         CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
 
@@ -797,16 +802,16 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
         DEBUG_PRINT("Rcvd reset process command C_RP_NA_1\n");
 
-        if (cot == CS101_COT_ACTIVATION) {
-
-            if (self->resetProcessHandler != NULL) {
-
+        if (cot == CS101_COT_ACTIVATION)
+        {
+            if (self->resetProcessHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 ResetProcessCommand rpc = (ResetProcessCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (rpc) {
-
+                if (rpc)
+                {
                     if (self->resetProcessHandler(self->resetProcessHandlerParameter,
                             &(self->iMasterConnection), asdu, ResetProcessCommand_getQRP(rpc)))
                         messageHandled = true;
@@ -815,7 +820,6 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
                     DEBUG_PRINT("Invalid reset-process-command message");
                 }
             }
-
         }
         else
             responseCOTUnknown(asdu, &(self->iMasterConnection));
@@ -826,15 +830,16 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
         DEBUG_PRINT("Rcvd delay acquisition command C_CD_NA_1\n");
 
-        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_SPONTANEOUS)) {
-
-            if (self->delayAcquisitionHandler != NULL) {
-
+        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_SPONTANEOUS))
+        {
+            if (self->delayAcquisitionHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 DelayAcquisitionCommand dac = (DelayAcquisitionCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (dac) {
+                if (dac)
+                {
                     if (self->delayAcquisitionHandler(self->delayAcquisitionHandlerParameter,
                             &(self->iMasterConnection), asdu, DelayAcquisitionCommand_getDelay(dac)))
                         messageHandled = true;
@@ -858,7 +863,8 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
         if (self->asduHandler(self->asduHandlerParameter, &(self->iMasterConnection), asdu))
             messageHandled = true;
 
-    if (messageHandled == false) {
+    if (messageHandled == false)
+    {
         /* send error response */
         CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_TYPE_ID);
         CS101_ASDU_setNegative(asdu, true);
@@ -871,4 +877,3 @@ CS101_Slave_setRawMessageHandler(CS101_Slave self, IEC60870_RawMessageHandler ha
 {
     SerialTransceiverFT12_setRawMessageHandler(self->transceiver, handler, parameter);
 }
-
