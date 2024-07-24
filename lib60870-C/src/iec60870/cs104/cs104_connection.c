@@ -1167,6 +1167,13 @@ CS104_Connection_sendStartDT(CS104_Connection self)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 }
 
+/* this function is only for test purposes and not part of the API! */
+int
+CS104_Connection_sendMessage(CS104_Connection self, uint8_t* message, int messageSize)
+{
+    return writeToSocket(self, message, messageSize);
+}
+
 void
 CS104_Connection_sendStopDT(CS104_Connection self)
 {

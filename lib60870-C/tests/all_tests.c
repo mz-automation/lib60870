@@ -12,6 +12,9 @@
 #define CONFIG_CS104_SUPPORT_TLS 0
 #endif
 
+int
+CS104_Connection_sendMessage(CS104_Connection self, uint8_t* message, int messageSize);
+
 #if WIN32
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0) 
 #endif
@@ -1077,7 +1080,9 @@ test_CS104SlaveSingleRedundancyGroupMultipleConnections()
     Thread_start(enqueueThread);
 
     int i;
-    for (i = 0; i < 200; i++) {
+    for (i = 0; i < 200; i++)
+    {
+       // printf("round %i\n", i);
 
         int con = rand() % 3;
 
@@ -1095,7 +1100,7 @@ test_CS104SlaveSingleRedundancyGroupMultipleConnections()
             conState[con] = 0;
         }
 
-        Thread_sleep(5);
+        Thread_sleep(50);
     }
 
     CS104_Connection_destroy(cons[0]);
@@ -1121,10 +1126,12 @@ test_CS104SlaveEventQueue1_asduReceivedHandler (void* parameter, int address, CS
 
     info->asduHandlerCalled++;
 
-    if (CS101_ASDU_getCOT(asdu) == CS101_COT_SPONTANEOUS) {
+    if (CS101_ASDU_getCOT(asdu) == CS101_COT_SPONTANEOUS)
+    {
         info->spontCount++;
 
-        if (CS101_ASDU_getTypeID(asdu) == M_ME_NB_1) {
+        if (CS101_ASDU_getTypeID(asdu) == M_ME_NB_1)
+        {
             static uint8_t ioBuf[250];
 
             MeasuredValueScaled mv = (MeasuredValueScaled) CS101_ASDU_getElementEx(asdu, (InformationObject) ioBuf, 0);
@@ -5095,7 +5102,7 @@ test_version_number(void)
 
     TEST_ASSERT_EQUAL_INT(2, version.major);
     TEST_ASSERT_EQUAL_INT(3, version.minor);
-    TEST_ASSERT_EQUAL_INT(2, version.patch);
+    TEST_ASSERT_EQUAL_INT(3, version.patch);
 }
 
 void
@@ -6411,6 +6418,105 @@ test_ASDUsetGetNumberOfElements(void)
     CS101_ASDU_destroy(asdu);
 }
 
+static uint8_t STARTDT_ACT_MSG[] = { 0x68, 0x04, 0x07, 0x00, 0x00, 0x00 };
+static uint8_t STOPDT_ACT_MSG[] = { 0x68, 0x04, 0x13, 0x00, 0x00, 0x00 };
+
+void
+test_CS104SlaveUnconfirmedStoppedMode()
+{
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    struct stest_CS104SlaveEventQueue1 info;
+    info.asduHandlerCalled = 0;
+    info.spontCount = 0;
+    info.lastScaledValue = 0;
+
+    int16_t scaledValue = 0;
+
+    for (int i = 0; i < 15; i++) {
+        CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
+
+        InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
+
+        scaledValue++;
+
+        CS101_ASDU_addInformationObject(newAsdu, io);
+
+        InformationObject_destroy(io);
+
+        CS104_Slave_enqueueASDU(slave, newAsdu);
+
+        CS101_ASDU_destroy(newAsdu);
+    }
+
+    CS104_Connection con = CS104_Connection_create("127.0.0.1", 20004);
+
+    CS104_Connection_setASDUReceivedHandler(con, test_CS104SlaveEventQueue1_asduReceivedHandler, &info);
+
+    bool result = CS104_Connection_connect(con);
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_sendStartDT(con);
+
+    Thread_sleep(500);
+
+    CS104_Connection_sendStopDT(con);
+
+    CS104_Connection_close(con);
+
+    TEST_ASSERT_EQUAL_INT(14, info.lastScaledValue);
+
+    info.asduHandlerCalled = 0;
+    info.spontCount = 0;
+
+    result = CS104_Connection_connect(con);
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_sendStartDT(con);
+
+    for (int i = 0; i < 6; i++)
+    {
+        Thread_sleep(10);
+
+        CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_SPONTANEOUS, 0, 1, false, false);
+
+        InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
+
+        scaledValue++;
+
+        CS101_ASDU_addInformationObject(newAsdu, io);
+
+        InformationObject_destroy(io);
+
+        CS104_Slave_enqueueASDU(slave, newAsdu);
+
+        CS101_ASDU_destroy(newAsdu);
+    }
+
+    Thread_sleep(500);
+
+    TEST_ASSERT_EQUAL_INT(6, CS104_Connection_sendMessage(con, STOPDT_ACT_MSG, sizeof(STOPDT_ACT_MSG)));
+
+    Thread_sleep(5000);
+
+    CS104_Connection_close(con);
+
+    TEST_ASSERT_EQUAL_INT(6, info.asduHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(6, info.spontCount);
+    TEST_ASSERT_EQUAL_INT(20, info.lastScaledValue);
+
+    CS104_Connection_destroy(con);
+
+    CS104_Slave_destroy(slave);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -6531,6 +6637,8 @@ main(int argc, char** argv)
 
     RUN_TEST(test_ASDUsetGetNumberOfElements);
     RUN_TEST(test_CS101_ASDU_clone);
+
+    RUN_TEST(test_CS104SlaveUnconfirmedStoppedMode);
 
     return UNITY_END();
 }
