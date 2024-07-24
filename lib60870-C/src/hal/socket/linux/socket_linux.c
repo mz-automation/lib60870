@@ -736,9 +736,6 @@ Socket_destroy(Socket self)
 
     self->fd = -1;
 
-    if (fd == -1)
-        return;
-
     closeAndShutdownSocket(fd);
 
     Thread_sleep(10);
