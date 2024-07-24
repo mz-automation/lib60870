@@ -862,7 +862,9 @@ handleConnection(void* parameter)
 
   /*
    * This guard ensures that the socket doesn't get overwritten by another thread,
-   * which could potentially lead to a double-free error.
+   * which could potentially lead to a double-free error. This could happen if the previous
+   * thread is not successfully destroyed in CS104_Connection_connectAsync--we currently do
+   * not check the return value of pthread_join(), which could be an error.
    *
    * This change also accompanies the reversal of two misguided checks that
    * attempted to address double-free errors reported in https://enbala.atlassian.net/browse/LL-480.
