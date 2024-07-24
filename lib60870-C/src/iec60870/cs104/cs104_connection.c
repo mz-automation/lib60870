@@ -860,6 +860,28 @@ handleConnection(void* parameter)
 
     resetConnection(self);
 
+  /*
+   * This guard ensures that the socket doesn't get overwritten by another thread,
+   * which could potentially lead to a double-free error.
+   *
+   * This change also accompanies the reversal of two misguided checks that
+   * attempted to address double-free errors reported in https://enbala.atlassian.net/browse/LL-480.
+   * See https://github.com/mz-automation/lib60870/pull/59.
+   *
+   * Removing the above curiously did not bring back the errors during testing. It is possible that
+   * the issue was addressed upstream, now that our fork is in sync.
+    */
+    if (self->socket != NULL) {
+
+        event = CS104_CONNECTION_FAILED;
+
+        if (self->connectionHandler) {
+            self->connectionHandler(self->connectionHandlerParameter, self, event);
+        }
+
+      return NULL;
+    }
+
     self->socket = TcpSocket_create();
 
     if (self->socket) {
