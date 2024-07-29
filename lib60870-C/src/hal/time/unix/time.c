@@ -62,6 +62,35 @@ Hal_setTimeInNs(nsSinceEpoch nsTime)
     return true;
 }
 
+uint64_t
+Hal_getMonotonicTimeInMs ()
+{
+    uint64_t timeVal = 0;
+
+    struct timespec ts;
+
+    if (clock_gettime (CLOCK_MONOTONIC, &ts) == 0)
+    {
+        timeVal = ((uint64_t)ts.tv_sec * 1000LL) + (ts.tv_nsec / 1000000);
+    }
+
+    return timeVal;
+}
+
+uint64_t
+Hal_getMonotonicTimeInNs()
+{
+    uint64_t nsTime = 0;
+
+    struct timespec ts;
+
+    if (clock_gettime(CLOCK_REALTIME, &ts) == 0)
+    {
+        nsTime = ts.tv_sec * 1000000000UL;
+        nsTime += ts.tv_nsec;
+    }
+
+    return nsTime;
+}
 
 #endif
-

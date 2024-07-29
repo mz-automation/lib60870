@@ -1869,7 +1869,7 @@ sendASDU(MasterConnection self, uint8_t* buffer, int msgSize, uint64_t entryId, 
     self->sentASDUs[currentIndex].entryId = entryId;
     self->sentASDUs[currentIndex].queueEntry = queueEntry;
     self->sentASDUs[currentIndex].seqNo = sendIMessage(self, buffer, msgSize);
-    self->sentASDUs[currentIndex].sentTime = Hal_getTimeInMs();
+    self->sentASDUs[currentIndex].sentTime = Hal_getMonotonicTimeInMs();
 
     self->newestSentASDU = currentIndex;
 
@@ -2465,7 +2465,7 @@ sendSMessage(MasterConnection self)
 static bool
 handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 {
-    uint64_t currentTime = Hal_getTimeInMs();
+    uint64_t currentTime = Hal_getMonotonicTimeInMs();
 
     if (msgSize >= 3)
     {
@@ -2605,7 +2605,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             Semaphore_wait(self->stateLock);
 #endif
 
-            self->lastConfirmationTime = Hal_getTimeInMs();
+            self->lastConfirmationTime = Hal_getMonotonicTimeInMs();
 
             self->unconfirmedReceivedIMessages = 0;
 
@@ -2855,7 +2855,7 @@ sendWaitingASDUs(MasterConnection self)
 static bool
 handleTimeouts(MasterConnection self)
 {
-    uint64_t currentTime = Hal_getTimeInMs();
+    uint64_t currentTime = Hal_getMonotonicTimeInMs();
 
     bool timeoutsOk = true;
 
@@ -2987,7 +2987,7 @@ connectionHandlingThread(void* parameter)
 {
     MasterConnection self = (MasterConnection) parameter;
 
-    resetT3Timeout(self, Hal_getTimeInMs());
+    resetT3Timeout(self, Hal_getMonotonicTimeInMs());
 
     bool isAsduWaiting = false;
 
@@ -3042,7 +3042,7 @@ connectionHandlingThread(void* parameter)
 
                 if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w)
                 {
-                    self->lastConfirmationTime = Hal_getTimeInMs();
+                    self->lastConfirmationTime = Hal_getMonotonicTimeInMs();
 
                     self->unconfirmedReceivedIMessages = 0;
 
@@ -3289,7 +3289,7 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
         self->oldestSentASDU = -1;
         self->newestSentASDU = -1;
 
-        resetT3Timeout(self, Hal_getTimeInMs());
+        resetT3Timeout(self, Hal_getMonotonicTimeInMs());
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         if (self->slave->tlsConfig != NULL) {
@@ -3463,7 +3463,7 @@ MasterConnection_handleTcpConnection(MasterConnection self)
 
         if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w)
         {
-            self->lastConfirmationTime = Hal_getTimeInMs();
+            self->lastConfirmationTime = Hal_getMonotonicTimeInMs();
 
             self->unconfirmedReceivedIMessages = 0;
 
