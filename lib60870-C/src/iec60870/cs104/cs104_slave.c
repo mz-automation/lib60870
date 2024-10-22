@@ -252,7 +252,8 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
 {
     int asduSize = asdu->asduHeaderLength + asdu->payloadSize;
 
-    if (asduSize > 256 - IEC60870_5_104_APCI_LENGTH) {
+    if (asduSize > 256 - IEC60870_5_104_APCI_LENGTH)
+    {
         DEBUG_PRINT("CS104 SLAVE: ASDU too large!\n");
         return;
     }
@@ -267,20 +268,23 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
 
     uint8_t* nextMsgPtr;
 
-    if (self->entryCounter == 0) {
+    if (self->entryCounter == 0)
+    {
         self->firstEntry = self->buffer;
         self->lastInBufferEntry = self->firstEntry;
         nextMsgPtr = self->buffer;
     }
-    else {
+    else
+    {
         memcpy(&entryInfo, self->lastEntry, sizeof(struct sMessageQueueEntryInfo));
         nextMsgPtr = self->lastEntry + sizeof(struct sMessageQueueEntryInfo) + entryInfo.size;
 
         /* Check if ASDU fits into the buffer */
-        if (nextMsgPtr + entrySize > self->buffer + self->size) {
-
+        if (nextMsgPtr + entrySize > self->buffer + self->size)
+        {
             /* remove all entries from last entry to end of buffer */
-            if (nextMsgPtr <= self->firstEntry) {
+            if (nextMsgPtr <= self->firstEntry)
+            {
                 self->entryCounter -=  MessageQueue_countEntriesUntilEndOfBuffer(self, self->firstEntry);
                 self->firstEntry = self->buffer;
             }
@@ -292,19 +296,21 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
                 self->lastInBufferEntry = self->lastEntry;
         }
 
-        if (nextMsgPtr <= self->firstEntry) {
-
+        if (nextMsgPtr <= self->firstEntry)
+        {
             /* remove old entries until we have enough space for the new ASDU */
-            while ((nextMsgPtr + entrySize > self->firstEntry) && (self->entryCounter > 0)) {
-
+            while ((nextMsgPtr + entrySize > self->firstEntry) && (self->entryCounter > 0))
+            {
                 self->entryCounter--;
 
-                if (self->firstEntry == self->lastInBufferEntry) {
+                if (self->firstEntry == self->lastInBufferEntry)
+                {
                     self->firstEntry = self->buffer;
                     self->lastInBufferEntry = nextMsgPtr;
                     break;
                 }
-                else {
+                else
+                {
                     memcpy(&entryInfo, self->firstEntry, sizeof(struct sMessageQueueEntryInfo));
                     self->firstEntry = self->firstEntry + sizeof(struct sMessageQueueEntryInfo) + entryInfo.size;
                 }
@@ -3001,7 +3007,7 @@ connectionHandlingThread(void* parameter)
          * was received. Otherwise wait to save CPU time.
          */
         if (isAsduWaiting)
-            socketTimeout = 1;
+            socketTimeout = 0;
         else
             socketTimeout = 100;
 
@@ -3527,15 +3533,13 @@ handleClientConnections(CS104_Slave self)
 
                     MasterConnection_deinit(con);
                 }
-
             }
-
         }
 
         /* handle incoming messages when available */
         if (handleset != NULL)
         {
-            if (Handleset_waitReady(handleset, 1))
+            if (Handleset_waitReady(handleset, 0))
             {
                 for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
                 {
@@ -3544,7 +3548,6 @@ handleClientConnections(CS104_Slave self)
                     if (con != NULL && con->isUsed)
                         MasterConnection_handleTcpConnection(con);
                 }
-
             }
         }
 
@@ -4082,16 +4085,16 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
 
-    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
-
+    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
+    {
         /************************************************
          * Dispatch event to all redundancy groups
          ************************************************/
 
         LinkedList element = LinkedList_getNext(self->redundancyGroups);
 
-        while (element) {
-
+        while (element)
+        {
             CS104_RedundancyGroup group = (CS104_RedundancyGroup) LinkedList_getData(element);
 
             MessageQueue_enqueueASDU(group->asduQueue, asdu);
@@ -4103,8 +4106,8 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
-    if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
-
+    if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP)
+    {
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->openConnectionsLock);
 #endif
@@ -4115,13 +4118,12 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
 
         int i;
 
-        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
-
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+        {
             MasterConnection con = self->masterConnections[i];
 
             if (con)
                 MessageQueue_enqueueASDU(con->lowPrioQueue, asdu);
-
         }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -4135,8 +4137,8 @@ void
 CS104_Slave_addRedundancyGroup(CS104_Slave self, CS104_RedundancyGroup redundancyGroup)
 {
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
-    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
-
+    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
+    {
         if (self->redundancyGroups == NULL)
             self->redundancyGroups = LinkedList_create();
 
@@ -4150,15 +4152,16 @@ CS104_Slave_addRedundancyGroup(CS104_Slave self, CS104_RedundancyGroup redundanc
 static void
 initializeRedundancyGroups(CS104_Slave self, int lowPrioMaxQueueSize, int highPrioMaxQueueSize)
 {
-    if (self->redundancyGroups == NULL) {
+    if (self->redundancyGroups == NULL)
+    {
         CS104_RedundancyGroup redGroup = CS104_RedundancyGroup_create(NULL);
         CS104_Slave_addRedundancyGroup(self, redGroup);
     }
 
     LinkedList element = LinkedList_getNext(self->redundancyGroups);
 
-    while (element) {
-
+    while (element)
+    {
         CS104_RedundancyGroup redGroup = (CS104_RedundancyGroup) LinkedList_getData(element);
 
         if (redGroup->asduQueue == NULL)
@@ -4173,8 +4176,8 @@ void
 CS104_Slave_start(CS104_Slave self)
 {
 #if ((CONFIG_USE_THREADS == 1) && (CONFIG_USE_SEMAPHORES == 1))
-    if (isRunning(self) == false) {
-
+    if (isRunning(self) == false)
+    {
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->stateLock);
 #endif
@@ -4222,8 +4225,8 @@ CS104_Slave_getNumberOfQueueEntries(CS104_Slave self, CS104_RedundancyGroup redG
     }
 #endif
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
-    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
-
+    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
+    {
         if (redGroup) {
             return MessageQueue_getEntryCount(redGroup->asduQueue);
         }
@@ -4240,8 +4243,8 @@ CS104_Slave_getNumberOfQueueEntries(CS104_Slave self, CS104_RedundancyGroup redG
 void
 CS104_Slave_startThreadless(CS104_Slave self)
 {
-    if (isRunning(self) == false) {
-
+    if (isRunning(self) == false)
+    {
 #if (CONFIG_USE_THREADS == 1)
         self->isThreadlessMode = true;
 #endif
@@ -4266,7 +4269,8 @@ CS104_Slave_startThreadless(CS104_Slave self)
         else
             self->serverSocket = TcpServerSocket_create("0.0.0.0", self->tcpPort);
 
-        if (self->serverSocket == NULL) {
+        if (self->serverSocket == NULL)
+        {
             DEBUG_PRINT("CS104 SLAVE: Cannot create server socket\n");
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -4324,7 +4328,6 @@ CS104_Slave_tick(CS104_Slave self)
     handleConnectionsThreadless(self);
 }
 
-
 bool
 CS104_Slave_isRunning(CS104_Slave self)
 {
@@ -4335,14 +4338,16 @@ void
 CS104_Slave_stop(CS104_Slave self)
 {
 #if (CONFIG_USE_THREADS == 1)
-    if (self->isThreadlessMode) {
+    if (self->isThreadlessMode)
+    {
 #endif
         CS104_Slave_stopThreadless(self);
 #if (CONFIG_USE_THREADS == 1)
     }
-    else {
-        if (isRunning(self)) {
-
+    else
+    {
+        if (isRunning(self))
+        {
 #if (CONFIG_USE_SEMAPHORES == 1)
             Semaphore_wait(self->stateLock);
 #endif
@@ -4375,8 +4380,8 @@ CS104_Slave_stop(CS104_Slave self)
 
                 MasterConnection connection = self->masterConnections[i];
 
-                if (connection) {
-
+                if (connection)
+                {
 #if (CONFIG_USE_SEMAPHORES == 1)
                     Semaphore_wait(connection->stateLock);
 #endif
@@ -4387,12 +4392,13 @@ CS104_Slave_stop(CS104_Slave self)
                     Semaphore_post(connection->stateLock);
 #endif
 
-                    if (isUsed) {
+                    if (isUsed)
+                    {
                         MasterConnection_close(connection);
 
 #if (CONFIG_USE_THREADS == 1)
-                        if (connection->connectionThread) {
-
+                        if (connection->connectionThread)
+                        {
 #if (CONFIG_USE_SEMAPHORES == 1)
                             Semaphore_post(self->openConnectionsLock);
 #endif
@@ -4417,7 +4423,6 @@ CS104_Slave_stop(CS104_Slave self)
 #if (CONFIG_USE_SEMAPHORES == 1)
                 Semaphore_post(self->openConnectionsLock);
 #endif
-
             }
         }
 
@@ -4429,7 +4434,8 @@ CS104_Slave_stop(CS104_Slave self)
 void
 CS104_Slave_destroy(CS104_Slave self)
 {
-    if (self) {
+    if (self)
+    {
         CS104_Slave_stop(self);
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
@@ -4456,8 +4462,8 @@ CS104_Slave_destroy(CS104_Slave self)
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
 
-        if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
-
+        if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
+        {
             if (self->redundancyGroups)
                 LinkedList_destroyDeep(self->redundancyGroups, (LinkedListValueDeleteFunction) CS104_RedundancyGroup_destroy);
         }

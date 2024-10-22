@@ -31,6 +31,10 @@
 #include "serial_transceiver_ft_1_2.h"
 #include "link_layer_parameters.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct sLinkLayer* LinkLayer;
 
 typedef struct sLinkLayerBalanced* LinkLayerBalanced;
@@ -178,5 +182,8 @@ LinkLayer_setDIR(LinkLayer self, bool dir);
 void
 LinkLayer_setAddress(LinkLayer self, int address);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_IEC60870_LINK_LAYER_LINK_LAYER_H_ */

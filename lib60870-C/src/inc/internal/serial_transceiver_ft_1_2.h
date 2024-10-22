@@ -28,6 +28,10 @@
 #include "hal_serial.h"
 #include "iec60870_common.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct sSerialTransceiverFT12* SerialTransceiverFT12;
 
 typedef void (*SerialTXMessageHandler) (void* parameter, uint8_t* msg, int msgSize);
@@ -53,6 +57,10 @@ SerialTransceiverFT12_sendMessage(SerialTransceiverFT12 self, uint8_t* msg, int 
 void
 SerialTransceiverFT12_readNextMessage(SerialTransceiverFT12 self, uint8_t* buffer,
         SerialTXMessageHandler, void* parameter);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SRC_IEC60870_LINK_LAYER_SERIAL_TRANSCEIVER_FT_1_2_H_ */
 
