@@ -2605,13 +2605,16 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             Semaphore_wait(self->stateLock);
 #endif
 
-            self->lastConfirmationTime = Hal_getTimeInMs();
+            if (self->unconfirmedReceivedIMessages > 0)
+            {
+                self->lastConfirmationTime = Hal_getTimeInMs();
 
-            self->unconfirmedReceivedIMessages = 0;
+                self->unconfirmedReceivedIMessages = 0;
 
-            self->timeoutT2Triggered = false;
+                self->timeoutT2Triggered = false;
 
-            _sendSMessage(self);
+                _sendSMessage(self);
+            }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
             Semaphore_post(self->stateLock);
