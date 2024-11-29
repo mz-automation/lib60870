@@ -10,7 +10,7 @@
 #include "hal_socket.h"
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/select.h>
+#include <poll.h>
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
@@ -478,10 +478,6 @@ Socket_connectAsync(Socket self, const char* address, int port)
     if (!prepareAddress(address, port, &serverAddress))
         return false;
 
-    fd_set fdSet;
-    FD_ZERO(&fdSet);
-    FD_SET(self->fd, &fdSet);
-
     activateTcpNoDelay(self);
 
     fcntl(self->fd, F_SETFL, O_NONBLOCK);
@@ -505,15 +501,12 @@ Socket_connectAsync(Socket self, const char* address, int port)
 SocketState
 Socket_checkAsyncConnectState(Socket self)
 {
-    struct timeval timeout;
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 0;
+    struct pollfd fdSet;
+    fdSet.fd = self->fd;
+    fdSet.events = POLLOUT;
+    fdSet.revents = 0;
 
-    fd_set fdSet;
-    FD_ZERO(&fdSet);
-    FD_SET(self->fd, &fdSet);
-
-    int selectVal = select(self->fd + 1, NULL, &fdSet , NULL, &timeout);
+    int selectVal = poll(&fdSet, 1, 0);
 
     if (selectVal == 1) {
 
@@ -544,15 +537,12 @@ Socket_connect(Socket self, const char* address, int port)
     if (Socket_connectAsync(self, address, port) == false)
         return false;
 
-    struct timeval timeout;
-    timeout.tv_sec = self->connectTimeout / 1000;
-    timeout.tv_usec = (self->connectTimeout % 1000) * 1000;
+    struct pollfd fdSet;
+    fdSet.fd = self->fd;
+    fdSet.events = POLLOUT;
+    fdSet.revents = 0;
 
-    fd_set fdSet;
-    FD_ZERO(&fdSet);
-    FD_SET(self->fd, &fdSet);
-
-    if (select(self->fd + 1, NULL, &fdSet , NULL, &timeout) == 1) {
+    if (poll(&fdSet, 1, self->connectTimeout) == 1) {
 
         /* Check if connection is established */
 
