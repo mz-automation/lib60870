@@ -42,6 +42,7 @@ configure_file(certs/test.crl test.crl COPYONLY)
 add_executable(tests
   ${tests_SRCS}
 )
+set_target_properties(tests PROPERTIES LIB60870_PRIVATE_ACCESS ON)
 
 target_link_libraries(tests
     lib60870
