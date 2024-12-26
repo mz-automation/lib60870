@@ -21,8 +21,8 @@ For TLS support with mbedtls 3.6 download the source tarball of version 3.6.x an
 
 On a Linux command line enter the following commands in this directory:
 
-   wget https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.2/mbedtls-3.6.2.tar.bz2
-   tar xfj mbedtls-3.6.2.tar.bz2
-   mv mbedtls-3.6.2 mbedtls-3.6
+    wget https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.2/mbedtls-3.6.2.tar.bz2
+    tar xfj mbedtls-3.6.2.tar.bz2
+    mv mbedtls-3.6.2 mbedtls-3.6
 
 When running cmake the build system will automatically find the mbedtls source code and includes it into the library build.
