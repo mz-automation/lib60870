@@ -1,7 +1,7 @@
 /*
  *  socket_linux.c
  *
- *  Copyright 2013-2021 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *  This file is part of Platform Abstraction Layer (libpal)
  *  for libiec61850, libmms, and lib60870.
@@ -47,6 +47,7 @@ struct sServerSocket {
 
 struct sUdpSocket {
     int fd;
+    int namespace; /* IPv4: AF_INET; IPv6: AF_INET6 */
 };
 
 struct sHandleSet {
@@ -478,10 +479,6 @@ Socket_connectAsync(Socket self, const char* address, int port)
     if (!prepareAddress(address, port, &serverAddress))
         return false;
 
-    fd_set fdSet;
-    FD_ZERO(&fdSet);
-    FD_SET(self->fd, &fdSet);
-
     activateTcpNoDelay(self);
 
     fcntl(self->fd, F_SETFL, O_NONBLOCK);
@@ -505,17 +502,14 @@ Socket_connectAsync(Socket self, const char* address, int port)
 SocketState
 Socket_checkAsyncConnectState(Socket self)
 {
-    struct timeval timeout;
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 0;
+    struct pollfd fds[1];
 
-    fd_set fdSet;
-    FD_ZERO(&fdSet);
-    FD_SET(self->fd, &fdSet);
+    fds[0].fd = self->fd;
+    fds[0].events = POLLOUT;
 
-    int selectVal = select(self->fd + 1, NULL, &fdSet , NULL, &timeout);
+    int result = poll(fds, 1, 0);
 
-    if (selectVal == 1) {
+    if (result == 1) {
 
         /* Check if connection is established */
 
@@ -530,7 +524,7 @@ Socket_checkAsyncConnectState(Socket self)
 
         return SOCKET_STATE_FAILED;
     }
-    else if (selectVal == 0) {
+    else if (result == 0) {
         return SOCKET_STATE_CONNECTING;
     }
     else {
@@ -544,15 +538,14 @@ Socket_connect(Socket self, const char* address, int port)
     if (Socket_connectAsync(self, address, port) == false)
         return false;
 
-    struct timeval timeout;
-    timeout.tv_sec = self->connectTimeout / 1000;
-    timeout.tv_usec = (self->connectTimeout % 1000) * 1000;
+    struct pollfd fds[1];
 
-    fd_set fdSet;
-    FD_ZERO(&fdSet);
-    FD_SET(self->fd, &fdSet);
+    fds[0].fd = self->fd;
+    fds[0].events = POLLOUT;
 
-    if (select(self->fd + 1, NULL, &fdSet , NULL, &timeout) == 1) {
+    int result = poll(fds, 1, self->connectTimeout);
+
+    if (result == 1) {
 
         /* Check if connection is established */
 
@@ -743,17 +736,26 @@ Socket_destroy(Socket self)
     GLOBAL_FREEMEM(self);
 }
 
-UdpSocket
-UdpSocket_create()
+static UdpSocket
+UdpSocket_createUsingNamespace(int namespace)
 {
     UdpSocket self = NULL;
 
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    int sock = socket(namespace, SOCK_DGRAM, IPPROTO_UDP);
 
     if (sock != -1) {
         self = (UdpSocket) GLOBAL_MALLOC(sizeof(struct sSocket));
 
-        self->fd = sock;
+        if (self) {
+            self->fd = sock;
+            self->namespace = namespace;
+        }
+        else {
+            if (DEBUG_SOCKET)
+                printf("SOCKET: failed to allocate memory\n");
+
+            close(sock);
+        }
     }
     else {
         if (DEBUG_SOCKET)
@@ -763,9 +765,88 @@ UdpSocket_create()
     return self;
 }
 
+UdpSocket
+UdpSocket_create()
+{
+    return UdpSocket_createUsingNamespace(AF_INET);
+}
+
+UdpSocket
+UdpSocket_createIpV6()
+{
+    return UdpSocket_createUsingNamespace(AF_INET6);
+}
+
+bool
+UdpSocket_addGroupMembership(UdpSocket self, const char* multicastAddress)
+{
+    if (self->namespace == AF_INET) {
+        struct ip_mreq mreq;
+
+        if (!inet_aton(multicastAddress, &(mreq.imr_multiaddr))) {
+            printf("SOCKET: Invalid IPv4 multicast address\n");
+            return false;
+        }
+        else {
+            mreq.imr_interface.s_addr = htonl(INADDR_ANY);
+
+            if (setsockopt(self->fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) == -1) {
+                printf("SOCKET: failed to set IPv4 multicast group (errno: %i)\n", errno);
+                return false;
+            }
+
+        }
+
+        return true;
+    }
+    else if (self->namespace == AF_INET6) {
+        struct ipv6_mreq mreq;
+
+        if (inet_pton(AF_INET6, multicastAddress, &(mreq.ipv6mr_multiaddr)) < 1) {
+            printf("SOCKET: failed to set IPv6 multicast group (errno: %i)\n", errno);
+            return false;
+        }
+
+        mreq.ipv6mr_interface = 0;
+
+        if (setsockopt(self->fd, IPPROTO_IPV6, IPV6_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) == -1) {
+            printf("SOCKET: failed to set IPv6 multicast group (errno: %i)\n", errno);
+            return false;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
+bool
+UdpSocket_setMulticastTtl(UdpSocket self, int ttl)
+{
+    if (self->namespace == AF_INET) {
+        if (setsockopt(self->fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl)) == -1) {
+            printf("SOCKET: failed to set IPv4 multicast TTL (errno: %i)\n", errno);
+            return false;
+        }
+
+        return true;
+    }
+    else if (self->namespace == AF_INET6) {
+        if (setsockopt(self->fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS, &ttl, sizeof(ttl)) == -1) {
+            printf("SOCKET: failed to set IPv6 multicast TTL(hops) (errno: %i)\n", errno);
+            return false;
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 bool
 UdpSocket_bind(UdpSocket self, const char* address, int port)
 {
+    //TODO add support for IPv6
     struct sockaddr_in localAddress;
 
     if (!prepareAddress(address, port, &localAddress)) {
@@ -792,6 +873,7 @@ UdpSocket_bind(UdpSocket self, const char* address, int port)
 bool
 UdpSocket_sendTo(UdpSocket self, const char* address, int port, uint8_t* msg, int msgSize)
 {
+    //TODO add support for IPv6
     struct sockaddr_in remoteAddress;
 
     if (!prepareAddress(address, port, &remoteAddress)) {
@@ -822,7 +904,9 @@ UdpSocket_sendTo(UdpSocket self, const char* address, int port, uint8_t* msg, in
 int
 UdpSocket_receiveFrom(UdpSocket self, char* address, int maxAddrSize, uint8_t* msg, int msgSize)
 {
+    //TODO add support for IPv6
     struct sockaddr_storage remoteAddress;
+    memset(&remoteAddress, 0, sizeof(struct sockaddr_storage));
     socklen_t structSize = sizeof(struct sockaddr_storage);
 
     int result = recvfrom(self->fd, msg, msgSize, MSG_DONTWAIT, (struct sockaddr*)&remoteAddress, &structSize);
@@ -850,7 +934,7 @@ UdpSocket_receiveFrom(UdpSocket self, char* address, int maxAddrSize, uint8_t* m
             isIPv6 = true;
         }
         else
-            return result ;
+            return result;
 
         if (isIPv6)
             snprintf(address, maxAddrSize, "[%s]:%i", addrString, port);

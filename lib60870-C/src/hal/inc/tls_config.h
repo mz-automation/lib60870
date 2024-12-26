@@ -3,7 +3,7 @@
  *
  * TLS Configuration API for protocol stacks using TCP/IP
  *
- * Copyright 2017-2022 Michael Zillgith
+ * Copyright 2017-2024 Michael Zillgith
  *
  * Abstraction layer for configuration of different TLS implementations
  *
@@ -17,6 +17,7 @@ extern "C" {
 #endif
 
 #include "hal_base.h"
+#include "tls_ciphers.h"
 
 /**
  * \file tls_config.h
@@ -90,6 +91,11 @@ typedef enum {
 #define TLS_EVENT_CODE_ALM_CERT_NOT_CONFIGURED 13
 #define TLS_EVENT_CODE_ALM_CERT_NOT_TRUSTED 14
 #define TLS_EVENT_CODE_ALM_NO_CIPHER 15
+#define TLS_EVENT_CODE_INF_SESSION_ESTABLISHED 16
+#define TLS_EVENT_CODE_WRN_CERT_EXPIRED 17
+#define TLS_EVENT_CODE_WRN_CERT_NOT_YET_VALID 18
+#define TLS_EVENT_CODE_WRN_CRL_EXPIRED 19
+#define TLS_EVENT_CODE_WRN_CRL_NOT_YET_VALID 20
 
 typedef struct sTLSConnection* TLSConnection;
 
@@ -162,6 +168,14 @@ TLSConfiguration_setSessionResumptionInterval(TLSConfiguration self, int interva
  */
 PAL_API void
 TLSConfiguration_setChainValidation(TLSConfiguration self, bool value);
+
+/**
+ * \brief Enabled or disables the verification of validity times for certificates and CRLs
+ *
+ * \param value true to enable time validation, false to disable (enabled by default)
+ */
+PAL_API void
+TLSConfiguration_setTimeValidation(TLSConfiguration self, bool value);
 
 /**
  * \brief Set if only known certificates are accepted.
@@ -302,6 +316,23 @@ TLSConfiguration_addCRLFromFile(TLSConfiguration self, const char* filename);
  */
 PAL_API void
 TLSConfiguration_resetCRL(TLSConfiguration self);
+
+/**
+ * \brief Add an allowed ciphersuite to the list of allowed ciphersuites
+ *
+ * \param self the TLS configuration instance
+ * \param ciphersuite the ciphersuite to add (IANA cipher suite ID)
+ */
+PAL_API void
+TLSConfiguration_addCipherSuite(TLSConfiguration self, int ciphersuite);
+
+/**
+ * \brief Clear the list of allowed ciphersuites
+ *
+ * \param self the TLS configuration instance
+ */
+PAL_API void
+TLSConfiguration_clearCipherSuiteList(TLSConfiguration self);
 
 /**
  * Release all resource allocated by the TLSConfiguration instance

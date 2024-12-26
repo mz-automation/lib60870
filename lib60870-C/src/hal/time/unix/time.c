@@ -41,8 +41,8 @@ Hal_getTimeInNs()
 
     clock_gettime(CLOCK_REALTIME, &now);
 
-    nsSinceEpoch nsTime = now.tv_sec * 1000000000UL;
-    nsTime += now.tv_nsec;
+    nsSinceEpoch nsTime = (nsSinceEpoch)(now.tv_sec) * 1000000000UL;
+    nsTime += (nsSinceEpoch)(now.tv_nsec);
 
     return nsTime;
 }
@@ -61,7 +61,6 @@ Hal_setTimeInNs(nsSinceEpoch nsTime)
 
     return true;
 }
-
 
 #endif
 
