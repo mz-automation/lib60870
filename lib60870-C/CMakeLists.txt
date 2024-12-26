@@ -12,7 +12,7 @@ ENABLE_TESTING()
 
 set(LIB_VERSION_MAJOR "2")
 set(LIB_VERSION_MINOR "3")
-set(LIB_VERSION_PATCH "2")
+set(LIB_VERSION_PATCH "3")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/third_party/cmake/modules/")
 
@@ -38,8 +38,12 @@ if(BUILD_HAL)
 
 if(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.28)
 set(WITH_MBEDTLS 1)
+message("mbedtls 2.28 found")
+ELSEIF(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-3.6)
+set(WITH_MBEDTLS3 1)
+message("mbedtls 3.6 found")
 else()
-message("NOTE: mbedtls 2.28 is required for TLS support!")
+message("NOTE: mbedtls 2.28 or 3.6 is required for TLS support!")
 endif(EXISTS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-2.28)
 
 endif(BUILD_HAL)
@@ -65,6 +69,19 @@ add_definitions(-DCONFIG_CS104_SUPPORT_TLS=1)
 add_definitions(-DMBEDTLS_CONFIG_FILE="mbedtls_config.h")
 
 endif(WITH_MBEDTLS)
+
+if(WITH_MBEDTLS3)
+include_directories(
+	${CMAKE_CURRENT_LIST_DIR}/src/hal/tls/mbedtls3
+	${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-3.6/include
+)
+
+file(GLOB tls_SRCS ${CMAKE_CURRENT_LIST_DIR}/dependencies/mbedtls-3.6/library/*.c)
+
+add_definitions(-DCONFIG_CS104_SUPPORT_TLS=1)
+add_definitions(-DMBEDTLS_CONFIG_FILE="mbedtls_config.h")
+
+endif(WITH_MBEDTLS3)
 
 
 set(API_HEADERS 

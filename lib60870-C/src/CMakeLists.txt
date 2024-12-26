@@ -101,6 +101,15 @@ add_definitions(-DLIB60870_HAS_TLS_SUPPORT=1)
 
 ENDIF(WITH_MBEDTLS)
 
+IF(WITH_MBEDTLS3)
+
+list (APPEND library_SRCS ${tls_SRCS})
+list (APPEND library_SRCS ./hal/tls/mbedtls3/tls_mbedtls.c)
+
+add_definitions(-DLIB60870_HAS_TLS_SUPPORT=1)
+
+ENDIF(WITH_MBEDTLS3)
+
 include (GenerateExportHeader)
 
 set(RES_FILES "")
