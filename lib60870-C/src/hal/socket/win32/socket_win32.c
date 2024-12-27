@@ -9,11 +9,12 @@
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
-#include <stdbool.h>
-#include <stdio.h>
-#include <windows.h>
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
+#include <stdbool.h>
+#include <stdio.h>
 
 #pragma comment(lib, "Ws2_32.lib")
 
