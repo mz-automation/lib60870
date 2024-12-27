@@ -6,8 +6,8 @@ Please add optional dependencies in this folder
 
 At the moment there are two different options for TLS support.
 
-* mbedtls 2.28 supports TLS version 1.2 and older versions of TLS
-* mbedtls 3.6 support TLS versions 1.2 and 1.3
+* mbedtls 2.28 supports TLS version 1.2, 1.1 and older versions of TLS
+* mbedtls 3.6 supports TLS versions 1.2 and 1.3
 
 ### mbedtls 2.28
 
