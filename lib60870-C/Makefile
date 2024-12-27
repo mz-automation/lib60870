@@ -43,6 +43,15 @@ CFLAGS += -D'MBEDTLS_CONFIG_FILE="mbedtls_config.h"'
 CFLAGS += -D'CONFIG_CS104_SUPPORT_TLS=1'
 endif
 
+ifdef WITH_MBEDTLS3
+LIB_SOURCE_DIRS += dependencies/mbedtls-3.6/library
+LIB_SOURCE_DIRS += src/hal/tls/mbedtls3
+LIB_INCLUDE_DIRS += src/hal/tls/mbedtls3
+LIB_INCLUDE_DIRS += dependencies/mbedtls-3.6/include
+CFLAGS += -D'MBEDTLS_CONFIG_FILE="mbedtls_config.h"'
+CFLAGS += -D'CONFIG_CS104_SUPPORT_TLS=1'
+endif
+
 endif
 
 LIB_INCLUDE_DIRS += config

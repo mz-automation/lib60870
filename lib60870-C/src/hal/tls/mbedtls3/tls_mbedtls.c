@@ -20,9 +20,6 @@
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/platform.h"
-// MIGRATE 2.28->3.x.x:
-// https://github.com/Mbed-TLS/mbedtls/blob/development/docs/3.0-migration-guide.md#remove-the-certs-module-from-the-library
-// #include "mbedtls/certs.h" (MIGRATE 2.28->3.x.x)
 #include "mbedtls/debug.h"
 #include "mbedtls/error.h"
 #include "mbedtls/net_sockets.h"
@@ -78,11 +75,9 @@ struct sTLSConfiguration
     /* TLS session renegotiation interval in milliseconds */
     int renegotiationTimeInMs;
 
-    // MIGRATE 2.28->3.x.x: Changed min version to 1.2 to reflect the removal of 1.1 and 1.0
     /* TLS minimum version allowed (default: TLS_VERSION_TLS_1_2) */
     TLSConfigVersion minVersion;
 
-    // MIGRATE 2.28->3.x.x: Kept the max version but changed documentation
     /* TLS maximum version allowed (default: TLS_VERSION_NOT_SELECTED) */
     TLSConfigVersion maxVersion;
 
@@ -131,8 +126,6 @@ raiseSecurityEvent(TLSConfiguration config, TLSEventLevel eventCategory, int eve
 static bool
 compareCertificates(mbedtls_x509_crt* crt1, mbedtls_x509_crt* crt2)
 {
-    // MIGRATE 2.28->3.x.x:
-    // https://github.com/Mbed-TLS/mbedtls/blob/development/docs/3.0-migration-guide.md#most-structure-fields-are-now-private
     if (crt1 != NULL && crt2 != NULL && crt1->raw.len == crt2->raw.len &&
         memcmp(crt1->raw.p, crt2->raw.p, crt1->raw.len) == 0)
     {
@@ -289,8 +282,6 @@ TLSConfiguration_setupComplete(TLSConfiguration self)
             {
                 mbedtls_ssl_cache_init(&(self->cache));
 
-                // MIGRATE 2.28->3.x.x:
-                // https://github.com/Mbed-TLS/mbedtls/blob/development/docs/3.0-migration-guide.md#most-structure-fields-are-now-private
                 mbedtls_ssl_cache_set_timeout(&(self->cache), self->sessionResumptionInterval);
 
                 mbedtls_ssl_conf_session_cache(&(self->conf), &(self->cache), mbedtls_ssl_cache_get,
@@ -365,6 +356,13 @@ TLSConfiguration_create()
     {
         /* call to psa_crypto_init required -> see https://github.com/Mbed-TLS/mbedtls/issues/9223 */
         psa_status_t psaStatus = psa_crypto_init();
+
+        if (psaStatus != PSA_SUCCESS)
+        {
+            DEBUG_PRINT("TLS", "psa_crypto_init failed with %i\n", psaStatus);
+            GLOBAL_FREEMEM(self);
+            return NULL;
+        }
 
         psaInitCounter++;
 
@@ -536,9 +534,6 @@ TLSConfiguration_setOwnCertificateFromFile(TLSConfiguration self, const char* fi
 bool
 TLSConfiguration_setOwnKey(TLSConfiguration self, uint8_t* key, int keyLen, const char* keyPassword)
 {
-    // MIGRATE 2.28->3.x.x:
-    // https://github.com/Mbed-TLS/mbedtls/blob/development/docs/3.0-migration-guide.md#some-functions-gained-an-rng-parameter
-    // MIGRATE 2.28->3.x.x: drbg needs to be initialized, but it seems to be done in TLSConfiguration_create
     int ret = mbedtls_pk_parse_key(&(self->ownKey), key, keyLen, (const uint8_t*)keyPassword,
                                    (keyPassword == NULL) ? 0 : strlen(keyPassword), mbedtls_ctr_drbg_random,
                                    &(self->ctr_drbg));
@@ -552,9 +547,6 @@ TLSConfiguration_setOwnKey(TLSConfiguration self, uint8_t* key, int keyLen, cons
 bool
 TLSConfiguration_setOwnKeyFromFile(TLSConfiguration self, const char* filename, const char* keyPassword)
 {
-    // MIGRATE 2.28->3.x.x:
-    // https://github.com/Mbed-TLS/mbedtls/blob/development/docs/3.0-migration-guide.md#some-functions-gained-an-rng-parameter
-    // MIGRATE 2.28->3.x.x: drbg needs to be initialized, but it seems to be done in TLSConfiguration_create
     int ret =
         mbedtls_pk_parse_keyfile(&(self->ownKey), filename, keyPassword, mbedtls_ctr_drbg_random, &(self->ctr_drbg));
 
@@ -909,35 +901,6 @@ writeFunction(void* ctx, unsigned char* buf, size_t len)
     return ret;
 }
 
-static TLSConfigVersion
-getTLSVersion(int majorVersion, int minorVersion)
-{
-    if (majorVersion != 3)
-    {
-        return TLS_VERSION_NOT_SELECTED;
-    }
-    else
-    {
-        switch (minorVersion)
-        {
-        /* TODO: Remove from here (MIGRATE 2.28->3.x.x) */
-        case 0:
-            return TLS_VERSION_SSL_3_0;
-        case 1:
-            return TLS_VERSION_TLS_1_0;
-        case 2:
-            return TLS_VERSION_TLS_1_1;
-        /* Up until here (MIGRATE 2.28->3.x.x) */
-        case 3:
-            return TLS_VERSION_TLS_1_2;
-        case 4:
-            return TLS_VERSION_TLS_1_3;
-        default:
-            return TLS_VERSION_NOT_SELECTED;
-        }
-    }
-}
-
 static int
 getMajorVersion(TLSConfigVersion version)
 {
@@ -1126,12 +1089,6 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
 
         self->lastRenegotiationTime = Hal_getTimeInMs();
 
-        // MIGRATE 2.28->3.x.x: impossible since mbedtls 3.x.x doesn't support insecure TLS versions
-        // if (getTLSVersion(self->ssl.major_ver, self->ssl.minor_ver) < TLS_VERSION_TLS_1_2) {
-        //     raiseSecurityEvent(configuration, TLS_SEC_EVT_WARNING, TLS_EVENT_CODE_WRN_INSECURE_TLS_VERSION, "Warning:
-        //     Insecure TLS version", self);
-        // }
-
         /* create event that TLS session is established */
         {
             char msg[256];
@@ -1164,12 +1121,6 @@ TLSSocket_performHandshake(TLSSocket self)
     if (ret == 0 || ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE ||
         ret == MBEDTLS_ERR_SSL_ASYNC_IN_PROGRESS || ret == MBEDTLS_ERR_SSL_CRYPTO_IN_PROGRESS)
     {
-        // MIGRATE 2.28->3.x.x: impossible since mbedtls 3.x.x doesn't support insecure TLS versions
-        // if (getTLSVersion(self->ssl.major_ver, self->ssl.minor_ver) < TLS_VERSION_TLS_1_2) {
-        //     raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_WARNING, TLS_EVENT_CODE_WRN_INSECURE_TLS_VERSION,
-        //     "Warning: Insecure TLS version", self);
-        // }
-
         return true;
     }
     else
@@ -1377,8 +1328,7 @@ TLSConfigVersion
 TLSConnection_getTLSVersion(TLSConnection self)
 {
     TLSSocket socket = (TLSSocket)self;
-    // MIGRATE 2.28->3.x.x:
-    // https://github.com/Mbed-TLS/mbedtls/blob/development/docs/3.0-migration-guide.md#most-structure-fields-are-now-private
+
     mbedtls_ssl_protocol_version version = mbedtls_ssl_get_version_number(&(socket->ssl));
 
     switch (version)
