@@ -1,7 +1,7 @@
 /*
  *  time.c
  *
- *  Copyright 2013-2021 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *  This file is part of Platform Abstraction Layer (libpal)
  *  for libiec61850, libmms, and lib60870.
@@ -62,8 +62,8 @@ Hal_setTimeInNs(nsSinceEpoch nsTime)
     return true;
 }
 
-uint64_t
-Hal_getMonotonicTimeInMs ()
+msSinceEpoch
+Hal_getMonotonicTimeInMs()
 {
     uint64_t timeVal = 0;
 
@@ -77,7 +77,7 @@ Hal_getMonotonicTimeInMs ()
     return timeVal;
 }
 
-uint64_t
+nsSinceEpoch
 Hal_getMonotonicTimeInNs()
 {
     uint64_t nsTime = 0;
