@@ -12,9 +12,6 @@
 #define CONFIG_CS104_SUPPORT_TLS 0
 #endif
 
-int
-CS104_Connection_sendMessage(CS104_Connection self, uint8_t* message, int messageSize);
-
 #if WIN32
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0) 
 #endif
