@@ -404,14 +404,9 @@ Socket_connectAsync(Socket self, const char* address, int port)
         printf("WIN32_SOCKET: Socket_connect: %s:%i\n", address, port);
 
     struct sockaddr_in serverAddress;
-    WSADATA wsa;
-    int ec;
 
-    if ((ec = WSAStartup(MAKEWORD(2,0), &wsa)) != 0) {
-        if (DEBUG_SOCKET)
-            printf("WIN32_SOCKET: winsock error: code %i\n", ec);
+    if (wsaStartUp() == false)
         return false;
-    }
 
     if (!prepareAddress(address, port, &serverAddress))
         return false;
