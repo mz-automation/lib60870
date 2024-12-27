@@ -1,7 +1,7 @@
 /*
  *  serial_port_linux.c
  *
- *  Copyright 2013-2021 Michael Zillgith
+ *  Copyright 2013-2024 Michael Zillgith
  *
  *  This file is part of Platform Abstraction Layer (libpal)
  *  for libiec61850, libmms, and lib60870.
@@ -32,7 +32,6 @@ struct sSerialPort {
     struct timeval timeout;
     SerialPortError lastError;
 };
-
 
 SerialPort
 SerialPort_create(const char* interfaceName, int baudRate, uint8_t dataBits, char parity, uint8_t stopBits)
@@ -259,7 +258,7 @@ SerialPort_write(SerialPort self, uint8_t* buffer, int startPos, int bufSize)
 
     tcdrain(self->fd);
 
-    self->lastSentTime = Hal_getTimeInMs();
+    self->lastSentTime = Hal_getMonotonicTimeInMs();
 
     return result;
 }

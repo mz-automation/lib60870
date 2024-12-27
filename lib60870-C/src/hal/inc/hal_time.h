@@ -68,6 +68,22 @@ Hal_getTimeInNs(void);
 PAL_API bool
 Hal_setTimeInNs(nsSinceEpoch nsTime);
 
+/**
+ * Get the monotonic time or system tick time in ms
+ *
+ * \return the system time with millisecond resolution.
+ */
+PAL_API msSinceEpoch
+Hal_getMonotonicTimeInMs ();
+
+/**
+ * Get the monotonic time or system tick in nanoseconds.
+ *
+ * \return the system time with nanosecond resolution.
+ */
+PAL_API nsSinceEpoch
+Hal_getMonotonicTimeInNs();
+
 /*! @} */
 
 /*! @} */
