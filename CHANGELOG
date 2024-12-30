@@ -8,6 +8,16 @@ Changes to version 2.3.3
 - fixed bug in test pattern for TestCommand (I651CL-25)
 - fixed initialization problem in StepCommand_create (I651CL-22)
 - disable support for C_TS_NA_1 for CS104 by default
+- use monotonic time for timers when supported by platform (LIB8705-87)
+- CS101 slave: updated behavior in unbalanced mode when FCB bit did not change (LIB8705-104)
+- fixed - k parameter from user configuration is not used
+- added handling of pending unconfirmed stopped state (LIB8705-83)
+- CS104_Connection: call connection handler only outside of connection lock to avoid deadlocks in user code (LIB8705-62)
+- CS104 connection: fixed potential race condition when connection is closed by peer (#147)
+- CS104 slave: fixed - lock not released in error case (#138)
+- fixed - CS 104 server: invalid read - when MasterConnection_deactivate is called after MasterConnection_deinit (LIB8705-54)
+- fixed - CS 104 server: connection is closed by server when receiving S message in inactive state (LIB8705-55)
+- fixed - CS104_Connection deadlock when sending commands/ASDUs (#134)(LIB8705-52)
 
 
 Changes to version 2.3.2
