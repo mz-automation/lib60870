@@ -583,7 +583,7 @@ TLSConfiguration_addCACertificateFromFile(TLSConfiguration self, const char* fil
 static void
 udpatedCRL(TLSConfiguration self)
 {
-    self->crlUpdated = Hal_getTimeInMs();
+    self->crlUpdated = Hal_getMonotonicTimeInMs();
 
     /* We need to clean-up resumption cache (if enabled) to make sure we renegotiate as CRL may have changed data */
     if (self->useSessionResumption == false)
@@ -636,7 +636,7 @@ TLSConfiguration_resetCRL(TLSConfiguration self)
 {
     mbedtls_x509_crl_free(&(self->crl));
     mbedtls_x509_crl_init(&(self->crl));
-    self->crlUpdated = Hal_getTimeInMs();
+    self->crlUpdated = Hal_getMonotonicTimeInMs();
 }
 
 void
@@ -918,7 +918,7 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
             {
                 if (configuration->savedSession && configuration->savedSessionTime > 0)
                 {
-                    if (Hal_getTimeInMs() < (configuration->savedSessionTime + configuration->sessionResumptionInterval * 1000))
+                    if (Hal_getMonotonicTimeInMs() < (configuration->savedSessionTime + configuration->sessionResumptionInterval * 1000))
                     {
                         ret = mbedtls_ssl_set_session(&(self->ssl), configuration->savedSession);
 
@@ -984,14 +984,14 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
                         }
                         else
                         {
-                            configuration->savedSessionTime = Hal_getTimeInMs();
+                            configuration->savedSessionTime = Hal_getMonotonicTimeInMs();
                         }
                     }
                 }
             }
         }
 
-        self->lastRenegotiationTime = Hal_getTimeInMs();
+        self->lastRenegotiationTime = Hal_getMonotonicTimeInMs();
 
         if (getTLSVersion(self->ssl.major_ver, self->ssl.minor_ver) < TLS_VERSION_TLS_1_2) {
             raiseSecurityEvent(configuration, TLS_SEC_EVT_WARNING, TLS_EVENT_CODE_WRN_INSECURE_TLS_VERSION,  "Warning: Insecure TLS version", self);
@@ -1076,7 +1076,7 @@ startRenegotiationIfRequired(TLSSocket self)
     if (self->tlsConfig->renegotiationTimeInMs <= 0)
         return true;
 
-    if (Hal_getTimeInMs() <= self->lastRenegotiationTime + self->tlsConfig->renegotiationTimeInMs)
+    if (Hal_getMonotonicTimeInMs() <= self->lastRenegotiationTime + self->tlsConfig->renegotiationTimeInMs)
         return true;
 
     raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INFO, TLS_EVENT_CODE_INF_SESSION_RENEGOTIATION, "Info: session renegotiation started", self);
@@ -1088,7 +1088,7 @@ startRenegotiationIfRequired(TLSSocket self)
     }
 
     DEBUG_PRINT("TLS", " started renegotiation\n");
-    self->lastRenegotiationTime = Hal_getTimeInMs();
+    self->lastRenegotiationTime = Hal_getMonotonicTimeInMs();
 
     return true;
 }
