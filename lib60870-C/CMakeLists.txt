@@ -91,6 +91,7 @@ set(API_HEADERS
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_serial.h
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/hal_base.h
 	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/tls_config.h
+	${CMAKE_CURRENT_LIST_DIR}/src/hal/inc/tls_ciphers.h
 	${CMAKE_CURRENT_LIST_DIR}/src/common/inc/linked_list.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_master.h
 	${CMAKE_CURRENT_LIST_DIR}/src/inc/api/cs101_slave.h
