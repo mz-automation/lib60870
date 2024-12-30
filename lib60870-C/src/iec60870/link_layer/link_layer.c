@@ -69,6 +69,7 @@ LinkLayerPrimaryUnbalanced_runStateMachine(LinkLayerPrimaryUnbalanced self);
 struct sLinkLayer {
     uint8_t buffer[261]; /* 261 = maximum FT1.2 frame length */
     uint8_t userDataBuffer[255];
+    uint8_t userDataSize; /* > 0 when last sent message is available */
     int address;
     SerialTransceiverFT12 transceiver;
     LinkLayerParameters linkLayerParameters;
@@ -80,7 +81,6 @@ struct sLinkLayer {
 
     LinkLayerPrimaryBalanced llPriBalanced;
     LinkLayerPrimaryUnbalanced llPriUnbalanced;
-
 };
 
 struct sLinkLayerSecondaryUnbalanced {
@@ -332,14 +332,6 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
         bool fcv,
         uint8_t* msg, int userDataStart, int userDataLength)
 {
-    if (fcv) {
-        if (checkFCB(self, fcb) == false) {
-            DEBUG_PRINT("SLL - FCB check failed\n");
-            llsu_setState(self, LL_STATE_ERROR);
-            return;
-        }
-    }
-
     llsu_setState(self, LL_STATE_AVAILABLE);
 
     switch (fc) {
@@ -347,6 +339,14 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
     case LL_FC_09_REQUEST_LINK_STATUS:
         DEBUG_PRINT("SLL - REQUEST LINK STATUS\n");
         {
+            /* check that FCV=0 */
+            if (fcv != 0)
+            {
+                DEBUG_PRINT("SLL - REQUEST LINK STATUS failed - invalid FCV\n");
+                llsu_setState(self, LL_STATE_ERROR);
+                return;
+            }
+
             bool accessDemand = self->applicationLayer->IsClass1DataAvailable(self->appLayerParam);
 
             SendFixedFrame(self->linkLayer, LL_FC_11_STATUS_OF_LINK_OR_ACCESS_DEMAND, self->linkLayer->address, false, false, accessDemand, false);
@@ -356,6 +356,14 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
     case LL_FC_00_RESET_REMOTE_LINK:
         DEBUG_PRINT("SLL - RESET REMOTE LINK\n");
         {
+            /* check that FCB=0 and FCV=0 */
+            if ((fcv != 0) || (fcb != 0))
+            {
+                DEBUG_PRINT("SLL - RESET REMOTE LINK failed - invalid FCV/FCB\n");
+                llsu_setState(self, LL_STATE_ERROR);
+                return;
+            }
+
             self->expectedFcb = true;
 
             if (self->linkLayerParameters->useSingleCharACK)
@@ -370,6 +378,16 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
     case LL_FC_07_RESET_FCB:
         DEBUG_PRINT("SLL - RESET FCB\n");
         {
+            /* used by CS103 */
+
+            /* check that FCB=0 and FCV=0 */
+            if ((fcv != 0) || (fcb != 0))
+            {
+                DEBUG_PRINT("SLL - RESET FCB failed - invalid FCV/FCB\n");
+                llsu_setState(self, LL_STATE_ERROR);
+                return;
+            }
+
             self->expectedFcb = true;
 
             if (self->linkLayerParameters->useSingleCharACK)
@@ -384,23 +402,61 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
     case LL_FC_11_REQUEST_USER_DATA_CLASS_2:
         DEBUG_PRINT("SLL - REQUEST USER DATA CLASS 2\n");
         {
+            bool invalidFCB = false;
+
+            if (fcv)
+            {
+                if (checkFCB(self, fcb) == false)
+                {
+                    DEBUG_PRINT("SLL - REQ UD2 - unexpected FCB\n");
+                    invalidFCB = true;
+                }
+            }
+
             /* provide a buffer where the application layer can encode the user data */
             struct sBufferFrame _bufferFrame;
-            Frame bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer, 0);
+            Frame bufferFrame = NULL;
+            Frame asdu = NULL;
 
-            Frame asdu = self->applicationLayer->GetClass2Data(self->appLayerParam, bufferFrame);
+            if (invalidFCB)
+            {
+                if (self->_linkLayer.userDataSize > 0)
+                {
+                    bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer, self->_linkLayer.userDataSize);
+
+                    DEBUG_PRINT("SLL - REQ UD2 - send old message\n");
+
+                    asdu = bufferFrame;
+                }
+            }
+            else
+            {
+                bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer, 0);
+
+                asdu = self->applicationLayer->GetClass2Data(self->appLayerParam, bufferFrame);
+
+                if (asdu != NULL)
+                {
+                    self->_linkLayer.userDataSize = Frame_getMsgSize(asdu);
+                }
+                else
+                {
+                    self->_linkLayer.userDataSize = 0;
+                }
+            }
 
             bool accessDemand = self->applicationLayer->IsClass1DataAvailable(self->appLayerParam);
 
-            if (asdu != NULL) {
+            if (asdu != NULL)
+            {
                 SendVariableLengthFrame(self->linkLayer, LL_FC_08_RESP_USER_DATA, self->linkLayer->address, false, false, accessDemand, false, asdu);
 
                 /* release frame buffer if required */
                 if (asdu != bufferFrame)
                     Frame_destroy(asdu);
             }
-            else {
-
+            else
+            {
                 if (self->linkLayerParameters->useSingleCharACK && !accessDemand)
                     SendSingleCharCharacter(self->linkLayer);
                 else
@@ -412,22 +468,61 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
     case LL_FC_10_REQUEST_USER_DATA_CLASS_1:
         DEBUG_PRINT("SLL - REQUEST USER DATA CLASS 1\n");
         {
+            bool invalidFCB = false;
+
+            if (fcv)
+            {
+                if (checkFCB(self, fcb) == false)
+                {
+                    DEBUG_PRINT("SLL - REQ UD1 - unexpected FCB\n");
+                    invalidFCB = true;
+                }
+            }
+
             /* provide a buffer where the application layer can encode the user data */
             struct sBufferFrame _bufferFrame;
-            Frame bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer, 0);
+            Frame bufferFrame = NULL;
+            Frame asdu = NULL;
 
-            Frame asdu = self->applicationLayer->GetClass1Data(self->appLayerParam, bufferFrame);
+            if (invalidFCB)
+            {
+                if (self->_linkLayer.userDataSize > 0)
+                {
+                    bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer, self->_linkLayer.userDataSize);
+
+                    DEBUG_PRINT("SLL - REQ UD1 - send old message\n");
+
+                    asdu = bufferFrame;
+                }
+            }
+            else
+            {
+                bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer, 0);
+
+                asdu = self->applicationLayer->GetClass1Data(self->appLayerParam, bufferFrame);
+
+                if (asdu != NULL)
+                {
+                    self->_linkLayer.userDataSize = Frame_getMsgSize(asdu);
+                }
+                else
+                {
+                    self->_linkLayer.userDataSize = 0;
+                }
+            }
 
             bool accessDemand = self->applicationLayer->IsClass1DataAvailable(self->appLayerParam);
 
-            if (asdu != NULL) {
+            if (asdu != NULL)
+            {
                 SendVariableLengthFrame(self->linkLayer, LL_FC_08_RESP_USER_DATA, self->linkLayer->address, false, false, accessDemand, false, asdu);
 
                 /* release frame buffer if required */
                 if (asdu != bufferFrame)
                     Frame_destroy(asdu);
             }
-            else {
+            else
+            {
                 if (self->linkLayerParameters->useSingleCharACK && !accessDemand)
                     SendSingleCharCharacter(self->linkLayer);
                 else
@@ -438,22 +533,46 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
 
     case LL_FC_03_USER_DATA_CONFIRMED:
         DEBUG_PRINT ("SLL - USER DATA CONFIRMED\n");
-        if (userDataLength > 0) {
-            if (self->applicationLayer->HandleReceivedData(self->appLayerParam, msg, isBroadcast, userDataStart, userDataLength)) {
-                bool accessDemand = self->applicationLayer->IsClass1DataAvailable(self->appLayerParam);
+        {
+            bool indicateUserData = true;
 
-                if (self->linkLayerParameters->useSingleCharACK && !accessDemand)
-                    SendSingleCharCharacter(self->linkLayer);
-                else
-                    SendFixedFrame(self->linkLayer, LL_FC_00_ACK, self->linkLayer->address, false, false, accessDemand, false);
+            if (fcv)
+            {
+                if (checkFCB(self, fcb) == false)
+                {
+                    DEBUG_PRINT("SLL - FCB check failed -> ignore UD confirmed\n");
+                    indicateUserData = false;
+                }
             }
+
+            if ((indicateUserData == true) && (userDataLength > 0))
+            {
+                self->applicationLayer->HandleReceivedData(self->appLayerParam, msg, isBroadcast, userDataStart, userDataLength);
+            }
+
+            bool accessDemand = self->applicationLayer->IsClass1DataAvailable(self->appLayerParam);
+
+            if (self->linkLayerParameters->useSingleCharACK && !accessDemand)
+                SendSingleCharCharacter(self->linkLayer);
+            else
+                SendFixedFrame(self->linkLayer, LL_FC_00_ACK, self->linkLayer->address, false, false, accessDemand, false);
         }
         break;
 
     case LL_FC_04_USER_DATA_NO_REPLY:
         DEBUG_PRINT ("SLL - USER DATA NO REPLY\n");
-        if (userDataLength > 0) {
-            self->applicationLayer->HandleReceivedData(self->appLayerParam, msg, isBroadcast, userDataStart, userDataLength);
+        {
+            /* check that FCV=0 */
+            if (fcv != 0)
+            {
+                DEBUG_PRINT("SLL - USER DATA NO REPLY - invalid FCV\n");
+                llsu_setState(self, LL_STATE_ERROR);
+                return;
+            }
+
+            if (userDataLength > 0) {
+                self->applicationLayer->HandleReceivedData(self->appLayerParam, msg, isBroadcast, userDataStart, userDataLength);
+            }
         }
         break;
 
@@ -469,8 +588,8 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self,
 static void
 llsu_setState(LL_Sec_Unb self, LinkLayerState newState)
 {
-    if (self->state != newState) {
-
+    if (self->state != newState)
+    {
         self->state = newState;
 
         if (self->stateChangedHandler)
@@ -2081,10 +2200,10 @@ LinkLayerPrimaryUnbalanced_sendConfirmed(LinkLayerPrimaryUnbalanced self, int sl
 {
     LinkLayerSlaveConnection slave = LinkLayerPrimaryUnbalanced_getSlaveConnection(self, slaveAddress);
 
-    if (slave) {
-
-        if (slave->hasMessageToSend == false) {
-
+    if (slave)
+    {
+        if (slave->hasMessageToSend == false)
+        {
             slave->nextMessage.msgSize = message->msgSize;
             slave->nextMessage.startSize = message->startSize;
             memcpy(slave->nextMessage.buffer, message->buffer, message->msgSize);
@@ -2103,8 +2222,8 @@ LinkLayerPrimaryUnbalanced_sendNoReply(LinkLayerPrimaryUnbalanced self, int slav
     if (slaveAddress == LinkLayer_getBroadcastAddress(self->linkLayer)) {
         if (self->hasNextBroadcastToSend)
             return false;
-        else {
-
+        else
+        {
             self->nextBroadcastMessage.msgSize = message->msgSize;
             self->nextBroadcastMessage.startSize = message->startSize;
             memcpy(self->nextBroadcastMessage.buffer, message->buffer, message->msgSize);
@@ -2117,8 +2236,8 @@ LinkLayerPrimaryUnbalanced_sendNoReply(LinkLayerPrimaryUnbalanced self, int slav
         LinkLayerSlaveConnection slave = LinkLayerPrimaryUnbalanced_getSlaveConnection(self, slaveAddress);
 
         if (slave) {
-            if (slave->hasMessageToSend == false) {
-
+            if (slave->hasMessageToSend == false)
+            {
                 slave->nextMessage.msgSize = message->msgSize;
                 slave->nextMessage.startSize = message->startSize;
                 memcpy(slave->nextMessage.buffer, message->buffer, message->msgSize);

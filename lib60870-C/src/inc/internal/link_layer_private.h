@@ -1,7 +1,7 @@
 /*
  *  link_layer_private.h
  *
- *  Copyright 2017 MZ Automation GmbH
+ *  Copyright 2017-2024 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -24,6 +24,8 @@
 #ifndef SRC_IEC60870_LINK_LAYER_LINK_LAYER_PRIVATE_H_
 #define SRC_IEC60870_LINK_LAYER_LINK_LAYER_PRIVATE_H_
 
+
+/* primary to secondary function codes */
 #define LL_FC_00_RESET_REMOTE_LINK 0
 #define LL_FC_01_RESET_USER_PROCESS 1
 #define LL_FC_02_TEST_FUNCTION_FOR_LINK 2
@@ -35,6 +37,7 @@
 #define LL_FC_10_REQUEST_USER_DATA_CLASS_1 10
 #define LL_FC_11_REQUEST_USER_DATA_CLASS_2 11
 
+/* secondary to primary function codes */
 #define LL_FC_00_ACK 0
 #define LL_FC_01_NACK 1
 #define LL_FC_08_RESP_USER_DATA 8
