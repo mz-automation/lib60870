@@ -66,7 +66,6 @@ Memory_malloc(size_t size)
     return memory;
 }
 
-
 void*
 Memory_calloc(size_t nmemb, size_t size)
 {
@@ -77,7 +76,6 @@ Memory_calloc(size_t nmemb, size_t size)
 
     return memory;
 }
-
 
 void *
 Memory_realloc(void *ptr, size_t size)

@@ -1869,7 +1869,7 @@ sendASDU(MasterConnection self, uint8_t* buffer, int msgSize, uint64_t entryId, 
     self->sentASDUs[currentIndex].entryId = entryId;
     self->sentASDUs[currentIndex].queueEntry = queueEntry;
     self->sentASDUs[currentIndex].seqNo = sendIMessage(self, buffer, msgSize);
-    self->sentASDUs[currentIndex].sentTime = Hal_getTimeInMs();
+    self->sentASDUs[currentIndex].sentTime = Hal_getMonotonicTimeInMs();
 
     self->newestSentASDU = currentIndex;
 
@@ -1924,12 +1924,18 @@ sendASDUInternal(MasterConnection self, CS101_ASDU asdu)
 }
 
 static void
+responseNegative(CS101_ASDU asdu, MasterConnection self, CS101_CauseOfTransmission cot)
+{
+    CS101_ASDU_setCOT(asdu, cot);
+    CS101_ASDU_setNegative(asdu, true);
+    sendASDUInternal(self, asdu);
+}
+
+static void
 responseCOTUnknown(CS101_ASDU asdu, MasterConnection self)
 {
     DEBUG_PRINT("CS104 SLAVE:   with unknown COT\n");
-    CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
-    CS101_ASDU_setNegative(asdu, true);
-    sendASDUInternal(self, asdu);
+    responseNegative(asdu, self, CS101_COT_UNKNOWN_COT);
 }
 
 /*
@@ -1947,11 +1953,12 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
     CS104_Slave slave = self->slave;
 
     /* call plugins */
-    if (slave->plugins) {
+    if (slave->plugins)
+    {
         LinkedList pluginElem = LinkedList_getNext(slave->plugins);
 
-        while (pluginElem) {
-
+        while (pluginElem)
+        {
             CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
 
             CS101_SlavePlugin_Result result = plugin->handleAsdu(plugin->parameter, &(self->iMasterConnection), asdu);
@@ -1971,24 +1978,36 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd interrogation command C_IC_NA_1\n");
 
-        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_DEACTIVATION)) {
-            if (slave->interrogationHandler != NULL) {
-
+        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_DEACTIVATION))
+        {
+            if (slave->interrogationHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 InterrogationCommand irc = (InterrogationCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (irc) {
-                    if (slave->interrogationHandler(slave->interrogationHandlerParameter,
-                            &(self->iMasterConnection), asdu, InterrogationCommand_getQOI(irc)))
+                if (irc)
+                {
+                    /* Verify IOA = 0 */
+                    if (InformationObject_getObjectAddress((InformationObject) irc) != 0)
+                    {
+                        DEBUG_PRINT("CS104 SLAVE: interrogation command has invalid IOA - should be 0\n");
+                        responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
                         messageHandled = true;
+                    }
+                    else
+                    {
+                        if (slave->interrogationHandler(slave->interrogationHandlerParameter,
+                                &(self->iMasterConnection), asdu, InterrogationCommand_getQOI(irc)))
+                            messageHandled = true;
+                    }
                 }
                 else
                     return false;
-
             }
         }
-        else {
+        else
+        {
             responseCOTUnknown(asdu, self);
             messageHandled = true;
         }
@@ -1999,24 +2018,36 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd counter interrogation command C_CI_NA_1\n");
 
-        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_DEACTIVATION)) {
-
-            if (slave->counterInterrogationHandler != NULL) {
-
+        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_DEACTIVATION))
+        {
+            if (slave->counterInterrogationHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 CounterInterrogationCommand cic = (CounterInterrogationCommand)  CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (cic) {
-                    if (slave->counterInterrogationHandler(slave->counterInterrogationHandlerParameter,
-                            &(self->iMasterConnection), asdu, CounterInterrogationCommand_getQCC(cic)))
+                if (cic)
+                {
+                    /* Verify IOA = 0 */
+                    if (InformationObject_getObjectAddress((InformationObject) cic) != 0)
+                    {
+                        DEBUG_PRINT("CS104 SLAVE: counter interrogation command has invalid IOA - should be 0\n");
+                        responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
                         messageHandled = true;
+                    }
+                    else
+                    {
+                        if (slave->counterInterrogationHandler(slave->counterInterrogationHandlerParameter,
+                                &(self->iMasterConnection), asdu, CounterInterrogationCommand_getQCC(cic)))
+                            messageHandled = true;
+                    }
                 }
                 else
                     return false;
             }
         }
-        else {
+        else
+        {
             responseCOTUnknown(asdu, self);
             messageHandled = true;
         }
@@ -2027,14 +2058,16 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd read command C_RD_NA_1\n");
 
-        if (cot == CS101_COT_REQUEST) {
-            if (slave->readHandler != NULL) {
-
+        if (cot == CS101_COT_REQUEST)
+        {
+            if (slave->readHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 ReadCommand rc = (ReadCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (rc) {
+                if (rc)
+                {
                     if (slave->readHandler(slave->readHandlerParameter,
                             &(self->iMasterConnection), asdu, InformationObject_getObjectAddress((InformationObject) rc)))
                         messageHandled = true;
@@ -2043,7 +2076,8 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     return false;
             }
         }
-        else {
+        else
+        {
             responseCOTUnknown(asdu, self);
             messageHandled = true;
         }
@@ -2054,35 +2088,46 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd clock sync command C_CS_NA_1\n");
 
-        if (cot == CS101_COT_ACTIVATION) {
-
-            if (slave->clockSyncHandler != NULL) {
-
+        if (cot == CS101_COT_ACTIVATION)
+        {
+            if (slave->clockSyncHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 ClockSynchronizationCommand csc = (ClockSynchronizationCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (csc) {
-                    CP56Time2a newTime = ClockSynchronizationCommand_getTime(csc);
-
-                    if (slave->clockSyncHandler(slave->clockSyncHandlerParameter,
-                            &(self->iMasterConnection), asdu, newTime)) {
-
-                        CS101_ASDU_removeAllElements(asdu);
-
-                        ClockSynchronizationCommand_create(csc, 0, newTime);
-
-                        CS101_ASDU_addInformationObject(asdu, (InformationObject) csc);
-
-                        CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
-
-                        sendASDUInternal(self, asdu);
+                if (csc)
+                {
+                    /* Verify IOA = 0 */
+                    if (InformationObject_getObjectAddress((InformationObject) csc) != 0)
+                    {
+                        DEBUG_PRINT("CS104 SLAVE: time sync command has invalid IOA - should be 0\n");
+                        responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
                     }
-                    else {
-                        CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
-                        CS101_ASDU_setNegative(asdu, true);
+                    else
+                    {
+                        CP56Time2a newTime = ClockSynchronizationCommand_getTime(csc);
 
-                        sendASDUInternal(self, asdu);
+                        if (slave->clockSyncHandler(slave->clockSyncHandlerParameter,
+                                &(self->iMasterConnection), asdu, newTime))
+                        {
+                            CS101_ASDU_removeAllElements(asdu);
+
+                            ClockSynchronizationCommand_create(csc, 0, newTime);
+
+                            CS101_ASDU_addInformationObject(asdu, (InformationObject) csc);
+
+                            CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+
+                            sendASDUInternal(self, asdu);
+                        }
+                        else
+                        {
+                            CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                            CS101_ASDU_setNegative(asdu, true);
+
+                            sendASDUInternal(self, asdu);
+                        }
                     }
 
                     messageHandled = true;
@@ -2091,7 +2136,8 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     return false;
             }
         }
-        else {
+        else
+        {
             responseCOTUnknown(asdu, self);
             messageHandled = true;
         }
@@ -2103,13 +2149,28 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 #if (CONFIG_ALLOW_C_TS_NA_1_FOR_CS104 == 1)
         DEBUG_PRINT("CS104 SLAVE: Rcvd test command C_TS_NA_1\n");
 
-        if (cot == CS101_COT_ACTIVATION) {
-            CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
-            sendASDUInternal(self, asdu);
+        if (cot == CS101_COT_ACTIVATION)
+        {
+            union uInformationObject _io;
+
+            TestCommand tc = (TestCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
+
+            /* Verify IOA = 0 */
+            if (InformationObject_getObjectAddress((InformationObject) tc) != 0)
+            {
+                DEBUG_PRINT("CS104 SLAVE: test command has invalid IOA - should be 0\n");
+                responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
+            }
+            else
+            {
+                CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                sendASDUInternal(self, asdu);
+            }
 
             messageHandled = true;
         }
-        else {
+        else
+        {
             responseCOTUnknown(asdu, self);
             messageHandled = true;
         }
@@ -2125,25 +2186,37 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd reset process command C_RP_NA_1\n");
 
-        if (cot == CS101_COT_ACTIVATION) {
-
-            if (slave->resetProcessHandler != NULL) {
-
+        if (cot == CS101_COT_ACTIVATION)
+        {
+            if (slave->resetProcessHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 ResetProcessCommand rpc = (ResetProcessCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (rpc) {
-                    if (slave->resetProcessHandler(slave->resetProcessHandlerParameter,
-                            &(self->iMasterConnection), asdu, ResetProcessCommand_getQRP(rpc)))
+                if (rpc)
+                {
+                    /* Verify IOA = 0 */
+                    if (InformationObject_getObjectAddress((InformationObject) rpc) != 0)
+                    {
+                        DEBUG_PRINT("CS104 SLAVE: reset process command has invalid IOA - should be 0\n");
+                        responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
+
                         messageHandled = true;
+                    }
+                    else
+                    {
+                        if (slave->resetProcessHandler(slave->resetProcessHandlerParameter,
+                                &(self->iMasterConnection), asdu, ResetProcessCommand_getQRP(rpc)))
+                            messageHandled = true;
+                    }
                 }
                 else
                     return false;
             }
-
         }
-        else {
+        else
+        {
             responseCOTUnknown(asdu, self);
             messageHandled = true;
         }
@@ -2154,25 +2227,37 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd delay acquisition command C_CD_NA_1\n");
 
-        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_SPONTANEOUS)) {
-
-            if (slave->delayAcquisitionHandler != NULL) {
-
+        if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_SPONTANEOUS))
+        {
+            if (slave->delayAcquisitionHandler != NULL)
+            {
                 union uInformationObject _io;
 
                 DelayAcquisitionCommand dac = (DelayAcquisitionCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-                if (dac) {
-                    if (slave->delayAcquisitionHandler(slave->delayAcquisitionHandlerParameter,
-                            &(self->iMasterConnection), asdu, DelayAcquisitionCommand_getDelay(dac)))
+                if (dac)
+                {
+                    /* Verify IOA = 0 */
+                    if (InformationObject_getObjectAddress((InformationObject) dac) != 0)
+                    {
+                        DEBUG_PRINT("CS104 SLAVE: delay aquisition command has invalid IOA - should be 0\n");
+                        responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
+
                         messageHandled = true;
+                    }
+                    else
+                    {
+                        if (slave->delayAcquisitionHandler(slave->delayAcquisitionHandlerParameter,
+                                &(self->iMasterConnection), asdu, DelayAcquisitionCommand_getDelay(dac)))
+                            messageHandled = true;
+                    }
                 }
                 else
                     return false;
-
             }
         }
-        else {
+        else
+        {
             responseCOTUnknown(asdu, self);
             messageHandled = true;
         }
@@ -2183,9 +2268,25 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd test command with CP56Time2a C_TS_TA_1\n");
 
-        if (cot != CS101_COT_ACTIVATION) {
-            CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
-            CS101_ASDU_setNegative(asdu, true);
+        if (cot != CS101_COT_ACTIVATION)
+        {
+            union uInformationObject _io;
+
+            TestCommandWithCP56Time2a tc = (TestCommandWithCP56Time2a) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
+
+            /* Verify IOA = 0 */
+            if (InformationObject_getObjectAddress((InformationObject) tc) != 0)
+            {
+                DEBUG_PRINT("CS104 SLAVE: test command has invalid IOA - should be 0\n");
+                responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
+            }
+            else
+            {
+                CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
+                CS101_ASDU_setNegative(asdu, true);
+            }
+
+            messageHandled = true;
         }
         else
             CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
@@ -2205,7 +2306,8 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
         if (slave->asduHandler(slave->asduHandlerParameter, &(self->iMasterConnection), asdu))
             messageHandled = true;
 
-    if (messageHandled == false) {
+    if (messageHandled == false)
+    {
         /* send error response */
         CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_TYPE_ID);
         CS101_ASDU_setNegative(asdu, true);
@@ -2465,7 +2567,7 @@ sendSMessage(MasterConnection self)
 static bool
 handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 {
-    uint64_t currentTime = Hal_getTimeInMs();
+    uint64_t currentTime = Hal_getMonotonicTimeInMs();
 
     if (msgSize >= 3)
     {
@@ -2607,7 +2709,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
             if (self->unconfirmedReceivedIMessages > 0)
             {
-                self->lastConfirmationTime = Hal_getTimeInMs();
+                self->lastConfirmationTime = Hal_getMonotonicTimeInMs();
 
                 self->unconfirmedReceivedIMessages = 0;
 
@@ -2858,7 +2960,7 @@ sendWaitingASDUs(MasterConnection self)
 static bool
 handleTimeouts(MasterConnection self)
 {
-    uint64_t currentTime = Hal_getTimeInMs();
+    uint64_t currentTime = Hal_getMonotonicTimeInMs();
 
     bool timeoutsOk = true;
 
@@ -2990,7 +3092,7 @@ connectionHandlingThread(void* parameter)
 {
     MasterConnection self = (MasterConnection) parameter;
 
-    resetT3Timeout(self, Hal_getTimeInMs());
+    resetT3Timeout(self, Hal_getMonotonicTimeInMs());
 
     bool isAsduWaiting = false;
 
@@ -3045,7 +3147,7 @@ connectionHandlingThread(void* parameter)
 
                 if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w)
                 {
-                    self->lastConfirmationTime = Hal_getTimeInMs();
+                    self->lastConfirmationTime = Hal_getMonotonicTimeInMs();
 
                     self->unconfirmedReceivedIMessages = 0;
 
@@ -3292,7 +3394,7 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
         self->oldestSentASDU = -1;
         self->newestSentASDU = -1;
 
-        resetT3Timeout(self, Hal_getTimeInMs());
+        resetT3Timeout(self, Hal_getMonotonicTimeInMs());
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
         if (self->slave->tlsConfig != NULL) {
@@ -3466,7 +3568,7 @@ MasterConnection_handleTcpConnection(MasterConnection self)
 
         if (self->unconfirmedReceivedIMessages >= self->slave->conParameters.w)
         {
-            self->lastConfirmationTime = Hal_getTimeInMs();
+            self->lastConfirmationTime = Hal_getMonotonicTimeInMs();
 
             self->unconfirmedReceivedIMessages = 0;
 

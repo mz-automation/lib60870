@@ -365,6 +365,15 @@ CS104_Connection_destroy(CS104_Connection self);
 
 /*! @} */
 
+/**
+ * \private
+ *
+ * this function is only intended to be used by test cases and is not part of the API!
+ *
+ */
+int
+CS104_Connection_sendMessage(CS104_Connection self, uint8_t* message, int messageSize);
+
 #ifdef __cplusplus
 }
 #endif
