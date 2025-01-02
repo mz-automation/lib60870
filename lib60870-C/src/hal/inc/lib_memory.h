@@ -34,6 +34,19 @@ typedef void
 PAL_API void
 Memory_installExceptionHandler(MemoryExceptionHandler handler, void* parameter);
 
+typedef struct memAllocFuncs {
+    void *(*mallocFn)(size_t);
+    void *(*callocFn)(size_t,size_t);
+    void *(*reallocFn)(void*,size_t);
+    void (*freeFn)(void*);
+} memAllocFuncs;
+
+PAL_API memAllocFuncs
+memSetAllocators(memAllocFuncs *ma);
+
+PAL_API void
+memResetAllocators(void);
+
 PAL_API void*
 Memory_malloc(size_t size);
 
