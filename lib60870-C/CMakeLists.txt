@@ -22,7 +22,6 @@ endmacro()
 
 # feature checks
 include(CheckLibraryExists)
-check_library_exists(rt clock_gettime "time.h" CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
 
 # check if we are on a little or a big endian
 include (TestBigEndian)
