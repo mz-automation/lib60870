@@ -62,7 +62,7 @@ Hal_setTimeInNs(nsSinceEpoch nsTime)
 msSinceEpoch
 Hal_getMonotonicTimeInMs()
 {
-    return (msSinceEpoch)GetTickCount64;
+    return (msSinceEpoch)GetTickCount64();
 }
 
 nsSinceEpoch
