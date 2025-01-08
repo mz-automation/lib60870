@@ -10,8 +10,8 @@ add_subdirectory(cs104_server_files)
 add_subdirectory(cs104_redundancy_server)
 add_subdirectory(multi_client_server)
 
-if (WITH_MBEDTLS)
+if (WITH_MBEDTLS OR WITH_MBEDTLS3)
 add_subdirectory(tls_client)
 add_subdirectory(tls_server)
-endif (WITH_MBEDTLS)
+endif (WITH_MBEDTLS OR WITH_MBEDTLS3)
 

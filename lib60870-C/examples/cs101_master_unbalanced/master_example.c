@@ -45,19 +45,19 @@ asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
             CS101_ASDU_getTypeID(asdu),
             CS101_ASDU_getNumberOfElements(asdu));
 
-    if (CS101_ASDU_getTypeID(asdu) == M_ME_TE_1) {
-
+    if (CS101_ASDU_getTypeID(asdu) == M_ME_TE_1)
+    {
         printf("  measured scaled values with CP56Time2a timestamp (M_ME_TE_1):\n");
 
         int i;
 
-        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
-
+        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
+        {
             MeasuredValueScaledWithCP56Time2a io =
                     (MeasuredValueScaledWithCP56Time2a) CS101_ASDU_getElement(asdu, i);
 
-            if (io != NULL) {
-
+            if (io != NULL)
+            {
                 printf("    IOA: %i value: %i\n",
                         InformationObject_getObjectAddress((InformationObject) io),
                         MeasuredValueScaled_getValue((MeasuredValueScaled) io)
@@ -75,14 +75,13 @@ asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
 
         int i;
 
-        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
-
+        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
+        {
             SinglePointInformation io =
                     (SinglePointInformation) CS101_ASDU_getElement(asdu, i);
 
-
-            if (io != NULL) {
-
+            if (io != NULL)
+            {
                 printf("    IOA: %i value: %i\n",
                         InformationObject_getObjectAddress((InformationObject) io),
                         SinglePointInformation_getValue((SinglePointInformation) io)
@@ -100,13 +99,13 @@ asduReceivedHandler (void* parameter, int address, CS101_ASDU asdu)
 
         int i;
 
-        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++) {
-
+        for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
+        {
             EventOfProtectionEquipmentWithCP56Time2a epe = (EventOfProtectionEquipmentWithCP56Time2a)
                     CS101_ASDU_getElement(asdu, i);
 
-            if (epe != NULL) {
-
+            if (epe != NULL)
+            {
                 SingleEvent singleEvent = EventOfProtectionEquipmentWithCP56Time2a_getEvent(epe);
 
                 printf("    IOA: %i state: %i  QDQ: %i\n",
@@ -183,16 +182,16 @@ main(int argc, char** argv)
 
     int cycleCounter = 0;
 
-    while (running) {
-
+    while (running)
+    {
         CS101_Master_pollSingleSlave(master, 1);
         CS101_Master_run(master);
 
         CS101_Master_pollSingleSlave(master, 2);
         CS101_Master_run(master);
 
-        if (cycleCounter == 10) {
-
+        if (cycleCounter == 10)
+        {
             /* Send a general interrogation to a specific slave */
             if (CS101_Master_isChannelReady(master, 1)) {
                 CS101_Master_useSlaveAddress(master, 1);
@@ -203,8 +202,8 @@ main(int argc, char** argv)
                 cycleCounter--;
         }
 
-        if (cycleCounter == 30) {
-
+        if (cycleCounter == 30)
+        {
             /* Send a read request */
             if (CS101_Master_isChannelReady(master, 1)) {
                 CS101_Master_useSlaveAddress(master, 1);
@@ -215,10 +214,10 @@ main(int argc, char** argv)
                 cycleCounter--;
         }
 
-        if (cycleCounter == 50) {
-
-            if (CS101_Master_isChannelReady(master, 1)) {
-
+        if (cycleCounter == 50)
+        {
+            if (CS101_Master_isChannelReady(master, 1))
+            {
                 printf("Send control command C_SC_NA_1\n");
 
                 InformationObject sc = (InformationObject)
@@ -234,7 +233,8 @@ main(int argc, char** argv)
                 cycleCounter--;
         }
 
-        if (cycleCounter == 80) {
+        if (cycleCounter == 80)
+        {
             /* Send clock synchronization command */
 
             if (CS101_Master_isChannelReady(master, 1)) {
@@ -262,5 +262,3 @@ main(int argc, char** argv)
     SerialPort_close(port);
     SerialPort_destroy(port);
 }
-
-

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2022 Michael Zillgith
+ *  Copyright 2016-2024 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -204,7 +204,8 @@ sendSegment(CS101_FileServer self, IMasterConnection connection, int oa)
 
     DEBUG_PRINT("sendSegment(%i/%i)\n", self->currentSectionOffset, self->currentSectionSize);
 
-    if (currentSegmentSize > 0) {
+    if (currentSegmentSize > 0)
+    {
         if (currentSegmentSize > self->maxSegmentSize)
             currentSegmentSize = self->maxSegmentSize;
 
@@ -227,12 +228,13 @@ sendSegment(CS101_FileServer self, IMasterConnection connection, int oa)
 
         self->currentSectionOffset += currentSegmentSize;
 
-        self->lastSendTime = Hal_getTimeInMs();
+        self->lastSendTime = Hal_getMonotonicTimeInMs();
         self->sectionChecksum += calculateChecksum(segmentData, currentSegmentSize);
 
         return true;
     }
-    else {
+    else
+    {
         return false;
     }
 }
@@ -276,14 +278,16 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
     IEC60870_5_TypeID typeId = CS101_ASDU_getTypeID(asdu);
 
     /* check if type if is in range of file services */
-    if ((typeId >= F_FR_NA_1) && (typeId <= F_SC_NB_1)) {
-
+    if ((typeId >= F_FR_NA_1) && (typeId <= F_SC_NB_1))
+    {
         /* check for timeout */
-        if (self->state != UNSELECTED_IDLE) {
-            if (Hal_getTimeInMs() > self->lastSendTime + self->timeout) {
+        if (self->state != UNSELECTED_IDLE)
+        {
+            if (Hal_getMonotonicTimeInMs() > self->lastSendTime + self->timeout)
+            {
                 DEBUG_PRINT ("Abort file transfer due to timeout\n");
 
-                 self->state = UNSELECTED_IDLE;
+                self->state = UNSELECTED_IDLE;
             }
         }
 
@@ -297,8 +301,8 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
             DEBUG_PRINT("Received file ready F_FR_NA_1\n");
 
-            if (self->fileReadyHandler) {
-
+            if (self->fileReadyHandler)
+            {
                 FileReady fileReady = (FileReady) CS101_ASDU_getElementEx(asdu, (InformationObject) ioBuf, 0);
 
                 int ioa = InformationObject_getObjectAddress((InformationObject) fileReady);
@@ -311,7 +315,8 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                     self->fileReceiver = self->fileReadyHandler(self->fileReadyHandlerParameter, CS101_ASDU_getCA(asdu), ioa, FileReady_getNOF(fileReady), FileReady_getLengthOfFile(fileReady), &errCode);
                 }
 
-                if (self->fileReceiver) {
+                if (self->fileReceiver)
+                {
                     self->ca = CS101_ASDU_getCA(asdu);
                     self->ioa = ioa;
                     self->oa = oa;
@@ -320,31 +325,34 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
                     sendCallFile(self, connection, oa);
 
-                    self->lastSendTime = Hal_getTimeInMs();
+                    self->lastSendTime = Hal_getMonotonicTimeInMs();
                     self->state = WAITING_FOR_SECTION_READY;
                 }
-                else {
-                	if (errCode == 1) {
+                else
+                {
+                	if (errCode == 1)
+                    {
                         CS101_ASDU_setNegative(asdu, true);
                         CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_CA);
                         IMasterConnection_sendASDU(connection, asdu);
                 	}
-                	else if (errCode == 2) {
+                	else if (errCode == 2)
+                    {
                         CS101_ASDU_setNegative(asdu, true);
                         CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
                         IMasterConnection_sendASDU(connection, asdu);
                 	}
-                	else {
+                	else
+                    {
                 		self->ca = CS101_ASDU_getCA(asdu);
 						self->ioa = ioa;
 						self->nof = FileReady_getNOF(fileReady);
                 		sendFileReady(self, connection, oa, 0, false);
                 	}
-
                 }
-
             }
-            else {
+            else
+            {
                 CS101_ASDU_setNegative(asdu, true);
                 CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
                 IMasterConnection_sendASDU(connection, asdu);
@@ -354,8 +362,8 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
         case F_SR_NA_1: /* Section Ready */
 
-            if (self->state == WAITING_FOR_SECTION_READY) {
-
+            if (self->state == WAITING_FOR_SECTION_READY)
+            {
                 SectionReady sectionReady = (SectionReady) CS101_ASDU_getElementEx(asdu, (InformationObject) ioBuf, 0);
 
                 self->currentSectionNumber = SectionReady_getNameOfSection(sectionReady);
@@ -365,17 +373,16 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                 /* send call section */
                 sendCallSection(self, connection, oa);
 
-                self->lastSendTime = Hal_getTimeInMs();
+                self->lastSendTime = Hal_getMonotonicTimeInMs();
                 self->state = RECEIVE_SECTION;
             }
-
 
             break;
 
         case F_SG_NA_1: /* Segment */
 
-            if (self->state == RECEIVE_SECTION) {
-
+            if (self->state == RECEIVE_SECTION)
+            {
                 FileSegment segment = (FileSegment) CS101_ASDU_getElementEx(asdu, (InformationObject) ioBuf, 0);
 
                 uint8_t nos = FileSegment_getNameOfSection(segment);
@@ -383,13 +390,14 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
                 DEBUG_PRINT("Received F_SG_NA_1(segment) (NoS=%i, LoS=%i)\n", nos, los);
 
-                if (self->fileReceiver) {
+                if (self->fileReceiver)
+                {
                     self->fileReceiver->segmentReceived(self->fileReceiver, nos, self->currentSectionOffset, los, FileSegment_getSegmentData(segment));
                 }
 
                 self->currentSectionOffset += los;
 
-                self->lastSendTime = Hal_getTimeInMs();
+                self->lastSendTime = Hal_getMonotonicTimeInMs();
             }
             else {
                 DEBUG_PRINT ("Unexpected F_SG_NA_1(file segment)\n");
@@ -405,19 +413,20 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
                 uint8_t lsq = FileLastSegmentOrSection_getLSQ(lastSection);
 
-                if (self->state == RECEIVE_SECTION) {
-
-                    if (lsq == 3 /* SECTION_TRANSFER_WITHOUT_DEACT */) {
-
+                if (self->state == RECEIVE_SECTION)
+                {
+                    if (lsq == 3 /* SECTION_TRANSFER_WITHOUT_DEACT */)
+                    {
                         DEBUG_PRINT("Send segment ACK for NoS=%i\n", FileLastSegmentOrSection_getNameOfSection(lastSection));
 
                         sendFileAck(self, connection, oa, FileLastSegmentOrSection_getNameOfSection(lastSection), 3 /* POS_ACK_SECTION */);
 
-                        self->lastSendTime = Hal_getTimeInMs();
+                        self->lastSendTime = Hal_getMonotonicTimeInMs();
                         self->state = WAITING_FOR_SECTION_READY;
 
                     }
-                    else if (lsq == 2 /* FILE_TRANSFER_WITH_DEACT */) {
+                    else if (lsq == 2 /* FILE_TRANSFER_WITH_DEACT */)
+                    {
                         /* master aborted transfer */
 
                         if (self->fileReceiver) {
@@ -431,31 +440,36 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                     }
 
                 }
-                else if (self->state == WAITING_FOR_SECTION_READY) {
-
-                    if (lsq == 1 /* FILE_TRANSFER_WITHOUT_DEACT */) {
+                else if (self->state == WAITING_FOR_SECTION_READY)
+                {
+                    if (lsq == 1 /* FILE_TRANSFER_WITHOUT_DEACT */)
+                    {
                         DEBUG_PRINT("Send file ACK\n");
 
                         sendFileAck(self, connection, oa, FileLastSegmentOrSection_getNameOfSection(lastSection), 1 /* POS_ACK_FILE */);
 
-                        self->lastSendTime = Hal_getTimeInMs();
+                        self->lastSendTime = Hal_getMonotonicTimeInMs();
 
-                        if (self->fileReceiver) {
+                        if (self->fileReceiver)
+                        {
                             self->fileReceiver->finished(self->fileReceiver, CS101_FILE_ERROR_SUCCESS);
                         }
 
                         self->state = UNSELECTED_IDLE;
                     }
-                    else if (lsq == 2 /* FILE_TRANSFER_WITH_DEACT */) {
+                    else if (lsq == 2 /* FILE_TRANSFER_WITH_DEACT */)
+                    {
                         /* master aborted transfer */
 
-                        if (self->fileReceiver) {
+                        if (self->fileReceiver)
+                        {
                             self->fileReceiver->finished(self->fileReceiver, CS101_FILE_ERROR_ABORTED_BY_REMOTE);
                         }
 
                         self->state = UNSELECTED_IDLE;
                     }
-                    else {
+                    else
+                    {
                         DEBUG_PRINT("Unexpected LSQ\n");
                     }
                 }
@@ -467,17 +481,18 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
             DEBUG_PRINT("Received file/section ACK F_AF_NA_1\n");
 
-            if (self->state != UNSELECTED_IDLE) {
-
+            if (self->state != UNSELECTED_IDLE)
+            {
                 FileACK ack = (FileACK) CS101_ASDU_getElementEx(asdu, (InformationObject) ioBuf, 0);
 
                 uint8_t afq = FileACK_getAFQ(ack);
 
-                if (afq == 1 /* POS_ACK_FILE */) {
+                if (afq == 1 /* POS_ACK_FILE */)
+                {
                     DEBUG_PRINT("Received positive file ACK\n");
 
-                    if (self->state == WAITING_FOR_FILE_ACK) {
-
+                    if (self->state == WAITING_FOR_FILE_ACK)
+                    {
                         if (self->selectedFile)
                             self->selectedFile->transferComplete(self->selectedFile, true);
 
@@ -487,7 +502,6 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                         self->selectedConnection = NULL;
 
                         self->state = UNSELECTED_IDLE;
-
                     }
                     else
                     {
@@ -496,11 +510,12 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                         self->state = SEND_ABORT;
                     }
                 }
-                else if ((afq & 0x0f) == 2 /* NEG_ACK_FILE */) {
+                else if ((afq & 0x0f) == 2 /* NEG_ACK_FILE */)
+                {
                     DEBUG_PRINT("Received negative file ACK - stop transfer\n");
 
-                    if (self->state == WAITING_FOR_FILE_ACK) {
-
+                    if (self->state == WAITING_FOR_FILE_ACK)
+                    {
                         if (self->selectedFile)
                             self->selectedFile->transferComplete(self->selectedFile, false);
 
@@ -509,22 +524,25 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
                         self->state = UNSELECTED_IDLE;
                     }
-                    else {
+                    else
+                    {
                         DEBUG_PRINT("Unexpected file transfer state --> abort file transfer\n");
 
                         self->state = SEND_ABORT;
                     }
                 }
-                else if ((afq & 0x0f) == 4 /* NEG_ACK_SECTION */) {
+                else if ((afq & 0x0f) == 4 /* NEG_ACK_SECTION */)
+                {
                     DEBUG_PRINT("Received negative file section ACK - repeat section\n");
 
-                    if (self->state == WAITING_FOR_SECTION_ACK) {
+                    if (self->state == WAITING_FOR_SECTION_ACK)
+                    {
                         self->currentSectionOffset = 0;
                         self->sectionChecksum = 0;
 
                         sendSectionReady(self, connection, oa);
 
-                        self->lastSendTime = Hal_getTimeInMs();
+                        self->lastSendTime = Hal_getMonotonicTimeInMs();
                         self->state = TRANSMIT_SECTION;
 
                     }
@@ -535,32 +553,36 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                         self->state = SEND_ABORT;
                     }
                 }
-                else if ((afq & 0x0f) == 3 /* POS_ACK_SECTION */) {
+                else if ((afq & 0x0f) == 3 /* POS_ACK_SECTION */)
+                {
                     DEBUG_PRINT("Received positive section ACK\n");
 
-                    if (self->state == WAITING_FOR_SECTION_ACK) {
+                    if (self->state == WAITING_FOR_SECTION_ACK)
+                    {
                         self->currentSectionNumber++;
 
                         int nextSectionSize = self->selectedFile->getSectionSize(self->selectedFile, self->currentSectionNumber - 1);
 
                         self->currentSectionOffset = 0;
 
-                        if (nextSectionSize <= 0) {
+                        if (nextSectionSize <= 0)
+                        {
                             DEBUG_PRINT("Received positive file section ACK - send last section indication\n");
 
                             sendLastSection(self, connection, oa);
 
-                            self->lastSendTime = Hal_getTimeInMs();
+                            self->lastSendTime = Hal_getMonotonicTimeInMs();
                             self->state = WAITING_FOR_FILE_ACK;
                         }
-                        else {
+                        else
+                        {
                             DEBUG_PRINT("Received positive file section ACK - send next section ready indication");
 
                             self->currentSectionSize = nextSectionSize;
 
                             sendSectionReady(self, connection, oa);
 
-                            self->lastSendTime = Hal_getTimeInMs();
+                            self->lastSendTime = Hal_getMonotonicTimeInMs();
                             self->state = WAITING_FOR_SECTION_CALL;
                         }
 
@@ -573,9 +595,9 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                         self->state = SEND_ABORT;
                     }
                 }
-
             }
-            else {
+            else
+            {
                 CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_CA);
                 IMasterConnection_sendASDU(connection, asdu);
             }
@@ -594,12 +616,12 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                 int ioa = InformationObject_getObjectAddress((InformationObject) sc);
                 uint16_t nof = FileCallOrSelect_getNOF(sc);
 
-                if (scq == 1 /* SELECT_FILE */) {
-
+                if (scq == 1 /* SELECT_FILE */) 
+                {
                     DEBUG_PRINT("Received SELECT FILE\n");
 
-                    if (self->state == UNSELECTED_IDLE) {
-
+                    if (self->state == UNSELECTED_IDLE)
+                    {
                         CS101_IFileProvider file = NULL;
 
                         int errCode = 0;
@@ -607,27 +629,30 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                         if (self->filesAvailable)
                             file = self->filesAvailable->getFile(self->filesAvailable->parameter, CS101_ASDU_getCA(asdu), ioa, nof, &errCode);
 
-                        if (file == NULL) {
-
-                        	if (errCode == 1) {
+                        if (file == NULL)
+                        {
+                            if (errCode == 1)
+                            {
                                 CS101_ASDU_setNegative(asdu, true);
                                 CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_CA);
                                 IMasterConnection_sendASDU(connection, asdu);
-                        	}
-                        	else if (errCode == 2) {
+                            }
+                            else if (errCode == 2)
+                            {
                                 CS101_ASDU_setNegative(asdu, true);
                                 CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_IOA);
                                 IMasterConnection_sendASDU(connection, asdu);
-                        	}
-                        	else {
-                        		self->ca = CS101_ASDU_getCA(asdu);
-        						self->ioa = ioa;
-        						self->nof = nof;
-                        		sendFileReady(self, connection, oa, 0, false);
-                        	}
-
+                            }
+                            else
+                            {
+                                self->ca = CS101_ASDU_getCA(asdu);
+                                self->ioa = ioa;
+                                self->nof = nof;
+                                sendFileReady(self, connection, oa, 0, false);
+                            }
                         }
-                        else {
+                        else
+                        {
                             /* TODO check if file is already selected by other client */
 
                             self->selectedFile = file;
@@ -642,10 +667,9 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
                             sendFileReady(self, connection, oa, fileSize, true);
 
-                            self->lastSendTime = Hal_getTimeInMs();
+                            self->lastSendTime = Hal_getMonotonicTimeInMs();
                             self->state = WAITING_FOR_FILE_CALL;
                         }
-
                     }
                     else
                     {
@@ -653,11 +677,12 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                     }
 
                 }
-                else if (scq == 3 /* DEACTIVATE_FILE */) {
-
+                else if (scq == 3 /* DEACTIVATE_FILE */)
+                {
                     DEBUG_PRINT("Received DEACTIVATE FILE\n");
 
-                    if (self->state == UNSELECTED_IDLE) {
+                    if (self->state == UNSELECTED_IDLE)
+                    {
                         self->selectedFile = NULL;
                         self->selectedConnection = NULL;
 
@@ -668,16 +693,16 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                         DEBUG_PRINT("Unexpected DEACTIVATE FILE message\n");
                     }
                 }
-                else if (scq == 2 /* REQUEST_FILE */) {
-
+                else if (scq == 2 /* REQUEST_FILE */)
+                {
                     DEBUG_PRINT("Received CALL FILE\n");
 
-                    if (self->state == WAITING_FOR_FILE_CALL) {
-
+                    if (self->state == WAITING_FOR_FILE_CALL)
+                    {
                         /* TODO check if NoF matches */
 
-                        if ((ioa != self->ioa) || (CS101_ASDU_getCA(asdu) != self->ca)) {
-
+                        if ((ioa != self->ioa) || (CS101_ASDU_getCA(asdu) != self->ca))
+                        {
                             DEBUG_PRINT("Call for file that is not selected!\n");
 
                             if (CS101_ASDU_getCA(asdu) != self->ca)
@@ -688,9 +713,9 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                             CS101_ASDU_setNegative(asdu, true);
 
                             IMasterConnection_sendASDU(connection, asdu);
-
                         }
-                        else {
+                        else
+                        {
                             self->currentSectionNumber = 1;
                             self->currentSectionOffset = 0;
                             self->fileChecksum = 0;
@@ -700,10 +725,9 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
 
                             sendSectionReady(self, connection, oa);
 
-                            self->lastSendTime = Hal_getTimeInMs();
+                            self->lastSendTime = Hal_getMonotonicTimeInMs();
                             self->state = WAITING_FOR_SECTION_CALL;
                         }
-
                     }
                     else
                     {
@@ -711,18 +735,18 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                     }
 
                 }
-                else if (scq == 6 /* REQUEST_SECTION */ ) {
-
+                else if (scq == 6 /* REQUEST_SECTION */ )
+                {
                     uint8_t nos = FileCallOrSelect_getNameOfSection(sc);
 
                     DEBUG_PRINT("Received CALL SECTION (NoS = %i)\n", nos);
 
-                    if (self->state == WAITING_FOR_SECTION_CALL) {
-
+                    if (self->state == WAITING_FOR_SECTION_CALL)
+                    {
                         /* TODO check if NoF matches */
 
-                        if ((ioa != self->ioa) || (CS101_ASDU_getCA(asdu) != self->ca)) {
-
+                        if ((ioa != self->ioa) || (CS101_ASDU_getCA(asdu) != self->ca))
+                        {
                             DEBUG_PRINT("Call for file that is not selected!\n");
 
                             if (CS101_ASDU_getCA(asdu) != self->ca)
@@ -735,69 +759,73 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
                             IMasterConnection_sendASDU(connection, asdu);
 
                         }
-                        else {
-
-                            if (CS101_ASDU_isNegative(asdu)) {
-
+                        else
+                        {
+                            if (CS101_ASDU_isNegative(asdu))
+                            {
                                 self->currentSectionNumber++;
                                 self->currentSectionOffset = 0;
 
                                 self->currentSectionSize = self->selectedFile->getSectionSize(self->selectedFile, self->currentSectionNumber - 1);
 
-                                if (self->currentSectionSize > 0) {
-
+                                if (self->currentSectionSize > 0)
+                                {
                                     DEBUG_PRINT("Send F_SR_NA_1 (section ready) (NoS = %i)\n", self->currentSectionNumber);
 
                                     sendSectionReady(self, connection, oa);
 
-                                    self->lastSendTime = Hal_getTimeInMs();
+                                    self->lastSendTime = Hal_getMonotonicTimeInMs();
                                     self->state = WAITING_FOR_SECTION_CALL;
                                 }
-                                else {
-
+                                else
+                                {
                                     DEBUG_PRINT("Send F_LS_NA_1 (last section))\n");
 
                                     sendLastSection(self, connection, oa);
 
-                                    self->lastSendTime = Hal_getTimeInMs();
+                                    self->lastSendTime = Hal_getMonotonicTimeInMs();
                                     self->state = WAITING_FOR_FILE_ACK;
                                 }
-
                             }
-                            else { /* positive */
+                            else
+                            {
+                                /* positive */
                                 self->currentSectionSize = self->selectedFile->getSectionSize(self->selectedFile, nos - 1);
 
-                                if (self->currentSectionSize > 0) {
+                                if (self->currentSectionSize > 0)
+                                {
                                     self->currentSectionNumber = nos;
                                     self->currentSectionOffset = 0;
 
                                     self->state = TRANSMIT_SECTION;
                                 }
-                                else {
+                                else
+                                {
                                     DEBUG_PRINT("Unexpected number of section -> send negative confirm\n");
 
                                     CS101_ASDU_setNegative(asdu, true);
 
                                     IMasterConnection_sendASDU(connection, asdu);
 
-                                    self->lastSendTime = Hal_getTimeInMs();
+                                    self->lastSendTime = Hal_getMonotonicTimeInMs();
                                 }
                             }
                         }
                     }
-                    else {
+                    else
+                    {
                         DEBUG_PRINT("Unexpected CALL SECTION message\n");
                     }
-
                 }
-
             }
-            else if (CS101_ASDU_getCOT(asdu) == CS101_COT_REQUEST) {
+            else if (CS101_ASDU_getCOT(asdu) == CS101_COT_REQUEST)
+            {
                 /* call directory */
 
                 /* TODO send directory */
             }
-            else {
+            else
+            {
                 DEBUG_PRINT("Received unexpected COT = %i\n", CS101_ASDU_getCOT(asdu));
             }
 
@@ -811,7 +839,6 @@ CS101_FileServer_handleAsdu(void* parameter, IMasterConnection connection,  CS10
         result = CS101_PLUGIN_RESULT_HANDLED;
     }
 
-
     return result;
 }
 
@@ -820,37 +847,35 @@ CS101_FileServer_runTask(void* parameter, IMasterConnection connection)
 {
     CS101_FileServer self = (CS101_FileServer) parameter;
 
-    if (self->state != UNSELECTED_IDLE) {
-
-        if (self->state == TRANSMIT_SECTION) {
-
-            if (self->selectedConnection == connection) {
-
-                if (self->selectedFile) {
-
-                    if (sendSegment(self, connection, self->oa) == false) {
+    if (self->state != UNSELECTED_IDLE)
+    {
+        if (self->state == TRANSMIT_SECTION)
+        {
+            if (self->selectedConnection == connection)
+            {
+                if (self->selectedFile)
+                {
+                    if (sendSegment(self, connection, self->oa) == false)
+                    {
                         sendLastSegment(self, connection, self->oa);
 
                         self->fileChecksum += self->sectionChecksum;
                         self->sectionChecksum = 0;
 
-                        self->lastSendTime = Hal_getTimeInMs();
+                        self->lastSendTime = Hal_getMonotonicTimeInMs();
                         self->state = WAITING_FOR_SECTION_ACK;
                     }
-
                 }
-
             }
-
         }
 
         /* check for timeout */
-        if (Hal_getTimeInMs() > self->lastSendTime + self->timeout) {
+        if (Hal_getMonotonicTimeInMs() > self->lastSendTime + self->timeout)
+        {
             DEBUG_PRINT ("Abort file transfer due to timeout\n");
 
              self->state = UNSELECTED_IDLE;
         }
-
     }
 }
 
@@ -864,7 +889,8 @@ CS101_FileServer_create(CS101_AppLayerParameters alParams)
 {
     CS101_FileServer self = (CS101_FileServer) GLOBAL_CALLOC(1, sizeof(struct sCS101_FileServer));
 
-    if (self) {
+    if (self)
+    {
         self->timeout = 3000;
         self->state = UNSELECTED_IDLE;
 
@@ -902,6 +928,3 @@ CS101_FileServer_getSlavePlugin(CS101_FileServer self)
 {
     return &(self->plugin);
 }
-
-
-
