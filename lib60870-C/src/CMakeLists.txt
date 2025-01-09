@@ -149,18 +149,11 @@ GENERATE_EXPORT_HEADER(lib60870-shared
 add_library (lib60870 STATIC ${library_SRCS})
 
 IF(UNIX)
-  IF (CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
-     target_link_libraries (lib60870
-         -lpthread
-         -lm
-         -lrt
-     )
-  ELSE ()
-     target_link_libraries (lib60870
-         -lpthread
-         -lm
-     )
-  ENDIF (CONFIG_SYSTEM_HAS_CLOCK_GETTIME)
+    target_link_libraries (lib60870
+        -lpthread
+        -lm
+        -lrt
+    )
 
   configure_file(
     ${CMAKE_CURRENT_LIST_DIR}/lib60870.pc.in
