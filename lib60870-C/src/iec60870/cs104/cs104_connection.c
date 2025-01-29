@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2024 Michael Zillgith
+ *  Copyright 2016-2022 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -287,9 +287,8 @@ CS104_Connection_createSecure(const char* hostname, int tcpPort, TLSConfiguratio
 #endif /* (CONFIG_CS104_SUPPORT_TLS == 1) */
 
 static void
-resetT3Timeout(CS104_Connection self)
-{
-    self->nextT3Timeout = Hal_getMonotonicTimeInMs() + (self->parameters.t3 * 1000);
+resetT3Timeout(CS104_Connection self) {
+    self->nextT3Timeout = Hal_getTimeInMs() + (self->parameters.t3 * 1000);
 }
 
 static void
@@ -614,7 +613,7 @@ checkConfirmTimeout(CS104_Connection self, uint64_t currentTime)
 static void
 confirmOutstandingMessages(CS104_Connection self)
 {
-    self->lastConfirmationTime = Hal_getMonotonicTimeInMs();
+    self->lastConfirmationTime = Hal_getTimeInMs();
     self->unconfirmedReceivedIMessages = 0;
     self->timeoutT2Trigger = false;
     sendSMessage(self);
@@ -629,7 +628,7 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
     {
         if (self->timeoutT2Trigger == false) {
             self->timeoutT2Trigger = true;
-            self->lastConfirmationTime = Hal_getMonotonicTimeInMs(); /* start timeout T2 */
+            self->lastConfirmationTime = Hal_getTimeInMs(); /* start timeout T2 */
         }
 
         if (msgSize < 7) {
@@ -736,24 +735,22 @@ handleTimeouts(CS104_Connection self)
 {
     bool retVal = true;
 
-    uint64_t currentTime = Hal_getMonotonicTimeInMs();
+    uint64_t currentTime = Hal_getTimeInMs();
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->conStateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
-    if (currentTime > self->nextT3Timeout)
-    {
-        if (self->outstandingTestFCConMessages > 2)
-        {
+    if (currentTime > self->nextT3Timeout) {
+
+        if (self->outstandingTestFCConMessages > 2) {
             DEBUG_PRINT("Timeout for TESTFR_CON message\n");
 
             /* close connection */
             retVal = false;
             goto exit_function;
         }
-        else
-        {
+        else {
             DEBUG_PRINT("U message T3 timeout\n");
 
             writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE);
@@ -765,18 +762,15 @@ handleTimeouts(CS104_Connection self)
         }
     }
 
-    if (self->unconfirmedReceivedIMessages > 0)
-    {
-        if (checkConfirmTimeout(self, currentTime))
-        {
+    if (self->unconfirmedReceivedIMessages > 0) {
+
+        if (checkConfirmTimeout(self, currentTime)) {
             confirmOutstandingMessages(self);
         }
     }
 
-    if (self->uMessageTimeout != 0)
-    {
-        if (currentTime > self->uMessageTimeout)
-        {
+    if (self->uMessageTimeout != 0) {
+        if (currentTime > self->uMessageTimeout) {
             DEBUG_PRINT("U message T1 timeout\n");
             retVal = false;
             goto exit_function;
@@ -784,12 +778,9 @@ handleTimeouts(CS104_Connection self)
     }
 
     /* check if counterpart confirmed I messages */
-    if (self->oldestSentASDU != -1)
-    {
-        if (currentTime > self->sentASDUs[self->oldestSentASDU].sentTime)
-        {
-            if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->parameters.t1 * 1000))
-            {
+    if (self->oldestSentASDU != -1) {
+        if (currentTime > self->sentASDUs[self->oldestSentASDU].sentTime) {
+            if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->parameters.t1 * 1000)) {
                 DEBUG_PRINT("I message timeout\n");
                 retVal = false;
             }
@@ -1055,10 +1046,7 @@ handleConnection(void* parameter)
 
     #if (CONFIG_CS104_SUPPORT_TLS == 1)
         if (self->tlsSocket)
-        {
             TLSSocket_close(self->tlsSocket);
-            self->tlsSocket = NULL;
-        }
     #endif
 
         Socket_destroy(self->socket);
@@ -1233,19 +1221,16 @@ sendIMessageAndUpdateSentASDUs(CS104_Connection self, Frame frame)
 {
     int currentIndex = 0;
 
-    if (self->oldestSentASDU == -1)
-    {
+    if (self->oldestSentASDU == -1) {
         self->oldestSentASDU = 0;
         self->newestSentASDU = 0;
 
-    }
-    else
-    {
+    } else {
         currentIndex = (self->newestSentASDU + 1) % self->maxSentASDUs;
     }
 
     self->sentASDUs [currentIndex].seqNo = sendIMessage (self, frame);
-    self->sentASDUs [currentIndex].sentTime = Hal_getMonotonicTimeInMs();
+    self->sentASDUs [currentIndex].sentTime = Hal_getTimeInMs();
 
     self->newestSentASDU = currentIndex;
 }
@@ -1255,14 +1240,13 @@ sendASDUInternal(CS104_Connection self, Frame frame)
 {
     bool retVal = false;
 
-    if (isRunning(self))
-    {
+    if (isRunning(self)) {
+
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->conStateLock);
 #endif
 
-        if (isSentBufferFull(self) == false)
-        {
+        if (isSentBufferFull(self) == false) {
             sendIMessageAndUpdateSentASDUs(self, frame);
             retVal = true;
         }

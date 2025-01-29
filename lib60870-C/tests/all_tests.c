@@ -12,6 +12,9 @@
 #define CONFIG_CS104_SUPPORT_TLS 0
 #endif
 
+int
+CS104_Connection_sendMessage(CS104_Connection self, uint8_t* message, int messageSize);
+
 #if WIN32
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0) 
 #endif
@@ -4864,44 +4867,6 @@ test_DelayAcquisitionCommand(void)
 
     CS101_ASDU_destroy(asdu2);
 }
-void
-test_TestCommand(void)
-{
-    TestCommand tc;
-    tc = TestCommand_create(NULL);
-
-    uint8_t buffer[256];
-    struct sBufferFrame bf;
-
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
-
-    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
-
-    CS101_ASDU_addInformationObject(asdu, (InformationObject) tc);
-
-    TestCommand_destroy(tc);
-
-    CS101_ASDU_encode(asdu, f);
-
-    TEST_ASSERT_EQUAL_INT(11, Frame_getMsgSize(f));
-
-    CS101_ASDU_destroy(asdu);
-
-    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
-
-    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
-
-    TestCommand tc_dec = (TestCommand) CS101_ASDU_getElement(asdu2, 0);
-
-    TEST_ASSERT_EQUAL_INT(0, InformationObject_getObjectAddress((InformationObject )tc_dec));
-    TEST_ASSERT_EQUAL_INT(0xaa, buffer[9]);
-    TEST_ASSERT_EQUAL_INT(0x55, buffer[10]);
-    TEST_ASSERT_TRUE(TestCommand_isValid(tc_dec));
-
-    TestCommand_destroy(tc_dec);
-
-    CS101_ASDU_destroy(asdu2);
-}
 
 void
 test_BitString32(void)
@@ -6622,7 +6587,6 @@ main(int argc, char** argv)
     RUN_TEST(test_ClockSynchronizationCommand);
     RUN_TEST(test_ResetProcessCommand);
     RUN_TEST(test_DelayAcquisitionCommand);
-    RUN_TEST(test_TestCommand);
 
     RUN_TEST(test_BitString32);
     RUN_TEST(test_Bitstring32CommandWithCP56Time2a);

@@ -6183,7 +6183,7 @@ TestCommand_create(TestCommand self)
 
         self->objectAddress = 0;
 
-        self->byte1 = 0xaa;
+        self->byte1 = 0xcc;
         self->byte2 = 0x55;
     }
 
@@ -6199,7 +6199,7 @@ TestCommand_destroy(TestCommand self)
 bool
 TestCommand_isValid(TestCommand self)
 {
-    if ((self->byte1 == 0xaa) && (self->byte2 == 0x55))
+    if ((self->byte1 == 0xcc) && (self->byte2 == 0x55))
         return true;
     else
         return false;

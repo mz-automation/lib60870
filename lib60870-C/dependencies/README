@@ -1,0 +1,8 @@
+README
+------
+
+Please add optional dependencies in this folder
+
+For TLS support with mbedtls download the source tarball of version 2.28.x and extract here in the subfolder (Version 2.28.3 https://github.com/Mbed-TLS/mbedtls/archive/refs/tags/v2.28.3.tar.gz)
+
+Rename the extracted mbedtls folder to mbedtls-2.28 (otherwise the build script cannot find the folder and will compile the library without TLS support).

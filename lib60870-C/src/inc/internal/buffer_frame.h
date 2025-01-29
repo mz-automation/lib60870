@@ -26,10 +26,6 @@
 
 #include <stdbool.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 struct sBufferFrame {
     FrameVFT virtualFunctionTable;
 
@@ -70,9 +66,5 @@ BufferFrame_isUsed(BufferFrame self);
 
 void
 BufferFrame_markAsUsed(BufferFrame self);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* SRC_IEC60870_T104_BUFFER_FRAME_H_ */
