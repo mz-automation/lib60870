@@ -101,12 +101,12 @@ IBalancedApplicationLayer_HandleReceivedData (void* parameter, uint8_t* msg, boo
 
     CS101_Master self = (CS101_Master) parameter;
 
-    CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->alParameters), msg + userDataStart, userDataLength);
+    struct sCS101_ASDU _asdu;
+
+    CS101_ASDU asdu = CS101_ASDU_createFromBufferEx(&_asdu, &(self->alParameters), msg + userDataStart, userDataLength);
 
     if (self->asduReceivedHandler)
         self->asduReceivedHandler(self->asduReceivedHandlerParameter, 0, asdu);
-
-    CS101_ASDU_destroy(asdu);
 
     return true;
 }
@@ -139,13 +139,12 @@ IPrimaryApplicationLayer_UserData(void* parameter, int slaveAddress, uint8_t* ms
 {
     CS101_Master self = (CS101_Master) parameter;
 
-    CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->alParameters), msg + start, length);
+    struct sCS101_ASDU _asdu;
+
+    CS101_ASDU asdu = CS101_ASDU_createFromBufferEx(&_asdu, &(self->alParameters), msg + start, length);
 
     if (self->asduReceivedHandler)
         self->asduReceivedHandler(self->asduReceivedHandlerParameter, slaveAddress, asdu);
-
-    CS101_ASDU_destroy(asdu);
-
 }
 
 static void

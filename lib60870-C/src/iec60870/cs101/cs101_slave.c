@@ -143,13 +143,13 @@ HandleReceivedData(void* parameter, uint8_t* msg, bool isBroadcast, int userData
 
     CS101_Slave self = (CS101_Slave) parameter;
 
-    CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->alParameters), msg + userDataStart, userDataLength);
+    struct sCS101_ASDU _asdu;
+
+    CS101_ASDU asdu = CS101_ASDU_createFromBufferEx(&_asdu, &(self->alParameters), msg + userDataStart, userDataLength);
 
     if (asdu)
     {
         handleASDU(self, asdu);
-
-        CS101_ASDU_destroy(asdu);
     }
     else {
         DEBUG_PRINT("CS101 slave: Failed to parse ASDU\n");
