@@ -493,6 +493,20 @@ CS101_ASDU_create(CS101_AppLayerParameters parameters, bool isSequence, CS101_Ca
         bool isTest, bool isNegative);
 
 /**
+ * \brief Create a new ASDU instance from a buffer containing the raw ASDU message bytes
+ *
+ * NOTE: Do not try to append information objects to the instance!
+ *
+ * \param parameters the application layer parameters used to encode the ASDU
+ * \param msg the buffer containing the raw ASDU message bytes
+ * \param msgLength the length of the message
+ *
+ * \return the new CS101_ASDU instance
+ */
+CS101_ASDU
+CS101_ASDU_createFromBuffer(CS101_AppLayerParameters parameters, uint8_t* msg, int msgLength);
+
+/**
  * \brief Create a new ASDU and store it in the provided static ASDU structure.
  *
  * NOTE: The type ID will be derived from the first InformationObject that will be added.
