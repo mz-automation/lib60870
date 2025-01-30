@@ -1,4 +1,4 @@
-= lib60870 - IEC 60870-5-101/104 C Source Code Library User Guide - Version 2.3.0 
+= lib60870 - IEC 60870-5-101/104 C Source Code Library User Guide - Version 2.3.4
 Copyright 2020 MZ Automation GmbH
 
 == Introduction
