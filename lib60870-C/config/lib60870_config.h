@@ -7,14 +7,18 @@
 
 
 /* print debugging information with printf if set to 1 */
+#ifndef CONFIG_DEBUG_OUTPUT
 #define CONFIG_DEBUG_OUTPUT 0
+#endif
 
 /**
  * Define the maximum slave message queue size (for CS 101)
  *
  * When set to -1 the message queue size is not limited can be set by the application
  */
+#ifndef CONFIG_SLAVE_MESSAGE_QUEUE_SIZE
 #define CONFIG_SLAVE_MESSAGE_QUEUE_SIZE -1
+#endif
 
 /**
  * Define the default size for the slave (outstation) message queue. This is used also
@@ -23,7 +27,9 @@
  * For each queued message a maximum of 256 bytes of memory are required. Usually messages are
  * smaller so more then thus number of messages can be stored in the message queue
  */
+#ifndef CONFIG_CS104_MESSAGE_QUEUE_SIZE
 #define CONFIG_CS104_MESSAGE_QUEUE_SIZE 100
+#endif
 
 /**
  * This is a connection specific ASDU queue for the slave (outstation). It is used for connection
@@ -32,52 +38,76 @@
  *
  * For each queued message about 256 bytes of memory are required.
  */
+#ifndef CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE
 #define CONFIG_CS104_MESSAGE_QUEUE_HIGH_PRIO_SIZE 50
+#endif
 
 /**
  * Compile the library to use threads. This will require semaphore support
  */
+#ifndef CONFIG_USE_THREADS
 #define CONFIG_USE_THREADS 1
+#endif
 
 /**
  * Compile the library using semaphore to protect critical objects.
  * Required when CONFIG_USE_THREADS = 1.
  */
+#ifndef CONFIG_USE_SEMAPHORES
 #define CONFIG_USE_SEMAPHORES 1
+#endif
 
 /**
  * Compile library with support for SINGLE_REDUNDANCY_GROUP server mode (only CS104 server)
  */
+#ifndef CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP
 #define CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP 1
+#endif
 
 /**
  * Compile library with support for MULTIPLE_REDUNDANCY_GROUPS server mode (only CS104 server)
  */
+#ifndef CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS
 #define CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS 1
+#endif
 
 /**
  * Compile library with support for CONNECTION_IS_REDUNDANCY_GROUP server mode (only CS104 server)
  */
+#ifndef CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP
 #define CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP 1
+#endif
 
 /**
  * Set the maximum number of client connections
  */
+#ifndef CONFIG_CS104_MAX_CLIENT_CONNECTIONS
 #define CONFIG_CS104_MAX_CLIENT_CONNECTIONS 100
+#endif
 
 /* activate TCP keep alive mechanism. 1 -> activate */
+#ifndef CONFIG_ACTIVATE_TCP_KEEPALIVE
 #define CONFIG_ACTIVATE_TCP_KEEPALIVE 0
+#endif
 
 /* time (in s) between last message and first keepalive message */
+#ifndef CONFIG_TCP_KEEPALIVE_IDLE
 #define CONFIG_TCP_KEEPALIVE_IDLE 5
+#endif
 
 /* time between subsequent keepalive messages if no ack received */
+#ifndef CONFIG_TCP_KEEPALIVE_INTERVAL
 #define CONFIG_TCP_KEEPALIVE_INTERVAL 2
+#endif
 
 /* number of not missing keepalive responses until socket is considered dead */
+#ifndef CONFIG_TCP_KEEPALIVE_CNT
 #define CONFIG_TCP_KEEPALIVE_CNT 2
+#endif
 
 /* test command without timestamp is not allowed for CS104. Set to 1 to enable it anyway. */
+#ifndef CONFIG_ALLOW_C_TS_NA_1_FOR_CS104
 #define CONFIG_ALLOW_C_TS_NA_1_FOR_CS104 0
+#endif
 
 #endif /* CONFIG_LIB60870_CONFIG_H_ */

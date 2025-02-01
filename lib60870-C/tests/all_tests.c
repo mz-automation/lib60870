@@ -188,9 +188,6 @@ extern "C" {
 void
 CS101_ASDU_encode(CS101_ASDU self, Frame frame);
 
-CS101_ASDU
-CS101_ASDU_createFromBuffer(CS101_AppLayerParameters parameters, uint8_t* msg, int msgLength);
-
 #ifdef __cplusplus
 }
 #endif

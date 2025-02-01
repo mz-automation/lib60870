@@ -662,20 +662,21 @@ checkMessage(CS104_Connection self, uint8_t* buffer, int msgSize)
         self->receiveCount = (self->receiveCount + 1) % 32768;
         self->unconfirmedReceivedIMessages++;
 
-        CS101_ASDU asdu = CS101_ASDU_createFromBuffer((CS101_AppLayerParameters)&(self->alParameters), buffer + 6, msgSize - 6);
+        struct sCS101_ASDU _asdu;
 
-        if (asdu != NULL) {
+        CS101_ASDU asdu = CS101_ASDU_createFromBufferEx(&_asdu, (CS101_AppLayerParameters)&(self->alParameters), buffer + 6, msgSize - 6);
+
+        if (asdu)
+        {
             if (self->receivedHandler != NULL)
                 self->receivedHandler(self->receivedHandlerParameter, -1, asdu);
-
-            CS101_ASDU_destroy(asdu);
         }
-        else {
+        else
+        {
             retVal =  false;
 
             goto exit_function;
         }
-
     }
     else if ((buffer[2] & 0x03) == 0x03)  /* U format frame */
     {

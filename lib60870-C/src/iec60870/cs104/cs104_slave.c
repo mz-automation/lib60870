@@ -2650,13 +2650,13 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
             if (MasterConnection_isActive(self))
             {
-                CS101_ASDU asdu = CS101_ASDU_createFromBuffer(&(self->slave->alParameters), buffer + 6, msgSize - 6);
+                struct sCS101_ASDU _asdu;
+
+                CS101_ASDU asdu = CS101_ASDU_createFromBufferEx(&_asdu, &(self->slave->alParameters), buffer + 6, msgSize - 6);
 
                 if (asdu)
                 {
                     bool validAsdu = handleASDU(self, asdu);
-
-                    CS101_ASDU_destroy(asdu);
 
                     if (validAsdu == false) {
                         DEBUG_PRINT("CS104 SLAVE: ASDU corrupted");

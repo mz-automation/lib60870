@@ -45,12 +45,17 @@ extern "C" {
 #endif
 
 /**
- * \brief create a new (read-only) instance
+ * \brief Create a new ASDU instance from a buffer containing the raw ASDU message bytes
  *
- * NOTE: Do not try to append information objects to the instance!
+ * \param asdu pointer to the statically allocated data structure or NULL to allocate ASDU dynamically
+ * \param parameters the application layer parameters used to encode the ASDU
+ * \param msg the buffer containing the raw ASDU message bytes
+ * \param msgLength the length of the message
+ *
+ * \return the created ASDU instance or NULL if the message is invalid
  */
 CS101_ASDU
-CS101_ASDU_createFromBuffer(CS101_AppLayerParameters parameters, uint8_t* msg, int msgLength);
+CS101_ASDU_createFromBufferEx(CS101_ASDU asdu, CS101_AppLayerParameters parameters, uint8_t* msg, int msgLength);
 
 #ifdef __cplusplus
 }

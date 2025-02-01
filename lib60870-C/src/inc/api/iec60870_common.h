@@ -47,7 +47,7 @@ extern "C" {
 
 #define LIB60870_VERSION_MAJOR 2
 #define LIB60870_VERSION_MINOR 3
-#define LIB60870_VERSION_PATCH 3
+#define LIB60870_VERSION_PATCH 4
 
 /**
  * \brief lib60870 version information
@@ -491,6 +491,20 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index);
 CS101_ASDU
 CS101_ASDU_create(CS101_AppLayerParameters parameters, bool isSequence, CS101_CauseOfTransmission cot, int oa, int ca,
         bool isTest, bool isNegative);
+
+/**
+ * \brief Create a new ASDU instance from a buffer containing the raw ASDU message bytes
+ *
+ * NOTE: Do not try to append information objects to the instance!
+ *
+ * \param parameters the application layer parameters used to encode the ASDU
+ * \param msg the buffer containing the raw ASDU message bytes
+ * \param msgLength the length of the message
+ *
+ * \return the new CS101_ASDU instance
+ */
+CS101_ASDU
+CS101_ASDU_createFromBuffer(CS101_AppLayerParameters parameters, uint8_t* msg, int msgLength);
 
 /**
  * \brief Create a new ASDU and store it in the provided static ASDU structure.

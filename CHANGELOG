@@ -1,3 +1,12 @@
+Changes to version 2.3.4
+------------------------
+
+- removed internal calls to CS101_ASDU_createFromBuffer to avoid dynamic memory allocation while handling received ASDUs
+- added CS101_ASDU_createFromBuffer to API
+- added ability to change config defines from make command (#169)
+- Time(Linux): always use clock_gettime; cleanup cmake files to remove checks for clock_gettime (#162)
+- Time(windows): fixed - Hal_getMonotonicTimeInMs() doesn't call GetTickCount64 correctly (#163)
+
 Changes to version 2.3.3
 ------------------------
 
