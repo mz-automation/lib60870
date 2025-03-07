@@ -65,6 +65,8 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 {
     printf("Received interrogation for group %i\n", qoi);
 
+    CS101_ASDU_clone(asdu, NULL);
+
     if (qoi == 20) { /* only handle station interrogation */
 
         CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
@@ -206,11 +208,14 @@ connectionRequestHandler(void* parameter, const char* ipAddress)
 #endif
 }
 
+static bool connected = false;
+
 static void
 connectionEventHandler(void* parameter, IMasterConnection con, CS104_PeerConnectionEvent event)
 {
     if (event == CS104_CON_EVENT_CONNECTION_OPENED) {
         printf("Connection opened (%p)\n", con);
+        connected = true;
     }
     else if (event == CS104_CON_EVENT_CONNECTION_CLOSED) {
         printf("Connection closed (%p)\n", con);
@@ -282,26 +287,32 @@ main(int argc, char** argv)
 
     int16_t scaledValue = 0;
 
-    while (running) {
-
+    while (running)
+    {
         Thread_sleep(1000);
 
-        CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_PERIODIC, 0, 1, false, false);
+        // CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
-        InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
+        // InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
 
-        scaledValue++;
+        // scaledValue++;
 
-        CS101_ASDU_addInformationObject(newAsdu, io);
+        // CS101_ASDU_addInformationObject(newAsdu, io);
 
-        InformationObject_destroy(io);
+        // InformationObject_destroy(io);
 
-        /* Add ASDU to slave event queue */
-        CS104_Slave_enqueueASDU(slave, newAsdu);
+        // /* Add ASDU to slave event queue */
+        // CS104_Slave_enqueueASDU(slave, newAsdu);
 
-        CS101_ASDU_destroy(newAsdu);
+        // CS101_ASDU_destroy(newAsdu);
+
+        // if (connected)
+        //     break;
     }
 
+
+    Thread_sleep(1000);
+    printf("Stopping server\n");
     CS104_Slave_stop(slave);
 
 exit_program:
