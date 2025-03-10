@@ -120,7 +120,7 @@ main(int argc, char** argv)
         localIp = argv[3];
 
     if (argc > 4)
-        port = atoi(argv[4]);
+        localPort = atoi(argv[4]);
 
     printf("Connecting to: %s:%i\n", ip, port);
     CS104_Connection con = CS104_Connection_create(ip, port);
