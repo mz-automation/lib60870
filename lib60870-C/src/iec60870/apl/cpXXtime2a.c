@@ -204,7 +204,6 @@ CP24Time2a_getMinute(const CP24Time2a self)
     return getMinute(self->encodedValue);
 }
 
-
 void
 CP24Time2a_setMinute(CP24Time2a self, int value)
 {
@@ -305,7 +304,6 @@ my_mktime(const struct tm * ptm)
             ptm->tm_mday) * 24u + ptm->tm_hour) * 60u + ptm->tm_min) * 60u + ptm->tm_sec;
 }
 
-
 /**********************************
  *  CP32Time2a type
  **********************************/
@@ -350,7 +348,6 @@ CP32Time2a_setMillisecond(CP32Time2a self, int value)
     self->encodedValue[1] = (uint8_t) ((millies / 0x100) & 0xff);
 }
 
-
 int
 CP32Time2a_getSecond(const CP32Time2a self)
 {
@@ -368,7 +365,6 @@ CP32Time2a_getMinute(const CP32Time2a self)
 {
     return getMinute(self->encodedValue);
 }
-
 
 void
 CP32Time2a_setMinute(CP32Time2a self, int value)
@@ -477,7 +473,6 @@ CP56Time2a_createFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
     return self;
 }
 
-
 void
 CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
 {
@@ -512,7 +507,6 @@ CP56Time2a_setFromMsTimestamp(CP56Time2a self, uint64_t timestamp)
 
     CP56Time2a_setYear(self, tmTime.tm_year);
 }
-
 
 uint64_t
 CP56Time2a_toMsTimestamp(const CP56Time2a self)
