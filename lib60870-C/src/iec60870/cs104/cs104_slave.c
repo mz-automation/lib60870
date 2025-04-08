@@ -3112,7 +3112,7 @@ connectionHandlingThread(void* parameter)
          * was received. Otherwise wait to save CPU time.
          */
         if (isAsduWaiting)
-            socketTimeout = 0;
+            socketTimeout = 5;
         else
             socketTimeout = 100;
 
