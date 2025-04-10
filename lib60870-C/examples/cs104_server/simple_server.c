@@ -65,10 +65,8 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 {
     printf("Received interrogation for group %i\n", qoi);
 
-    CS101_ASDU_clone(asdu, NULL);
-
-    if (qoi == 20) { /* only handle station interrogation */
-
+    if (qoi == 20) /* only handle station interrogation */
+    {
         CS101_AppLayerParameters alParams = IMasterConnection_getApplicationLayerParameters(connection);
 
         IMasterConnection_sendACT_CON(connection, asdu, false);
@@ -143,7 +141,8 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 
         IMasterConnection_sendACT_TERM(connection, asdu);
     }
-    else {
+    else
+    {
         IMasterConnection_sendACT_CON(connection, asdu, true);
     }
 
@@ -291,25 +290,21 @@ main(int argc, char** argv)
     {
         Thread_sleep(1000);
 
-        // CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_PERIODIC, 0, 1, false, false);
+        CS101_ASDU newAsdu = CS101_ASDU_create(alParams, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
-        // InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
+        InformationObject io = (InformationObject) MeasuredValueScaled_create(NULL, 110, scaledValue, IEC60870_QUALITY_GOOD);
 
-        // scaledValue++;
+        scaledValue++;
 
-        // CS101_ASDU_addInformationObject(newAsdu, io);
+        CS101_ASDU_addInformationObject(newAsdu, io);
 
-        // InformationObject_destroy(io);
+        InformationObject_destroy(io);
 
-        // /* Add ASDU to slave event queue */
-        // CS104_Slave_enqueueASDU(slave, newAsdu);
+        /* Add ASDU to slave event queue */
+        CS104_Slave_enqueueASDU(slave, newAsdu);
 
-        // CS101_ASDU_destroy(newAsdu);
-
-        // if (connected)
-        //     break;
+        CS101_ASDU_destroy(newAsdu);
     }
-
 
     Thread_sleep(1000);
     printf("Stopping server\n");
