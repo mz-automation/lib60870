@@ -20,6 +20,7 @@ ifeq ($(HAL_IMPL), WIN32)
 LIB_SOURCE_DIRS += src/hal/socket/win32
 LIB_SOURCE_DIRS += src/hal/thread/win32
 LIB_SOURCE_DIRS += src/hal/time/win32
+LIB_SOURCE_DIRS += src/hal/serial/win32
 LIB_SOURCE_DIRS += src/hal/memory
 else ifeq ($(HAL_IMPL), POSIX)
 LIB_SOURCE_DIRS += src/hal/socket/linux
