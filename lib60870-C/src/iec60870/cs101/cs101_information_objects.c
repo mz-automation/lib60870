@@ -120,6 +120,46 @@ StatusAndStatusChangeDetection_getCD(const StatusAndStatusChangeDetection self, 
         return false;
 }
 
+#define SCALED_VALUE_MAX 32767
+#define SCALED_VALUE_MIN -32768
+#define NORMALIZED_VALUE_MAX (32767.f/32768.f)
+#define NORMALIZED_VALUE_MIN -1.0f
+
+static int
+normalizedToScaled(float value)
+{
+    if (value > NORMALIZED_VALUE_MAX)
+        value = NORMALIZED_VALUE_MAX;
+    else if (value < NORMALIZED_VALUE_MIN)
+        value = NORMALIZED_VALUE_MIN;
+
+    float scaledValue = value * 32768.f;
+
+    return (int)(scaledValue < 0 ? scaledValue - 0.5f : scaledValue + 0.5f);
+}
+
+static float
+scaledToNormalized(int value)
+{
+    if (value > SCALED_VALUE_MAX)
+        value = SCALED_VALUE_MAX;
+    else if (value < SCALED_VALUE_MIN)
+        value = SCALED_VALUE_MIN;
+
+    return (float)value/32768.f;
+}
+
+float
+NormalizedValue_fromScaled(int scaledValue)
+{
+    return scaledToNormalized(scaledValue);
+}
+
+int
+NormalizedValue_toScaled(float normalizedValue)
+{
+    return normalizedToScaled(normalizedValue);
+}
 
 /*****************************************
  * Information object hierarchy
@@ -421,7 +461,6 @@ StepPositionInformation_getQuality(StepPositionInformation self)
     return self->quality;
 }
 
-
 StepPositionInformation
 StepPositionInformation_getFromBuffer(StepPositionInformation self, CS101_AppLayerParameters parameters,
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
@@ -457,7 +496,6 @@ StepPositionInformation_getFromBuffer(StepPositionInformation self, CS101_AppLay
 
     return self;
 }
-
 
 /**********************************************
  * StepPositionWithCP56Time2a
@@ -1708,22 +1746,13 @@ MeasuredValueNormalized_create(MeasuredValueNormalized self, int ioa, float valu
 float
 MeasuredValueNormalized_getValue(MeasuredValueNormalized self)
 {
-    float nv = (float) (getScaledValue(self->encodedValue)) / 32767.f;
-
-    return nv;
+    return NormalizedValue_fromScaled(getScaledValue(self->encodedValue));
 }
 
 void
 MeasuredValueNormalized_setValue(MeasuredValueNormalized self, float value)
 {
-    if (value > 1.0f)
-        value = 1.0f;
-    else if (value < -1.0f)
-        value = -1.0f;
-
-    int scaledValue = (int)(value * 32767.f);
-
-    setScaledValue(self->encodedValue, scaledValue);
+    setScaledValue(self->encodedValue, NormalizedValue_toScaled(value));
 }
 
 QualityDescriptor
@@ -1883,22 +1912,13 @@ MeasuredValueNormalizedWithoutQuality_create(MeasuredValueNormalizedWithoutQuali
 float
 MeasuredValueNormalizedWithoutQuality_getValue(MeasuredValueNormalizedWithoutQuality self)
 {
-    float nv = ((float) (getScaledValue(self->encodedValue) + 0.5) / 32767.5f);
-
-    return nv;
+    return NormalizedValue_fromScaled(getScaledValue(self->encodedValue));
 }
 
 void
 MeasuredValueNormalizedWithoutQuality_setValue(MeasuredValueNormalizedWithoutQuality self, float value)
 {
-    if (value > 1.0f)
-        value = 1.0f;
-    else if (value < -1.0f)
-        value = -1.0f;
-
-    int scaledValue = (int) ((value * 32767.5f) - 0.5);
-
-    setScaledValue(self->encodedValue, scaledValue);
+    setScaledValue(self->encodedValue, NormalizedValue_toScaled(value));
 }
 
 MeasuredValueNormalizedWithoutQuality
@@ -2204,13 +2224,11 @@ MeasuredValueScaled_create(MeasuredValueScaled self, int ioa, int value, Quality
     return self;
 }
 
-
 void
 MeasuredValueScaled_destroy(MeasuredValueScaled self)
 {
     GLOBAL_FREEMEM(self);
 }
-
 
 int
 MeasuredValueScaled_getValue(MeasuredValueScaled self)
@@ -4894,9 +4912,7 @@ SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float 
 
         self->objectAddress = ioa;
 
-        int scaledValue = (int)((value * 32767.5) - 0.5);
-
-        setScaledValue(self->encodedValue, scaledValue);
+        setScaledValue(self->encodedValue, NormalizedValue_toScaled(value));
 
         uint8_t qos = ql;
 
@@ -4911,9 +4927,7 @@ SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float 
 float
 SetpointCommandNormalized_getValue(SetpointCommandNormalized self)
 {
-    float nv = ((float) getScaledValue(self->encodedValue) + 0.5f) / 32767.5f;
-
-    return nv;
+    return NormalizedValue_fromScaled(getScaledValue(self->encodedValue));
 }
 
 int
@@ -5008,9 +5022,7 @@ SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56
 
         self->objectAddress = ioa;
 
-        int scaledValue = (int)(value * 32767.f);
-
-        setScaledValue(self->encodedValue, scaledValue);
+        setScaledValue(self->encodedValue, NormalizedValue_toScaled(value));
 
         uint8_t qos = ql;
 

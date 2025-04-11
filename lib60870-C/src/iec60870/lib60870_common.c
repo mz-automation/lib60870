@@ -33,7 +33,8 @@ void
 lib60870_debug_print(const char *format, ...)
 {
 #if (CONFIG_DEBUG_OUTPUT == 1)
-    if (debugOutputEnabled) {
+    if (debugOutputEnabled)
+    {
         printf("DEBUG_LIB60870: ");
         va_list ap;
         va_start(ap, format);
@@ -54,7 +55,6 @@ Lib60870_enableDebugOutput(bool value)
     UNUSED_PARAMETER(value);
 #endif
 }
-
 
 Lib60870VersionInfo
 Lib60870_getLibraryVersionInfo()

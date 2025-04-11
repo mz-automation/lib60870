@@ -347,16 +347,39 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
 static bool
 MessageQueue_isAsduAvailable(MessageQueue self)
 {
+    bool retVal = false;
+
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->queueLock);
 #endif
 
-    bool retVal;
+    if (self->entryCounter != 0)
+    {
+        uint8_t* entryPtr = self->firstEntry;
 
-    if (self->entryCounter > 0)
-        retVal = true;
-    else
-        retVal = false;
+        struct sMessageQueueEntryInfo entryInfo;
+
+        memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
+
+        while (entryInfo.entryState != QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION)
+        {
+            if (entryPtr == self->lastEntry)
+                break;
+
+            /* move to next entry */
+            if (entryPtr == self->lastInBufferEntry)
+                entryPtr = self->buffer;
+            else
+                entryPtr = entryPtr + sizeof(struct sMessageQueueEntryInfo) + entryInfo.size;
+
+            memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
+        }
+
+        if (entryInfo.entryState == QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION)
+        {
+            retVal = true;
+        }
+    }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
@@ -2952,9 +2975,13 @@ sendWaitingASDUs(MasterConnection self)
     sendNextLowPriorityASDU(self);
 
     if (MessageQueue_isAsduAvailable(self->lowPrioQueue))
+    {
         return true;
+    }
     else
+    {
         return false;
+    }
 }
 
 static bool

@@ -31,7 +31,6 @@
 #include "apl_types_internal.h"
 #include "lib_memory.h"
 
-
 BinaryCounterReading
 BinaryCounterReading_create(BinaryCounterReading self, int32_t value, int seqNumber,
         bool hasCarry, bool isAdjusted, bool isInvalid)
@@ -96,9 +95,7 @@ BinaryCounterReading_setValue(BinaryCounterReading self, int32_t value)
     encodedValue[2] = valueBytes[1];
     encodedValue[3] = valueBytes[0];
 #endif
-
 }
-
 
 int
 BinaryCounterReading_getSequenceNumber(BinaryCounterReading self)
@@ -145,7 +142,6 @@ BinaryCounterReading_setAdjusted(BinaryCounterReading self, bool value)
         self->encodedValue[4] &= 0xbf;
 }
 
-
 bool
 BinaryCounterReading_isInvalid(BinaryCounterReading self)
 {
@@ -160,4 +156,3 @@ BinaryCounterReading_setInvalid(BinaryCounterReading self, bool value)
     else
         self->encodedValue[4] &= 0x7f;
 }
-

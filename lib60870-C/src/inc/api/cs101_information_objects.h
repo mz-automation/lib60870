@@ -282,6 +282,11 @@ StatusAndStatusChangeDetection_getST(const StatusAndStatusChangeDetection self, 
 bool
 StatusAndStatusChangeDetection_getCD(const StatusAndStatusChangeDetection self, int index);
 
+float
+NormalizedValue_fromScaled(int scaledValue);
+
+int
+NormalizedValue_toScaled(float normalizedValue);
 
 /************************************************
  * InformationObject

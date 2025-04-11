@@ -5134,7 +5134,7 @@ test_version_number(void)
 
     TEST_ASSERT_EQUAL_INT(2, version.major);
     TEST_ASSERT_EQUAL_INT(3, version.minor);
-    TEST_ASSERT_EQUAL_INT(3, version.patch);
+    TEST_ASSERT_EQUAL_INT(4, version.patch);
 }
 
 void
@@ -6549,6 +6549,34 @@ test_CS104SlaveUnconfirmedStoppedMode()
     CS104_Slave_destroy(slave);
 }
 
+#define SCALED_VALUE_MAX 32767
+#define SCALED_VALUE_MIN -32768
+#define NORMALIZED_VALUE_MAX (32767.f/32768.f)
+
+void
+test_ScaledNormalizedConversion()
+{
+    TEST_ASSERT_EQUAL_INT(32767, NormalizedValue_toScaled(NORMALIZED_VALUE_MAX));
+    TEST_ASSERT_EQUAL_INT(32767, NormalizedValue_toScaled(1.0f));
+    TEST_ASSERT_EQUAL_INT(32767, NormalizedValue_toScaled(2.0f));
+    TEST_ASSERT_EQUAL_INT(-32768, NormalizedValue_toScaled(-1.0f));
+    TEST_ASSERT_EQUAL_INT(-32768, NormalizedValue_toScaled(-2.0f));
+    TEST_ASSERT_EQUAL_INT(0, NormalizedValue_toScaled(0.0f));
+    TEST_ASSERT_EQUAL_INT(0, NormalizedValue_toScaled(-0.0f));
+
+    float normalizedUnit = (1.f - NORMALIZED_VALUE_MAX);
+
+    TEST_ASSERT_EQUAL_FLOAT(NORMALIZED_VALUE_MAX - normalizedUnit, NormalizedValue_fromScaled(32766));
+    TEST_ASSERT_EQUAL_FLOAT(NORMALIZED_VALUE_MAX, NormalizedValue_fromScaled(32767));
+    TEST_ASSERT_EQUAL_FLOAT(NORMALIZED_VALUE_MAX, NormalizedValue_fromScaled(32768));
+    TEST_ASSERT_EQUAL_FLOAT(NORMALIZED_VALUE_MAX, NormalizedValue_fromScaled(99999));
+    TEST_ASSERT_EQUAL_FLOAT(-1.0f + (normalizedUnit * 2.f), NormalizedValue_fromScaled(-32766));
+    TEST_ASSERT_EQUAL_FLOAT(-1.0f + normalizedUnit, NormalizedValue_fromScaled(-32767));
+    TEST_ASSERT_EQUAL_FLOAT(-1.0f, NormalizedValue_fromScaled(-32768));
+    TEST_ASSERT_EQUAL_FLOAT(-1.0f, NormalizedValue_fromScaled(-32769));
+    TEST_ASSERT_EQUAL_FLOAT(0.0f, NormalizedValue_fromScaled(0));
+}
+
 int
 main(int argc, char** argv)
 {
@@ -6672,6 +6700,8 @@ main(int argc, char** argv)
     RUN_TEST(test_CS101_ASDU_clone);
 
     RUN_TEST(test_CS104SlaveUnconfirmedStoppedMode);
+
+    RUN_TEST(test_ScaledNormalizedConversion);
 
     return UNITY_END();
 }
