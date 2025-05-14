@@ -2178,17 +2178,22 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
             TestCommand tc = (TestCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-            /* Verify IOA = 0 */
-            if (InformationObject_getObjectAddress((InformationObject) tc) != 0)
+            if (tc)
             {
-                DEBUG_PRINT("CS104 SLAVE: test command has invalid IOA - should be 0\n");
-                responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
+                /* Verify IOA = 0 */
+                if (InformationObject_getObjectAddress((InformationObject) tc) != 0)
+                {
+                    DEBUG_PRINT("CS104 SLAVE: test command has invalid IOA - should be 0\n");
+                    responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
+                }
+                else
+                {
+                    CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                    sendASDUInternal(self, asdu);
+                }
             }
             else
-            {
-                CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
-                sendASDUInternal(self, asdu);
-            }
+                return false;
 
             messageHandled = true;
         }
@@ -2297,17 +2302,22 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
             TestCommandWithCP56Time2a tc = (TestCommandWithCP56Time2a) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
 
-            /* Verify IOA = 0 */
-            if (InformationObject_getObjectAddress((InformationObject) tc) != 0)
+            if (tc)
             {
-                DEBUG_PRINT("CS104 SLAVE: test command has invalid IOA - should be 0\n");
-                responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
+                /* Verify IOA = 0 */
+                if (InformationObject_getObjectAddress((InformationObject) tc) != 0)
+                {
+                    DEBUG_PRINT("CS104 SLAVE: test command has invalid IOA - should be 0\n");
+                    responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
+                }
+                else
+                {
+                    CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
+                    CS101_ASDU_setNegative(asdu, true);
+                }
             }
             else
-            {
-                CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
-                CS101_ASDU_setNegative(asdu, true);
-            }
+                return false;
 
             messageHandled = true;
         }
@@ -2319,7 +2329,6 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
         messageHandled = true;
 
         break;
-
 
     default: /* no special handler available -> use default handler */
         break;

@@ -1,3 +1,9 @@
+Changes to version 2.3.5
+------------------------
+
+- fixed MessageQueue_isAsduAvailable to solve CPU usage problem in CS104 server (LIB8705-123)
+- fixed problem in normalized value handling (LIB8705-122)
+
 Changes to version 2.3.4
 ------------------------
 

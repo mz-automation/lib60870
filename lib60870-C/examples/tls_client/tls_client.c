@@ -40,20 +40,21 @@ asduReceivedHandler(void* parameter, int address, CS101_ASDU asdu)
 
     if (CS101_ASDU_getTypeID(asdu) == M_ME_TE_1)
     {
-
         printf("  measured scaled values with CP56Time2a timestamp:\n");
 
         int i;
 
         for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
         {
-
             MeasuredValueScaledWithCP56Time2a io = (MeasuredValueScaledWithCP56Time2a)CS101_ASDU_getElement(asdu, i);
 
-            printf("    IOA: %i value: %i\n", InformationObject_getObjectAddress((InformationObject)io),
-                   MeasuredValueScaled_getValue((MeasuredValueScaled)io));
+            if (io)
+            {
+                printf("    IOA: %i value: %i\n", InformationObject_getObjectAddress((InformationObject)io),
+                        MeasuredValueScaled_getValue((MeasuredValueScaled)io));
 
-            MeasuredValueScaledWithCP56Time2a_destroy(io);
+                MeasuredValueScaledWithCP56Time2a_destroy(io);
+            }
         }
     }
     else if (CS101_ASDU_getTypeID(asdu) == M_SP_NA_1)
@@ -64,13 +65,15 @@ asduReceivedHandler(void* parameter, int address, CS101_ASDU asdu)
 
         for (i = 0; i < CS101_ASDU_getNumberOfElements(asdu); i++)
         {
-
             SinglePointInformation io = (SinglePointInformation)CS101_ASDU_getElement(asdu, i);
 
-            printf("    IOA: %i value: %i\n", InformationObject_getObjectAddress((InformationObject)io),
-                   SinglePointInformation_getValue((SinglePointInformation)io));
+            if (io)
+            {
+                printf("    IOA: %i value: %i\n", InformationObject_getObjectAddress((InformationObject)io),
+                    SinglePointInformation_getValue((SinglePointInformation)io));
 
-            SinglePointInformation_destroy(io);
+                SinglePointInformation_destroy(io);
+            }
         }
     }
 

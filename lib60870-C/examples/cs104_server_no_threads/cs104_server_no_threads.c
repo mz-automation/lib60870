@@ -132,14 +132,18 @@ interrogationHandler(void* parameter, IMasterConnection connection, CS101_ASDU a
 static bool
 asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
 {
-    if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1) {
+    if (CS101_ASDU_getTypeID(asdu) == C_SC_NA_1)
+    {
         printf("received single command\n");
 
-        if  (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION) {
+        if  (CS101_ASDU_getCOT(asdu) == CS101_COT_ACTIVATION)
+        {
             InformationObject io = CS101_ASDU_getElement(asdu, 0);
 
-            if (io) {
-                if (InformationObject_getObjectAddress(io) == 5000) {
+            if (io)
+            {
+                if (InformationObject_getObjectAddress(io) == 5000)
+                {
                     SingleCommand sc = (SingleCommand) io;
 
                     printf("IOA: %i switch to %i\n", InformationObject_getObjectAddress(io),
@@ -152,7 +156,8 @@ asduHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu)
 
                 InformationObject_destroy(io);
             }
-            else {
+            else
+            {
                 printf("ERROR: message has no valid information object\n");
                 return true;
             }
