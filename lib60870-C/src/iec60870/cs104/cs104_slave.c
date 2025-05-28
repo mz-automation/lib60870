@@ -2296,7 +2296,6 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd test command with CP56Time2a C_TS_TA_1\n");
 
-        if (cot != CS101_COT_ACTIVATION)
         {
             union uInformationObject _io;
 
@@ -2309,24 +2308,25 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                 {
                     DEBUG_PRINT("CS104 SLAVE: test command has invalid IOA - should be 0\n");
                     responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
+                    return true;
                 }
-                else
+
+                /* Only COT = ACTIVATION is allowed */
+                if (cot != CS101_COT_ACTIVATION)
                 {
-                    CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
-                    CS101_ASDU_setNegative(asdu, true);
+                    DEBUG_PRINT("CS104 SLAVE: test command has invalid COT - should be ACTIVATION(6)\n");
+                    responseNegative(asdu, self, CS101_COT_UNKNOWN_COT);
+                    return true;
                 }
+
+                CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                sendASDUInternal(self, asdu);
+
+                return true;
             }
             else
                 return false;
-
-            messageHandled = true;
         }
-        else
-            CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
-
-        sendASDUInternal(self, asdu);
-
-        messageHandled = true;
 
         break;
 
