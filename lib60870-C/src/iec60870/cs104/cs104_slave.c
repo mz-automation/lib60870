@@ -2667,6 +2667,9 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 #endif
 
             if (checkSequenceNumber (self, frameRecvSequenceNumber) == false) {
+#if (CONFIG_USE_SEMAPHORES == 1)
+            Semaphore_post(self->stateLock);
+#endif
                 DEBUG_PRINT("CS104 SLAVE: Sequence number check failed - close connection");
                 return false;
             }
