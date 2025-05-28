@@ -6577,6 +6577,40 @@ test_ScaledNormalizedConversion()
     TEST_ASSERT_EQUAL_FLOAT(0.0f, NormalizedValue_fromScaled(0));
 }
 
+void
+test_CS104Connection_cannotWriteToSocketWhenNotConnected()
+{
+    /* test that the client does not crash when it tries to send a message after the connection is closed */
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    CS104_Connection con = CS104_Connection_create("127.0.0.1", 20004);
+
+    bool result = CS104_Connection_connect(con);
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_sendStartDT(con);
+
+    CS104_Slave_stop(slave);
+
+    Thread_sleep(500);
+
+    CS104_Connection_sendStopDT(con);
+
+    CS104_Connection_close(con);
+
+    CS104_Connection_destroy(con);
+
+    CS104_Slave_destroy(slave);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -6702,6 +6736,8 @@ main(int argc, char** argv)
     RUN_TEST(test_CS104SlaveUnconfirmedStoppedMode);
 
     RUN_TEST(test_ScaledNormalizedConversion);
+
+    RUN_TEST(test_CS104Connection_cannotWriteToSocketWhenNotConnected);
 
     return UNITY_END();
 }

@@ -166,6 +166,9 @@ writeToSocket(CS104_Connection self, uint8_t* buf, int size)
     if (self->rawMessageHandler)
         self->rawMessageHandler(self->rawMessageHandlerParameter, buf, size, true);
 
+    if (self->socket == NULL || self->conState == STATE_IDLE)
+        return 0;
+
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     if (self->tlsSocket)
         return TLSSocket_write(self->tlsSocket, buf, size);
