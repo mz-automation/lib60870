@@ -3826,17 +3826,14 @@ handleClientConnections(CS104_Slave self)
         }
 
         /* handle incoming messages when available */
-        if (handleset != NULL)
+        if (handleset && Handleset_waitReady(handleset, 0))
         {
-            if (Handleset_waitReady(handleset, 0))
+            for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
             {
-                for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
-                {
-                    MasterConnection con = self->masterConnections[i];
+                MasterConnection con = self->masterConnections[i];
 
-                    if (con != NULL && con->isUsed)
-                        MasterConnection_handleTcpConnection(con);
-                }
+                if (con && con->isUsed)
+                    MasterConnection_handleTcpConnection(con);
             }
         }
 
@@ -3845,25 +3842,22 @@ handleClientConnections(CS104_Slave self)
         {
             MasterConnection con = self->masterConnections[i];
 
-            if (con != NULL && con->isUsed)
+            if (con && con->isUsed && con->isRunning)
             {
-                if (con->isRunning)
+                MasterConnection_executePeriodicTasks(con);
+
+                /* call plugins */
+                if (self->plugins)
                 {
-                    MasterConnection_executePeriodicTasks(con);
+                    LinkedList pluginElem = LinkedList_getNext(self->plugins);
 
-                    /* call plugins */
-                    if (self->plugins)
+                    while (pluginElem)
                     {
-                        LinkedList pluginElem = LinkedList_getNext(self->plugins);
+                        CS101_SlavePlugin plugin = (CS101_SlavePlugin)LinkedList_getData(pluginElem);
 
-                        while (pluginElem)
-                        {
-                            CS101_SlavePlugin plugin = (CS101_SlavePlugin)LinkedList_getData(pluginElem);
+                        plugin->runTask(plugin->parameter, &(con->iMasterConnection));
 
-                            plugin->runTask(plugin->parameter, &(con->iMasterConnection));
-
-                            pluginElem = LinkedList_getNext(pluginElem);
-                        }
+                        pluginElem = LinkedList_getNext(pluginElem);
                     }
                 }
             }
@@ -3914,10 +3908,8 @@ callConnectionRequestHandler(CS104_Slave self, Socket newSocket)
     if (ipAddrStr == NULL)
         return false;
 
-    if (self->connectionRequestHandler != NULL)
-    {
+    if (self->connectionRequestHandler)
         return self->connectionRequestHandler(self->connectionRequestHandlerParameter, ipAddrStr);
-    }
     else
         return true;
 }
@@ -3967,7 +3959,7 @@ handleConnectionsThreadless(CS104_Slave self)
     {
         Socket newSocket = ServerSocket_accept(self->serverSocket);
 
-        if (newSocket != NULL)
+        if (newSocket)
         {
             bool acceptConnection = true;
 
@@ -4000,7 +3992,7 @@ handleConnectionsThreadless(CS104_Slave self)
                     {
                         CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
 
-                        if (matchingGroup != NULL)
+                        if (matchingGroup)
                         {
 #if (CONFIG_USE_SEMAPHORES)
                             Semaphore_wait(self->openConnectionsLock);
@@ -4149,9 +4141,8 @@ serverThread(void* parameter)
     {
         Socket newSocket = ServerSocket_accept(self->serverSocket);
 
-        if (newSocket != NULL)
+        if (newSocket)
         {
-
             bool acceptConnection = true;
 
             /* check if maximum number of open connections is reached */
@@ -4166,7 +4157,6 @@ serverThread(void* parameter)
 
             if (acceptConnection)
             {
-
                 MessageQueue lowPrioQueue = NULL;
                 HighPriorityASDUQueue highPrioQueue = NULL;
 
@@ -4191,7 +4181,6 @@ serverThread(void* parameter)
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
                 if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
                 {
-
                     char ipAddress[60];
 
                     char* ipAddrStr = getPeerAddress(newSocket, ipAddress);
@@ -4200,9 +4189,8 @@ serverThread(void* parameter)
                     {
                         CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
 
-                        if (matchingGroup != NULL)
+                        if (matchingGroup)
                         {
-
 #if (CONFIG_USE_SEMAPHORES)
                             Semaphore_wait(self->openConnectionsLock);
 #endif
@@ -4243,7 +4231,6 @@ serverThread(void* parameter)
                 }
                 else
                 {
-
 #if (CONFIG_USE_SEMAPHORES)
                     Semaphore_wait(self->openConnectionsLock);
 #endif
@@ -4322,7 +4309,6 @@ serverThread(void* parameter)
 
         for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
         {
-
             if (self->masterConnections[i])
             {
                 MasterConnection connection = self->masterConnections[i];
@@ -4339,10 +4325,8 @@ serverThread(void* parameter)
 
                 if (isConnectionUsed)
                 {
-
                     if (MasterConnection_isRunning(connection) == false)
                     {
-
                         if (connection->connectionThread)
                         {
                             Thread_destroy(connection->connectionThread);
@@ -4700,7 +4684,6 @@ CS104_Slave_stop(CS104_Slave self)
         /*
          * Stop all connections
          * */
-
         {
             int i;
 
@@ -4810,7 +4793,6 @@ CS104_Slave_destroy(CS104_Slave self)
 
             for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
             {
-
                 if (self->masterConnections[i])
                 {
                     MasterConnection_destroy(self->masterConnections[i]);
