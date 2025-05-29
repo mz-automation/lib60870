@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2022 Michael Zillgith
+ *  Copyright 2016-2025 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -201,6 +201,9 @@ InformationObject_getObjectAddress(InformationObject self)
 void
 InformationObject_setObjectAddress(InformationObject self, int ioa)
 {
+    if (self == NULL)
+        return;
+
     self->objectAddress = ioa;
 }
 
@@ -7766,7 +7769,10 @@ FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters paramet
                             int startIndex, bool isSequence)
 {
     /* check message size */
-    int minSize = startIndex + parameters->sizeOfIOA + 13;
+    int minSize = startIndex + 13;
+
+    if (!isSequence)
+        minSize += parameters->sizeOfIOA;
 
     if (minSize > msgSize)
     {
