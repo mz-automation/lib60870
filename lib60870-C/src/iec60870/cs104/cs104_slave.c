@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2024 Michael Zillgith
+ *  Copyright 2016-2025 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -24,23 +24,23 @@
 #define _CRT_NONSTDC_NO_DEPRECATE
 #endif
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
-#include "cs104_slave.h"
+#include "buffer_frame.h"
 #include "cs104_frame.h"
+#include "cs104_slave.h"
 #include "frame.h"
 #include "hal_socket.h"
 #include "hal_thread.h"
 #include "hal_time.h"
 #include "lib_memory.h"
 #include "linked_list.h"
-#include "buffer_frame.h"
 
+#include "iec60870_slave.h"
 #include "lib60870_config.h"
 #include "lib60870_internal.h"
-#include "iec60870_slave.h"
 
 #include "apl_types_internal.h"
 #include "cs101_asdu_internal.h"
@@ -49,13 +49,16 @@
 #include "tls_socket.h"
 #endif
 
-#if ((CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP != 1) && (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP != 1) && (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS != 1))
+#if ((CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP != 1) &&                                         \
+     (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP != 1) &&                                                \
+     (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS != 1))
 #error Illegal configuration: Define either CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP or CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP or CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS
 #endif
 
-typedef enum {
-    M_CON_STATE_STOPPED, /* only U frames allowed */
-    M_CON_STATE_STARTED, /* U, I, S frames allowed */
+typedef enum
+{
+    M_CON_STATE_STOPPED,            /* only U frames allowed */
+    M_CON_STATE_STARTED,            /* U, I, S frames allowed */
     M_CON_STATE_UNCONFIRMED_STOPPED /* only U, S frames allowed */
 } MasterConnectionState;
 
@@ -76,17 +79,15 @@ MasterConnection_activate(MasterConnection self);
 static bool
 MasterConnection_isActive(MasterConnection self);
 
-
 #define CS104_DEFAULT_PORT 2404
 
 static struct sCS104_APCIParameters defaultConnectionParameters = {
-	/* .k = */ 12,
-	/* .w = */ 8,
-	/* .t0 = */ 10,
-	/* .t1 = */ 15,
-	/* .t2 = */ 10,
-	/* .t3 = */ 20
-};
+    /* .k = */ 12,
+    /* .w = */ 8,
+    /* .t0 = */ 10,
+    /* .t1 = */ 15,
+    /* .t2 = */ 10,
+    /* .t3 = */ 20};
 
 static struct sCS101_AppLayerParameters defaultAppLayerParameters = {
     /* .sizeOfTypeId =  */ 1,
@@ -95,15 +96,16 @@ static struct sCS101_AppLayerParameters defaultAppLayerParameters = {
     /* .originatorAddress = */ 0,
     /* .sizeOfCA = */ 2,
     /* .sizeOfIOA = */ 3,
-    /* .maxSizeOfASDU = */ 249
-};
+    /* .maxSizeOfASDU = */ 249};
 
-typedef struct {
+typedef struct
+{
     uint8_t msg[256];
     int msgSize;
 } FrameBuffer;
 
-typedef enum  {
+typedef enum
+{
     QUEUE_ENTRY_STATE_NOT_USED_OR_CONFIRMED,
     QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION,
     QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED
@@ -113,18 +115,20 @@ typedef enum  {
  * MessageQueue
  ***************************************************/
 
-struct sMessageQueueEntryInfo {
+struct sMessageQueueEntryInfo
+{
     uint64_t entryId;
-    unsigned int entryState:2;
-    unsigned int size:8;
+    unsigned int entryState : 2;
+    unsigned int size : 8;
 };
 
-struct sMessageQueue {
-    int size; /* size of buffer in bytes */
+struct sMessageQueue
+{
+    int size;         /* size of buffer in bytes */
     int entryCounter; /* number of messages (ASDU) in the queue */
 
-    uint8_t* firstEntry; /* first entry in FIFO */
-    uint8_t* lastEntry; /* last entry in FIFO */
+    uint8_t* firstEntry;        /* first entry in FIFO */
+    uint8_t* lastEntry;         /* last entry in FIFO */
     uint8_t* lastInBufferEntry; /* entry with highest address in FIFO buffer */
 
     uint64_t entryId; /* ID of next entry; will be increased by one for each new entry */
@@ -151,15 +155,16 @@ MessageQueue_initialize(MessageQueue self)
 static MessageQueue
 MessageQueue_create(int maxQueueSize)
 {
-    MessageQueue self = (MessageQueue) GLOBAL_MALLOC(sizeof(struct sMessageQueue));
+    MessageQueue self = (MessageQueue)GLOBAL_MALLOC(sizeof(struct sMessageQueue));
 
-    if (self) {
+    if (self)
+    {
 
         self->size = maxQueueSize * (sizeof(struct sMessageQueueEntryInfo) + 256);
 
         DEBUG_PRINT("CS104 SLAVE: event queue buffer size: %i bytes\n", self->size);
 
-        self->buffer = (uint8_t*) GLOBAL_CALLOC(1, self->size);
+        self->buffer = (uint8_t*)GLOBAL_CALLOC(1, self->size);
 
 #if (CONFIG_USE_SEMAPHORES == 1)
         self->queueLock = Semaphore_create(1);
@@ -174,7 +179,8 @@ MessageQueue_create(int maxQueueSize)
 static void
 MessageQueue_destroy(MessageQueue self)
 {
-    if (self != NULL) {
+    if (self != NULL)
+    {
 
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_destroy(self->queueLock);
@@ -226,7 +232,8 @@ MessageQueue_countEntriesUntilEndOfBuffer(MessageQueue self, uint8_t* firstEntry
 
     uint8_t* entryPtr = firstEntry;
 
-    while (entryPtr) {
+    while (entryPtr)
+    {
 
         struct sMessageQueueEntryInfo entryInfo;
 
@@ -285,7 +292,7 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
             /* remove all entries from last entry to end of buffer */
             if (nextMsgPtr <= self->firstEntry)
             {
-                self->entryCounter -=  MessageQueue_countEntriesUntilEndOfBuffer(self, self->firstEntry);
+                self->entryCounter -= MessageQueue_countEntriesUntilEndOfBuffer(self, self->firstEntry);
                 self->firstEntry = self->buffer;
             }
 
@@ -336,8 +343,9 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
 
     memcpy(nextMsgPtr, &entryInfo, sizeof(struct sMessageQueueEntryInfo));
 
-    DEBUG_PRINT("CS104 SLAVE: ASDUs in FIFO: %i (new(size=%i/%i): %p, first: %p, last: %p lastInBuf: %p)\n", self->entryCounter, entrySize, asduSize, nextMsgPtr,
-             self->firstEntry, self->lastEntry, self->lastInBufferEntry);
+    DEBUG_PRINT("CS104 SLAVE: ASDUs in FIFO: %i (new(size=%i/%i): %p, first: %p, last: %p lastInBuf: %p)\n",
+                self->entryCounter, entrySize, asduSize, nextMsgPtr, self->firstEntry, self->lastEntry,
+                self->lastInBufferEntry);
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->queueLock);
@@ -483,7 +491,8 @@ MessageQueue_setWaitingForTransmissionWhenNotConfirmed(MessageQueue self)
         {
             memcpy(&entryInfo, entryPtr, sizeof(struct sMessageQueueEntryInfo));
 
-            if (entryInfo.entryState == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED) {
+            if (entryInfo.entryState == QUEUE_ENTRY_STATE_SENT_BUT_NOT_CONFIRMED)
+            {
                 entryInfo.entryState = QUEUE_ENTRY_STATE_WAITING_FOR_TRANSMISSION;
             }
 
@@ -533,7 +542,8 @@ removeFirstEntry(MessageQueue self)
             self->lastEntry = NULL;
             self->lastInBufferEntry = NULL;
         }
-        else {
+        else
+        {
             self->firstEntry = self->buffer;
             self->lastInBufferEntry = self->lastEntry;
         }
@@ -557,7 +567,7 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_
         /* entryId plausibility check */
         uint64_t entryIdDiff = self->entryId - 1 - entryId;
 
-        if (entryIdDiff < (unsigned) self->entryCounter)
+        if (entryIdDiff < (unsigned)self->entryCounter)
         {
             struct sMessageQueueEntryInfo entryInfo;
             memcpy(&entryInfo, queueEntry, sizeof(struct sMessageQueueEntryInfo));
@@ -568,11 +578,13 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_
                 entryInfo.entryState = QUEUE_ENTRY_STATE_NOT_USED_OR_CONFIRMED;
                 memcpy(queueEntry, &entryInfo, sizeof(struct sMessageQueueEntryInfo));
 
-                if (queueEntry == self->firstEntry) {
+                if (queueEntry == self->firstEntry)
+                {
                     removeFirstEntry(self);
                 }
             }
-            else {
+            else
+            {
                 /* we shouldn't be here - probably bug in queue handling code */
                 DEBUG_PRINT("CS104 SLAVE: message queue corrupted\n");
             }
@@ -584,8 +596,9 @@ MessageQueue_markAsduAsConfirmed(MessageQueue self, uint8_t* queueEntry, uint64_
  * HighPriorityASDUQueue
  ***************************************************/
 
-struct sHighPriorityASDUQueue {
-    int size; /* size of buffer in bytes */
+struct sHighPriorityASDUQueue
+{
+    int size;         /* size of buffer in bytes */
     int entryCounter; /* number of messages (ASDU) in the queue */
 
     uint8_t* firstEntry;
@@ -614,13 +627,13 @@ HighPriorityASDUQueue_initialize(HighPriorityASDUQueue self)
 static HighPriorityASDUQueue
 HighPriorityASDUQueue_create(int maxQueueSize)
 {
-    HighPriorityASDUQueue self = (HighPriorityASDUQueue) GLOBAL_MALLOC(sizeof(struct sHighPriorityASDUQueue));
+    HighPriorityASDUQueue self = (HighPriorityASDUQueue)GLOBAL_MALLOC(sizeof(struct sHighPriorityASDUQueue));
 
     if (self)
     {
         self->size = maxQueueSize * (sizeof(uint16_t) + 256);
 
-        self->buffer = (uint8_t*) GLOBAL_CALLOC(1, self->size);
+        self->buffer = (uint8_t*)GLOBAL_CALLOC(1, self->size);
 
 #if (CONFIG_USE_SEMAPHORES == 1)
         self->queueLock = Semaphore_create(1);
@@ -635,7 +648,8 @@ HighPriorityASDUQueue_create(int maxQueueSize)
 static void
 HighPriorityASDUQueue_destroy(HighPriorityASDUQueue self)
 {
-    if (self) {
+    if (self)
+    {
         if (self->buffer)
             GLOBAL_FREEMEM(self->buffer);
 
@@ -689,34 +703,36 @@ HighPriorityASDUQueue_getNextASDU(HighPriorityASDUQueue self, int* size)
 {
     uint8_t* buffer = NULL;
 
-    if (self->entryCounter > 0)  {
-
+    if (self->entryCounter > 0)
+    {
         self->entryCounter--;
 
         uint16_t msgSize;
 
         memcpy(&msgSize, self->firstEntry, 2);
-        *size = (int) msgSize;
+        *size = (int)msgSize;
 
         buffer = self->firstEntry + 2;
 
-        if (self->entryCounter > 0) {
-
-            if (self->firstEntry == self->lastEntry) {
+        if (self->entryCounter > 0)
+        {
+            if (self->firstEntry == self->lastEntry)
+            {
                 self->firstEntry = NULL;
                 self->lastEntry = NULL;
                 self->lastInBufferEntry = NULL;
             }
-            else {
-
-                if (self->firstEntry == self->lastInBufferEntry) {
+            else
+            {
+                if (self->firstEntry == self->lastInBufferEntry)
+                {
                     self->firstEntry = self->buffer;
                     self->lastInBufferEntry = self->lastEntry;
                 }
-                else {
+                else
+                {
                     self->firstEntry = self->firstEntry + 2 + msgSize;
                 }
-
             }
         }
     }
@@ -740,16 +756,20 @@ HighPriorityASDUQueue_isFull(HighPriorityASDUQueue self)
 
     uint8_t* nextMsgPtr;
 
-    if (self->entryCounter > 0) {
+    if (self->entryCounter > 0)
+    {
         memcpy(&msgSize, self->lastEntry, sizeof(uint16_t));
         nextMsgPtr = self->lastEntry + sizeof(uint16_t) + msgSize;
 
-        if (nextMsgPtr + entrySize > self->buffer + self->size) {
+        if (nextMsgPtr + entrySize > self->buffer + self->size)
+        {
             nextMsgPtr = self->buffer;
         }
 
-        if (nextMsgPtr <= self->firstEntry) {
-            if (nextMsgPtr + entrySize > self->firstEntry) {
+        if (nextMsgPtr <= self->firstEntry)
+        {
+            if (nextMsgPtr + entrySize > self->firstEntry)
+            {
                 full = true;
             }
         }
@@ -767,7 +787,8 @@ HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, CS101_ASDU asdu)
 {
     int asduSize = asdu->asduHeaderLength + asdu->payloadSize;
 
-    if (asduSize > 256 - IEC60870_5_104_APCI_LENGTH) {
+    if (asduSize > 256 - IEC60870_5_104_APCI_LENGTH)
+    {
         DEBUG_PRINT("CS104 SLAVE: ASDU too large!\n");
         return false;
     }
@@ -784,33 +805,41 @@ HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, CS101_ASDU asdu)
 
     uint8_t* nextMsgPtr;
 
-    if (self->entryCounter == 0) {
+    if (self->entryCounter == 0)
+    {
         self->firstEntry = self->buffer;
         self->lastInBufferEntry = self->firstEntry;
         nextMsgPtr = self->buffer;
     }
-    else {
+    else
+    {
         memcpy(&msgSize, self->lastEntry, sizeof(uint16_t));
         nextMsgPtr = self->lastEntry + sizeof(uint16_t) + msgSize;
     }
 
-    if (nextMsgPtr + entrySize > self->buffer + self->size) {
+    if (nextMsgPtr + entrySize > self->buffer + self->size)
+    {
         nextMsgPtr = self->buffer;
         self->lastInBufferEntry = self->lastEntry;
     }
 
-    if (self->entryCounter > 0) {
-        if (nextMsgPtr <= self->firstEntry) {
-            if (nextMsgPtr + entrySize > self->firstEntry) {
+    if (self->entryCounter > 0)
+    {
+        if (nextMsgPtr <= self->firstEntry)
+        {
+            if (nextMsgPtr + entrySize > self->firstEntry)
+            {
                 enqueued = false;
             }
         }
-        else {
+        else
+        {
             self->lastInBufferEntry = nextMsgPtr;
         }
     }
 
-    if (enqueued) {
+    if (enqueued)
+    {
         self->lastEntry = nextMsgPtr;
         self->entryCounter++;
 
@@ -823,8 +852,9 @@ HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, CS101_ASDU asdu)
 
         memcpy(nextMsgPtr, &msgSize, sizeof(uint16_t));
 
-        DEBUG_PRINT("CS104 SLAVE: ASDUs in PRIO-FIFO: %i (new(size=%i/%i): %p, first: %p, last: %p lastInBuf: %p)\n", self->entryCounter, entrySize, asduSize, nextMsgPtr,
-                self->firstEntry, self->lastEntry, self->lastInBufferEntry);
+        DEBUG_PRINT("CS104 SLAVE: ASDUs in PRIO-FIFO: %i (new(size=%i/%i): %p, first: %p, last: %p lastInBuf: %p)\n",
+                    self->entryCounter, entrySize, asduSize, nextMsgPtr, self->firstEntry, self->lastEntry,
+                    self->lastInBufferEntry);
     }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -901,14 +931,16 @@ struct sCS104_IPAddress
 static void
 CS104_IPAddress_setFromString(CS104_IPAddress self, const char* ipAddrStr)
 {
-    if (strchr(ipAddrStr, '.') != NULL) {
+    if (strchr(ipAddrStr, '.') != NULL)
+    {
         /* parse IPv4 string */
         self->type = IP_ADDRESS_TYPE_IPV4;
 
         int i;
 
-        for (i = 0; i < 4; i++) {
-            self->address[i] = (uint8_t) strtoul(ipAddrStr, NULL, 10);
+        for (i = 0; i < 4; i++)
+        {
+            self->address[i] = (uint8_t)strtoul(ipAddrStr, NULL, 10);
 
             ipAddrStr = strchr(ipAddrStr, '.');
 
@@ -918,12 +950,14 @@ CS104_IPAddress_setFromString(CS104_IPAddress self, const char* ipAddrStr)
             ipAddrStr++;
         }
     }
-    else {
+    else
+    {
         self->type = IP_ADDRESS_TYPE_IPV6;
 
         int i;
 
-        for (i = 0; i < 8; i++) {
+        for (i = 0; i < 8; i++)
+        {
             uint32_t val = strtoul(ipAddrStr, NULL, 16);
 
             self->address[i * 2] = val / 0x100;
@@ -954,7 +988,8 @@ CS104_IPAddress_equals(CS104_IPAddress self, CS104_IPAddress other)
 
     int i;
 
-    for (i = 0; i < size; i++) {
+    for (i = 0; i < size; i++)
+    {
         if (self->address[i] != other->address[i])
             return false;
     }
@@ -962,11 +997,12 @@ CS104_IPAddress_equals(CS104_IPAddress self, CS104_IPAddress other)
     return true;
 }
 
-struct sCS104_RedundancyGroup {
+struct sCS104_RedundancyGroup
+{
 
     char* name; /**< name of the group to be shown in debug messages, or NULL */
 
-    MessageQueue asduQueue; /**< low priority ASDU queue and buffer */
+    MessageQueue asduQueue;                    /**< low priority ASDU queue and buffer */
     HighPriorityASDUQueue connectionAsduQueue; /**< high priority ASDU queue */
 
     LinkedList allowedClients;
@@ -974,7 +1010,8 @@ struct sCS104_RedundancyGroup {
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
 static void
-CS104_RedundancyGroup_initializeMessageQueues(CS104_RedundancyGroup self, int lowPrioMaxQueueSize, int highPrioMaxQueueSize)
+CS104_RedundancyGroup_initializeMessageQueues(CS104_RedundancyGroup self, int lowPrioMaxQueueSize,
+                                              int highPrioMaxQueueSize)
 {
     /* initialized low priority queue */
     if (lowPrioMaxQueueSize < 1)
@@ -993,9 +1030,10 @@ CS104_RedundancyGroup_initializeMessageQueues(CS104_RedundancyGroup self, int lo
 CS104_RedundancyGroup
 CS104_RedundancyGroup_create(const char* name)
 {
-    CS104_RedundancyGroup self = (CS104_RedundancyGroup) GLOBAL_MALLOC(sizeof(struct sCS104_RedundancyGroup));
+    CS104_RedundancyGroup self = (CS104_RedundancyGroup)GLOBAL_MALLOC(sizeof(struct sCS104_RedundancyGroup));
 
-    if (self) {
+    if (self)
+    {
         if (name)
             self->name = strdup(name);
         else
@@ -1013,7 +1051,8 @@ CS104_RedundancyGroup_create(const char* name)
 void
 CS104_RedundancyGroup_destroy(CS104_RedundancyGroup self)
 {
-    if (self) {
+    if (self)
+    {
         if (self->name)
             GLOBAL_FREEMEM(self->name);
 
@@ -1038,28 +1077,36 @@ CS104_RedundancyGroup_addAllowedClient(CS104_RedundancyGroup self, const char* i
 }
 
 void
-CS104_RedundancyGroup_addAllowedClientEx(CS104_RedundancyGroup self, const uint8_t* ipAddress, eCS104_IPAddressType addressType)
+CS104_RedundancyGroup_addAllowedClientEx(CS104_RedundancyGroup self, const uint8_t* ipAddress,
+                                         eCS104_IPAddressType addressType)
 {
     if (self->allowedClients == NULL)
         self->allowedClients = LinkedList_create();
 
-    CS104_IPAddress ipAddr = (CS104_IPAddress) GLOBAL_MALLOC(sizeof(struct sCS104_IPAddress));
+    CS104_IPAddress ipAddr = (CS104_IPAddress)GLOBAL_CALLOC(1, sizeof(struct sCS104_IPAddress));
 
-    ipAddr->type = addressType;
+    if (ipAddr)
+    {
+        ipAddr->type = addressType;
 
-    int size;
+        int size;
 
-    if (addressType == IP_ADDRESS_TYPE_IPV4)
-        size = 4;
+        if (addressType == IP_ADDRESS_TYPE_IPV4)
+            size = 4;
+        else
+            size = 16;
+
+        int i;
+
+        for (i = 0; i < size; i++)
+            ipAddr->address[i] = ipAddress[i];
+
+        LinkedList_add(self->allowedClients, ipAddr);
+    }
     else
-        size = 16;
-
-    int i;
-
-    for (i = 0; i < size; i++)
-        ipAddr->address[i] = ipAddress[i];
-
-    LinkedList_add(self->allowedClients, ipAddr);
+    {
+        DEBUG_PRINT("CS104_SLAVE: failed to add allowed client");
+    }
 }
 
 static bool
@@ -1070,9 +1117,9 @@ CS104_RedundancyGroup_matches(CS104_RedundancyGroup self, CS104_IPAddress ipAddr
 
     LinkedList element = LinkedList_getNext(self->allowedClients);
 
-    while (element) {
-
-        CS104_IPAddress allowedAddress = (CS104_IPAddress) LinkedList_getData(element);
+    while (element)
+    {
+        CS104_IPAddress allowedAddress = (CS104_IPAddress)LinkedList_getData(element);
 
         if (CS104_IPAddress_equals(ipAddress, allowedAddress))
             return true;
@@ -1092,12 +1139,12 @@ CS104_RedundancyGroup_isCatchAll(CS104_RedundancyGroup self)
         return true;
 }
 
-
 /***************************************************
  * Slave
  ***************************************************/
 
-struct sCS104_Slave {
+struct sCS104_Slave
+{
     CS101_InterrogationHandler interrogationHandler;
     void* interrogationHandlerParameter;
 
@@ -1133,7 +1180,7 @@ struct sCS104_Slave {
 #endif
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP)
-    MessageQueue asduQueue; /**< low priority ASDU queue and buffer */
+    MessageQueue asduQueue;                    /**< low priority ASDU queue and buffer */
     HighPriorityASDUQueue connectionAsduQueue; /**< high priority ASDU queue */
 #endif
 
@@ -1141,7 +1188,8 @@ struct sCS104_Slave {
     int maxHighPrioQueueSize;
 
     int openConnections; /**< number of connected clients */
-    MasterConnection masterConnections[CONFIG_CS104_MAX_CLIENT_CONNECTIONS]; /**< references to all MasterConnection objects */
+    MasterConnection
+        masterConnections[CONFIG_CS104_MAX_CLIENT_CONNECTIONS]; /**< references to all MasterConnection objects */
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore openConnectionsLock;
@@ -1184,16 +1232,17 @@ struct sCS104_Slave {
     LinkedList plugins;
 };
 
-typedef struct {
-    uint64_t entryId; /* required to identify message in server (low-priority) queue */
+typedef struct
+{
+    uint64_t entryId;    /* required to identify message in server (low-priority) queue */
     uint8_t* queueEntry; /* NULL if ASDU is not from low-priority queue */
 
     uint64_t sentTime; /* required for T1 timeout */
     int seqNo;
 } SentASDUSlave;
 
-struct sMasterConnection {
-
+struct sMasterConnection
+{
     Socket socket;
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
@@ -1206,13 +1255,13 @@ struct sMasterConnection {
     CS104_Slave slave;
 
     MasterConnectionState state;
-    unsigned int isUsed:1;
-    unsigned int isRunning:1;
-    unsigned int timeoutT2Triggered:1;
-    unsigned int waitingForTestFRcon:1;
-    uint16_t maxSentASDUs; /* k-parameter */
-    int16_t  oldestSentASDU; /* oldest sent ASDU in k-buffer */
-    int16_t  newestSentASDU; /* newest sent ASDU in k-buffer */
+    unsigned int isUsed : 1;
+    unsigned int isRunning : 1;
+    unsigned int timeoutT2Triggered : 1;
+    unsigned int waitingForTestFRcon : 1;
+    uint16_t maxSentASDUs;  /* k-parameter */
+    int16_t oldestSentASDU; /* oldest sent ASDU in k-buffer */
+    int16_t newestSentASDU; /* newest sent ASDU in k-buffer */
     uint16_t sendCount;     /* sent messages - sequence counter */
     uint16_t receiveCount;  /* received messages - sequence counter */
 
@@ -1226,7 +1275,7 @@ struct sMasterConnection {
 
     SentASDUSlave* sentASDUs;
 
-#if (CONFIG_USE_THREADS == 1) 
+#if (CONFIG_USE_THREADS == 1)
     Thread connectionThread;
 #endif
 
@@ -1250,19 +1299,19 @@ struct sMasterConnection {
 #endif
 };
 
-static uint8_t STARTDT_CON_MSG[] = { 0x68, 0x04, 0x0b, 0x00, 0x00, 0x00 };
+static uint8_t STARTDT_CON_MSG[] = {0x68, 0x04, 0x0b, 0x00, 0x00, 0x00};
 
 #define STARTDT_CON_MSG_SIZE 6
 
-static uint8_t STOPDT_CON_MSG[] = { 0x68, 0x04, 0x23, 0x00, 0x00, 0x00 };
+static uint8_t STOPDT_CON_MSG[] = {0x68, 0x04, 0x23, 0x00, 0x00, 0x00};
 
 #define STOPDT_CON_MSG_SIZE 6
 
-static uint8_t TESTFR_CON_MSG[] = { 0x68, 0x04, 0x83, 0x00, 0x00, 0x00 };
+static uint8_t TESTFR_CON_MSG[] = {0x68, 0x04, 0x83, 0x00, 0x00, 0x00};
 
 #define TESTFR_CON_MSG_SIZE 6
 
-static uint8_t TESTFR_ACT_MSG[] = { 0x68, 0x04, 0x43, 0x00, 0x00, 0x00 };
+static uint8_t TESTFR_ACT_MSG[] = {0x68, 0x04, 0x43, 0x00, 0x00, 0x00};
 
 #define TESTFR_ACT_MSG_SIZE 6
 
@@ -1290,7 +1339,8 @@ initializeConnectionSpecificQueues(CS104_Slave self)
 {
     int i;
 
-    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+    {
         self->masterConnections[i]->lowPrioQueue = MessageQueue_create(self->maxLowPrioQueueSize);
         self->masterConnections[i]->highPrioQueue = HighPriorityASDUQueue_create(self->maxHighPrioQueueSize);
     }
@@ -1301,13 +1351,16 @@ deleteConnectionSpecificQueues(CS104_Slave self)
 {
     int i;
 
-    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
-        if (self->masterConnections[i]->lowPrioQueue) {
+    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+    {
+        if (self->masterConnections[i]->lowPrioQueue)
+        {
             MessageQueue_destroy(self->masterConnections[i]->lowPrioQueue);
             self->masterConnections[i]->lowPrioQueue = NULL;
         }
 
-        if (self->masterConnections[i]->highPrioQueue) {
+        if (self->masterConnections[i]->highPrioQueue)
+        {
             HighPriorityASDUQueue_destroy(self->masterConnections[i]->highPrioQueue);
             self->masterConnections[i]->highPrioQueue = NULL;
         }
@@ -1375,10 +1428,10 @@ MasterConnection_create(CS104_Slave slave);
 static CS104_Slave
 createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
 {
-    CS104_Slave self = (CS104_Slave) GLOBAL_CALLOC(1, sizeof(struct sCS104_Slave));
+    CS104_Slave self = (CS104_Slave)GLOBAL_CALLOC(1, sizeof(struct sCS104_Slave));
 
-    if (self != NULL) {
-
+    if (self != NULL)
+    {
         self->conParameters = defaultConnectionParameters;
         self->alParameters = defaultAppLayerParameters;
 
@@ -1398,7 +1451,8 @@ createSlave(int maxLowPrioQueueSize, int maxHighPrioQueueSize)
         {
             int i;
 
-            for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+            for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+            {
                 self->masterConnections[i] = MasterConnection_create(self);
             }
         }
@@ -1460,7 +1514,8 @@ CS104_Slave_createSecure(int maxLowPrioQueueSize, int maxHighPrioQueueSize, TLSC
 {
     CS104_Slave self = createSlave(maxLowPrioQueueSize, maxHighPrioQueueSize);
 
-    if (self != NULL) {
+    if (self != NULL)
+    {
         self->tcpPort = 19998;
         self->tlsConfig = tlsConfig;
     }
@@ -1491,7 +1546,7 @@ CS104_Slave_setLocalAddress(CS104_Slave self, const char* ipAddress)
     if (self->localAddress)
         GLOBAL_FREEMEM(self->localAddress);
 
-    self->localAddress = (char*) GLOBAL_MALLOC(strlen(ipAddress) + 1);
+    self->localAddress = (char*)GLOBAL_MALLOC(strlen(ipAddress) + 1);
 
     if (self->localAddress)
         strcpy(self->localAddress, ipAddress);
@@ -1532,12 +1587,14 @@ getFreeConnection(CS104_Slave self)
     {
         MasterConnection con = self->masterConnections[i];
 
-        if (con) {
+        if (con)
+        {
 #if (CONFIG_USE_SEMAPHORES)
             Semaphore_wait(con->stateLock);
 #endif
 
-            if (con->isUsed == false) {
+            if (con->isUsed == false)
+            {
                 connection = con;
                 connection->isUsed = true;
             }
@@ -1546,7 +1603,7 @@ getFreeConnection(CS104_Slave self)
             Semaphore_post(con->stateLock);
 #endif
         }
-        
+
         if (connection)
             break;
     }
@@ -1557,7 +1614,8 @@ getFreeConnection(CS104_Slave self)
 void
 CS104_Slave_setMaxOpenConnections(CS104_Slave self, int maxOpenConnections)
 {
-    if (CONFIG_CS104_MAX_CLIENT_CONNECTIONS > 0) {
+    if (CONFIG_CS104_MAX_CLIENT_CONNECTIONS > 0)
+    {
         if (maxOpenConnections > CONFIG_CS104_MAX_CLIENT_CONNECTIONS)
             maxOpenConnections = CONFIG_CS104_MAX_CLIENT_CONNECTIONS;
     }
@@ -1586,7 +1644,8 @@ static void
 CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
 {
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
-    if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
+    if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
+    {
 
         /* Deactivate all other connections */
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -1594,26 +1653,27 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
 #endif
         int i;
 
-        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+        {
             MasterConnection con = self->masterConnections[i];
 
-            if (con && con->isUsed) {
+            if (con && con->isUsed)
+            {
                 if (con != connectionToActivate)
                     MasterConnection_deactivate(con);
             }
-
         }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_post(self->openConnectionsLock);
 #endif
-
     }
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1) */
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
 
-    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
+    if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
+    {
 
         /* Deactivate all other connections of the same redundancy group */
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -1622,22 +1682,23 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
 
         int i;
 
-        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+        {
             MasterConnection con = self->masterConnections[i];
 
-            if (con && con->isUsed) {
-                if (con->redundancyGroup == connectionToActivate->redundancyGroup) {
+            if (con && con->isUsed)
+            {
+                if (con->redundancyGroup == connectionToActivate->redundancyGroup)
+                {
                     if (con != connectionToActivate)
                         MasterConnection_deactivate(con);
                 }
             }
-
         }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_post(self->openConnectionsLock);
 #endif
-
     }
 
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
@@ -1646,14 +1707,14 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
 }
 
 void
-CS104_Slave_setInterrogationHandler(CS104_Slave self, CS101_InterrogationHandler handler, void*  parameter)
+CS104_Slave_setInterrogationHandler(CS104_Slave self, CS101_InterrogationHandler handler, void* parameter)
 {
     self->interrogationHandler = handler;
     self->interrogationHandlerParameter = parameter;
 }
 
 void
-CS104_Slave_setCounterInterrogationHandler(CS104_Slave self, CS101_CounterInterrogationHandler handler, void*  parameter)
+CS104_Slave_setCounterInterrogationHandler(CS104_Slave self, CS101_CounterInterrogationHandler handler, void* parameter)
 {
     self->counterInterrogationHandler = handler;
     self->counterInterrogationHandlerParameter = parameter;
@@ -1706,18 +1767,19 @@ CS104_Slave_getAppLayerParameters(CS104_Slave self)
 static void
 printSendBuffer(MasterConnection self)
 {
-    if (self->oldestSentASDU != -1) {
+    if (self->oldestSentASDU != -1)
+    {
         int currentIndex = self->oldestSentASDU;
 
         int nextIndex = 0;
 
-        DEBUG_PRINT ("CS104 SLAVE: ------k-buffer------\n");
+        DEBUG_PRINT("CS104 SLAVE: ------k-buffer------\n");
 
-        do {
+        do
+        {
             DEBUG_PRINT("CS104 SLAVE: %02i : SeqNo=%i time=%llu : queueEntry=%p\n", currentIndex,
-                    self->sentASDUs[currentIndex].seqNo,
-                    self->sentASDUs[currentIndex].sentTime,
-                    self->sentASDUs[currentIndex].queueEntry);
+                        self->sentASDUs[currentIndex].seqNo, self->sentASDUs[currentIndex].sentTime,
+                        self->sentASDUs[currentIndex].queueEntry);
 
             if (currentIndex == self->newestSentASDU)
                 nextIndex = -1;
@@ -1726,7 +1788,7 @@ printSendBuffer(MasterConnection self)
 
         } while (nextIndex != -1);
 
-        DEBUG_PRINT ("CS104 SLAVE: --------------------\n");
+        DEBUG_PRINT("CS104 SLAVE: --------------------\n");
     }
     else
         DEBUG_PRINT("CS104 SLAVE: k-buffer is empty\n");
@@ -1760,7 +1822,8 @@ receiveMessage(MasterConnection self)
     int bufPos = self->recvBufPos;
 
     /* read start byte */
-    if (bufPos == 0) {
+    if (bufPos == 0)
+    {
         int readFirst = readFromSocket(self, buffer, 1);
 
         if (readFirst < 1)
@@ -1773,8 +1836,10 @@ receiveMessage(MasterConnection self)
     }
 
     /* read length byte */
-    if (bufPos == 1)  {
-        if (readFromSocket(self, buffer + 1, 1) != 1) {
+    if (bufPos == 1)
+    {
+        if (readFromSocket(self, buffer + 1, 1) != 1)
+        {
             self->recvBufPos = 0;
             return -1;
         }
@@ -1783,22 +1848,26 @@ receiveMessage(MasterConnection self)
     }
 
     /* read remaining frame */
-    if (bufPos > 1) {
+    if (bufPos > 1)
+    {
         int length = buffer[1];
 
         int remainingLength = length - bufPos + 2;
 
         int readCnt = readFromSocket(self, buffer + bufPos, remainingLength);
 
-        if (readCnt == remainingLength) {
+        if (readCnt == remainingLength)
+        {
             self->recvBufPos = 0;
             return length + 2;
         }
-        else if (readCnt == -1) {
+        else if (readCnt == -1)
+        {
             self->recvBufPos = 0;
             return -1;
         }
-        else {
+        else
+        {
             self->recvBufPos = bufPos + readCnt;
             return 0;
         }
@@ -1812,8 +1881,8 @@ static int
 writeToSocket(MasterConnection self, uint8_t* buf, int size)
 {
     if (self->slave->rawMessageHandler)
-        self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
-                &(self->iMasterConnection), buf, size, true);
+        self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter, &(self->iMasterConnection), buf, size,
+                                       true);
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     if (self->tlsSocket)
@@ -1832,17 +1901,19 @@ sendIMessage(MasterConnection self, uint8_t* buffer, int msgSize)
     Semaphore_wait(self->stateLock);
 #endif
 
-    buffer[0] = (uint8_t) 0x68;
-    buffer[1] = (uint8_t) (msgSize - 2);
+    buffer[0] = (uint8_t)0x68;
+    buffer[1] = (uint8_t)(msgSize - 2);
 
-    buffer[2] = (uint8_t) ((self->sendCount % 128) * 2);
-    buffer[3] = (uint8_t) (self->sendCount / 128);
+    buffer[2] = (uint8_t)((self->sendCount % 128) * 2);
+    buffer[3] = (uint8_t)(self->sendCount / 128);
 
-    buffer[4] = (uint8_t) ((self->receiveCount % 128) * 2);
-    buffer[5] = (uint8_t) (self->receiveCount / 128);
+    buffer[4] = (uint8_t)((self->receiveCount % 128) * 2);
+    buffer[5] = (uint8_t)(self->receiveCount / 128);
 
-    if (writeToSocket(self, buffer, msgSize) > 0) {
-        DEBUG_PRINT("CS104 SLAVE: SEND I (size = %i) N(S) = %i N(R) = %i\n", msgSize, self->sendCount, self->receiveCount);
+    if (writeToSocket(self, buffer, msgSize) > 0)
+    {
+        DEBUG_PRINT("CS104 SLAVE: SEND I (size = %i) N(S) = %i N(R) = %i\n", msgSize, self->sendCount,
+                    self->receiveCount);
         self->sendCount = (self->sendCount + 1) % 32768;
         self->unconfirmedReceivedIMessages = 0;
         self->timeoutT2Triggered = false;
@@ -1881,11 +1952,13 @@ sendASDU(MasterConnection self, uint8_t* buffer, int msgSize, uint64_t entryId, 
 {
     int currentIndex = 0;
 
-    if (self->oldestSentASDU == -1) {
+    if (self->oldestSentASDU == -1)
+    {
         self->oldestSentASDU = 0;
         self->newestSentASDU = 0;
     }
-    else {
+    else
+    {
         currentIndex = (self->newestSentASDU + 1) % self->maxSentASDUs;
     }
 
@@ -1910,7 +1983,8 @@ sendASDUInternal(MasterConnection self, CS101_ASDU asdu)
         Semaphore_wait(self->sentASDUsLock);
 #endif
 
-        if (isSentBufferFull(self) == false) {
+        if (isSentBufferFull(self) == false)
+        {
 
             FrameBuffer frameBuffer;
 
@@ -1929,13 +2003,13 @@ sendASDUInternal(MasterConnection self, CS101_ASDU asdu)
 
             asduSent = true;
         }
-        else {
+        else
+        {
 #if (CONFIG_USE_SEMAPHORES == 1)
             Semaphore_post(self->sentASDUsLock);
 #endif
             asduSent = HighPriorityASDUQueue_enqueue(self->highPrioQueue, asdu);
         }
-
     }
     else
         asduSent = false;
@@ -1982,7 +2056,7 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         while (pluginElem)
         {
-            CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
+            CS101_SlavePlugin plugin = (CS101_SlavePlugin)LinkedList_getData(pluginElem);
 
             CS101_SlavePlugin_Result result = plugin->handleAsdu(plugin->parameter, &(self->iMasterConnection), asdu);
 
@@ -1995,7 +2069,8 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
     uint8_t cot = CS101_ASDU_getCOT(asdu);
 
-    switch (CS101_ASDU_getTypeID(asdu)) {
+    switch (CS101_ASDU_getTypeID(asdu))
+    {
 
     case C_IC_NA_1: /* 100 - interrogation command */
 
@@ -2007,12 +2082,13 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
             {
                 union uInformationObject _io;
 
-                InterrogationCommand irc = (InterrogationCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
+                InterrogationCommand irc =
+                    (InterrogationCommand)CS101_ASDU_getElementEx(asdu, (InformationObject)&_io, 0);
 
                 if (irc)
                 {
                     /* Verify IOA = 0 */
-                    if (InformationObject_getObjectAddress((InformationObject) irc) != 0)
+                    if (InformationObject_getObjectAddress((InformationObject)irc) != 0)
                     {
                         DEBUG_PRINT("CS104 SLAVE: interrogation command has invalid IOA - should be 0\n");
                         responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
@@ -2021,7 +2097,8 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     else
                     {
                         if (slave->interrogationHandler(slave->interrogationHandlerParameter,
-                                &(self->iMasterConnection), asdu, InterrogationCommand_getQOI(irc)))
+                                                        &(self->iMasterConnection), asdu,
+                                                        InterrogationCommand_getQOI(irc)))
                             messageHandled = true;
                     }
                 }
@@ -2047,12 +2124,13 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
             {
                 union uInformationObject _io;
 
-                CounterInterrogationCommand cic = (CounterInterrogationCommand)  CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
+                CounterInterrogationCommand cic =
+                    (CounterInterrogationCommand)CS101_ASDU_getElementEx(asdu, (InformationObject)&_io, 0);
 
                 if (cic)
                 {
                     /* Verify IOA = 0 */
-                    if (InformationObject_getObjectAddress((InformationObject) cic) != 0)
+                    if (InformationObject_getObjectAddress((InformationObject)cic) != 0)
                     {
                         DEBUG_PRINT("CS104 SLAVE: counter interrogation command has invalid IOA - should be 0\n");
                         responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
@@ -2061,7 +2139,8 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     else
                     {
                         if (slave->counterInterrogationHandler(slave->counterInterrogationHandlerParameter,
-                                &(self->iMasterConnection), asdu, CounterInterrogationCommand_getQCC(cic)))
+                                                               &(self->iMasterConnection), asdu,
+                                                               CounterInterrogationCommand_getQCC(cic)))
                             messageHandled = true;
                     }
                 }
@@ -2087,12 +2166,12 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
             {
                 union uInformationObject _io;
 
-                ReadCommand rc = (ReadCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
+                ReadCommand rc = (ReadCommand)CS101_ASDU_getElementEx(asdu, (InformationObject)&_io, 0);
 
                 if (rc)
                 {
-                    if (slave->readHandler(slave->readHandlerParameter,
-                            &(self->iMasterConnection), asdu, InformationObject_getObjectAddress((InformationObject) rc)))
+                    if (slave->readHandler(slave->readHandlerParameter, &(self->iMasterConnection), asdu,
+                                           InformationObject_getObjectAddress((InformationObject)rc)))
                         messageHandled = true;
                 }
                 else
@@ -2117,12 +2196,13 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
             {
                 union uInformationObject _io;
 
-                ClockSynchronizationCommand csc = (ClockSynchronizationCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
+                ClockSynchronizationCommand csc =
+                    (ClockSynchronizationCommand)CS101_ASDU_getElementEx(asdu, (InformationObject)&_io, 0);
 
                 if (csc)
                 {
                     /* Verify IOA = 0 */
-                    if (InformationObject_getObjectAddress((InformationObject) csc) != 0)
+                    if (InformationObject_getObjectAddress((InformationObject)csc) != 0)
                     {
                         DEBUG_PRINT("CS104 SLAVE: time sync command has invalid IOA - should be 0\n");
                         responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
@@ -2131,14 +2211,14 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     {
                         CP56Time2a newTime = ClockSynchronizationCommand_getTime(csc);
 
-                        if (slave->clockSyncHandler(slave->clockSyncHandlerParameter,
-                                &(self->iMasterConnection), asdu, newTime))
+                        if (slave->clockSyncHandler(slave->clockSyncHandlerParameter, &(self->iMasterConnection), asdu,
+                                                    newTime))
                         {
                             CS101_ASDU_removeAllElements(asdu);
 
                             ClockSynchronizationCommand_create(csc, 0, newTime);
 
-                            CS101_ASDU_addInformationObject(asdu, (InformationObject) csc);
+                            CS101_ASDU_addInformationObject(asdu, (InformationObject)csc);
 
                             CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
 
@@ -2176,12 +2256,12 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
         {
             union uInformationObject _io;
 
-            TestCommand tc = (TestCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
+            TestCommand tc = (TestCommand)CS101_ASDU_getElementEx(asdu, (InformationObject)&_io, 0);
 
             if (tc)
             {
                 /* Verify IOA = 0 */
-                if (InformationObject_getObjectAddress((InformationObject) tc) != 0)
+                if (InformationObject_getObjectAddress((InformationObject)tc) != 0)
                 {
                     DEBUG_PRINT("CS104 SLAVE: test command has invalid IOA - should be 0\n");
                     responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
@@ -2220,12 +2300,13 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
             {
                 union uInformationObject _io;
 
-                ResetProcessCommand rpc = (ResetProcessCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
+                ResetProcessCommand rpc =
+                    (ResetProcessCommand)CS101_ASDU_getElementEx(asdu, (InformationObject)&_io, 0);
 
                 if (rpc)
                 {
                     /* Verify IOA = 0 */
-                    if (InformationObject_getObjectAddress((InformationObject) rpc) != 0)
+                    if (InformationObject_getObjectAddress((InformationObject)rpc) != 0)
                     {
                         DEBUG_PRINT("CS104 SLAVE: reset process command has invalid IOA - should be 0\n");
                         responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
@@ -2234,8 +2315,8 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     }
                     else
                     {
-                        if (slave->resetProcessHandler(slave->resetProcessHandlerParameter,
-                                &(self->iMasterConnection), asdu, ResetProcessCommand_getQRP(rpc)))
+                        if (slave->resetProcessHandler(slave->resetProcessHandlerParameter, &(self->iMasterConnection),
+                                                       asdu, ResetProcessCommand_getQRP(rpc)))
                             messageHandled = true;
                     }
                 }
@@ -2261,12 +2342,13 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
             {
                 union uInformationObject _io;
 
-                DelayAcquisitionCommand dac = (DelayAcquisitionCommand) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
+                DelayAcquisitionCommand dac =
+                    (DelayAcquisitionCommand)CS101_ASDU_getElementEx(asdu, (InformationObject)&_io, 0);
 
                 if (dac)
                 {
                     /* Verify IOA = 0 */
-                    if (InformationObject_getObjectAddress((InformationObject) dac) != 0)
+                    if (InformationObject_getObjectAddress((InformationObject)dac) != 0)
                     {
                         DEBUG_PRINT("CS104 SLAVE: delay aquisition command has invalid IOA - should be 0\n");
                         responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
@@ -2276,7 +2358,8 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                     else
                     {
                         if (slave->delayAcquisitionHandler(slave->delayAcquisitionHandlerParameter,
-                                &(self->iMasterConnection), asdu, DelayAcquisitionCommand_getDelay(dac)))
+                                                           &(self->iMasterConnection), asdu,
+                                                           DelayAcquisitionCommand_getDelay(dac)))
                             messageHandled = true;
                     }
                 }
@@ -2299,12 +2382,13 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
         {
             union uInformationObject _io;
 
-            TestCommandWithCP56Time2a tc = (TestCommandWithCP56Time2a) CS101_ASDU_getElementEx(asdu, (InformationObject) &_io, 0);
+            TestCommandWithCP56Time2a tc =
+                (TestCommandWithCP56Time2a)CS101_ASDU_getElementEx(asdu, (InformationObject)&_io, 0);
 
             if (tc)
             {
                 /* Verify IOA = 0 */
-                if (InformationObject_getObjectAddress((InformationObject) tc) != 0)
+                if (InformationObject_getObjectAddress((InformationObject)tc) != 0)
                 {
                     DEBUG_PRINT("CS104 SLAVE: test command has invalid IOA - should be 0\n");
                     responseNegative(asdu, self, CS101_COT_UNKNOWN_IOA);
@@ -2362,20 +2446,24 @@ checkSequenceNumber(MasterConnection self, int seqNo)
     bool counterOverflowDetected = false;
     int oldestValidSeqNo = -1;
 
-    if (self->oldestSentASDU == -1) { /* if k-Buffer is empty */
+    if (self->oldestSentASDU == -1)
+    { /* if k-Buffer is empty */
         if (seqNo == self->sendCount)
             seqNoIsValid = true;
     }
-    else {
+    else
+    {
         /* two cases are required to reflect sequence number overflow */
         int oldestAsduSeqNo = self->sentASDUs[self->oldestSentASDU].seqNo;
         int newestAsduSeqNo = self->sentASDUs[self->newestSentASDU].seqNo;
 
-        if (oldestAsduSeqNo <= newestAsduSeqNo) {
+        if (oldestAsduSeqNo <= newestAsduSeqNo)
+        {
             if ((seqNo >= oldestAsduSeqNo) && (seqNo <= newestAsduSeqNo))
                 seqNoIsValid = true;
         }
-        else {
+        else
+        {
             if ((seqNo >= oldestAsduSeqNo) || (seqNo <= newestAsduSeqNo))
                 seqNoIsValid = true;
 
@@ -2400,7 +2488,8 @@ checkSequenceNumber(MasterConnection self, int seqNo)
             {
                 int oldestAsduSeqNo = self->sentASDUs[self->oldestSentASDU].seqNo;
 
-                if (counterOverflowDetected == false) {
+                if (counterOverflowDetected == false)
+                {
                     if (seqNo < oldestAsduSeqNo)
                         break;
                 }
@@ -2414,8 +2503,8 @@ checkSequenceNumber(MasterConnection self, int seqNo)
                     MessageQueue_lock(self->lowPrioQueue);
 
                     MessageQueue_markAsduAsConfirmed(self->lowPrioQueue,
-                            self->sentASDUs[self->oldestSentASDU].queueEntry,
-                            self->sentASDUs[self->oldestSentASDU].entryId);
+                                                     self->sentASDUs[self->oldestSentASDU].queueEntry,
+                                                     self->sentASDUs[self->oldestSentASDU].entryId);
 
                     self->sentASDUs[self->oldestSentASDU].queueEntry = NULL;
 
@@ -2440,7 +2529,8 @@ checkSequenceNumber(MasterConnection self, int seqNo)
 
                 int checkIndex = (self->newestSentASDU + 1) % self->maxSentASDUs;
 
-                if (self->oldestSentASDU == checkIndex) {
+                if (self->oldestSentASDU == checkIndex)
+                {
                     self->oldestSentASDU = -1;
                     break;
                 }
@@ -2450,7 +2540,6 @@ checkSequenceNumber(MasterConnection self, int seqNo)
     }
     else
         DEBUG_PRINT("CS104 SLAVE: Received sequence number out of range");
-
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->sentASDUsLock);
@@ -2499,7 +2588,7 @@ MasterConnection_isActive(MasterConnection self)
 static void
 _resetT3Timeout(MasterConnection self, uint64_t currentTime)
 {
-    self->nextT3Timeout = currentTime + (uint64_t) (self->slave->conParameters.t3 * 1000);
+    self->nextT3Timeout = currentTime + (uint64_t)(self->slave->conParameters.t3 * 1000);
 }
 
 static void
@@ -2528,7 +2617,8 @@ checkT3Timeout(MasterConnection self, uint64_t currentTime)
     if (self->waitingForTestFRcon)
         goto exit_function;
 
-    if (self->nextT3Timeout > (currentTime + (uint64_t) (self->slave->conParameters.t3 * 1000))) {
+    if (self->nextT3Timeout > (currentTime + (uint64_t)(self->slave->conParameters.t3 * 1000)))
+    {
         /* timeout value not plausible (maybe system time changed) */
         _resetT3Timeout(self, currentTime);
     }
@@ -2548,13 +2638,14 @@ exit_function:
 static void
 resetTestFRConTimeout(MasterConnection self, uint64_t currentTime)
 {
-    self->nextTestFRConTimeout = currentTime + (uint64_t) (self->slave->conParameters.t1 * 1000);
+    self->nextTestFRConTimeout = currentTime + (uint64_t)(self->slave->conParameters.t1 * 1000);
 }
 
 static bool
 checkTestFRConTimeout(MasterConnection self, uint64_t currentTime)
 {
-    if (self->nextTestFRConTimeout > (currentTime + (uint64_t) (self->slave->conParameters.t1 * 1000))) {
+    if (self->nextTestFRConTimeout > (currentTime + (uint64_t)(self->slave->conParameters.t1 * 1000)))
+    {
         /* timeout value not plausible (maybe system time changed) */
         resetTestFRConTimeout(self, currentTime);
     }
@@ -2575,8 +2666,8 @@ _sendSMessage(MasterConnection self)
     msg[1] = 0x04;
     msg[2] = 0x01;
     msg[3] = 0;
-    msg[4] = (uint8_t) ((self->receiveCount % 128) * 2);
-    msg[5] = (uint8_t) (self->receiveCount / 128);
+    msg[4] = (uint8_t)((self->receiveCount % 128) * 2);
+    msg[5] = (uint8_t)(self->receiveCount / 128);
 
     if (writeToSocket(self, msg, 6) < 0)
         self->isRunning = false;
@@ -2603,21 +2694,24 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
     if (msgSize >= 3)
     {
-        if (buffer[0] != 0x68) {
+        if (buffer[0] != 0x68)
+        {
             DEBUG_PRINT("CS104 SLAVE: Invalid START character!");
             return false;
         }
 
         uint8_t lengthOfApdu = buffer[1];
 
-        if (lengthOfApdu != msgSize - 2) {
+        if (lengthOfApdu != msgSize - 2)
+        {
             DEBUG_PRINT("CS104 SLAVE: Invalid length of APDU");
             return false;
         }
 
         if ((buffer[2] & 1) == 0) /* I message */
         {
-            if (msgSize < 7) {
+            if (msgSize < 7)
+            {
                 DEBUG_PRINT("CS104 SLAVE: Received I msg too small!");
                 return false;
             }
@@ -2637,7 +2731,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
                 return false;
             }
 
-            if (self->timeoutT2Triggered == false) {
+            if (self->timeoutT2Triggered == false)
+            {
                 self->timeoutT2Triggered = true;
                 self->lastConfirmationTime = currentTime; /* start timeout T2 */
             }
@@ -2645,15 +2740,17 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             Semaphore_post(self->stateLock);
 #endif
 
-            int frameSendSequenceNumber = ((buffer [3] * 0x100) + (buffer [2] & 0xfe)) / 2;
-            int frameRecvSequenceNumber = ((buffer [5] * 0x100) + (buffer [4] & 0xfe)) / 2;
+            int frameSendSequenceNumber = ((buffer[3] * 0x100) + (buffer[2] & 0xfe)) / 2;
+            int frameRecvSequenceNumber = ((buffer[5] * 0x100) + (buffer[4] & 0xfe)) / 2;
 
-            DEBUG_PRINT("CS104 SLAVE: Received I frame: N(S) = %i N(R) = %i\n", frameSendSequenceNumber, frameRecvSequenceNumber);
+            DEBUG_PRINT("CS104 SLAVE: Received I frame: N(S) = %i N(R) = %i\n", frameSendSequenceNumber,
+                        frameRecvSequenceNumber);
 
 #if (CONFIG_USE_SEMAPHORES == 1)
             Semaphore_wait(self->stateLock);
 #endif
-            if (frameSendSequenceNumber != self->receiveCount) {
+            if (frameSendSequenceNumber != self->receiveCount)
+            {
 
 #if (CONFIG_USE_SEMAPHORES == 1)
                 Semaphore_post(self->stateLock);
@@ -2666,7 +2763,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             Semaphore_post(self->stateLock);
 #endif
 
-            if (checkSequenceNumber (self, frameRecvSequenceNumber) == false) {
+            if (checkSequenceNumber(self, frameRecvSequenceNumber) == false)
+            {
                 DEBUG_PRINT("CS104 SLAVE: Sequence number check failed - close connection");
                 return false;
             }
@@ -2684,30 +2782,35 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             {
                 struct sCS101_ASDU _asdu;
 
-                CS101_ASDU asdu = CS101_ASDU_createFromBufferEx(&_asdu, &(self->slave->alParameters), buffer + 6, msgSize - 6);
+                CS101_ASDU asdu =
+                    CS101_ASDU_createFromBufferEx(&_asdu, &(self->slave->alParameters), buffer + 6, msgSize - 6);
 
                 if (asdu)
                 {
                     bool validAsdu = handleASDU(self, asdu);
 
-                    if (validAsdu == false) {
+                    if (validAsdu == false)
+                    {
                         DEBUG_PRINT("CS104 SLAVE: ASDU corrupted");
                         return false;
                     }
                 }
-                else {
+                else
+                {
                     DEBUG_PRINT("CS104 SLAVE: Invalid ASDU");
                     return false;
                 }
             }
-            else {
+            else
+            {
                 DEBUG_PRINT("CS104 SLAVE: Received I message while connection not activate -> close connection");
                 return false;
             }
         }
 
         /* Check for TESTFR_ACT message */
-        else if ((buffer[2] & 0x43) == 0x43) {
+        else if ((buffer[2] & 0x43) == 0x43)
+        {
             DEBUG_PRINT("CS104 SLAVE: Send TESTFR_CON\n");
 
             if (writeToSocket(self, TESTFR_CON_MSG, TESTFR_CON_MSG_SIZE) < 0)
@@ -2715,7 +2818,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
         }
 
         /* Check for STARTDT_ACT message */
-        else if ((buffer [2] & 0x07) == 0x07) {
+        else if ((buffer[2] & 0x07) == 0x07)
+        {
             CS104_Slave_activate(self->slave, self);
 
             HighPriorityASDUQueue_resetConnectionQueue(self->highPrioQueue);
@@ -2727,7 +2831,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
         }
 
         /* Check for STOPDT_ACT message */
-        else if ((buffer [2] & 0x13) == 0x13)
+        else if ((buffer[2] & 0x13) == 0x13)
         {
             DEBUG_PRINT("CS104 SLAVE: Received STARTDT_ACT\n");
 
@@ -2754,8 +2858,10 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             Semaphore_post(self->stateLock);
 #endif
 
-            if(MasterConnection_hasUnconfirmedMessages(self)) {
-                DEBUG_PRINT("CS104 SLAVE: Unconfirmed messages after STOPDT_ACT -> pending unconfirmed stopped state\n");
+            if (MasterConnection_hasUnconfirmedMessages(self))
+            {
+                DEBUG_PRINT(
+                    "CS104 SLAVE: Unconfirmed messages after STOPDT_ACT -> pending unconfirmed stopped state\n");
             }
             else
             {
@@ -2765,13 +2871,12 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
                 if (writeToSocket(self, STOPDT_CON_MSG, STOPDT_CON_MSG_SIZE) < 0)
                 {
-                    #if (CONFIG_USE_SEMAPHORES == 1)
-                                Semaphore_post(self->stateLock);
-                    #endif
+#if (CONFIG_USE_SEMAPHORES == 1)
+                    Semaphore_post(self->stateLock);
+#endif
 
                     return false;
                 }
-
             }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -2794,13 +2899,14 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 #endif
         }
 
-        else if (buffer [2] == 0x01) /* S-message */
+        else if (buffer[2] == 0x01) /* S-message */
         {
             int seqNo = (buffer[4] + buffer[5] * 0x100) / 2;
 
             DEBUG_PRINT("CS104 SLAVE: Rcvd S(%i) (own sendcounter = %i)\n", seqNo, self->sendCount);
 
-            if (checkSequenceNumber(self, seqNo) == false) {
+            if (checkSequenceNumber(self, seqNo) == false)
+            {
                 DEBUG_PRINT("CS104 SLAVE: S message - sequence number mismatch");
                 return false;
             }
@@ -2825,7 +2931,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
             }
         }
 
-        else {
+        else
+        {
             DEBUG_PRINT("CS104 SLAVE: unknown message - IGNORE\n");
             return true;
         }
@@ -2834,7 +2941,8 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
 
         return true;
     }
-    else {
+    else
+    {
         DEBUG_PRINT("CS104 SLAVE: Invalid message (too small)");
         return false;
     }
@@ -2850,7 +2958,8 @@ MasterConnection_deinit(MasterConnection self)
             TLSSocket_close(self->tlsSocket);
 #endif
 
-        if (self->socket) {
+        if (self->socket)
+        {
             Socket_destroy(self->socket);
             self->socket = NULL;
         }
@@ -2862,7 +2971,8 @@ MasterConnection_deinit(MasterConnection self)
 static void
 MasterConnection_destroy(MasterConnection self)
 {
-    if (self) {
+    if (self)
+    {
 
         GLOBAL_FREEMEM(self->sentASDUs);
 
@@ -2874,7 +2984,8 @@ MasterConnection_destroy(MasterConnection self)
         Handleset_destroy(self->handleSet);
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
-        if (self->slave->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
+        if (self->slave->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP)
+        {
             MessageQueue_destroy(self->lowPrioQueue);
             HighPriorityASDUQueue_destroy(self->highPrioQueue);
         }
@@ -2904,7 +3015,8 @@ sendNextLowPriorityASDU(MasterConnection self)
 
     asduBuffer = MessageQueue_getNextWaitingASDU(self->lowPrioQueue, &entryId, &queueEntry, &msgSize);
 
-    if (asduBuffer) {
+    if (asduBuffer)
+    {
         memcpy(self->sendBuffer + IEC60870_5_104_APCI_LENGTH, asduBuffer, msgSize);
 
         msgSize += IEC60870_5_104_APCI_LENGTH;
@@ -2941,7 +3053,8 @@ sendNextHighPriorityASDU(MasterConnection self)
 
     buffer = HighPriorityASDUQueue_getNextASDU(self->highPrioQueue, &msgSize);
 
-    if (buffer) {
+    if (buffer)
+    {
         memcpy(self->sendBuffer + IEC60870_5_104_APCI_LENGTH, buffer, msgSize);
 
         msgSize += IEC60870_5_104_APCI_LENGTH;
@@ -2971,7 +3084,8 @@ static bool
 sendWaitingASDUs(MasterConnection self)
 {
     /* send all available high priority ASDUs first */
-    while (HighPriorityASDUQueue_isAsduAvailable(self->highPrioQueue)) {
+    while (HighPriorityASDUQueue_isAsduAvailable(self->highPrioQueue))
+    {
 
         if (sendNextHighPriorityASDU(self) == false)
             return true;
@@ -3001,8 +3115,10 @@ handleTimeouts(MasterConnection self)
     bool timeoutsOk = true;
 
     /* check T3 timeout */
-    if (checkT3Timeout(self, currentTime)) {
-        if (writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE) < 0) {
+    if (checkT3Timeout(self, currentTime))
+    {
+        if (writeToSocket(self, TESTFR_ACT_MSG, TESTFR_ACT_MSG_SIZE) < 0)
+        {
 
             DEBUG_PRINT("CS104 SLAVE: Failed to write TESTFR ACT message\n");
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -3014,7 +3130,6 @@ handleTimeouts(MasterConnection self)
             Semaphore_post(self->stateLock);
 #endif
         }
-
 
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->stateLock);
@@ -3032,8 +3147,10 @@ handleTimeouts(MasterConnection self)
 #endif
 
     /* Check for TEST FR con timeout */
-    if (self->waitingForTestFRcon) {
-        if (checkTestFRConTimeout(self, currentTime)) {
+    if (self->waitingForTestFRcon)
+    {
+        if (checkTestFRConTimeout(self, currentTime))
+        {
             DEBUG_PRINT("CS104 SLAVE: Timeout for TESTFR CON message\n");
 
             /* close connection */
@@ -3042,16 +3159,20 @@ handleTimeouts(MasterConnection self)
     }
 
     /* check timeout for others station I messages */
-    if (self->unconfirmedReceivedIMessages > 0) {
+    if (self->unconfirmedReceivedIMessages > 0)
+    {
 
         /* Check validity of last confirmation time */
-        if (self->lastConfirmationTime != UINT64_MAX && self->lastConfirmationTime > currentTime) {
+        if (self->lastConfirmationTime != UINT64_MAX && self->lastConfirmationTime > currentTime)
+        {
             /* last confirmation time is in the future (maybe caused by system time change) */
             self->lastConfirmationTime = currentTime;
         }
 
-        if (currentTime > self->lastConfirmationTime) {
-            if ((currentTime - self->lastConfirmationTime) >= (uint64_t) (self->slave->conParameters.t2 * 1000)) {
+        if (currentTime > self->lastConfirmationTime)
+        {
+            if ((currentTime - self->lastConfirmationTime) >= (uint64_t)(self->slave->conParameters.t2 * 1000))
+            {
                 self->lastConfirmationTime = currentTime;
                 self->unconfirmedReceivedIMessages = 0;
                 self->timeoutT2Triggered = false;
@@ -3069,24 +3190,29 @@ handleTimeouts(MasterConnection self)
 #endif
 
     /* check if counterpart confirmed I message */
-    if (self->oldestSentASDU != -1) {
+    if (self->oldestSentASDU != -1)
+    {
 
         /* check validity of sent time */
 
-        if (self->sentASDUs[self->oldestSentASDU].sentTime > currentTime) {
+        if (self->sentASDUs[self->oldestSentASDU].sentTime > currentTime)
+        {
             /* sent time is in the future (maybe caused by system time change) */
             self->sentASDUs[self->oldestSentASDU].sentTime = currentTime;
         }
 
-        if (currentTime > self->sentASDUs[self->oldestSentASDU].sentTime) {
+        if (currentTime > self->sentASDUs[self->oldestSentASDU].sentTime)
+        {
 
-            if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >= (uint64_t) (self->slave->conParameters.t1 * 1000)) {
+            if ((currentTime - self->sentASDUs[self->oldestSentASDU].sentTime) >=
+                (uint64_t)(self->slave->conParameters.t1 * 1000))
+            {
                 timeoutsOk = false;
 
                 printSendBuffer(self);
 
                 DEBUG_PRINT("CS104 SLAVE: I message timeout for %i seqNo: %i\n", self->oldestSentASDU,
-                        self->sentASDUs[self->oldestSentASDU].seqNo);
+                            self->sentASDUs[self->oldestSentASDU].seqNo);
             }
         }
     }
@@ -3099,7 +3225,7 @@ handleTimeouts(MasterConnection self)
 }
 
 static void
-CS104_Slave_closeAllConnections(CS104_Slave self) 
+CS104_Slave_closeAllConnections(CS104_Slave self)
 {
 #if (CONFIG_USE_SEMAPHORES)
     Semaphore_wait(self->openConnectionsLock);
@@ -3107,9 +3233,12 @@ CS104_Slave_closeAllConnections(CS104_Slave self)
 
     int i;
 
-    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
-        if (self->masterConnections[i]) {
-            if (self->masterConnections[i]->isUsed) {
+    for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+    {
+        if (self->masterConnections[i])
+        {
+            if (self->masterConnections[i]->isUsed)
+            {
                 self->masterConnections[i]->isUsed = false;
                 MasterConnection_deinit(self->masterConnections[i]);
             }
@@ -3126,14 +3255,16 @@ CS104_Slave_closeAllConnections(CS104_Slave self)
 static void*
 connectionHandlingThread(void* parameter)
 {
-    MasterConnection self = (MasterConnection) parameter;
+    MasterConnection self = (MasterConnection)parameter;
 
     resetT3Timeout(self, Hal_getMonotonicTimeInMs());
 
     bool isAsduWaiting = false;
 
-    if (self->slave->connectionEventHandler) {
-        self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_CONNECTION_OPENED);
+    if (self->slave->connectionEventHandler)
+    {
+        self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection),
+                                            CS104_CON_EVENT_CONNECTION_OPENED);
     }
 
     while (MasterConnection_isRunning(self))
@@ -3156,7 +3287,8 @@ connectionHandlingThread(void* parameter)
         {
             int bytesRec = receiveMessage(self);
 
-            if (bytesRec == -1) {
+            if (bytesRec == -1)
+            {
                 DEBUG_PRINT("CS104 SLAVE: Error reading from socket\n");
                 break;
             }
@@ -3166,14 +3298,14 @@ connectionHandlingThread(void* parameter)
                 DEBUG_PRINT("CS104 SLAVE: Connection: rcvd msg(%i bytes)\n", bytesRec);
 
                 if (self->slave->rawMessageHandler)
-                    self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
-                            &(self->iMasterConnection), self->recvBuffer, bytesRec, false);
+                    self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter, &(self->iMasterConnection),
+                                                   self->recvBuffer, bytesRec, false);
 
                 if (handleMessage(self, self->recvBuffer, bytesRec) == false)
                 {
 #if (CONFIG_USE_SEMAPHORES == 1)
                     Semaphore_wait(self->stateLock);
-#endif /* (CONFIG_USE_SEMAPHORES == 1) */                  
+#endif /* (CONFIG_USE_SEMAPHORES == 1) */
                     self->isRunning = false;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -3194,7 +3326,8 @@ connectionHandlingThread(void* parameter)
             }
         }
 
-        if (handleTimeouts(self) == false) {
+        if (handleTimeouts(self) == false)
+        {
 #if (CONFIG_USE_SEMAPHORES == 1)
             Semaphore_wait(self->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
@@ -3221,7 +3354,7 @@ connectionHandlingThread(void* parameter)
 
             while (pluginElem)
             {
-                CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
+                CS101_SlavePlugin plugin = (CS101_SlavePlugin)LinkedList_getData(pluginElem);
 
                 plugin->runTask(plugin->parameter, &(self->iMasterConnection));
 
@@ -3230,8 +3363,10 @@ connectionHandlingThread(void* parameter)
         }
     }
 
-    if (self->slave->connectionEventHandler) {
-        self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_CONNECTION_CLOSED);
+    if (self->slave->connectionEventHandler)
+    {
+        self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection),
+                                            CS104_CON_EVENT_CONNECTION_CLOSED);
     }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -3256,9 +3391,10 @@ connectionHandlingThread(void* parameter)
 static bool
 _IMasterConnection_isReady(IMasterConnection self)
 {
-    MasterConnection con = (MasterConnection) self->object;
+    MasterConnection con = (MasterConnection)self->object;
 
-    if (MasterConnection_isActive(con)) {
+    if (MasterConnection_isActive(con))
+    {
         if (isSentBufferFull(con) == false)
             return true;
 
@@ -3274,7 +3410,7 @@ _IMasterConnection_isReady(IMasterConnection self)
 static bool
 _IMasterConnection_sendASDU(IMasterConnection self, CS101_ASDU asdu)
 {
-    MasterConnection con = (MasterConnection) self->object;
+    MasterConnection con = (MasterConnection)self->object;
 
     return sendASDUInternal(con, asdu);
 }
@@ -3300,7 +3436,7 @@ _IMasterConnection_sendACT_TERM(IMasterConnection self, CS101_ASDU asdu)
 static void
 _IMasterConnection_close(IMasterConnection self)
 {
-    MasterConnection con = (MasterConnection) self->object;
+    MasterConnection con = (MasterConnection)self->object;
 
     MasterConnection_close(con);
 }
@@ -3308,11 +3444,12 @@ _IMasterConnection_close(IMasterConnection self)
 static int
 _IMasterConnection_getPeerAddress(IMasterConnection self, char* addrBuf, int addrBufSize)
 {
-    MasterConnection con = (MasterConnection) self->object;
+    MasterConnection con = (MasterConnection)self->object;
 
     char buf[54];
 
-    if (con->socket == NULL) {
+    if (con->socket == NULL)
+    {
         return 0;
     }
 
@@ -3321,9 +3458,10 @@ _IMasterConnection_getPeerAddress(IMasterConnection self, char* addrBuf, int add
     if (addrStr == NULL)
         return 0;
 
-    int len = (int) strlen(buf);
+    int len = (int)strlen(buf);
 
-    if (len < addrBufSize) {
+    if (len < addrBufSize)
+    {
         strcpy(addrBuf, buf);
         return len;
     }
@@ -3334,7 +3472,7 @@ _IMasterConnection_getPeerAddress(IMasterConnection self, char* addrBuf, int add
 static CS101_AppLayerParameters
 _IMasterConnection_getApplicationLayerParameters(IMasterConnection self)
 {
-    MasterConnection con = (MasterConnection) self->object;
+    MasterConnection con = (MasterConnection)self->object;
 
     return &(con->slave->alParameters);
 }
@@ -3346,7 +3484,7 @@ _IMasterConnection_getApplicationLayerParameters(IMasterConnection self)
 static MasterConnection
 MasterConnection_create(CS104_Slave slave)
 {
-    MasterConnection self = (MasterConnection) GLOBAL_CALLOC(1, sizeof(struct sMasterConnection));
+    MasterConnection self = (MasterConnection)GLOBAL_CALLOC(1, sizeof(struct sMasterConnection));
 
     if (self != NULL)
     {
@@ -3364,7 +3502,7 @@ MasterConnection_create(CS104_Slave slave)
         self->iMasterConnection.close = _IMasterConnection_close;
         self->iMasterConnection.getPeerAddress = _IMasterConnection_getPeerAddress;
 
-#if (CONFIG_USE_THREADS == 1) 
+#if (CONFIG_USE_THREADS == 1)
         self->connectionThread = NULL;
 #endif
 
@@ -3413,7 +3551,7 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
         if (self->sentASDUs == NULL)
         {
             self->maxSentASDUs = self->slave->conParameters.k;
-            self->sentASDUs = (SentASDUSlave*) GLOBAL_CALLOC(self->maxSentASDUs, sizeof(SentASDUSlave));
+            self->sentASDUs = (SentASDUSlave*)GLOBAL_CALLOC(self->maxSentASDUs, sizeof(SentASDUSlave));
 
             if (self->sentASDUs == NULL)
             {
@@ -3433,10 +3571,12 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
         resetT3Timeout(self, Hal_getMonotonicTimeInMs());
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
-        if (self->slave->tlsConfig != NULL) {
+        if (self->slave->tlsConfig != NULL)
+        {
             self->tlsSocket = TLSSocket_create(skt, self->slave->tlsConfig, false);
 
-            if (self->tlsSocket == NULL) {
+            if (self->tlsSocket == NULL)
+            {
                 DEBUG_PRINT("CS104 SLAVE: Failed to create TLS context. Close connection\n");
 
                 self->isUsed = false;
@@ -3450,7 +3590,8 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
         /* for the mode CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP we use the connection specific queues */
         if (lowPrioQueue)
             self->lowPrioQueue = lowPrioQueue;
-        else {
+        else
+        {
             MessageQueue_releaseAllQueuedASDUs(self->lowPrioQueue);
         }
 
@@ -3463,7 +3604,8 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
 
         return true;
     }
-    else {
+    else
+    {
         return false;
     }
 }
@@ -3474,7 +3616,8 @@ MasterConnection_initEx(MasterConnection self, Socket skt, CS104_RedundancyGroup
 {
     bool retVal = false;
 
-    if (self) {
+    if (self)
+    {
         retVal = MasterConnection_init(self, skt, redGroup->asduQueue, redGroup->connectionAsduQueue);
 
         if (retVal)
@@ -3498,9 +3641,7 @@ MasterConnection_start(MasterConnection self)
     self->isRunning = true;
     self->state = M_CON_STATE_STOPPED;
 
-    self->connectionThread =
-           Thread_create((ThreadExecutionFunction) connectionHandlingThread,
-                   (void*) self, false);
+    self->connectionThread = Thread_create((ThreadExecutionFunction)connectionHandlingThread, (void*)self, false);
 
     Thread_start(self->connectionThread);
 }
@@ -3549,8 +3690,10 @@ MasterConnection_deactivate(MasterConnection self)
     {
         if (self->state == M_CON_STATE_STARTED)
         {
-            if (self->slave->connectionEventHandler) {
-                 self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_DEACTIVATED);
+            if (self->slave->connectionEventHandler)
+            {
+                self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter,
+                                                    &(self->iMasterConnection), CS104_CON_EVENT_DEACTIVATED);
             }
         }
     }
@@ -3569,9 +3712,12 @@ MasterConnection_activate(MasterConnection self)
     Semaphore_wait(self->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
-    if (self->state  != M_CON_STATE_STARTED) {
-        if (self->slave->connectionEventHandler) {
-             self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter, &(self->iMasterConnection), CS104_CON_EVENT_ACTIVATED);
+    if (self->state != M_CON_STATE_STARTED)
+    {
+        if (self->slave->connectionEventHandler)
+        {
+            self->slave->connectionEventHandler(self->slave->connectionEventHandlerParameter,
+                                                &(self->iMasterConnection), CS104_CON_EVENT_ACTIVATED);
         }
     }
 
@@ -3580,7 +3726,6 @@ MasterConnection_activate(MasterConnection self)
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
 }
 
 static void
@@ -3588,7 +3733,8 @@ MasterConnection_handleTcpConnection(MasterConnection self)
 {
     int bytesRec = receiveMessage(self);
 
-    if (bytesRec < 0) {
+    if (bytesRec < 0)
+    {
         DEBUG_PRINT("CS104 SLAVE: Error reading from socket\n");
         self->isRunning = false;
     }
@@ -3596,8 +3742,8 @@ MasterConnection_handleTcpConnection(MasterConnection self)
     if ((bytesRec > 0) && (self->isRunning))
     {
         if (self->slave->rawMessageHandler)
-            self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter,
-                    &(self->iMasterConnection), self->recvBuffer, bytesRec, false);
+            self->slave->rawMessageHandler(self->slave->rawMessageHandlerParameter, &(self->iMasterConnection),
+                                           self->recvBuffer, bytesRec, false);
 
         if (handleMessage(self, self->recvBuffer, bytesRec) == false)
             self->isRunning = false;
@@ -3660,8 +3806,10 @@ handleClientConnections(CS104_Slave self)
                 }
                 else
                 {
-                    if (self->connectionEventHandler) {
-                       self->connectionEventHandler(self->connectionEventHandlerParameter, &(con->iMasterConnection), CS104_CON_EVENT_CONNECTION_CLOSED);
+                    if (self->connectionEventHandler)
+                    {
+                        self->connectionEventHandler(self->connectionEventHandlerParameter, &(con->iMasterConnection),
+                                                     CS104_CON_EVENT_CONNECTION_CLOSED);
                     }
 
                     DEBUG_PRINT("CS104 SLAVE: Connection closed\n");
@@ -3710,7 +3858,7 @@ handleClientConnections(CS104_Slave self)
 
                         while (pluginElem)
                         {
-                            CS101_SlavePlugin plugin = (CS101_SlavePlugin) LinkedList_getData(pluginElem);
+                            CS101_SlavePlugin plugin = (CS101_SlavePlugin)LinkedList_getData(pluginElem);
 
                             plugin->runTask(plugin->parameter, &(con->iMasterConnection));
 
@@ -3728,9 +3876,11 @@ getPeerAddress(Socket socket, char* ipAddress)
 {
     char* ipAddrStr = NULL;
 
-    if (Socket_getPeerAddressStatic(socket, ipAddress)) {
+    if (Socket_getPeerAddressStatic(socket, ipAddress))
+    {
         /* remove TCP port part */
-        if (ipAddress[0] == '[') {
+        if (ipAddress[0] == '[')
+        {
             /* IPV6 address */
             ipAddrStr = ipAddress + 1;
 
@@ -3738,9 +3888,9 @@ getPeerAddress(Socket socket, char* ipAddress)
 
             if (separator != NULL)
                 *separator = 0;
-
         }
-        else {
+        else
+        {
             /* IPV4 address */
             ipAddrStr = ipAddress;
 
@@ -3764,9 +3914,9 @@ callConnectionRequestHandler(CS104_Slave self, Socket newSocket)
     if (ipAddrStr == NULL)
         return false;
 
-    if (self->connectionRequestHandler != NULL) {
-        return self->connectionRequestHandler(self->connectionRequestHandlerParameter,
-                ipAddrStr);
+    if (self->connectionRequestHandler != NULL)
+    {
+        return self->connectionRequestHandler(self->connectionRequestHandlerParameter, ipAddrStr);
     }
     else
         return true;
@@ -3785,10 +3935,12 @@ getMatchingRedundancyGroup(CS104_Slave self, char* ipAddrStr)
 
     LinkedList element = LinkedList_getNext(self->redundancyGroups);
 
-    while (element) {
-        CS104_RedundancyGroup redGroup = (CS104_RedundancyGroup) LinkedList_getData(element);
+    while (element)
+    {
+        CS104_RedundancyGroup redGroup = (CS104_RedundancyGroup)LinkedList_getData(element);
 
-        if (CS104_RedundancyGroup_matches(redGroup, &ipAddress)) {
+        if (CS104_RedundancyGroup_matches(redGroup, &ipAddress))
+        {
             matchingGroup = redGroup;
             break;
         }
@@ -3827,7 +3979,8 @@ handleConnectionsThreadless(CS104_Slave self)
                 HighPriorityASDUQueue highPrioQueue = NULL;
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
-                if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
+                if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
+                {
                     lowPrioQueue = self->asduQueue;
                     highPrioQueue = self->connectionAsduQueue;
                 }
@@ -3860,11 +4013,13 @@ handleConnectionsThreadless(CS104_Slave self)
                                 {
                                     self->openConnections++;
 
-                                    if (matchingGroup->name) {
+                                    if (matchingGroup->name)
+                                    {
                                         DEBUG_PRINT("CS104 SLAVE: Add connection to group: %s\n", matchingGroup->name);
                                     }
                                 }
-                                else {
+                                else
+                                {
                                     connection->isUsed = false;
                                     connection = NULL;
                                 }
@@ -3873,16 +4028,16 @@ handleConnectionsThreadless(CS104_Slave self)
 #if (CONFIG_USE_SEMAPHORES)
                             Semaphore_post(self->openConnectionsLock);
 #endif
-
                         }
-                        else {
+                        else
+                        {
                             DEBUG_PRINT("CS104 SLAVE: Found no matching redundancy group -> close connection\n");
                         }
                     }
-                    else {
+                    else
+                    {
                         DEBUG_PRINT("CS104 SLAVE: cannot determine peer IP address -> close connection\n");
                     }
-
                 }
                 else
 #endif /* CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS */
@@ -3905,10 +4060,12 @@ handleConnectionsThreadless(CS104_Slave self)
 
                     if (connection)
                     {
-                        if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue)) {
+                        if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue))
+                        {
                             self->openConnections++;
                         }
-                        else {
+                        else
+                        {
                             connection->isUsed = false;
                             connection = NULL;
                         }
@@ -3917,28 +4074,30 @@ handleConnectionsThreadless(CS104_Slave self)
 #if (CONFIG_USE_SEMAPHORES)
                     Semaphore_post(self->openConnectionsLock);
 #endif
-
                 }
 
                 if (connection)
                 {
                     connection->isRunning = true;
 
-                    if (self->connectionEventHandler) {
-                        self->connectionEventHandler(self->connectionEventHandlerParameter, &(connection->iMasterConnection), CS104_CON_EVENT_CONNECTION_OPENED);
+                    if (self->connectionEventHandler)
+                    {
+                        self->connectionEventHandler(self->connectionEventHandlerParameter,
+                                                     &(connection->iMasterConnection),
+                                                     CS104_CON_EVENT_CONNECTION_OPENED);
                     }
                 }
-                else {
+                else
+                {
                     Socket_destroy(newSocket);
                     DEBUG_PRINT("CS104 SLAVE: Connection attempt failed!\n");
                 }
-
             }
-            else {
+            else
+            {
                 Socket_destroy(newSocket);
             }
         }
-
     }
 
     handleClientConnections(self);
@@ -3947,16 +4106,17 @@ handleConnectionsThreadless(CS104_Slave self)
 #if (CONFIG_USE_THREADS == 1)
 
 static void*
-serverThread (void* parameter)
+serverThread(void* parameter)
 {
-    CS104_Slave self = (CS104_Slave) parameter;
+    CS104_Slave self = (CS104_Slave)parameter;
 
     if (self->localAddress)
         self->serverSocket = TcpServerSocket_create(self->localAddress, self->tcpPort);
     else
         self->serverSocket = TcpServerSocket_create("0.0.0.0", self->tcpPort);
 
-    if (self->serverSocket == NULL) {
+    if (self->serverSocket == NULL)
+    {
         DEBUG_PRINT("CS104 SLAVE: Cannot create server socket\n");
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -3984,15 +4144,18 @@ serverThread (void* parameter)
     Semaphore_post(self->stateLock);
 #endif
 
-    while (isStopRunningSet(self) == false) {
+    while (isStopRunningSet(self) == false)
+    {
         Socket newSocket = ServerSocket_accept(self->serverSocket);
 
-        if (newSocket != NULL) {
+        if (newSocket != NULL)
+        {
 
             bool acceptConnection = true;
 
             /* check if maximum number of open connections is reached */
-            if (self->maxOpenConnections > 0) {
+            if (self->maxOpenConnections > 0)
+            {
                 if (CS104_Slave_getOpenConnections(self) >= self->maxOpenConnections)
                     acceptConnection = false;
             }
@@ -4000,20 +4163,23 @@ serverThread (void* parameter)
             if (acceptConnection)
                 acceptConnection = callConnectionRequestHandler(self, newSocket);
 
-            if (acceptConnection) {
+            if (acceptConnection)
+            {
 
                 MessageQueue lowPrioQueue = NULL;
                 HighPriorityASDUQueue highPrioQueue = NULL;
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
-                if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
+                if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
+                {
                     lowPrioQueue = self->asduQueue;
                     highPrioQueue = self->connectionAsduQueue;
                 }
 #endif
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
-                if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
+                if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP)
+                {
                     lowPrioQueue = NULL;
                     highPrioQueue = NULL;
                 }
@@ -4022,16 +4188,19 @@ serverThread (void* parameter)
                 MasterConnection connection = NULL;
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
-                if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS) {
+                if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
+                {
 
                     char ipAddress[60];
 
                     char* ipAddrStr = getPeerAddress(newSocket, ipAddress);
 
-                    if (ipAddrStr) {
+                    if (ipAddrStr)
+                    {
                         CS104_RedundancyGroup matchingGroup = getMatchingRedundancyGroup(self, ipAddrStr);
 
-                        if (matchingGroup != NULL) {
+                        if (matchingGroup != NULL)
+                        {
 
 #if (CONFIG_USE_SEMAPHORES)
                             Semaphore_wait(self->openConnectionsLock);
@@ -4039,15 +4208,19 @@ serverThread (void* parameter)
 
                             connection = getFreeConnection(self);
 
-                            if (connection) {
-                                if (MasterConnection_initEx(connection, newSocket, matchingGroup)) {
+                            if (connection)
+                            {
+                                if (MasterConnection_initEx(connection, newSocket, matchingGroup))
+                                {
                                     self->openConnections++;
 
-                                    if (matchingGroup->name) {
+                                    if (matchingGroup->name)
+                                    {
                                         DEBUG_PRINT("CS104 SLAVE: Add connection to group: %s\n", matchingGroup->name);
                                     }
                                 }
-                                else {
+                                else
+                                {
                                     connection->isUsed = false;
                                     connection = NULL;
                                 }
@@ -4056,18 +4229,19 @@ serverThread (void* parameter)
 #if (CONFIG_USE_SEMAPHORES)
                             Semaphore_post(self->openConnectionsLock);
 #endif
-
                         }
-                        else {
+                        else
+                        {
                             DEBUG_PRINT("CS104 SLAVE: Found no matching redundancy group -> close connection\n");
                         }
                     }
-                    else {
+                    else
+                    {
                         DEBUG_PRINT("CS104 SLAVE: cannot determine peer IP address -> close connection\n");
                     }
-
                 }
-                else {
+                else
+                {
 
 #if (CONFIG_USE_SEMAPHORES)
                     Semaphore_wait(self->openConnectionsLock);
@@ -4075,11 +4249,14 @@ serverThread (void* parameter)
 
                     connection = getFreeConnection(self);
 
-                    if (connection) {
-                        if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue)) {
+                    if (connection)
+                    {
+                        if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue))
+                        {
                             self->openConnections++;
                         }
-                        else {
+                        else
+                        {
                             connection->isUsed = false;
                             connection = NULL;
                         }
@@ -4088,7 +4265,6 @@ serverThread (void* parameter)
 #if (CONFIG_USE_SEMAPHORES)
                     Semaphore_post(self->openConnectionsLock);
 #endif
-
                 }
 #else
 
@@ -4097,11 +4273,14 @@ serverThread (void* parameter)
 #endif
                 connection = getFreeConnection(self);
 
-                if (connection) {
-                    if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue)) {
+                if (connection)
+                {
+                    if (MasterConnection_init(connection, newSocket, lowPrioQueue, highPrioQueue))
+                    {
                         self->openConnections++;
                     }
-                    else {
+                    else
+                    {
                         connection->isUsed = false;
                         connection = NULL;
                     }
@@ -4113,37 +4292,40 @@ serverThread (void* parameter)
 
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
 
-                if (connection) {
+                if (connection)
+                {
                     /* now start the connection handling (thread) */
                     MasterConnection_start(connection);
                 }
-                else{
+                else
+                {
                     Socket_destroy(newSocket);
 
                     DEBUG_PRINT("CS104 SLAVE: Connection attempt failed!\n");
                 }
-
             }
-            else {
+            else
+            {
                 Socket_destroy(newSocket);
             }
         }
         else
             Thread_sleep(10);
 
-        /* check if there are connections to close */
+            /* check if there are connections to close */
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->openConnectionsLock);
 #endif
 
         int i;
 
-        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+        for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+        {
 
             if (self->masterConnections[i])
             {
                 MasterConnection connection = self->masterConnections[i];
-               
+
 #if (CONFIG_USE_SEMAPHORES == 1)
                 Semaphore_wait(connection->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
@@ -4154,11 +4336,14 @@ serverThread (void* parameter)
                 Semaphore_post(connection->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
-                if (isConnectionUsed) {
+                if (isConnectionUsed)
+                {
 
-                    if (MasterConnection_isRunning(connection) == false) {
+                    if (MasterConnection_isRunning(connection) == false)
+                    {
 
-                        if (connection->connectionThread) {
+                        if (connection->connectionThread)
+                        {
                             Thread_destroy(connection->connectionThread);
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -4185,7 +4370,6 @@ serverThread (void* parameter)
 #if (CONFIG_USE_SEMAPHORES == 1)
                         Semaphore_post(connection->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
                     }
                 }
             }
@@ -4197,7 +4381,7 @@ serverThread (void* parameter)
     }
 
     if (self->serverSocket)
-        Socket_destroy((Socket) self->serverSocket);
+        Socket_destroy((Socket)self->serverSocket);
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_wait(self->stateLock);
@@ -4236,7 +4420,7 @@ CS104_Slave_enqueueASDU(CS104_Slave self, CS101_ASDU asdu)
 
         while (element)
         {
-            CS104_RedundancyGroup group = (CS104_RedundancyGroup) LinkedList_getData(element);
+            CS104_RedundancyGroup group = (CS104_RedundancyGroup)LinkedList_getData(element);
 
             MessageQueue_enqueueASDU(group->asduQueue, asdu);
 
@@ -4303,7 +4487,7 @@ initializeRedundancyGroups(CS104_Slave self, int lowPrioMaxQueueSize, int highPr
 
     while (element)
     {
-        CS104_RedundancyGroup redGroup = (CS104_RedundancyGroup) LinkedList_getData(element);
+        CS104_RedundancyGroup redGroup = (CS104_RedundancyGroup)LinkedList_getData(element);
 
         if (redGroup->asduQueue == NULL)
             CS104_RedundancyGroup_initializeMessageQueues(redGroup, lowPrioMaxQueueSize, highPrioMaxQueueSize);
@@ -4345,7 +4529,7 @@ CS104_Slave_start(CS104_Slave self)
             initializeConnectionSpecificQueues(self);
 #endif
 
-        self->listeningThread = Thread_create(serverThread, (void*) self, false);
+        self->listeningThread = Thread_create(serverThread, (void*)self, false);
 
         Thread_start(self->listeningThread);
 
@@ -4353,7 +4537,8 @@ CS104_Slave_start(CS104_Slave self)
             Thread_sleep(1);
     }
 #else
-    DEBUG_PRINT("CS104 SLAVE: ERROR: CS104_Slave_start not supported when CONFIG_USE_TREADS = 0 or CONFIG_USE_SEMAPHORES = 0!\n");
+    DEBUG_PRINT("CS104 SLAVE: ERROR: CS104_Slave_start not supported when CONFIG_USE_TREADS = 0 or "
+                "CONFIG_USE_SEMAPHORES = 0!\n");
 #endif
 }
 
@@ -4361,14 +4546,16 @@ int
 CS104_Slave_getNumberOfQueueEntries(CS104_Slave self, CS104_RedundancyGroup redGroup)
 {
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
-    if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
+    if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
+    {
         return MessageQueue_getEntryCount(self->asduQueue);
     }
 #endif
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1)
     if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
     {
-        if (redGroup) {
+        if (redGroup)
+        {
             return MessageQueue_getEntryCount(redGroup->asduQueue);
         }
 
@@ -4449,15 +4636,17 @@ CS104_Slave_stopThreadless(CS104_Slave self)
 {
     self->isRunning = false;
 
-    if (self->serverSocket) {
+    if (self->serverSocket)
+    {
         ServerSocket_destroy(self->serverSocket);
         self->serverSocket = NULL;
     }
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_CONNECTION_IS_REDUNDANCY_GROUP == 1)
-        if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP) {
-            deleteConnectionSpecificQueues(self);
-        }
+    if (self->serverMode == CS104_MODE_CONNECTION_IS_REDUNDANCY_GROUP)
+    {
+        deleteConnectionSpecificQueues(self);
+    }
 #endif
 
     CS104_Slave_closeAllConnections(self);
@@ -4502,7 +4691,8 @@ CS104_Slave_stop(CS104_Slave self)
                 Thread_sleep(1);
         }
 
-        if (self->listeningThread) {
+        if (self->listeningThread)
+        {
             Thread_destroy(self->listeningThread);
         }
 
@@ -4513,7 +4703,8 @@ CS104_Slave_stop(CS104_Slave self)
         {
             int i;
 
-            for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+            for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+            {
 
 #if (CONFIG_USE_SEMAPHORES == 1)
                 Semaphore_wait(self->openConnectionsLock);
@@ -4558,7 +4749,6 @@ CS104_Slave_stop(CS104_Slave self)
 
                         self->openConnections--;
                     }
-
                 }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -4580,7 +4770,8 @@ CS104_Slave_destroy(CS104_Slave self)
         CS104_Slave_stop(self);
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
-        if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
+        if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
+        {
             if (self->asduQueue)
                 MessageQueue_releaseAllQueuedASDUs(self->asduQueue);
         }
@@ -4595,7 +4786,8 @@ CS104_Slave_destroy(CS104_Slave self)
 #endif
 
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
-        if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP) {
+        if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
+        {
             MessageQueue_destroy(self->asduQueue);
             HighPriorityASDUQueue_destroy(self->connectionAsduQueue);
         }
@@ -4606,7 +4798,8 @@ CS104_Slave_destroy(CS104_Slave self)
         if (self->serverMode == CS104_MODE_MULTIPLE_REDUNDANCY_GROUPS)
         {
             if (self->redundancyGroups)
-                LinkedList_destroyDeep(self->redundancyGroups, (LinkedListValueDeleteFunction) CS104_RedundancyGroup_destroy);
+                LinkedList_destroyDeep(self->redundancyGroups,
+                                       (LinkedListValueDeleteFunction)CS104_RedundancyGroup_destroy);
         }
 
 #endif /* (CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS == 1) */
@@ -4614,16 +4807,19 @@ CS104_Slave_destroy(CS104_Slave self)
         {
             int i;
 
-            for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++) {
+            for (i = 0; i < CONFIG_CS104_MAX_CLIENT_CONNECTIONS; i++)
+            {
 
-                if (self->masterConnections[i]) {
+                if (self->masterConnections[i])
+                {
                     MasterConnection_destroy(self->masterConnections[i]);
                     self->masterConnections[i] = NULL;
                 }
             }
         }
 
-        if (self->plugins) {
+        if (self->plugins)
+        {
             LinkedList_destroyStatic(self->plugins);
         }
 
