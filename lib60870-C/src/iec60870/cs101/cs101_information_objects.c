@@ -7492,12 +7492,13 @@ FileDirectory_initialize(FileDirectory self)
 }
 
 FileDirectory
-FileDirectory_create(FileDirectory self, int ioa, uint16_t nof, int lengthOfFile, uint8_t sof, const CP56Time2a creationTime)
+FileDirectory_create(FileDirectory self, int ioa, uint16_t nof, uint32_t lengthOfFile, uint8_t sof, const CP56Time2a creationTime)
 {
     if (self == NULL)
         self = (FileDirectory) GLOBAL_MALLOC(sizeof(struct sFileDirectory));
 
-    if (self) {
+    if (self)
+    {
         FileDirectory_initialize(self);
 
         self->objectAddress = ioa;
@@ -7546,8 +7547,7 @@ FileDirectory_getFA(FileDirectory self)
     return ((self->sof & CS101_SOF_FA) == CS101_SOF_FA);
 }
 
-
-uint8_t
+uint32_t
 FileDirectory_getLengthOfFile(FileDirectory self)
 {
     return self->lengthOfFile;
@@ -7580,11 +7580,12 @@ FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters paramet
     if (self == NULL)
        self = (FileDirectory) GLOBAL_MALLOC(sizeof(struct sFileDirectory));
 
-    if (self) {
-
+    if (self)
+    {
         FileDirectory_initialize(self);
 
-        if (!isSequence) {
+        if (!isSequence)
+        {
             InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
@@ -7596,7 +7597,6 @@ FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters paramet
         self->lengthOfFile = msg [startIndex++];
         self->lengthOfFile += (msg [startIndex++] * 0x100);
         self->lengthOfFile += (msg [startIndex++] * 0x10000);
-
 
         self->sof = msg[startIndex++];
 

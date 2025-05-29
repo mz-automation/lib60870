@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2022 Michael Zillgith
+ *  Copyright 2016-2025 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -37,280 +37,291 @@ int
 InformationObject_ParseObjectAddress(CS101_AppLayerParameters parameters, const uint8_t* msg, int startIndex);
 
 SinglePointInformation
-SinglePointInformation_getFromBuffer(SinglePointInformation self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+SinglePointInformation_getFromBuffer(SinglePointInformation self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                     int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueScaledWithCP56Time2a
-MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2a self,
+                                                CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                int startIndex, bool isSequence);
 
 StepPositionInformation
-StepPositionInformation_getFromBuffer(StepPositionInformation self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+StepPositionInformation_getFromBuffer(StepPositionInformation self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                      int msgSize, int startIndex, bool isSequence);
 
 StepPositionWithCP56Time2a
 StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+                                         uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 StepPositionWithCP24Time2a
 StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+                                         uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 DoublePointInformation
-DoublePointInformation_getFromBuffer(DoublePointInformation self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+DoublePointInformation_getFromBuffer(DoublePointInformation self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                     int msgSize, int startIndex, bool isSequence);
 
 DoublePointWithCP24Time2a
 DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 DoublePointWithCP56Time2a
 DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 SinglePointWithCP24Time2a
 SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 SinglePointWithCP56Time2a
 SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 BitString32
-BitString32_getFromBuffer(BitString32 self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+BitString32_getFromBuffer(BitString32 self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                          int startIndex, bool isSequence);
 
 Bitstring32WithCP24Time2a
 Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 Bitstring32WithCP56Time2a
 Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueNormalized
-MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                      int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueNormalizedWithCP24Time2a
-MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithCP24Time2a self,
+                                                    CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                    int startIndex, bool isSequence);
 
 MeasuredValueNormalizedWithCP56Time2a
-MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithCP56Time2a self,
+                                                    CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                    int startIndex, bool isSequence);
 
 MeasuredValueScaled
-MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                  int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueScaledWithCP24Time2a
-MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2a self,
+                                                CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                int startIndex, bool isSequence);
 
 MeasuredValueShort
-MeasuredValueShort_getFromBuffer(MeasuredValueShort self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+MeasuredValueShort_getFromBuffer(MeasuredValueShort self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                 int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueShortWithCP24Time2a
-MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a self,
+                                               CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                               int startIndex, bool isSequence);
 
 MeasuredValueShortWithCP56Time2a
-MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a self,
+                                               CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                               int startIndex, bool isSequence);
 
 IntegratedTotals
-IntegratedTotals_getFromBuffer(IntegratedTotals self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+IntegratedTotals_getFromBuffer(IntegratedTotals self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                               int startIndex, bool isSequence);
 
 IntegratedTotalsWithCP24Time2a
 IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+                                             uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 IntegratedTotalsWithCP56Time2a
 IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+                                             uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 EventOfProtectionEquipment
 EventOfProtectionEquipment_getFromBuffer(EventOfProtectionEquipment self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+                                         uint8_t* msg, int msgSize, int startIndex, bool isSequence);
 
 PackedStartEventsOfProtectionEquipment
-PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtectionEquipment self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtectionEquipment self,
+                                                     CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                     int startIndex, bool isSequence);
 
 PackedOutputCircuitInfo
-PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                      int msgSize, int startIndex, bool isSequence);
 
 PackedSinglePointWithSCD
-PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                       int msgSize, int startIndex, bool isSequence);
 
 MeasuredValueNormalizedWithoutQuality
-MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWithoutQuality self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWithoutQuality self,
+                                                    CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                    int startIndex, bool isSequence);
 
 EventOfProtectionEquipmentWithCP56Time2a
-EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmentWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmentWithCP56Time2a self,
+                                                       CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                       int startIndex, bool isSequence);
 
 PackedStartEventsOfProtectionEquipmentWithCP56Time2a
-PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(
+    PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, CS101_AppLayerParameters parameters, uint8_t* msg,
+    int msgSize, int startIndex, bool isSequence);
 
 PackedOutputCircuitInfoWithCP56Time2a
-PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithCP56Time2a self,
+                                                    CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                    int startIndex, bool isSequence);
 
 SingleCommand
-SingleCommand_getFromBuffer(SingleCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+SingleCommand_getFromBuffer(SingleCommand self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                            int startIndex);
 
 SingleCommandWithCP56Time2a
 SingleCommandWithCP56Time2a_getFromBuffer(SingleCommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+                                          uint8_t* msg, int msgSize, int startIndex);
 
 DoubleCommand
-DoubleCommand_getFromBuffer(DoubleCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+DoubleCommand_getFromBuffer(DoubleCommand self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                            int startIndex);
 
 StepCommand
-StepCommand_getFromBuffer(StepCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+StepCommand_getFromBuffer(StepCommand self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                          int startIndex);
 
 SetpointCommandNormalized
 SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+                                        uint8_t* msg, int msgSize, int startIndex);
 
 SetpointCommandScaled
-SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                    int msgSize, int startIndex);
 
 SetpointCommandShort
-SetpointCommandShort_getFromBuffer(SetpointCommandShort self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+SetpointCommandShort_getFromBuffer(SetpointCommandShort self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                   int msgSize, int startIndex);
 
 Bitstring32Command
-Bitstring32Command_getFromBuffer(Bitstring32Command self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+Bitstring32Command_getFromBuffer(Bitstring32Command self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                 int msgSize, int startIndex);
 
 ReadCommand
-ReadCommand_getFromBuffer(ReadCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+ReadCommand_getFromBuffer(ReadCommand self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                          int startIndex);
 
 ClockSynchronizationCommand
 ClockSynchronizationCommand_getFromBuffer(ClockSynchronizationCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+                                          uint8_t* msg, int msgSize, int startIndex);
 
 InterrogationCommand
-InterrogationCommand_getFromBuffer(InterrogationCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+InterrogationCommand_getFromBuffer(InterrogationCommand self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                   int msgSize, int startIndex);
 
 ParameterNormalizedValue
-ParameterNormalizedValue_getFromBuffer(ParameterNormalizedValue self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+ParameterNormalizedValue_getFromBuffer(ParameterNormalizedValue self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                       int msgSize, int startIndex);
 
 ParameterScaledValue
-ParameterScaledValue_getFromBuffer(ParameterScaledValue self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+ParameterScaledValue_getFromBuffer(ParameterScaledValue self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                   int msgSize, int startIndex);
 
 ParameterFloatValue
-ParameterFloatValue_getFromBuffer(ParameterFloatValue self, CS101_AppLayerParameters parameters,
-        uint8_t* msqg, int msgSize, int startIndex);
+ParameterFloatValue_getFromBuffer(ParameterFloatValue self, CS101_AppLayerParameters parameters, uint8_t* msqg,
+                                  int msgSize, int startIndex);
 
 ParameterActivation
-ParameterActivation_getFromBuffer(ParameterActivation self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+ParameterActivation_getFromBuffer(ParameterActivation self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                  int msgSize, int startIndex);
 
 EndOfInitialization
-EndOfInitialization_getFromBuffer(EndOfInitialization self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+EndOfInitialization_getFromBuffer(EndOfInitialization self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                  int msgSize, int startIndex);
 
 DoubleCommandWithCP56Time2a
 DoubleCommandWithCP56Time2a_getFromBuffer(DoubleCommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+                                          uint8_t* msg, int msgSize, int startIndex);
 
 StepCommandWithCP56Time2a
 StepCommandWithCP56Time2a_getFromBuffer(StepCommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+                                        uint8_t* msg, int msgSize, int startIndex);
 
 SetpointCommandNormalizedWithCP56Time2a
-SetpointCommandNormalizedWithCP56Time2a_getFromBuffer(SetpointCommandNormalizedWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+SetpointCommandNormalizedWithCP56Time2a_getFromBuffer(SetpointCommandNormalizedWithCP56Time2a self,
+                                                      CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                      int startIndex);
 
 SetpointCommandScaledWithCP56Time2a
-SetpointCommandScaledWithCP56Time2a_getFromBuffer(SetpointCommandScaledWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+SetpointCommandScaledWithCP56Time2a_getFromBuffer(SetpointCommandScaledWithCP56Time2a self,
+                                                  CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                  int startIndex);
 
 SetpointCommandShortWithCP56Time2a
-SetpointCommandShortWithCP56Time2a_getFromBuffer(SetpointCommandShortWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+SetpointCommandShortWithCP56Time2a_getFromBuffer(SetpointCommandShortWithCP56Time2a self,
+                                                 CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                 int startIndex);
 
 Bitstring32CommandWithCP56Time2a
-Bitstring32CommandWithCP56Time2a_getFromBuffer(Bitstring32CommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+Bitstring32CommandWithCP56Time2a_getFromBuffer(Bitstring32CommandWithCP56Time2a self,
+                                               CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                               int startIndex);
 
 CounterInterrogationCommand
 CounterInterrogationCommand_getFromBuffer(CounterInterrogationCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+                                          uint8_t* msg, int msgSize, int startIndex);
 
 TestCommand
-TestCommand_getFromBuffer(TestCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+TestCommand_getFromBuffer(TestCommand self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                          int startIndex);
 
 TestCommandWithCP56Time2a
 TestCommandWithCP56Time2a_getFromBuffer(TestCommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+                                        uint8_t* msg, int msgSize, int startIndex);
 
 ResetProcessCommand
-ResetProcessCommand_getFromBuffer(ResetProcessCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+ResetProcessCommand_getFromBuffer(ResetProcessCommand self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                  int msgSize, int startIndex);
 
 DelayAcquisitionCommand
-DelayAcquisitionCommand_getFromBuffer(DelayAcquisitionCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+DelayAcquisitionCommand_getFromBuffer(DelayAcquisitionCommand self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                      int msgSize, int startIndex);
 
 FileReady
-FileReady_getFromBuffer(FileReady self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+FileReady_getFromBuffer(FileReady self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize, int startIndex);
 
 SectionReady
-SectionReady_getFromBuffer(SectionReady self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+SectionReady_getFromBuffer(SectionReady self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                           int startIndex);
 
 FileCallOrSelect
-FileCallOrSelect_getFromBuffer(FileCallOrSelect self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+FileCallOrSelect_getFromBuffer(FileCallOrSelect self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                               int startIndex);
 
 FileLastSegmentOrSection
-FileLastSegmentOrSection_getFromBuffer(FileLastSegmentOrSection self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+FileLastSegmentOrSection_getFromBuffer(FileLastSegmentOrSection self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                       int msgSize, int startIndex);
 
 FileACK
-FileACK_getFromBuffer(FileACK self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+FileACK_getFromBuffer(FileACK self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize, int startIndex);
 
 FileSegment
-FileSegment_getFromBuffer(FileSegment self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
+FileSegment_getFromBuffer(FileSegment self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                          int startIndex);
 
 FileDirectory
-FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence);
+FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                            int startIndex, bool isSequence);
 
 QueryLog
-QueryLog_getFromBuffer(QueryLog self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex);
-
+QueryLog_getFromBuffer(QueryLog self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize, int startIndex);
 
 /********************************************
  * static InformationObject type definitions
  ********************************************/
 
-struct sSinglePointInformation {
-
+struct sSinglePointInformation
+{
     int objectAddress;
 
     TypeID type;
@@ -321,8 +332,8 @@ struct sSinglePointInformation {
     QualityDescriptor quality;
 };
 
-struct sStepPositionInformation {
-
+struct sStepPositionInformation
+{
     int objectAddress;
 
     TypeID type;
@@ -333,8 +344,8 @@ struct sStepPositionInformation {
     QualityDescriptor quality;
 };
 
-struct sStepPositionWithCP56Time2a {
-
+struct sStepPositionWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -347,8 +358,8 @@ struct sStepPositionWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sStepPositionWithCP24Time2a {
-
+struct sStepPositionWithCP24Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -361,8 +372,8 @@ struct sStepPositionWithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-struct sDoublePointInformation {
-
+struct sDoublePointInformation
+{
     int objectAddress;
 
     TypeID type;
@@ -373,8 +384,8 @@ struct sDoublePointInformation {
     QualityDescriptor quality;
 };
 
-struct sDoublePointWithCP24Time2a {
-
+struct sDoublePointWithCP24Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -387,8 +398,8 @@ struct sDoublePointWithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-struct sDoublePointWithCP56Time2a {
-
+struct sDoublePointWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -401,7 +412,8 @@ struct sDoublePointWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sSinglePointWithCP24Time2a {
+struct sSinglePointWithCP24Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -414,7 +426,8 @@ struct sSinglePointWithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-struct sSinglePointWithCP56Time2a {
+struct sSinglePointWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -427,8 +440,8 @@ struct sSinglePointWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sBitString32 {
-
+struct sBitString32
+{
     int objectAddress;
 
     TypeID type;
@@ -439,8 +452,8 @@ struct sBitString32 {
     QualityDescriptor quality;
 };
 
-struct sBitstring32WithCP24Time2a {
-
+struct sBitstring32WithCP24Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -453,8 +466,8 @@ struct sBitstring32WithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-struct sBitstring32WithCP56Time2a {
-
+struct sBitstring32WithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -467,8 +480,8 @@ struct sBitstring32WithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sMeasuredValueNormalized {
-
+struct sMeasuredValueNormalized
+{
     int objectAddress;
 
     TypeID type;
@@ -480,8 +493,8 @@ struct sMeasuredValueNormalized {
     QualityDescriptor quality;
 };
 
-struct sMeasuredValueNormalizedWithoutQuality {
-
+struct sMeasuredValueNormalizedWithoutQuality
+{
     int objectAddress;
 
     TypeID type;
@@ -491,51 +504,8 @@ struct sMeasuredValueNormalizedWithoutQuality {
     uint8_t encodedValue[2];
 };
 
-struct sMeasuredValueNormalizedWithCP24Time2a {
-
-    int objectAddress;
-
-    TypeID type;
-
-    InformationObjectVFT virtualFunctionTable;
-
-    uint8_t encodedValue[2];
-
-    QualityDescriptor quality;
-
-    struct sCP24Time2a timestamp;
-};
-
-struct sMeasuredValueNormalizedWithCP56Time2a {
-
-    int objectAddress;
-
-    TypeID type;
-
-    InformationObjectVFT virtualFunctionTable;
-
-    uint8_t encodedValue[2];
-
-    QualityDescriptor quality;
-
-    struct sCP56Time2a timestamp;
-};
-
-struct sMeasuredValueScaled {
-
-    int objectAddress;
-
-    TypeID type;
-
-    InformationObjectVFT virtualFunctionTable;
-
-    uint8_t encodedValue[2];
-
-    QualityDescriptor quality;
-};
-
-struct sMeasuredValueScaledWithCP24Time2a {
-
+struct sMeasuredValueNormalizedWithCP24Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -549,8 +519,8 @@ struct sMeasuredValueScaledWithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-struct sMeasuredValueScaledWithCP56Time2a {
-
+struct sMeasuredValueNormalizedWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -564,8 +534,51 @@ struct sMeasuredValueScaledWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sMeasuredValueShort {
+struct sMeasuredValueScaled
+{
+    int objectAddress;
 
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    QualityDescriptor quality;
+};
+
+struct sMeasuredValueScaledWithCP24Time2a
+{
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    QualityDescriptor quality;
+
+    struct sCP24Time2a timestamp;
+};
+
+struct sMeasuredValueScaledWithCP56Time2a
+{
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    QualityDescriptor quality;
+
+    struct sCP56Time2a timestamp;
+};
+
+struct sMeasuredValueShort
+{
     int objectAddress;
 
     TypeID type;
@@ -577,8 +590,8 @@ struct sMeasuredValueShort {
     QualityDescriptor quality;
 };
 
-struct sMeasuredValueShortWithCP24Time2a {
-
+struct sMeasuredValueShortWithCP24Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -592,8 +605,8 @@ struct sMeasuredValueShortWithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-struct sMeasuredValueShortWithCP56Time2a {
-
+struct sMeasuredValueShortWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -607,8 +620,8 @@ struct sMeasuredValueShortWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sIntegratedTotals {
-
+struct sIntegratedTotals
+{
     int objectAddress;
 
     TypeID type;
@@ -618,8 +631,8 @@ struct sIntegratedTotals {
     struct sBinaryCounterReading totals;
 };
 
-struct sIntegratedTotalsWithCP24Time2a {
-
+struct sIntegratedTotalsWithCP24Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -631,8 +644,8 @@ struct sIntegratedTotalsWithCP24Time2a {
     struct sCP24Time2a timestamp;
 };
 
-struct sIntegratedTotalsWithCP56Time2a {
-
+struct sIntegratedTotalsWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -644,8 +657,8 @@ struct sIntegratedTotalsWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sEventOfProtectionEquipment {
-
+struct sEventOfProtectionEquipment
+{
     int objectAddress;
 
     TypeID type;
@@ -659,8 +672,8 @@ struct sEventOfProtectionEquipment {
     struct sCP24Time2a timestamp;
 };
 
-struct sEventOfProtectionEquipmentWithCP56Time2a {
-
+struct sEventOfProtectionEquipmentWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -674,8 +687,8 @@ struct sEventOfProtectionEquipmentWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sPackedStartEventsOfProtectionEquipment {
-
+struct sPackedStartEventsOfProtectionEquipment
+{
     int objectAddress;
 
     TypeID type;
@@ -691,8 +704,8 @@ struct sPackedStartEventsOfProtectionEquipment {
     struct sCP24Time2a timestamp;
 };
 
-struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a {
-
+struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -708,8 +721,8 @@ struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sPackedOutputCircuitInfo {
-
+struct sPackedOutputCircuitInfo
+{
     int objectAddress;
 
     TypeID type;
@@ -725,8 +738,8 @@ struct sPackedOutputCircuitInfo {
     struct sCP24Time2a timestamp;
 };
 
-struct sPackedOutputCircuitInfoWithCP56Time2a {
-
+struct sPackedOutputCircuitInfoWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -742,8 +755,8 @@ struct sPackedOutputCircuitInfoWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sPackedSinglePointWithSCD {
-
+struct sPackedSinglePointWithSCD
+{
     int objectAddress;
 
     TypeID type;
@@ -755,8 +768,8 @@ struct sPackedSinglePointWithSCD {
     QualityDescriptor qds;
 };
 
-struct sSingleCommand {
-
+struct sSingleCommand
+{
     int objectAddress;
 
     TypeID type;
@@ -766,8 +779,8 @@ struct sSingleCommand {
     uint8_t sco;
 };
 
-struct sSingleCommandWithCP56Time2a {
-
+struct sSingleCommandWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -779,8 +792,8 @@ struct sSingleCommandWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sDoubleCommand {
-
+struct sDoubleCommand
+{
     int objectAddress;
 
     TypeID type;
@@ -790,32 +803,8 @@ struct sDoubleCommand {
     uint8_t dcq;
 };
 
-struct sDoubleCommandWithCP56Time2a {
-
-    int objectAddress;
-
-    TypeID type;
-
-    InformationObjectVFT virtualFunctionTable;
-
-    uint8_t dcq;
-
-    struct sCP56Time2a timestamp;
-};
-
-struct sStepCommand {
-
-    int objectAddress;
-
-    TypeID type;
-
-    InformationObjectVFT virtualFunctionTable;
-
-    uint8_t dcq;
-};
-
-struct sStepCommandWithCP56Time2a {
-
+struct sDoubleCommandWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -827,36 +816,32 @@ struct sStepCommandWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sSetpointCommandNormalized {
-
+struct sStepCommand
+{
     int objectAddress;
 
     TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
-    uint8_t encodedValue[2];
-
-    uint8_t qos; /* Qualifier of setpoint command */
+    uint8_t dcq;
 };
 
-struct sSetpointCommandNormalizedWithCP56Time2a {
-
+struct sStepCommandWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
 
     InformationObjectVFT virtualFunctionTable;
 
-    uint8_t encodedValue[2];
-
-    uint8_t qos; /* Qualifier of setpoint command */
+    uint8_t dcq;
 
     struct sCP56Time2a timestamp;
 };
 
-struct sSetpointCommandScaled {
-
+struct sSetpointCommandNormalized
+{
     int objectAddress;
 
     TypeID type;
@@ -868,8 +853,8 @@ struct sSetpointCommandScaled {
     uint8_t qos; /* Qualifier of setpoint command */
 };
 
-struct sSetpointCommandScaledWithCP56Time2a {
-
+struct sSetpointCommandNormalizedWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -883,8 +868,36 @@ struct sSetpointCommandScaledWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sSetpointCommandShort {
+struct sSetpointCommandScaled
+{
+    int objectAddress;
 
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    uint8_t qos; /* Qualifier of setpoint command */
+};
+
+struct sSetpointCommandScaledWithCP56Time2a
+{
+    int objectAddress;
+
+    TypeID type;
+
+    InformationObjectVFT virtualFunctionTable;
+
+    uint8_t encodedValue[2];
+
+    uint8_t qos; /* Qualifier of setpoint command */
+
+    struct sCP56Time2a timestamp;
+};
+
+struct sSetpointCommandShort
+{
     int objectAddress;
 
     TypeID type;
@@ -896,8 +909,8 @@ struct sSetpointCommandShort {
     uint8_t qos; /* Qualifier of setpoint command */
 };
 
-struct sSetpointCommandShortWithCP56Time2a {
-
+struct sSetpointCommandShortWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -911,8 +924,8 @@ struct sSetpointCommandShortWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sBitstring32Command {
-
+struct sBitstring32Command
+{
     int objectAddress;
 
     TypeID type;
@@ -922,8 +935,8 @@ struct sBitstring32Command {
     uint32_t value;
 };
 
-struct sBitstring32CommandWithCP56Time2a {
-
+struct sBitstring32CommandWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -935,8 +948,8 @@ struct sBitstring32CommandWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sReadCommand {
-
+struct sReadCommand
+{
     int objectAddress;
 
     TypeID type;
@@ -944,8 +957,8 @@ struct sReadCommand {
     InformationObjectVFT virtualFunctionTable;
 };
 
-struct sClockSynchronizationCommand {
-
+struct sClockSynchronizationCommand
+{
     int objectAddress;
 
     TypeID type;
@@ -955,8 +968,8 @@ struct sClockSynchronizationCommand {
     struct sCP56Time2a timestamp;
 };
 
-struct sInterrogationCommand {
-
+struct sInterrogationCommand
+{
     int objectAddress;
 
     TypeID type;
@@ -966,8 +979,8 @@ struct sInterrogationCommand {
     uint8_t qoi;
 };
 
-struct sCounterInterrogationCommand {
-
+struct sCounterInterrogationCommand
+{
     int objectAddress;
 
     TypeID type;
@@ -977,8 +990,8 @@ struct sCounterInterrogationCommand {
     uint8_t qcc;
 };
 
-struct sTestCommand {
-
+struct sTestCommand
+{
     int objectAddress;
 
     TypeID type;
@@ -989,7 +1002,8 @@ struct sTestCommand {
     uint8_t byte2;
 };
 
-struct sTestCommandWithCP56Time2a {
+struct sTestCommandWithCP56Time2a
+{
     int objectAddress;
 
     TypeID type;
@@ -1001,8 +1015,8 @@ struct sTestCommandWithCP56Time2a {
     struct sCP56Time2a timestamp;
 };
 
-struct sResetProcessCommand {
-
+struct sResetProcessCommand
+{
     int objectAddress;
 
     TypeID type;
@@ -1012,8 +1026,8 @@ struct sResetProcessCommand {
     QualifierOfRPC qrp;
 };
 
-struct sDelayAcquisitionCommand {
-
+struct sDelayAcquisitionCommand
+{
     int objectAddress;
 
     TypeID type;
@@ -1023,8 +1037,8 @@ struct sDelayAcquisitionCommand {
     struct sCP16Time2a delay;
 };
 
-struct sParameterActivation {
-
+struct sParameterActivation
+{
     int objectAddress;
 
     TypeID type;
@@ -1034,8 +1048,8 @@ struct sParameterActivation {
     QualifierOfParameterActivation qpa;
 };
 
-struct sEndOfInitialization {
-
+struct sEndOfInitialization
+{
     int objectAddress;
 
     TypeID type;
@@ -1045,8 +1059,8 @@ struct sEndOfInitialization {
     uint8_t coi;
 };
 
-struct sFileReady {
-
+struct sFileReady
+{
     int objectAddress;
 
     TypeID type;
@@ -1060,8 +1074,8 @@ struct sFileReady {
     uint8_t frq; /* file ready qualifier */
 };
 
-struct sSectionReady {
-
+struct sSectionReady
+{
     int objectAddress;
 
     TypeID type;
@@ -1077,8 +1091,8 @@ struct sSectionReady {
     uint8_t srq; /* section ready qualifier */
 };
 
-struct sFileCallOrSelect {
-
+struct sFileCallOrSelect
+{
     int objectAddress;
 
     TypeID type;
@@ -1092,8 +1106,8 @@ struct sFileCallOrSelect {
     uint8_t scq; /* select and call qualifier */
 };
 
-struct sFileLastSegmentOrSection {
-
+struct sFileLastSegmentOrSection
+{
     int objectAddress;
 
     TypeID type;
@@ -1109,8 +1123,8 @@ struct sFileLastSegmentOrSection {
     uint8_t chs; /* checksum of section or segment */
 };
 
-struct sFileACK {
-
+struct sFileACK
+{
     int objectAddress;
 
     TypeID type;
@@ -1124,8 +1138,8 @@ struct sFileACK {
     uint8_t afq; /* AFQ (acknowledge file or section qualifier) */
 };
 
-struct sFileSegment {
-
+struct sFileSegment
+{
     int objectAddress;
 
     TypeID type;
@@ -1141,8 +1155,8 @@ struct sFileSegment {
     uint8_t* data; /* user data buffer - file payload */
 };
 
-struct sFileDirectory {
-
+struct sFileDirectory
+{
     int objectAddress;
 
     TypeID type;
@@ -1151,15 +1165,15 @@ struct sFileDirectory {
 
     uint16_t nof; /* name of file */
 
-    int lengthOfFile; /* LOF */
+    uint32_t lengthOfFile; /* LOF */
 
     uint8_t sof; /* state of file */
 
     struct sCP56Time2a creationTime;
 };
 
-struct sQueryLog {
-
+struct sQueryLog
+{
     int objectAddress;
 
     TypeID type;
@@ -1171,7 +1185,6 @@ struct sQueryLog {
     struct sCP56Time2a rangeStartTime;
     struct sCP56Time2a rangeStopTime;
 };
-
 
 union uInformationObject {
     struct sSinglePointInformation m1;
