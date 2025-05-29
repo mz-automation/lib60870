@@ -3927,6 +3927,7 @@ static CS104_RedundancyGroup
 getMatchingRedundancyGroup(CS104_Slave self, char* ipAddrStr)
 {
     struct sCS104_IPAddress ipAddress;
+    memset(&ipAddress, 0, sizeof(struct sCS104_IPAddress));
 
     CS104_IPAddress_setFromString(&ipAddress, ipAddrStr);
 
