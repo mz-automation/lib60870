@@ -2252,7 +2252,6 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 #if (CONFIG_ALLOW_C_TS_NA_1_FOR_CS104 == 1)
         DEBUG_PRINT("CS104 SLAVE: Rcvd test command C_TS_NA_1\n");
 
-        if (cot == CS101_COT_ACTIVATION)
         {
             union uInformationObject _io;
 
@@ -2268,18 +2267,26 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                 }
                 else
                 {
-                    CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                    if (cot != CS101_COT_ACTIVATION)
+                    {
+                        DEBUG_PRINT("CS104 SLAVE: test command has invalid COT - should be ACTIVATION(6)\n");
+                        CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
+                        CS101_ASDU_setNegative(asdu, true);
+                    }
+                    else
+                    {
+                        CS101_ASDU_setCOT(asdu, CS101_COT_ACTIVATION_CON);
+                    }
+
                     sendASDUInternal(self, asdu);
                 }
             }
             else
+            {
+                DEBUG_PRINT("CS104 SLAVE: invalid test command\n");
                 return false;
+            }
 
-            messageHandled = true;
-        }
-        else
-        {
-            responseCOTUnknown(asdu, self);
             messageHandled = true;
         }
 #else
@@ -2409,7 +2416,10 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
                 return true;
             }
             else
+            {
+                DEBUG_PRINT("CS104 SLAVE: invalid test command\n");
                 return false;
+            }
         }
 
         break;
