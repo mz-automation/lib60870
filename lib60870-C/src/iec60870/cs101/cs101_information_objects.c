@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2022 Michael Zillgith
+ *  Copyright 2016-2025 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -23,19 +23,21 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "iec60870_common.h"
-#include "lib60870_internal.h"
 #include "apl_types_internal.h"
 #include "cs101_information_objects.h"
-#include "information_objects_internal.h"
-#include "lib_memory.h"
 #include "frame.h"
+#include "iec60870_common.h"
+#include "information_objects_internal.h"
+#include "lib60870_internal.h"
+#include "lib_memory.h"
 #include "platform_endian.h"
 
-typedef bool (*EncodeFunction)(InformationObject self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence);
+typedef bool (*EncodeFunction)(InformationObject self, Frame frame, CS101_AppLayerParameters parameters,
+                               bool isSequence);
 typedef void (*DestroyFunction)(InformationObject self);
 
-struct sInformationObjectVFT {
+struct sInformationObjectVFT
+{
     EncodeFunction encode;
     DestroyFunction destroy;
 #if 0
@@ -62,7 +64,7 @@ SingleEvent_setEventState(SingleEvent self, EventState eventState)
 EventState
 SingleEvent_getEventState(const SingleEvent self)
 {
-    return (EventState) (*self & 0x3);
+    return (EventState)(*self & 0x3);
 }
 
 void
@@ -80,33 +82,33 @@ SingleEvent_setQDP(SingleEvent self, QualityDescriptorP qdp)
 QualityDescriptorP
 SingleEvent_getQDP(const SingleEvent self)
 {
-    return (QualityDescriptor) (*self & 0xfc);
+    return (QualityDescriptor)(*self & 0xfc);
 }
 
 uint16_t
 StatusAndStatusChangeDetection_getSTn(const StatusAndStatusChangeDetection self)
 {
-    return (uint16_t) (self->encodedValue[0] + 256 * self->encodedValue[1]);
+    return (uint16_t)(self->encodedValue[0] + 256 * self->encodedValue[1]);
 }
 
 uint16_t
 StatusAndStatusChangeDetection_getCDn(const StatusAndStatusChangeDetection self)
 {
-    return (uint16_t) (self->encodedValue[2] + 256 * self->encodedValue[3]);
+    return (uint16_t)(self->encodedValue[2] + 256 * self->encodedValue[3]);
 }
 
 void
 StatusAndStatusChangeDetection_setSTn(StatusAndStatusChangeDetection self, uint16_t value)
 {
-    self->encodedValue[0] = (uint8_t) (value % 256);
-    self->encodedValue[1] = (uint8_t) (value / 256);
+    self->encodedValue[0] = (uint8_t)(value % 256);
+    self->encodedValue[1] = (uint8_t)(value / 256);
 }
 
 bool
 StatusAndStatusChangeDetection_getST(const StatusAndStatusChangeDetection self, int index)
 {
     if ((index >= 0) && (index < 16))
-        return ((int) (StatusAndStatusChangeDetection_getSTn(self) & (1 << index)) != 0);
+        return ((int)(StatusAndStatusChangeDetection_getSTn(self) & (1 << index)) != 0);
     else
         return false;
 }
@@ -115,14 +117,14 @@ bool
 StatusAndStatusChangeDetection_getCD(const StatusAndStatusChangeDetection self, int index)
 {
     if ((index >= 0) && (index < 16))
-        return ((int) (StatusAndStatusChangeDetection_getCDn(self) & (1 << index)) != 0);
+        return ((int)(StatusAndStatusChangeDetection_getCDn(self) & (1 << index)) != 0);
     else
         return false;
 }
 
 #define SCALED_VALUE_MAX 32767
 #define SCALED_VALUE_MIN -32768
-#define NORMALIZED_VALUE_MAX (32767.f/32768.f)
+#define NORMALIZED_VALUE_MAX (32767.f / 32768.f)
 #define NORMALIZED_VALUE_MIN -1.0f
 
 static int
@@ -146,7 +148,7 @@ scaledToNormalized(int value)
     else if (value < SCALED_VALUE_MIN)
         value = SCALED_VALUE_MIN;
 
-    return (float)value/32768.f;
+    return (float)value / 32768.f;
 }
 
 float
@@ -169,8 +171,8 @@ NormalizedValue_toScaled(float normalizedValue)
  * InformationObject (base class)
  *****************************************/
 
-struct sInformationObject {
-
+struct sInformationObject
+{
     int objectAddress;
 
     TypeID type;
@@ -199,6 +201,9 @@ InformationObject_getObjectAddress(InformationObject self)
 void
 InformationObject_setObjectAddress(InformationObject self, int ioa)
 {
+    if (self == NULL)
+        return;
+
     self->objectAddress = ioa;
 }
 
@@ -211,7 +216,8 @@ InformationObject_getType(InformationObject self)
 static void
 InformationObject_encodeBase(InformationObject self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
 {
-    if (!isSequence) {
+    if (!isSequence)
+    {
         Frame_setNextByte(frame, (uint8_t)(self->objectAddress & 0xff));
 
         if (parameters->sizeOfIOA > 1)
@@ -226,20 +232,20 @@ int
 InformationObject_ParseObjectAddress(CS101_AppLayerParameters parameters, const uint8_t* msg, int startIndex)
 {
     /* parse information object address */
-    int ioa = msg [startIndex];
+    int ioa = msg[startIndex];
 
     if (parameters->sizeOfIOA > 1)
-        ioa += (msg [startIndex + 1] * 0x100);
+        ioa += (msg[startIndex + 1] * 0x100);
 
     if (parameters->sizeOfIOA > 2)
-        ioa += (msg [startIndex + 2] * 0x10000);
+        ioa += (msg[startIndex + 2] * 0x10000);
 
     return ioa;
 }
 
 static void
-InformationObject_getFromBuffer(InformationObject self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int startIndex)
+InformationObject_getFromBuffer(InformationObject self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                int startIndex)
 {
     /* parse information object address */
     self->objectAddress = InformationObject_ParseObjectAddress(parameters, msg, startIndex);
@@ -256,16 +262,17 @@ InformationObject_getMaxSizeInMemory()
  **********************************************/
 
 static bool
-SinglePointInformation_encode(SinglePointInformation self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+SinglePointInformation_encode(SinglePointInformation self, Frame frame, CS101_AppLayerParameters parameters,
+                              bool isSequence)
 {
     int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) (self->quality & 0xf0);
+    uint8_t val = (uint8_t)(self->quality & 0xf0);
 
     if (self->value)
         val++;
@@ -275,10 +282,8 @@ SinglePointInformation_encode(SinglePointInformation self, Frame frame, CS101_Ap
     return true;
 }
 
-struct sInformationObjectVFT singlePointInformationVFT = {
-        (EncodeFunction) SinglePointInformation_encode,
-        (DestroyFunction) SinglePointInformation_destroy
-};
+struct sInformationObjectVFT singlePointInformationVFT = {(EncodeFunction)SinglePointInformation_encode,
+                                                          (DestroyFunction)SinglePointInformation_destroy};
 
 static void
 SinglePointInformation_initialize(SinglePointInformation self)
@@ -288,13 +293,13 @@ SinglePointInformation_initialize(SinglePointInformation self)
 }
 
 SinglePointInformation
-SinglePointInformation_create(SinglePointInformation self, int ioa, bool value,
-        QualityDescriptor quality)
+SinglePointInformation_create(SinglePointInformation self, int ioa, bool value, QualityDescriptor quality)
 {
     if (self == NULL)
-        self = (SinglePointInformation) GLOBAL_CALLOC(1, sizeof(struct sSinglePointInformation));
+        self = (SinglePointInformation)GLOBAL_CALLOC(1, sizeof(struct sSinglePointInformation));
 
-    if (self != NULL) {
+    if (self)
+    {
         SinglePointInformation_initialize(self);
 
         self->objectAddress = ioa;
@@ -312,8 +317,8 @@ SinglePointInformation_destroy(SinglePointInformation self)
 }
 
 SinglePointInformation
-SinglePointInformation_getFromBuffer(SinglePointInformation self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+SinglePointInformation_getFromBuffer(SinglePointInformation self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                     int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 1;
@@ -321,29 +326,32 @@ SinglePointInformation_getFromBuffer(SinglePointInformation self, CS101_AppLayer
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (SinglePointInformation) GLOBAL_MALLOC(sizeof(struct sSinglePointInformation));
+        self = (SinglePointInformation)GLOBAL_MALLOC(sizeof(struct sSinglePointInformation));
 
-    if (self != NULL) {
+    if (self)
+    {
         SinglePointInformation_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         /* parse SIQ (single point information with quality) */
-        uint8_t siq = msg [startIndex];
+        uint8_t siq = msg[startIndex];
 
         self->value = ((siq & 0x01) == 0x01);
 
-        self->quality = (QualityDescriptor) (siq & 0xf0);
+        self->quality = (QualityDescriptor)(siq & 0xf0);
     }
 
     return self;
@@ -361,32 +369,30 @@ SinglePointInformation_getQuality(SinglePointInformation self)
     return self->quality;
 }
 
-
 /**********************************************
  * StepPositionInformation
  **********************************************/
 
 static bool
-StepPositionInformation_encode(StepPositionInformation self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+StepPositionInformation_encode(StepPositionInformation self, Frame frame, CS101_AppLayerParameters parameters,
+                               bool isSequence)
 {
     int size = isSequence ? 2 : (parameters->sizeOfIOA + 2);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->vti);
 
-    Frame_setNextByte(frame, (uint8_t) self->quality);
+    Frame_setNextByte(frame, (uint8_t)self->quality);
 
     return true;
 }
 
-struct sInformationObjectVFT stepPositionInformationVFT = {
-        (EncodeFunction) StepPositionInformation_encode,
-        (DestroyFunction) StepPositionInformation_destroy
-};
+struct sInformationObjectVFT stepPositionInformationVFT = {(EncodeFunction)StepPositionInformation_encode,
+                                                           (DestroyFunction)StepPositionInformation_destroy};
 
 static void
 StepPositionInformation_initialize(StepPositionInformation self)
@@ -397,12 +403,13 @@ StepPositionInformation_initialize(StepPositionInformation self)
 
 StepPositionInformation
 StepPositionInformation_create(StepPositionInformation self, int ioa, int value, bool isTransient,
-        QualityDescriptor quality)
+                               QualityDescriptor quality)
 {
     if (self == NULL)
-        self = (StepPositionInformation) GLOBAL_CALLOC(1, sizeof(struct sStepPositionInformation));
+        self = (StepPositionInformation)GLOBAL_CALLOC(1, sizeof(struct sStepPositionInformation));
 
-    if (self != NULL) {
+    if (self)
+    {
         StepPositionInformation_initialize(self);
 
         self->objectAddress = ioa;
@@ -462,8 +469,8 @@ StepPositionInformation_getQuality(StepPositionInformation self)
 }
 
 StepPositionInformation
-StepPositionInformation_getFromBuffer(StepPositionInformation self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+StepPositionInformation_getFromBuffer(StepPositionInformation self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                      int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 2;
@@ -471,27 +478,30 @@ StepPositionInformation_getFromBuffer(StepPositionInformation self, CS101_AppLay
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (StepPositionInformation) GLOBAL_MALLOC(sizeof(struct sStepPositionInformation));
+        self = (StepPositionInformation)GLOBAL_MALLOC(sizeof(struct sStepPositionInformation));
 
-    if (self != NULL) {
+    if (self)
+    {
         StepPositionInformation_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         /* parse VTI (value with transient state indication) */
-        self->vti = msg [startIndex++];
+        self->vti = msg[startIndex++];
 
-        self->quality = (QualityDescriptor) msg [startIndex];
+        self->quality = (QualityDescriptor)msg[startIndex];
     }
 
     return self;
@@ -502,18 +512,19 @@ StepPositionInformation_getFromBuffer(StepPositionInformation self, CS101_AppLay
  **********************************************/
 
 static bool
-StepPositionWithCP56Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+StepPositionWithCP56Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                  bool isSequence)
 {
     int size = isSequence ? 9 : (parameters->sizeOfIOA + 9);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->vti);
 
-    Frame_setNextByte(frame, (uint8_t) self->quality);
+    Frame_setNextByte(frame, (uint8_t)self->quality);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
@@ -521,10 +532,8 @@ StepPositionWithCP56Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, 
     return true;
 }
 
-struct sInformationObjectVFT stepPositionWithCP56Time2aVFT = {
-        (EncodeFunction) StepPositionWithCP56Time2a_encode,
-        (DestroyFunction) StepPositionWithCP56Time2a_destroy
-};
+struct sInformationObjectVFT stepPositionWithCP56Time2aVFT = {(EncodeFunction)StepPositionWithCP56Time2a_encode,
+                                                              (DestroyFunction)StepPositionWithCP56Time2a_destroy};
 
 static void
 StepPositionWithCP56Time2a_initialize(StepPositionWithCP56Time2a self)
@@ -541,12 +550,13 @@ StepPositionWithCP56Time2a_destroy(StepPositionWithCP56Time2a self)
 
 StepPositionWithCP56Time2a
 StepPositionWithCP56Time2a_create(StepPositionWithCP56Time2a self, int ioa, int value, bool isTransient,
-        QualityDescriptor quality, const CP56Time2a timestamp)
+                                  QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (StepPositionWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sStepPositionWithCP56Time2a));
+        self = (StepPositionWithCP56Time2a)GLOBAL_CALLOC(1, sizeof(struct sStepPositionWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         StepPositionWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -580,7 +590,7 @@ StepPositionWithCP56Time2a_getTimestamp(StepPositionWithCP56Time2a self)
 
 StepPositionWithCP56Time2a
 StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+                                         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 9;
@@ -588,27 +598,30 @@ StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, CS101_
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (StepPositionWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP56Time2a));
+        self = (StepPositionWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         StepPositionWithCP56Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         /* parse VTI (value with transient state indication) */
-        self->vti = msg [startIndex++];
+        self->vti = msg[startIndex++];
 
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -622,18 +635,19 @@ StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, CS101_
  **********************************************/
 
 static bool
-StepPositionWithCP24Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+StepPositionWithCP24Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                  bool isSequence)
 {
     int size = isSequence ? 5 : (parameters->sizeOfIOA + 5);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->vti);
 
-    Frame_setNextByte(frame, (uint8_t) self->quality);
+    Frame_setNextByte(frame, (uint8_t)self->quality);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
@@ -641,10 +655,8 @@ StepPositionWithCP24Time2a_encode(StepPositionWithCP56Time2a self, Frame frame, 
     return true;
 }
 
-struct sInformationObjectVFT stepPositionWithCP24Time2aVFT = {
-        (EncodeFunction) StepPositionWithCP24Time2a_encode,
-        (DestroyFunction) StepPositionWithCP24Time2a_destroy
-};
+struct sInformationObjectVFT stepPositionWithCP24Time2aVFT = {(EncodeFunction)StepPositionWithCP24Time2a_encode,
+                                                              (DestroyFunction)StepPositionWithCP24Time2a_destroy};
 
 static void
 StepPositionWithCP24Time2a_initialize(StepPositionWithCP24Time2a self)
@@ -661,12 +673,13 @@ StepPositionWithCP24Time2a_destroy(StepPositionWithCP24Time2a self)
 
 StepPositionWithCP24Time2a
 StepPositionWithCP24Time2a_create(StepPositionWithCP24Time2a self, int ioa, int value, bool isTransient,
-        QualityDescriptor quality, const CP24Time2a timestamp)
+                                  QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
-        self = (StepPositionWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sStepPositionWithCP24Time2a));
+        self = (StepPositionWithCP24Time2a)GLOBAL_CALLOC(1, sizeof(struct sStepPositionWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         StepPositionWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -692,7 +705,6 @@ StepPositionWithCP24Time2a_create(StepPositionWithCP24Time2a self, int ioa, int 
     return self;
 }
 
-
 CP24Time2a
 StepPositionWithCP24Time2a_getTimestamp(StepPositionWithCP24Time2a self)
 {
@@ -701,7 +713,7 @@ StepPositionWithCP24Time2a_getTimestamp(StepPositionWithCP24Time2a self)
 
 StepPositionWithCP24Time2a
 StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+                                         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 5;
@@ -709,27 +721,30 @@ StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, CS101_
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (StepPositionWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP24Time2a));
+        self = (StepPositionWithCP24Time2a)GLOBAL_MALLOC(sizeof(struct sStepPositionWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         StepPositionWithCP24Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         /* parse VTI (value with transient state indication) */
-        self->vti = msg [startIndex++];
+        self->vti = msg[startIndex++];
 
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
 
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -743,28 +758,27 @@ StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, CS101_
  **********************************************/
 
 static bool
-DoublePointInformation_encode(DoublePointInformation self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+DoublePointInformation_encode(DoublePointInformation self, Frame frame, CS101_AppLayerParameters parameters,
+                              bool isSequence)
 {
     int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) (self->quality & 0xf0);
+    uint8_t val = (uint8_t)(self->quality & 0xf0);
 
-    val += (int) self->value;
+    val += (int)self->value;
 
     Frame_setNextByte(frame, val);
 
     return true;
 }
 
-struct sInformationObjectVFT doublePointInformationVFT = {
-        (EncodeFunction) DoublePointInformation_encode,
-        (DestroyFunction) DoublePointInformation_destroy
-};
+struct sInformationObjectVFT doublePointInformationVFT = {(EncodeFunction)DoublePointInformation_encode,
+                                                          (DestroyFunction)DoublePointInformation_destroy};
 
 void
 DoublePointInformation_destroy(DoublePointInformation self)
@@ -780,13 +794,13 @@ DoublePointInformation_initialize(DoublePointInformation self)
 }
 
 DoublePointInformation
-DoublePointInformation_create(DoublePointInformation self, int ioa, DoublePointValue value,
-        QualityDescriptor quality)
+DoublePointInformation_create(DoublePointInformation self, int ioa, DoublePointValue value, QualityDescriptor quality)
 {
     if (self == NULL)
-        self = (DoublePointInformation) GLOBAL_CALLOC(1, sizeof(struct sDoublePointInformation));
+        self = (DoublePointInformation)GLOBAL_CALLOC(1, sizeof(struct sDoublePointInformation));
 
-    if (self) {
+    if (self)
+    {
         DoublePointInformation_initialize(self);
 
         self->objectAddress = ioa;
@@ -810,8 +824,8 @@ DoublePointInformation_getQuality(DoublePointInformation self)
 }
 
 DoublePointInformation
-DoublePointInformation_getFromBuffer(DoublePointInformation self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+DoublePointInformation_getFromBuffer(DoublePointInformation self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                     int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 1;
@@ -819,52 +833,55 @@ DoublePointInformation_getFromBuffer(DoublePointInformation self, CS101_AppLayer
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (DoublePointInformation) GLOBAL_MALLOC(sizeof(struct sDoublePointInformation));
+        self = (DoublePointInformation)GLOBAL_MALLOC(sizeof(struct sDoublePointInformation));
 
-    if (self) {
+    if (self)
+    {
         DoublePointInformation_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         /* parse DIQ (double point information with quality) */
-        uint8_t diq = msg [startIndex++];
+        uint8_t diq = msg[startIndex++];
 
-        self->value = (DoublePointValue) (diq & 0x03);
+        self->value = (DoublePointValue)(diq & 0x03);
 
-        self->quality = (QualityDescriptor) (diq & 0xf0);
+        self->quality = (QualityDescriptor)(diq & 0xf0);
     }
 
     return self;
 }
-
 
 /*******************************************
  * DoublePointWithCP24Time2a
  *******************************************/
 
 static bool
-DoublePointWithCP24Time2a_encode(DoublePointWithCP24Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+DoublePointWithCP24Time2a_encode(DoublePointWithCP24Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                 bool isSequence)
 {
     int size = isSequence ? 4 : (parameters->sizeOfIOA + 4);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) (self->quality & 0xf0);
+    uint8_t val = (uint8_t)(self->quality & 0xf0);
 
-    val += (int) self->value;
+    val += (int)self->value;
 
     Frame_setNextByte(frame, val);
 
@@ -874,11 +891,8 @@ DoublePointWithCP24Time2a_encode(DoublePointWithCP24Time2a self, Frame frame, CS
     return true;
 }
 
-
-struct sInformationObjectVFT doublePointWithCP24Time2aVFT = {
-        (EncodeFunction) DoublePointWithCP24Time2a_encode,
-        (DestroyFunction) DoublePointWithCP24Time2a_destroy
-};
+struct sInformationObjectVFT doublePointWithCP24Time2aVFT = {(EncodeFunction)DoublePointWithCP24Time2a_encode,
+                                                             (DestroyFunction)DoublePointWithCP24Time2a_destroy};
 
 void
 DoublePointWithCP24Time2a_destroy(DoublePointWithCP24Time2a self)
@@ -895,12 +909,13 @@ DoublePointWithCP24Time2a_initialize(DoublePointWithCP24Time2a self)
 
 DoublePointWithCP24Time2a
 DoublePointWithCP24Time2a_create(DoublePointWithCP24Time2a self, int ioa, DoublePointValue value,
-        QualityDescriptor quality, const CP24Time2a timestamp)
+                                 QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
-        self = (DoublePointWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sDoublePointWithCP24Time2a));
+        self = (DoublePointWithCP24Time2a)GLOBAL_CALLOC(1, sizeof(struct sDoublePointWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         DoublePointWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -920,7 +935,7 @@ DoublePointWithCP24Time2a_getTimestamp(DoublePointWithCP24Time2a self)
 
 DoublePointWithCP24Time2a
 DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 4;
@@ -928,29 +943,32 @@ DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, CS101_Ap
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (DoublePointWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP24Time2a));
+        self = (DoublePointWithCP24Time2a)GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         DoublePointWithCP24Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         /* parse DIQ (double point information with quality) */
-        uint8_t diq = msg [startIndex++];
+        uint8_t diq = msg[startIndex++];
 
-        self->value = (DoublePointValue) (diq & 0x03);
+        self->value = (DoublePointValue)(diq & 0x03);
 
-        self->quality = (QualityDescriptor) (diq & 0xf0);
+        self->quality = (QualityDescriptor)(diq & 0xf0);
 
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -964,18 +982,19 @@ DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, CS101_Ap
  *******************************************/
 
 static bool
-DoublePointWithCP56Time2a_encode(DoublePointWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+DoublePointWithCP56Time2a_encode(DoublePointWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                 bool isSequence)
 {
     int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) (self->quality & 0xf0);
+    uint8_t val = (uint8_t)(self->quality & 0xf0);
 
-    val += (int) self->value;
+    val += (int)self->value;
 
     Frame_setNextByte(frame, val);
 
@@ -985,10 +1004,8 @@ DoublePointWithCP56Time2a_encode(DoublePointWithCP56Time2a self, Frame frame, CS
     return true;
 }
 
-struct sInformationObjectVFT doublePointWithCP56Time2aVFT = {
-        (EncodeFunction) DoublePointWithCP56Time2a_encode,
-        (DestroyFunction) DoublePointWithCP56Time2a_destroy
-};
+struct sInformationObjectVFT doublePointWithCP56Time2aVFT = {(EncodeFunction)DoublePointWithCP56Time2a_encode,
+                                                             (DestroyFunction)DoublePointWithCP56Time2a_destroy};
 
 void
 DoublePointWithCP56Time2a_destroy(DoublePointWithCP56Time2a self)
@@ -1005,12 +1022,13 @@ DoublePointWithCP56Time2a_initialize(DoublePointWithCP56Time2a self)
 
 DoublePointWithCP56Time2a
 DoublePointWithCP56Time2a_create(DoublePointWithCP56Time2a self, int ioa, DoublePointValue value,
-        QualityDescriptor quality, const CP56Time2a timestamp)
+                                 QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (DoublePointWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sDoublePointWithCP56Time2a));
+        self = (DoublePointWithCP56Time2a)GLOBAL_CALLOC(1, sizeof(struct sDoublePointWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         DoublePointWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -1030,7 +1048,7 @@ DoublePointWithCP56Time2a_getTimestamp(DoublePointWithCP56Time2a self)
 
 DoublePointWithCP56Time2a
 DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 8;
@@ -1038,29 +1056,32 @@ DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, CS101_Ap
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (DoublePointWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP56Time2a));
+        self = (DoublePointWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sDoublePointWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         DoublePointWithCP56Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         /* parse DIQ (double point information with quality) */
-        uint8_t diq = msg [startIndex++];
+        uint8_t diq = msg[startIndex++];
 
-        self->value = (DoublePointValue) (diq & 0x03);
+        self->value = (DoublePointValue)(diq & 0x03);
 
-        self->quality = (QualityDescriptor) (diq & 0xf0);
+        self->quality = (QualityDescriptor)(diq & 0xf0);
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -1074,16 +1095,17 @@ DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, CS101_Ap
  *******************************************/
 
 static bool
-SinglePointWithCP24Time2a_encode(SinglePointWithCP24Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+SinglePointWithCP24Time2a_encode(SinglePointWithCP24Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                 bool isSequence)
 {
     int size = isSequence ? 4 : (parameters->sizeOfIOA + 4);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) (self->quality & 0xf0);
+    uint8_t val = (uint8_t)(self->quality & 0xf0);
 
     if (self->value)
         val++;
@@ -1096,10 +1118,8 @@ SinglePointWithCP24Time2a_encode(SinglePointWithCP24Time2a self, Frame frame, CS
     return true;
 }
 
-struct sInformationObjectVFT singlePointWithCP24Time2aVFT = {
-        (EncodeFunction) SinglePointWithCP24Time2a_encode,
-        (DestroyFunction) SinglePointWithCP24Time2a_destroy
-};
+struct sInformationObjectVFT singlePointWithCP24Time2aVFT = {(EncodeFunction)SinglePointWithCP24Time2a_encode,
+                                                             (DestroyFunction)SinglePointWithCP24Time2a_destroy};
 
 void
 SinglePointWithCP24Time2a_destroy(SinglePointWithCP24Time2a self)
@@ -1115,13 +1135,14 @@ SinglePointWithCP24Time2a_initialize(SinglePointWithCP24Time2a self)
 }
 
 SinglePointWithCP24Time2a
-SinglePointWithCP24Time2a_create(SinglePointWithCP24Time2a self, int ioa, bool value,
-        QualityDescriptor quality, const CP24Time2a timestamp)
+SinglePointWithCP24Time2a_create(SinglePointWithCP24Time2a self, int ioa, bool value, QualityDescriptor quality,
+                                 const CP24Time2a timestamp)
 {
     if (self == NULL)
-        self = (SinglePointWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sSinglePointWithCP24Time2a));
+        self = (SinglePointWithCP24Time2a)GLOBAL_CALLOC(1, sizeof(struct sSinglePointWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         SinglePointWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -1141,7 +1162,7 @@ SinglePointWithCP24Time2a_getTimestamp(SinglePointWithCP24Time2a self)
 
 SinglePointWithCP24Time2a
 SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 4;
@@ -1149,29 +1170,32 @@ SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, CS101_Ap
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (SinglePointWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP24Time2a));
+        self = (SinglePointWithCP24Time2a)GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         SinglePointWithCP24Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         /* parse SIQ (single point information with qualitiy) */
-        uint8_t siq = msg [startIndex++];
+        uint8_t siq = msg[startIndex++];
 
         self->value = ((siq & 0x01) == 0x01);
 
-        self->quality = (QualityDescriptor) (siq & 0xf0);
+        self->quality = (QualityDescriptor)(siq & 0xf0);
 
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -1185,16 +1209,17 @@ SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, CS101_Ap
  *******************************************/
 
 static bool
-SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                 bool isSequence)
 {
     int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    uint8_t val = (uint8_t) (self->quality & 0xf0);
+    uint8_t val = (uint8_t)(self->quality & 0xf0);
 
     if (self->value)
         val++;
@@ -1207,10 +1232,8 @@ SinglePointWithCP56Time2a_encode(SinglePointWithCP56Time2a self, Frame frame, CS
     return true;
 }
 
-struct sInformationObjectVFT singlePointWithCP56Time2aVFT = {
-        (EncodeFunction) SinglePointWithCP56Time2a_encode,
-        (DestroyFunction) SinglePointWithCP56Time2a_destroy
-};
+struct sInformationObjectVFT singlePointWithCP56Time2aVFT = {(EncodeFunction)SinglePointWithCP56Time2a_encode,
+                                                             (DestroyFunction)SinglePointWithCP56Time2a_destroy};
 
 static void
 SinglePointWithCP56Time2a_initialize(SinglePointWithCP56Time2a self)
@@ -1220,13 +1243,14 @@ SinglePointWithCP56Time2a_initialize(SinglePointWithCP56Time2a self)
 }
 
 SinglePointWithCP56Time2a
-SinglePointWithCP56Time2a_create(SinglePointWithCP56Time2a self, int ioa, bool value,
-        QualityDescriptor quality, const CP56Time2a timestamp)
+SinglePointWithCP56Time2a_create(SinglePointWithCP56Time2a self, int ioa, bool value, QualityDescriptor quality,
+                                 const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (SinglePointWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sSinglePointWithCP56Time2a));
+        self = (SinglePointWithCP56Time2a)GLOBAL_CALLOC(1, sizeof(struct sSinglePointWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         SinglePointWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -1252,7 +1276,7 @@ SinglePointWithCP56Time2a_getTimestamp(SinglePointWithCP56Time2a self)
 
 SinglePointWithCP56Time2a
 SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 8;
@@ -1260,29 +1284,32 @@ SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, CS101_Ap
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (SinglePointWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP56Time2a));
+        self = (SinglePointWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sSinglePointWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         SinglePointWithCP56Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         /* parse SIQ (single point information with qualitiy) */
-        uint8_t siq = msg [startIndex++];
+        uint8_t siq = msg[startIndex++];
 
         self->value = ((siq & 0x01) == 0x01);
 
-        self->quality = (QualityDescriptor) (siq & 0xf0);
+        self->quality = (QualityDescriptor)(siq & 0xf0);
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -1303,24 +1330,22 @@ BitString32_encode(BitString32 self, Frame frame, CS101_AppLayerParameters param
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     uint32_t value = self->value;
 
-    Frame_setNextByte(frame, (uint8_t) (value % 0x100));
-    Frame_setNextByte(frame, (uint8_t) ((value / 0x100) % 0x100));
-    Frame_setNextByte(frame, (uint8_t) ((value / 0x10000) % 0x100));
-    Frame_setNextByte(frame, (uint8_t) (value / 0x1000000));
+    Frame_setNextByte(frame, (uint8_t)(value % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((value / 0x100) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((value / 0x10000) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)(value / 0x1000000));
 
-    Frame_setNextByte(frame, (uint8_t) self->quality);
+    Frame_setNextByte(frame, (uint8_t)self->quality);
 
     return true;
 }
 
-struct sInformationObjectVFT bitString32VFT = {
-        (EncodeFunction) BitString32_encode,
-        (DestroyFunction) BitString32_destroy
-};
+struct sInformationObjectVFT bitString32VFT = {(EncodeFunction)BitString32_encode,
+                                               (DestroyFunction)BitString32_destroy};
 
 static void
 BitString32_initialize(BitString32 self)
@@ -1338,16 +1363,17 @@ BitString32_destroy(BitString32 self)
 BitString32
 BitString32_create(BitString32 self, int ioa, uint32_t value)
 {
-	return BitString32_createEx(self, ioa, value, IEC60870_QUALITY_GOOD);
+    return BitString32_createEx(self, ioa, value, IEC60870_QUALITY_GOOD);
 }
 
 BitString32
 BitString32_createEx(BitString32 self, int ioa, uint32_t value, QualityDescriptor quality)
 {
     if (self == NULL)
-         self = (BitString32) GLOBAL_CALLOC(1, sizeof(struct sBitString32));
+        self = (BitString32)GLOBAL_CALLOC(1, sizeof(struct sBitString32));
 
-    if (self) {
+    if (self)
+    {
         BitString32_initialize(self);
 
         self->objectAddress = ioa;
@@ -1371,8 +1397,8 @@ BitString32_getQuality(BitString32 self)
 }
 
 BitString32
-BitString32_getFromBuffer(BitString32 self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+BitString32_getFromBuffer(BitString32 self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                          int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 5;
@@ -1380,33 +1406,36 @@ BitString32_getFromBuffer(BitString32 self, CS101_AppLayerParameters parameters,
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (BitString32) GLOBAL_MALLOC(sizeof(struct sBitString32));
+        self = (BitString32)GLOBAL_MALLOC(sizeof(struct sBitString32));
 
-    if (self) {
+    if (self)
+    {
         BitString32_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         uint32_t value;
 
-        value = msg [startIndex++];
-        value += ((uint32_t)msg [startIndex++] * 0x100);
-        value += ((uint32_t)msg [startIndex++] * 0x10000);
-        value += ((uint32_t)msg [startIndex++] * 0x1000000);
+        value = msg[startIndex++];
+        value += ((uint32_t)msg[startIndex++] * 0x100);
+        value += ((uint32_t)msg[startIndex++] * 0x10000);
+        value += ((uint32_t)msg[startIndex++] * 0x1000000);
         self->value = value;
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
     }
 
     return self;
@@ -1417,23 +1446,24 @@ BitString32_getFromBuffer(BitString32 self, CS101_AppLayerParameters parameters,
  **********************************************/
 
 static bool
-Bitstring32WithCP24Time2a_encode(Bitstring32WithCP24Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+Bitstring32WithCP24Time2a_encode(Bitstring32WithCP24Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                 bool isSequence)
 {
     int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    uint32_t  value = self->value;
+    uint32_t value = self->value;
 
-    Frame_setNextByte(frame, (uint8_t) (value % 0x100));
-    Frame_setNextByte(frame, (uint8_t) ((value / 0x100) % 0x100));
-    Frame_setNextByte(frame, (uint8_t) ((value / 0x10000) % 0x100));
-    Frame_setNextByte(frame, (uint8_t) (value / 0x1000000));
+    Frame_setNextByte(frame, (uint8_t)(value % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((value / 0x100) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((value / 0x10000) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)(value / 0x1000000));
 
-    Frame_setNextByte(frame, (uint8_t) self->quality);
+    Frame_setNextByte(frame, (uint8_t)self->quality);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
@@ -1441,10 +1471,8 @@ Bitstring32WithCP24Time2a_encode(Bitstring32WithCP24Time2a self, Frame frame, CS
     return true;
 }
 
-struct sInformationObjectVFT bitstring32WithCP24Time2aVFT = {
-        (EncodeFunction) Bitstring32WithCP24Time2a_encode,
-        (DestroyFunction) Bitstring32WithCP24Time2a_destroy
-};
+struct sInformationObjectVFT bitstring32WithCP24Time2aVFT = {(EncodeFunction)Bitstring32WithCP24Time2a_encode,
+                                                             (DestroyFunction)Bitstring32WithCP24Time2a_destroy};
 
 static void
 Bitstring32WithCP24Time2a_initialize(Bitstring32WithCP24Time2a self)
@@ -1462,16 +1490,18 @@ Bitstring32WithCP24Time2a_destroy(Bitstring32WithCP24Time2a self)
 Bitstring32WithCP24Time2a
 Bitstring32WithCP24Time2a_create(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, const CP24Time2a timestamp)
 {
-	return Bitstring32WithCP24Time2a_createEx(self, ioa, value, IEC60870_QUALITY_GOOD, timestamp);
+    return Bitstring32WithCP24Time2a_createEx(self, ioa, value, IEC60870_QUALITY_GOOD, timestamp);
 }
 
 Bitstring32WithCP24Time2a
-Bitstring32WithCP24Time2a_createEx(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, QualityDescriptor quality, const CP24Time2a timestamp)
+Bitstring32WithCP24Time2a_createEx(Bitstring32WithCP24Time2a self, int ioa, uint32_t value, QualityDescriptor quality,
+                                   const CP24Time2a timestamp)
 {
     if (self == NULL)
-         self = (Bitstring32WithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sBitstring32WithCP24Time2a));
+        self = (Bitstring32WithCP24Time2a)GLOBAL_CALLOC(1, sizeof(struct sBitstring32WithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         Bitstring32WithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -1491,7 +1521,7 @@ Bitstring32WithCP24Time2a_getTimestamp(Bitstring32WithCP24Time2a self)
 
 Bitstring32WithCP24Time2a
 Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 8;
@@ -1499,33 +1529,36 @@ Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, CS101_Ap
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (Bitstring32WithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32WithCP24Time2a));
+        self = (Bitstring32WithCP24Time2a)GLOBAL_MALLOC(sizeof(struct sBitstring32WithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         Bitstring32WithCP24Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         uint32_t value;
 
-        value = msg [startIndex++];
-        value += ((uint32_t)msg [startIndex++] * 0x100);
-        value += ((uint32_t)msg [startIndex++] * 0x10000);
-        value += ((uint32_t)msg [startIndex++] * 0x1000000);
+        value = msg[startIndex++];
+        value += ((uint32_t)msg[startIndex++] * 0x100);
+        value += ((uint32_t)msg[startIndex++] * 0x10000);
+        value += ((uint32_t)msg[startIndex++] * 0x1000000);
         self->value = value;
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
 
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -1539,23 +1572,24 @@ Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, CS101_Ap
  **********************************************/
 
 static bool
-Bitstring32WithCP56Time2a_encode(Bitstring32WithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+Bitstring32WithCP56Time2a_encode(Bitstring32WithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                 bool isSequence)
 {
     int size = isSequence ? 12 : (parameters->sizeOfIOA + 12);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    uint32_t  value = self->value;
+    uint32_t value = self->value;
 
-    Frame_setNextByte(frame, (uint8_t) (value % 0x100));
-    Frame_setNextByte(frame, (uint8_t) ((value / 0x100) % 0x100));
-    Frame_setNextByte(frame, (uint8_t) ((value / 0x10000) % 0x100));
-    Frame_setNextByte(frame, (uint8_t) (value / 0x1000000));
+    Frame_setNextByte(frame, (uint8_t)(value % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((value / 0x100) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((value / 0x10000) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)(value / 0x1000000));
 
-    Frame_setNextByte(frame, (uint8_t) self->quality);
+    Frame_setNextByte(frame, (uint8_t)self->quality);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
@@ -1563,10 +1597,8 @@ Bitstring32WithCP56Time2a_encode(Bitstring32WithCP56Time2a self, Frame frame, CS
     return true;
 }
 
-struct sInformationObjectVFT bitstring32WithCP56Time2aVFT = {
-        (EncodeFunction) Bitstring32WithCP56Time2a_encode,
-        (DestroyFunction) Bitstring32WithCP56Time2a_destroy
-};
+struct sInformationObjectVFT bitstring32WithCP56Time2aVFT = {(EncodeFunction)Bitstring32WithCP56Time2a_encode,
+                                                             (DestroyFunction)Bitstring32WithCP56Time2a_destroy};
 
 static void
 Bitstring32WithCP56Time2a_initialize(Bitstring32WithCP56Time2a self)
@@ -1584,16 +1616,18 @@ Bitstring32WithCP56Time2a_destroy(Bitstring32WithCP56Time2a self)
 Bitstring32WithCP56Time2a
 Bitstring32WithCP56Time2a_create(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, const CP56Time2a timestamp)
 {
-	return Bitstring32WithCP56Time2a_createEx(self, ioa, value, IEC60870_QUALITY_GOOD, timestamp);
+    return Bitstring32WithCP56Time2a_createEx(self, ioa, value, IEC60870_QUALITY_GOOD, timestamp);
 }
 
 Bitstring32WithCP56Time2a
-Bitstring32WithCP56Time2a_createEx(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, QualityDescriptor quality, const CP56Time2a timestamp)
+Bitstring32WithCP56Time2a_createEx(Bitstring32WithCP56Time2a self, int ioa, uint32_t value, QualityDescriptor quality,
+                                   const CP56Time2a timestamp)
 {
     if (self == NULL)
-         self = (Bitstring32WithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sBitstring32WithCP56Time2a));
+        self = (Bitstring32WithCP56Time2a)GLOBAL_CALLOC(1, sizeof(struct sBitstring32WithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         Bitstring32WithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -1613,7 +1647,7 @@ Bitstring32WithCP56Time2a_getTimestamp(Bitstring32WithCP56Time2a self)
 
 Bitstring32WithCP56Time2a
 Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+                                        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 12;
@@ -1621,33 +1655,36 @@ Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, CS101_Ap
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (Bitstring32WithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32WithCP56Time2a));
+        self = (Bitstring32WithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sBitstring32WithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         Bitstring32WithCP56Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         uint32_t value;
 
-        value = msg [startIndex++];
-        value += ((uint32_t)msg [startIndex++] * 0x100);
-        value += ((uint32_t)msg [startIndex++] * 0x10000);
-        value += ((uint32_t)msg [startIndex++] * 0x1000000);
+        value = msg[startIndex++];
+        value += ((uint32_t)msg[startIndex++] * 0x100);
+        value += ((uint32_t)msg[startIndex++] * 0x10000);
+        value += ((uint32_t)msg[startIndex++] * 0x1000000);
         self->value = value;
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -1684,32 +1721,31 @@ setScaledValue(uint8_t* encodedValue, int value)
     else
         valueToEncode = value;
 
-    encodedValue[0] = (uint8_t) (valueToEncode % 256);
-    encodedValue[1] = (uint8_t) (valueToEncode / 256);
+    encodedValue[0] = (uint8_t)(valueToEncode % 256);
+    encodedValue[1] = (uint8_t)(valueToEncode / 256);
 }
 
 static bool
-MeasuredValueNormalized_encode(MeasuredValueNormalized self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+MeasuredValueNormalized_encode(MeasuredValueNormalized self, Frame frame, CS101_AppLayerParameters parameters,
+                               bool isSequence)
 {
     int size = isSequence ? 3 : (parameters->sizeOfIOA + 3);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->encodedValue[0]);
     Frame_setNextByte(frame, self->encodedValue[1]);
 
-    Frame_setNextByte(frame, (uint8_t) self->quality);
+    Frame_setNextByte(frame, (uint8_t)self->quality);
 
     return true;
 }
 
-struct sInformationObjectVFT measuredValueNormalizedVFT = {
-        (EncodeFunction) MeasuredValueNormalized_encode,
-        (DestroyFunction) MeasuredValueNormalized_destroy
-};
+struct sInformationObjectVFT measuredValueNormalizedVFT = {(EncodeFunction)MeasuredValueNormalized_encode,
+                                                           (DestroyFunction)MeasuredValueNormalized_destroy};
 
 static void
 MeasuredValueNormalized_initialize(MeasuredValueNormalized self)
@@ -1728,9 +1764,10 @@ MeasuredValueNormalized
 MeasuredValueNormalized_create(MeasuredValueNormalized self, int ioa, float value, QualityDescriptor quality)
 {
     if (self == NULL)
-        self = (MeasuredValueNormalized) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalized));
+        self = (MeasuredValueNormalized)GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalized));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueNormalized_initialize(self);
 
         self->objectAddress = ioa;
@@ -1762,8 +1799,8 @@ MeasuredValueNormalized_getQuality(MeasuredValueNormalized self)
 }
 
 MeasuredValueNormalized
-MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                      int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 3;
@@ -1771,28 +1808,31 @@ MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, CS101_AppLay
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (MeasuredValueNormalized) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalized));
+        self = (MeasuredValueNormalized)GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalized));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueNormalized_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
-        self->encodedValue[0] = msg [startIndex++];
-        self->encodedValue[1] = msg [startIndex++];
+        self->encodedValue[0] = msg[startIndex++];
+        self->encodedValue[1] = msg[startIndex++];
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
     }
 
     return self;
@@ -1811,10 +1851,10 @@ ParameterNormalizedValue_destroy(ParameterNormalizedValue self)
 ParameterNormalizedValue
 ParameterNormalizedValue_create(ParameterNormalizedValue self, int ioa, float value, QualifierOfParameterMV quality)
 {
-    ParameterNormalizedValue pvn =
-            MeasuredValueNormalized_create(self, ioa, value, (QualityDescriptor) quality);
+    ParameterNormalizedValue pvn = MeasuredValueNormalized_create(self, ioa, value, (QualityDescriptor)quality);
 
-    if (pvn) {
+    if (pvn)
+    {
         pvn->type = P_ME_NA_1;
     }
 
@@ -1840,33 +1880,34 @@ ParameterNormalizedValue_getQPM(ParameterNormalizedValue self)
 }
 
 ParameterNormalizedValue
-ParameterNormalizedValue_getFromBuffer(ParameterNormalizedValue self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+ParameterNormalizedValue_getFromBuffer(ParameterNormalizedValue self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                       int msgSize, int startIndex)
 {
     MeasuredValueNormalized pvn =
-            MeasuredValueNormalized_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
+        MeasuredValueNormalized_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
 
-    if (pvn) {
+    if (pvn)
+    {
         pvn->type = P_ME_NA_1;
     }
 
-    return (ParameterNormalizedValue) pvn;
+    return (ParameterNormalizedValue)pvn;
 }
-
 
 /*************************************************************
  * MeasuredValueNormalizedWithoutQuality : InformationObject
  *************************************************************/
 
 static bool
-MeasuredValueNormalizedWithoutQuality_encode(MeasuredValueNormalizedWithoutQuality self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+MeasuredValueNormalizedWithoutQuality_encode(MeasuredValueNormalizedWithoutQuality self, Frame frame,
+                                             CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 2 : (parameters->sizeOfIOA + 2);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->encodedValue[0]);
     Frame_setNextByte(frame, self->encodedValue[1]);
@@ -1875,9 +1916,8 @@ MeasuredValueNormalizedWithoutQuality_encode(MeasuredValueNormalizedWithoutQuali
 }
 
 struct sInformationObjectVFT measuredValueNormalizedWithoutQualityVFT = {
-        (EncodeFunction) MeasuredValueNormalizedWithoutQuality_encode,
-        (DestroyFunction) MeasuredValueNormalizedWithoutQuality_destroy
-};
+    (EncodeFunction)MeasuredValueNormalizedWithoutQuality_encode,
+    (DestroyFunction)MeasuredValueNormalizedWithoutQuality_destroy};
 
 static void
 MeasuredValueNormalizedWithoutQuality_initialize(MeasuredValueNormalizedWithoutQuality self)
@@ -1896,9 +1936,11 @@ MeasuredValueNormalizedWithoutQuality
 MeasuredValueNormalizedWithoutQuality_create(MeasuredValueNormalizedWithoutQuality self, int ioa, float value)
 {
     if (self == NULL)
-        self = (MeasuredValueNormalizedWithoutQuality) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalizedWithoutQuality));
+        self = (MeasuredValueNormalizedWithoutQuality)GLOBAL_CALLOC(
+            1, sizeof(struct sMeasuredValueNormalizedWithoutQuality));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueNormalizedWithoutQuality_initialize(self);
 
         self->objectAddress = ioa;
@@ -1922,8 +1964,9 @@ MeasuredValueNormalizedWithoutQuality_setValue(MeasuredValueNormalizedWithoutQua
 }
 
 MeasuredValueNormalizedWithoutQuality
-MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWithoutQuality self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWithoutQuality self,
+                                                    CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                    int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 2;
@@ -1931,25 +1974,29 @@ MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWitho
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (MeasuredValueNormalizedWithoutQuality) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithoutQuality));
+        self =
+            (MeasuredValueNormalizedWithoutQuality)GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithoutQuality));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueNormalizedWithoutQuality_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
-        self->encodedValue[0] = msg [startIndex++];
-        self->encodedValue[1] = msg [startIndex++];
+        self->encodedValue[0] = msg[startIndex++];
+        self->encodedValue[1] = msg[startIndex++];
     }
 
     return self;
@@ -1960,14 +2007,15 @@ MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWitho
  ***********************************************************************/
 
 static bool
-MeasuredValueNormalizedWithCP24Time2a_encode(MeasuredValueNormalizedWithCP24Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+MeasuredValueNormalizedWithCP24Time2a_encode(MeasuredValueNormalizedWithCP24Time2a self, Frame frame,
+                                             CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 6 : (parameters->sizeOfIOA + 6);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
+    MeasuredValueNormalized_encode((MeasuredValueNormalized)self, frame, parameters, isSequence);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
@@ -1976,9 +2024,8 @@ MeasuredValueNormalizedWithCP24Time2a_encode(MeasuredValueNormalizedWithCP24Time
 }
 
 struct sInformationObjectVFT measuredValueNormalizedWithCP24Time2aVFT = {
-        (EncodeFunction) MeasuredValueNormalizedWithCP24Time2a_encode,
-        (DestroyFunction) MeasuredValueNormalizedWithCP24Time2a_destroy
-};
+    (EncodeFunction)MeasuredValueNormalizedWithCP24Time2a_encode,
+    (DestroyFunction)MeasuredValueNormalizedWithCP24Time2a_destroy};
 
 static void
 MeasuredValueNormalizedWithCP24Time2a_initialize(MeasuredValueNormalizedWithCP24Time2a self)
@@ -1994,18 +2041,20 @@ MeasuredValueNormalizedWithCP24Time2a_destroy(MeasuredValueNormalizedWithCP24Tim
 }
 
 MeasuredValueNormalizedWithCP24Time2a
-MeasuredValueNormalizedWithCP24Time2a_create(MeasuredValueNormalizedWithCP24Time2a self, int ioa,
-            float value, QualityDescriptor quality, const CP24Time2a timestamp)
+MeasuredValueNormalizedWithCP24Time2a_create(MeasuredValueNormalizedWithCP24Time2a self, int ioa, float value,
+                                             QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
-        self = (MeasuredValueNormalizedWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalizedWithCP24Time2a));
+        self = (MeasuredValueNormalizedWithCP24Time2a)GLOBAL_CALLOC(
+            1, sizeof(struct sMeasuredValueNormalizedWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueNormalizedWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
 
-        MeasuredValueNormalized_setValue((MeasuredValueNormalized) self, value);
+        MeasuredValueNormalized_setValue((MeasuredValueNormalized)self, value);
 
         self->quality = quality;
         self->timestamp = *timestamp;
@@ -2021,18 +2070,19 @@ MeasuredValueNormalizedWithCP24Time2a_getTimestamp(MeasuredValueNormalizedWithCP
 }
 
 void
-MeasuredValueNormalizedWithCP24Time2a_setTimestamp(MeasuredValueNormalizedWithCP24Time2a self,
-        CP24Time2a value)
+MeasuredValueNormalizedWithCP24Time2a_setTimestamp(MeasuredValueNormalizedWithCP24Time2a self, CP24Time2a value)
 {
     int i;
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 3; i++)
+    {
         self->timestamp.encodedValue[i] = value->encodedValue[i];
     }
 }
 
 MeasuredValueNormalizedWithCP24Time2a
-MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithCP24Time2a self,
+                                                    CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                    int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 6;
@@ -2040,28 +2090,32 @@ MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithC
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (MeasuredValueNormalizedWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP24Time2a));
+        self =
+            (MeasuredValueNormalizedWithCP24Time2a)GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueNormalizedWithCP24Time2a_initialize(self);
 
-        if (!isSequence) {
-             InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
-             startIndex += parameters->sizeOfIOA; /* skip IOA */
-         }
+            startIndex += parameters->sizeOfIOA; /* skip IOA */
+        }
 
-        self->encodedValue[0] = msg [startIndex++];
-        self->encodedValue[1] = msg [startIndex++];
+        self->encodedValue[0] = msg[startIndex++];
+        self->encodedValue[1] = msg[startIndex++];
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
 
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -2075,14 +2129,15 @@ MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithC
  ***********************************************************************/
 
 static bool
-MeasuredValueNormalizedWithCP56Time2a_encode(MeasuredValueNormalizedWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+MeasuredValueNormalizedWithCP56Time2a_encode(MeasuredValueNormalizedWithCP56Time2a self, Frame frame,
+                                             CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 10 : (parameters->sizeOfIOA + 10);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
+    MeasuredValueNormalized_encode((MeasuredValueNormalized)self, frame, parameters, isSequence);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
@@ -2091,9 +2146,8 @@ MeasuredValueNormalizedWithCP56Time2a_encode(MeasuredValueNormalizedWithCP56Time
 }
 
 struct sInformationObjectVFT measuredValueNormalizedWithCP56Time2aVFT = {
-        (EncodeFunction) MeasuredValueNormalizedWithCP56Time2a_encode,
-        (DestroyFunction) MeasuredValueNormalizedWithCP56Time2a_destroy
-};
+    (EncodeFunction)MeasuredValueNormalizedWithCP56Time2a_encode,
+    (DestroyFunction)MeasuredValueNormalizedWithCP56Time2a_destroy};
 
 static void
 MeasuredValueNormalizedWithCP56Time2a_initialize(MeasuredValueNormalizedWithCP56Time2a self)
@@ -2109,18 +2163,20 @@ MeasuredValueNormalizedWithCP56Time2a_destroy(MeasuredValueNormalizedWithCP56Tim
 }
 
 MeasuredValueNormalizedWithCP56Time2a
-MeasuredValueNormalizedWithCP56Time2a_create(MeasuredValueNormalizedWithCP56Time2a self, int ioa,
-            float value, QualityDescriptor quality, const CP56Time2a timestamp)
+MeasuredValueNormalizedWithCP56Time2a_create(MeasuredValueNormalizedWithCP56Time2a self, int ioa, float value,
+                                             QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (MeasuredValueNormalizedWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueNormalizedWithCP56Time2a));
+        self = (MeasuredValueNormalizedWithCP56Time2a)GLOBAL_CALLOC(
+            1, sizeof(struct sMeasuredValueNormalizedWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueNormalizedWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
 
-        MeasuredValueNormalized_setValue((MeasuredValueNormalized) self, value);
+        MeasuredValueNormalized_setValue((MeasuredValueNormalized)self, value);
 
         self->quality = quality;
         self->timestamp = *timestamp;
@@ -2136,18 +2192,19 @@ MeasuredValueNormalizedWithCP56Time2a_getTimestamp(MeasuredValueNormalizedWithCP
 }
 
 void
-MeasuredValueNormalizedWithCP56Time2a_setTimestamp(MeasuredValueNormalizedWithCP56Time2a self,
-        CP56Time2a value)
+MeasuredValueNormalizedWithCP56Time2a_setTimestamp(MeasuredValueNormalizedWithCP56Time2a self, CP56Time2a value)
 {
     int i;
-    for (i = 0; i < 7; i++) {
+    for (i = 0; i < 7; i++)
+    {
         self->timestamp.encodedValue[i] = value->encodedValue[i];
     }
 }
 
 MeasuredValueNormalizedWithCP56Time2a
-MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithCP56Time2a self,
+                                                    CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                    int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 10;
@@ -2155,28 +2212,32 @@ MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithC
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (MeasuredValueNormalizedWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP56Time2a));
+        self =
+            (MeasuredValueNormalizedWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sMeasuredValueNormalizedWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueNormalizedWithCP56Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
-        self->encodedValue[0] = msg [startIndex++];
-        self->encodedValue[1] = msg [startIndex++];
+        self->encodedValue[0] = msg[startIndex++];
+        self->encodedValue[1] = msg[startIndex++];
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -2192,13 +2253,11 @@ MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithC
 static bool
 MeasuredValueScaled_encode(MeasuredValueScaled self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
 {
-    return MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
+    return MeasuredValueNormalized_encode((MeasuredValueNormalized)self, frame, parameters, isSequence);
 }
 
-struct sInformationObjectVFT measuredValueScaledVFT = {
-        (EncodeFunction) MeasuredValueScaled_encode,
-        (DestroyFunction) MeasuredValueScaled_destroy
-};
+struct sInformationObjectVFT measuredValueScaledVFT = {(EncodeFunction)MeasuredValueScaled_encode,
+                                                       (DestroyFunction)MeasuredValueScaled_destroy};
 
 static void
 MeasuredValueScaled_initialize(MeasuredValueScaled self)
@@ -2211,9 +2270,10 @@ MeasuredValueScaled
 MeasuredValueScaled_create(MeasuredValueScaled self, int ioa, int value, QualityDescriptor quality)
 {
     if (self == NULL)
-        self = (MeasuredValueScaled) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaled));
+        self = (MeasuredValueScaled)GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaled));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueScaled_initialize(self);
 
         self->objectAddress = ioa;
@@ -2255,8 +2315,8 @@ MeasuredValueScaled_setQuality(MeasuredValueScaled self, QualityDescriptor quali
 }
 
 MeasuredValueScaled
-MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                  int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 3;
@@ -2264,28 +2324,31 @@ MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, CS101_AppLayerParame
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (MeasuredValueScaled) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaled));
+        self = (MeasuredValueScaled)GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaled));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueScaled_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
-        self->encodedValue[0] = msg [startIndex++];
-        self->encodedValue[1] = msg [startIndex++];
+        self->encodedValue[0] = msg[startIndex++];
+        self->encodedValue[1] = msg[startIndex++];
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
     }
 
     return self;
@@ -2304,10 +2367,10 @@ ParameterScaledValue_destroy(ParameterScaledValue self)
 ParameterScaledValue
 ParameterScaledValue_create(ParameterScaledValue self, int ioa, int value, QualifierOfParameterMV qpm)
 {
-    ParameterScaledValue pvn =
-            MeasuredValueScaled_create(self, ioa, value, qpm);
+    ParameterScaledValue pvn = MeasuredValueScaled_create(self, ioa, value, qpm);
 
-    if (pvn) {
+    if (pvn)
+    {
         pvn->type = P_ME_NB_1;
     }
 
@@ -2333,17 +2396,17 @@ ParameterScaledValue_getQPM(ParameterScaledValue self)
 }
 
 ParameterScaledValue
-ParameterScaledValue_getFromBuffer(ParameterScaledValue self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+ParameterScaledValue_getFromBuffer(ParameterScaledValue self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                   int msgSize, int startIndex)
 {
-    MeasuredValueScaled psv =
-            MeasuredValueScaled_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
+    MeasuredValueScaled psv = MeasuredValueScaled_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
 
-    if (psv) {
+    if (psv)
+    {
         psv->type = P_ME_NB_1;
     }
 
-    return (ParameterScaledValue) psv;
+    return (ParameterScaledValue)psv;
 }
 
 /*******************************************
@@ -2351,14 +2414,15 @@ ParameterScaledValue_getFromBuffer(ParameterScaledValue self, CS101_AppLayerPara
  *******************************************/
 
 static bool
-MeasuredValueScaledWithCP24Time2a_encode(MeasuredValueScaledWithCP24Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+MeasuredValueScaledWithCP24Time2a_encode(MeasuredValueScaledWithCP24Time2a self, Frame frame,
+                                         CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 6 : (parameters->sizeOfIOA + 6);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
+    MeasuredValueNormalized_encode((MeasuredValueNormalized)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
 
@@ -2366,9 +2430,7 @@ MeasuredValueScaledWithCP24Time2a_encode(MeasuredValueScaledWithCP24Time2a self,
 }
 
 struct sInformationObjectVFT measuredValueScaledWithCP24Time2aVFT = {
-        (EncodeFunction) MeasuredValueScaledWithCP24Time2a_encode,
-        (DestroyFunction) MeasuredValueScaled_destroy
-};
+    (EncodeFunction)MeasuredValueScaledWithCP24Time2a_encode, (DestroyFunction)MeasuredValueScaled_destroy};
 
 static void
 MeasuredValueScaledWithCP24Time2a_initialize(MeasuredValueScaledWithCP24Time2a self)
@@ -2384,13 +2446,14 @@ MeasuredValueScaledWithCP24Time2a_destroy(MeasuredValueScaledWithCP24Time2a self
 }
 
 MeasuredValueScaledWithCP24Time2a
-MeasuredValueScaledWithCP24Time2a_create(MeasuredValueScaledWithCP24Time2a self, int ioa,
-        int value, QualityDescriptor quality, const CP24Time2a timestamp)
+MeasuredValueScaledWithCP24Time2a_create(MeasuredValueScaledWithCP24Time2a self, int ioa, int value,
+                                         QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
-        self = (MeasuredValueScaledWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaledWithCP24Time2a));
+        self = (MeasuredValueScaledWithCP24Time2a)GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaledWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueScaledWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -2409,18 +2472,19 @@ MeasuredValueScaledWithCP24Time2a_getTimestamp(MeasuredValueScaledWithCP24Time2a
 }
 
 void
-MeasuredValueScaledWithCP24Time2a_setTimestamp(MeasuredValueScaledWithCP24Time2a self,
-        CP24Time2a value)
+MeasuredValueScaledWithCP24Time2a_setTimestamp(MeasuredValueScaledWithCP24Time2a self, CP24Time2a value)
 {
     int i;
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 3; i++)
+    {
         self->timestamp.encodedValue[i] = value->encodedValue[i];
     }
 }
 
 MeasuredValueScaledWithCP24Time2a
-MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2a self,
+                                                CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 6;
@@ -2428,28 +2492,31 @@ MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (MeasuredValueScaledWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP24Time2a));
+        self = (MeasuredValueScaledWithCP24Time2a)GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueScaledWithCP24Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
-        self->encodedValue[0] = msg [startIndex++];
-        self->encodedValue[1] = msg [startIndex++];
+        self->encodedValue[0] = msg[startIndex++];
+        self->encodedValue[1] = msg[startIndex++];
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
 
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -2463,14 +2530,15 @@ MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2
  *******************************************/
 
 static bool
-MeasuredValueScaledWithCP56Time2a_encode(MeasuredValueScaledWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+MeasuredValueScaledWithCP56Time2a_encode(MeasuredValueScaledWithCP56Time2a self, Frame frame,
+                                         CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 10 : (parameters->sizeOfIOA + 10);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    MeasuredValueNormalized_encode((MeasuredValueNormalized) self, frame, parameters, isSequence);
+    MeasuredValueNormalized_encode((MeasuredValueNormalized)self, frame, parameters, isSequence);
 
     /* timestamp */
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
@@ -2479,9 +2547,8 @@ MeasuredValueScaledWithCP56Time2a_encode(MeasuredValueScaledWithCP56Time2a self,
 }
 
 struct sInformationObjectVFT measuredValueScaledWithCP56Time2aVFT = {
-        (EncodeFunction) MeasuredValueScaledWithCP56Time2a_encode,
-        (DestroyFunction) MeasuredValueScaledWithCP56Time2a_destroy
-};
+    (EncodeFunction)MeasuredValueScaledWithCP56Time2a_encode,
+    (DestroyFunction)MeasuredValueScaledWithCP56Time2a_destroy};
 
 static void
 MeasuredValueScaledWithCP56Time2a_initialize(MeasuredValueScaledWithCP56Time2a self)
@@ -2497,13 +2564,14 @@ MeasuredValueScaledWithCP56Time2a_destroy(MeasuredValueScaledWithCP56Time2a self
 }
 
 MeasuredValueScaledWithCP56Time2a
-MeasuredValueScaledWithCP56Time2a_create(MeasuredValueScaledWithCP56Time2a self, int ioa,
-        int value, QualityDescriptor quality, const CP56Time2a timestamp)
+MeasuredValueScaledWithCP56Time2a_create(MeasuredValueScaledWithCP56Time2a self, int ioa, int value,
+                                         QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (MeasuredValueScaledWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaledWithCP56Time2a));
+        self = (MeasuredValueScaledWithCP56Time2a)GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueScaledWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueScaledWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -2522,18 +2590,19 @@ MeasuredValueScaledWithCP56Time2a_getTimestamp(MeasuredValueScaledWithCP56Time2a
 }
 
 void
-MeasuredValueScaledWithCP56Time2a_setTimestamp(MeasuredValueScaledWithCP56Time2a self,
-        CP56Time2a value)
+MeasuredValueScaledWithCP56Time2a_setTimestamp(MeasuredValueScaledWithCP56Time2a self, CP56Time2a value)
 {
     int i;
-    for (i = 0; i < 7; i++) {
+    for (i = 0; i < 7; i++)
+    {
         self->timestamp.encodedValue[i] = value->encodedValue[i];
     }
 }
 
 MeasuredValueScaledWithCP56Time2a
-MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2a self,
+                                                CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 10;
@@ -2541,29 +2610,32 @@ MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (MeasuredValueScaledWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP56Time2a));
+        self = (MeasuredValueScaledWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sMeasuredValueScaledWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueScaledWithCP56Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
         /* scaled value */
-        self->encodedValue[0] = msg [startIndex++];
-        self->encodedValue[1] = msg [startIndex++];
+        self->encodedValue[0] = msg[startIndex++];
+        self->encodedValue[1] = msg[startIndex++];
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -2584,9 +2656,9 @@ MeasuredValueShort_encode(MeasuredValueShort self, Frame frame, CS101_AppLayerPa
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    uint8_t* valueBytes = (uint8_t*) &(self->value);
+    uint8_t* valueBytes = (uint8_t*)&(self->value);
 
 #if (ORDER_LITTLE_ENDIAN == 1)
     Frame_appendBytes(frame, valueBytes, 4);
@@ -2597,15 +2669,13 @@ MeasuredValueShort_encode(MeasuredValueShort self, Frame frame, CS101_AppLayerPa
     Frame_setNextByte(frame, valueBytes[0]);
 #endif
 
-    Frame_setNextByte(frame, (uint8_t) self->quality);
+    Frame_setNextByte(frame, (uint8_t)self->quality);
 
     return true;
 }
 
-struct sInformationObjectVFT measuredValueShortVFT = {
-        (EncodeFunction) MeasuredValueShort_encode,
-        (DestroyFunction) MeasuredValueShort_destroy
-};
+struct sInformationObjectVFT measuredValueShortVFT = {(EncodeFunction)MeasuredValueShort_encode,
+                                                      (DestroyFunction)MeasuredValueShort_destroy};
 
 static void
 MeasuredValueShort_initialize(MeasuredValueShort self)
@@ -2624,9 +2694,10 @@ MeasuredValueShort
 MeasuredValueShort_create(MeasuredValueShort self, int ioa, float value, QualityDescriptor quality)
 {
     if (self == NULL)
-        self = (MeasuredValueShort) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShort));
+        self = (MeasuredValueShort)GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShort));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueShort_initialize(self);
 
         self->objectAddress = ioa;
@@ -2656,8 +2727,8 @@ MeasuredValueShort_getQuality(MeasuredValueShort self)
 }
 
 MeasuredValueShort
-MeasuredValueShort_getFromBuffer(MeasuredValueShort self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+MeasuredValueShort_getFromBuffer(MeasuredValueShort self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                 int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 5;
@@ -2665,39 +2736,42 @@ MeasuredValueShort_getFromBuffer(MeasuredValueShort self, CS101_AppLayerParamete
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (MeasuredValueShort) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShort));
+        self = (MeasuredValueShort)GLOBAL_MALLOC(sizeof(struct sMeasuredValueShort));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueShort_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
-        uint8_t* valueBytes = (uint8_t*) &(self->value);
+        uint8_t* valueBytes = (uint8_t*)&(self->value);
 
 #if (ORDER_LITTLE_ENDIAN == 1)
-        valueBytes[0] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[3] = msg [startIndex++];
+        valueBytes[0] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[3] = msg[startIndex++];
 #else
-        valueBytes[3] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[0] = msg [startIndex++];
+        valueBytes[3] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[0] = msg[startIndex++];
 #endif
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
     }
 
     return self;
@@ -2716,10 +2790,10 @@ ParameterFloatValue_destroy(ParameterFloatValue self)
 ParameterFloatValue
 ParameterFloatValue_create(ParameterFloatValue self, int ioa, float value, QualifierOfParameterMV qpm)
 {
-    ParameterFloatValue pvf =
-            MeasuredValueShort_create(self, ioa, value, (QualityDescriptor) qpm);
+    ParameterFloatValue pvf = MeasuredValueShort_create(self, ioa, value, (QualityDescriptor)qpm);
 
-    if (pvf) {
+    if (pvf)
+    {
         pvf->type = P_ME_NC_1;
     }
 
@@ -2745,17 +2819,17 @@ ParameterFloatValue_getQPM(ParameterFloatValue self)
 }
 
 ParameterFloatValue
-ParameterFloatValue_getFromBuffer(ParameterFloatValue self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+ParameterFloatValue_getFromBuffer(ParameterFloatValue self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                  int msgSize, int startIndex)
 {
-    ParameterFloatValue psv =
-            MeasuredValueShort_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
+    ParameterFloatValue psv = MeasuredValueShort_getFromBuffer(self, parameters, msg, msgSize, startIndex, false);
 
-    if (psv) {
+    if (psv)
+    {
         psv->type = P_ME_NC_1;
     }
 
-    return (ParameterFloatValue) psv;
+    return (ParameterFloatValue)psv;
 }
 
 /*******************************************
@@ -2763,14 +2837,15 @@ ParameterFloatValue_getFromBuffer(ParameterFloatValue self, CS101_AppLayerParame
  *******************************************/
 
 static bool
-MeasuredValueShortWithCP24Time2a_encode(MeasuredValueShortWithCP24Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+MeasuredValueShortWithCP24Time2a_encode(MeasuredValueShortWithCP24Time2a self, Frame frame,
+                                        CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    MeasuredValueShort_encode((MeasuredValueShort) self, frame, parameters, isSequence);
+    MeasuredValueShort_encode((MeasuredValueShort)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
 
@@ -2778,9 +2853,7 @@ MeasuredValueShortWithCP24Time2a_encode(MeasuredValueShortWithCP24Time2a self, F
 }
 
 struct sInformationObjectVFT measuredValueShortWithCP24Time2aVFT = {
-        (EncodeFunction) MeasuredValueShortWithCP24Time2a_encode,
-        (DestroyFunction) MeasuredValueShortWithCP24Time2a_destroy
-};
+    (EncodeFunction)MeasuredValueShortWithCP24Time2a_encode, (DestroyFunction)MeasuredValueShortWithCP24Time2a_destroy};
 
 static void
 MeasuredValueShortWithCP24Time2a_initialize(MeasuredValueShortWithCP24Time2a self)
@@ -2796,13 +2869,14 @@ MeasuredValueShortWithCP24Time2a_destroy(MeasuredValueShortWithCP24Time2a self)
 }
 
 MeasuredValueShortWithCP24Time2a
-MeasuredValueShortWithCP24Time2a_create(MeasuredValueShortWithCP24Time2a self, int ioa,
-        float value, QualityDescriptor quality, const CP24Time2a timestamp)
+MeasuredValueShortWithCP24Time2a_create(MeasuredValueShortWithCP24Time2a self, int ioa, float value,
+                                        QualityDescriptor quality, const CP24Time2a timestamp)
 {
     if (self == NULL)
-        self = (MeasuredValueShortWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShortWithCP24Time2a));
+        self = (MeasuredValueShortWithCP24Time2a)GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShortWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueShortWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -2821,18 +2895,19 @@ MeasuredValueShortWithCP24Time2a_getTimestamp(MeasuredValueShortWithCP24Time2a s
 }
 
 void
-MeasuredValueShortWithCP24Time2a_setTimestamp(MeasuredValueShortWithCP24Time2a self,
-        CP24Time2a value)
+MeasuredValueShortWithCP24Time2a_setTimestamp(MeasuredValueShortWithCP24Time2a self, CP24Time2a value)
 {
     int i;
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 3; i++)
+    {
         self->timestamp.encodedValue[i] = value->encodedValue[i];
     }
 }
 
 MeasuredValueShortWithCP24Time2a
-MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a self,
+                                               CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                               int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 8;
@@ -2840,39 +2915,42 @@ MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a 
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (MeasuredValueShortWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP24Time2a));
+        self = (MeasuredValueShortWithCP24Time2a)GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueShortWithCP24Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
-        uint8_t* valueBytes = (uint8_t*) &(self->value);
+        uint8_t* valueBytes = (uint8_t*)&(self->value);
 
 #if (ORDER_LITTLE_ENDIAN == 1)
-        valueBytes[0] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[3] = msg [startIndex++];
+        valueBytes[0] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[3] = msg[startIndex++];
 #else
-        valueBytes[3] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[0] = msg [startIndex++];
+        valueBytes[3] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[0] = msg[startIndex++];
 #endif
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
 
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -2886,14 +2964,15 @@ MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a 
  *******************************************/
 
 static bool
-MeasuredValueShortWithCP56Time2a_encode(MeasuredValueShortWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+MeasuredValueShortWithCP56Time2a_encode(MeasuredValueShortWithCP56Time2a self, Frame frame,
+                                        CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 12 : (parameters->sizeOfIOA + 12);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    MeasuredValueShort_encode((MeasuredValueShort) self, frame, parameters, isSequence);
+    MeasuredValueShort_encode((MeasuredValueShort)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 
@@ -2901,9 +2980,7 @@ MeasuredValueShortWithCP56Time2a_encode(MeasuredValueShortWithCP56Time2a self, F
 }
 
 struct sInformationObjectVFT measuredValueShortWithCP56Time2aVFT = {
-        (EncodeFunction) MeasuredValueShortWithCP56Time2a_encode,
-        (DestroyFunction) MeasuredValueShortWithCP56Time2a_destroy
-};
+    (EncodeFunction)MeasuredValueShortWithCP56Time2a_encode, (DestroyFunction)MeasuredValueShortWithCP56Time2a_destroy};
 
 static void
 MeasuredValueShortWithCP56Time2a_initialize(MeasuredValueShortWithCP56Time2a self)
@@ -2919,13 +2996,14 @@ MeasuredValueShortWithCP56Time2a_destroy(MeasuredValueShortWithCP56Time2a self)
 }
 
 MeasuredValueShortWithCP56Time2a
-MeasuredValueShortWithCP56Time2a_create(MeasuredValueShortWithCP56Time2a self, int ioa,
-        float value, QualityDescriptor quality, const CP56Time2a timestamp)
+MeasuredValueShortWithCP56Time2a_create(MeasuredValueShortWithCP56Time2a self, int ioa, float value,
+                                        QualityDescriptor quality, const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (MeasuredValueShortWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShortWithCP56Time2a));
+        self = (MeasuredValueShortWithCP56Time2a)GLOBAL_CALLOC(1, sizeof(struct sMeasuredValueShortWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueShortWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -2944,18 +3022,19 @@ MeasuredValueShortWithCP56Time2a_getTimestamp(MeasuredValueShortWithCP56Time2a s
 }
 
 void
-MeasuredValueShortWithCP56Time2a_setTimestamp(MeasuredValueShortWithCP56Time2a self,
-        CP56Time2a value)
+MeasuredValueShortWithCP56Time2a_setTimestamp(MeasuredValueShortWithCP56Time2a self, CP56Time2a value)
 {
     int i;
-    for (i = 0; i < 7; i++) {
+    for (i = 0; i < 7; i++)
+    {
         self->timestamp.encodedValue[i] = value->encodedValue[i];
     }
 }
 
 MeasuredValueShortWithCP56Time2a
-MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a self,
+                                               CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                               int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 12;
@@ -2963,39 +3042,42 @@ MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a 
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (MeasuredValueShortWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP56Time2a));
+        self = (MeasuredValueShortWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sMeasuredValueShortWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         MeasuredValueShortWithCP56Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
 
-        uint8_t* valueBytes = (uint8_t*) &(self->value);
+        uint8_t* valueBytes = (uint8_t*)&(self->value);
 
 #if (ORDER_LITTLE_ENDIAN == 1)
-        valueBytes[0] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[3] = msg [startIndex++];
+        valueBytes[0] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[3] = msg[startIndex++];
 #else
-        valueBytes[3] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[0] = msg [startIndex++];
+        valueBytes[3] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[0] = msg[startIndex++];
 #endif
 
         /* quality */
-        self->quality = (QualityDescriptor) msg [startIndex++];
+        self->quality = (QualityDescriptor)msg[startIndex++];
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -3016,17 +3098,15 @@ IntegratedTotals_encode(IntegratedTotals self, Frame frame, CS101_AppLayerParame
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->totals.encodedValue, 5);
 
     return true;
 }
 
-struct sInformationObjectVFT integratedTotalsVFT = {
-        (EncodeFunction) IntegratedTotals_encode,
-        (DestroyFunction) IntegratedTotals_destroy
-};
+struct sInformationObjectVFT integratedTotalsVFT = {(EncodeFunction)IntegratedTotals_encode,
+                                                    (DestroyFunction)IntegratedTotals_destroy};
 
 static void
 IntegratedTotals_initialize(IntegratedTotals self)
@@ -3045,9 +3125,10 @@ IntegratedTotals
 IntegratedTotals_create(IntegratedTotals self, int ioa, const BinaryCounterReading value)
 {
     if (self == NULL)
-        self = (IntegratedTotals) GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotals));
+        self = (IntegratedTotals)GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotals));
 
-    if (self) {
+    if (self)
+    {
         IntegratedTotals_initialize(self);
 
         self->objectAddress = ioa;
@@ -3073,8 +3154,8 @@ IntegratedTotals_setBCR(IntegratedTotals self, BinaryCounterReading value)
 }
 
 IntegratedTotals
-IntegratedTotals_getFromBuffer(IntegratedTotals self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+IntegratedTotals_getFromBuffer(IntegratedTotals self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                               int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 5;
@@ -3082,19 +3163,22 @@ IntegratedTotals_getFromBuffer(IntegratedTotals self, CS101_AppLayerParameters p
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (IntegratedTotals) GLOBAL_MALLOC(sizeof(struct sIntegratedTotals));
+        self = (IntegratedTotals)GLOBAL_MALLOC(sizeof(struct sIntegratedTotals));
 
-    if (self) {
+    if (self)
+    {
         IntegratedTotals_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3103,7 +3187,7 @@ IntegratedTotals_getFromBuffer(IntegratedTotals self, CS101_AppLayerParameters p
         int i = 0;
 
         for (i = 0; i < 5; i++)
-            self->totals.encodedValue[i] = msg [startIndex++];
+            self->totals.encodedValue[i] = msg[startIndex++];
     }
 
     return self;
@@ -3114,14 +3198,15 @@ IntegratedTotals_getFromBuffer(IntegratedTotals self, CS101_AppLayerParameters p
  ***********************************************************************/
 
 static bool
-IntegratedTotalsWithCP24Time2a_encode(IntegratedTotalsWithCP24Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+IntegratedTotalsWithCP24Time2a_encode(IntegratedTotalsWithCP24Time2a self, Frame frame,
+                                      CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    IntegratedTotals_encode((IntegratedTotals) self, frame, parameters, isSequence);
+    IntegratedTotals_encode((IntegratedTotals)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 3);
 
@@ -3129,9 +3214,7 @@ IntegratedTotalsWithCP24Time2a_encode(IntegratedTotalsWithCP24Time2a self, Frame
 }
 
 struct sInformationObjectVFT integratedTotalsWithCP24Time2aVFT = {
-        (EncodeFunction) IntegratedTotalsWithCP24Time2a_encode,
-        (DestroyFunction) IntegratedTotalsWithCP24Time2a_destroy
-};
+    (EncodeFunction)IntegratedTotalsWithCP24Time2a_encode, (DestroyFunction)IntegratedTotalsWithCP24Time2a_destroy};
 
 static void
 IntegratedTotalsWithCP24Time2a_initialize(IntegratedTotalsWithCP24Time2a self)
@@ -3147,13 +3230,14 @@ IntegratedTotalsWithCP24Time2a_destroy(IntegratedTotalsWithCP24Time2a self)
 }
 
 IntegratedTotalsWithCP24Time2a
-IntegratedTotalsWithCP24Time2a_create(IntegratedTotalsWithCP24Time2a self, int ioa,
-        const BinaryCounterReading value, const CP24Time2a timestamp)
+IntegratedTotalsWithCP24Time2a_create(IntegratedTotalsWithCP24Time2a self, int ioa, const BinaryCounterReading value,
+                                      const CP24Time2a timestamp)
 {
     if (self == NULL)
-        self = (IntegratedTotalsWithCP24Time2a) GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotalsWithCP24Time2a));
+        self = (IntegratedTotalsWithCP24Time2a)GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotalsWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         IntegratedTotalsWithCP24Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -3171,18 +3255,18 @@ IntegratedTotalsWithCP24Time2a_getTimestamp(IntegratedTotalsWithCP24Time2a self)
 }
 
 void
-IntegratedTotalsWithCP24Time2a_setTimestamp(IntegratedTotalsWithCP24Time2a self,
-        CP24Time2a value)
+IntegratedTotalsWithCP24Time2a_setTimestamp(IntegratedTotalsWithCP24Time2a self, CP24Time2a value)
 {
     int i;
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 3; i++)
+    {
         self->timestamp.encodedValue[i] = value->encodedValue[i];
     }
 }
 
 IntegratedTotalsWithCP24Time2a
 IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+                                             uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 8;
@@ -3190,19 +3274,22 @@ IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (IntegratedTotalsWithCP24Time2a) GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP24Time2a));
+        self = (IntegratedTotalsWithCP24Time2a)GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP24Time2a));
 
-    if (self) {
+    if (self)
+    {
         IntegratedTotalsWithCP24Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3211,7 +3298,7 @@ IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self
         int i = 0;
 
         for (i = 0; i < 5; i++)
-            self->totals.encodedValue[i] = msg [startIndex++];
+            self->totals.encodedValue[i] = msg[startIndex++];
 
         /* timestamp */
         CP24Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -3224,16 +3311,16 @@ IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self
  * IntegratedTotalsWithCP56Time2a : IntegratedTotals
  ***********************************************************************/
 
-
 static bool
-IntegratedTotalsWithCP56Time2a_encode(IntegratedTotalsWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+IntegratedTotalsWithCP56Time2a_encode(IntegratedTotalsWithCP56Time2a self, Frame frame,
+                                      CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 12 : (parameters->sizeOfIOA + 12);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    IntegratedTotals_encode((IntegratedTotals) self, frame, parameters, isSequence);
+    IntegratedTotals_encode((IntegratedTotals)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 
@@ -3241,9 +3328,7 @@ IntegratedTotalsWithCP56Time2a_encode(IntegratedTotalsWithCP56Time2a self, Frame
 }
 
 struct sInformationObjectVFT integratedTotalsWithCP56Time2aVFT = {
-        (EncodeFunction) IntegratedTotalsWithCP56Time2a_encode,
-        (DestroyFunction) IntegratedTotalsWithCP56Time2a_destroy
-};
+    (EncodeFunction)IntegratedTotalsWithCP56Time2a_encode, (DestroyFunction)IntegratedTotalsWithCP56Time2a_destroy};
 
 static void
 IntegratedTotalsWithCP56Time2a_initialize(IntegratedTotalsWithCP56Time2a self)
@@ -3259,13 +3344,14 @@ IntegratedTotalsWithCP56Time2a_destroy(IntegratedTotalsWithCP56Time2a self)
 }
 
 IntegratedTotalsWithCP56Time2a
-IntegratedTotalsWithCP56Time2a_create(IntegratedTotalsWithCP56Time2a self, int ioa,
-        const BinaryCounterReading value, const CP56Time2a timestamp)
+IntegratedTotalsWithCP56Time2a_create(IntegratedTotalsWithCP56Time2a self, int ioa, const BinaryCounterReading value,
+                                      const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (IntegratedTotalsWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotalsWithCP56Time2a));
+        self = (IntegratedTotalsWithCP56Time2a)GLOBAL_CALLOC(1, sizeof(struct sIntegratedTotalsWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         IntegratedTotalsWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -3283,18 +3369,18 @@ IntegratedTotalsWithCP56Time2a_getTimestamp(IntegratedTotalsWithCP56Time2a self)
 }
 
 void
-IntegratedTotalsWithCP56Time2a_setTimestamp(IntegratedTotalsWithCP56Time2a self,
-        CP56Time2a value)
+IntegratedTotalsWithCP56Time2a_setTimestamp(IntegratedTotalsWithCP56Time2a self, CP56Time2a value)
 {
     int i;
-    for (i = 0; i < 7; i++) {
+    for (i = 0; i < 7; i++)
+    {
         self->timestamp.encodedValue[i] = value->encodedValue[i];
     }
 }
 
 IntegratedTotalsWithCP56Time2a
 IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+                                             uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 12;
@@ -3302,19 +3388,22 @@ IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (IntegratedTotalsWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP56Time2a));
+        self = (IntegratedTotalsWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sIntegratedTotalsWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         IntegratedTotalsWithCP56Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3323,7 +3412,7 @@ IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self
         int i = 0;
 
         for (i = 0; i < 5; i++)
-            self->totals.encodedValue[i] = msg [startIndex++];
+            self->totals.encodedValue[i] = msg[startIndex++];
 
         /* timestamp */
         CP56Time2a_getFromBuffer(&(self->timestamp), msg, msgSize, startIndex);
@@ -3337,16 +3426,17 @@ IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self
  ***********************************************************************/
 
 static bool
-EventOfProtectionEquipment_encode(EventOfProtectionEquipment self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+EventOfProtectionEquipment_encode(EventOfProtectionEquipment self, Frame frame, CS101_AppLayerParameters parameters,
+                                  bool isSequence)
 {
     int size = isSequence ? 6 : (parameters->sizeOfIOA + 6);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte(frame, (uint8_t) self->event);
+    Frame_setNextByte(frame, (uint8_t)self->event);
 
     Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
 
@@ -3355,10 +3445,8 @@ EventOfProtectionEquipment_encode(EventOfProtectionEquipment self, Frame frame, 
     return true;
 }
 
-struct sInformationObjectVFT eventOfProtectionEquipmentVFT = {
-        (EncodeFunction) EventOfProtectionEquipment_encode,
-        (DestroyFunction) EventOfProtectionEquipment_destroy
-};
+struct sInformationObjectVFT eventOfProtectionEquipmentVFT = {(EncodeFunction)EventOfProtectionEquipment_encode,
+                                                              (DestroyFunction)EventOfProtectionEquipment_destroy};
 
 static void
 EventOfProtectionEquipment_initialize(EventOfProtectionEquipment self)
@@ -3374,13 +3462,14 @@ EventOfProtectionEquipment_destroy(EventOfProtectionEquipment self)
 }
 
 EventOfProtectionEquipment
-EventOfProtectionEquipment_create(EventOfProtectionEquipment self, int ioa,
-        const SingleEvent event, const CP16Time2a elapsedTime, const CP24Time2a timestamp)
+EventOfProtectionEquipment_create(EventOfProtectionEquipment self, int ioa, const SingleEvent event,
+                                  const CP16Time2a elapsedTime, const CP24Time2a timestamp)
 {
     if (self == NULL)
-        self = (EventOfProtectionEquipment) GLOBAL_CALLOC(1, sizeof(struct sEventOfProtectionEquipment));
+        self = (EventOfProtectionEquipment)GLOBAL_CALLOC(1, sizeof(struct sEventOfProtectionEquipment));
 
-    if (self) {
+    if (self)
+    {
         EventOfProtectionEquipment_initialize(self);
 
         self->objectAddress = ioa;
@@ -3394,7 +3483,7 @@ EventOfProtectionEquipment_create(EventOfProtectionEquipment self, int ioa,
 
 EventOfProtectionEquipment
 EventOfProtectionEquipment_getFromBuffer(EventOfProtectionEquipment self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+                                         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 6;
@@ -3402,19 +3491,22 @@ EventOfProtectionEquipment_getFromBuffer(EventOfProtectionEquipment self, CS101_
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (EventOfProtectionEquipment) GLOBAL_MALLOC(sizeof(struct sEventOfProtectionEquipment));
+        self = (EventOfProtectionEquipment)GLOBAL_MALLOC(sizeof(struct sEventOfProtectionEquipment));
 
-    if (self) {
+    if (self)
+    {
         EventOfProtectionEquipment_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3456,16 +3548,17 @@ EventOfProtectionEquipment_getTimestamp(EventOfProtectionEquipment self)
  ***********************************************************************/
 
 static bool
-EventOfProtectionEquipmentWithCP56Time2a_encode(EventOfProtectionEquipmentWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+EventOfProtectionEquipmentWithCP56Time2a_encode(EventOfProtectionEquipmentWithCP56Time2a self, Frame frame,
+                                                CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 10 : (parameters->sizeOfIOA + 10);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte(frame, (uint8_t) self->event);
+    Frame_setNextByte(frame, (uint8_t)self->event);
 
     Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
 
@@ -3475,9 +3568,8 @@ EventOfProtectionEquipmentWithCP56Time2a_encode(EventOfProtectionEquipmentWithCP
 }
 
 struct sInformationObjectVFT eventOfProtectionEquipmentWithCP56Time2aVFT = {
-        (EncodeFunction) EventOfProtectionEquipmentWithCP56Time2a_encode,
-        (DestroyFunction) EventOfProtectionEquipmentWithCP56Time2a_destroy
-};
+    (EncodeFunction)EventOfProtectionEquipmentWithCP56Time2a_encode,
+    (DestroyFunction)EventOfProtectionEquipmentWithCP56Time2a_destroy};
 
 static void
 EventOfProtectionEquipmentWithCP56Time2a_initialize(EventOfProtectionEquipmentWithCP56Time2a self)
@@ -3494,12 +3586,15 @@ EventOfProtectionEquipmentWithCP56Time2a_destroy(EventOfProtectionEquipmentWithC
 
 EventOfProtectionEquipmentWithCP56Time2a
 EventOfProtectionEquipmentWithCP56Time2a_create(EventOfProtectionEquipmentWithCP56Time2a self, int ioa,
-        const SingleEvent event, const CP16Time2a elapsedTime, const CP56Time2a timestamp)
+                                                const SingleEvent event, const CP16Time2a elapsedTime,
+                                                const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (EventOfProtectionEquipmentWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sEventOfProtectionEquipmentWithCP56Time2a));
+        self = (EventOfProtectionEquipmentWithCP56Time2a)GLOBAL_CALLOC(
+            1, sizeof(struct sEventOfProtectionEquipmentWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         EventOfProtectionEquipmentWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -3530,8 +3625,9 @@ EventOfProtectionEquipmentWithCP56Time2a_getTimestamp(EventOfProtectionEquipment
 }
 
 EventOfProtectionEquipmentWithCP56Time2a
-EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmentWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmentWithCP56Time2a self,
+                                                       CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                       int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 10;
@@ -3539,19 +3635,23 @@ EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmen
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (EventOfProtectionEquipmentWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sEventOfProtectionEquipmentWithCP56Time2a));
+        self = (EventOfProtectionEquipmentWithCP56Time2a)GLOBAL_MALLOC(
+            sizeof(struct sEventOfProtectionEquipmentWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         EventOfProtectionEquipmentWithCP56Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3575,18 +3675,19 @@ EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmen
  ***********************************************************************/
 
 static bool
-PackedStartEventsOfProtectionEquipment_encode(PackedStartEventsOfProtectionEquipment self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+PackedStartEventsOfProtectionEquipment_encode(PackedStartEventsOfProtectionEquipment self, Frame frame,
+                                              CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 7 : (parameters->sizeOfIOA + 7);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte(frame, (uint8_t) self->event);
+    Frame_setNextByte(frame, (uint8_t)self->event);
 
-    Frame_setNextByte(frame, (uint8_t) self->qdp);
+    Frame_setNextByte(frame, (uint8_t)self->qdp);
 
     Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
 
@@ -3596,9 +3697,8 @@ PackedStartEventsOfProtectionEquipment_encode(PackedStartEventsOfProtectionEquip
 }
 
 struct sInformationObjectVFT packedStartEventsOfProtectionEquipmentVFT = {
-        (EncodeFunction) PackedStartEventsOfProtectionEquipment_encode,
-        (DestroyFunction) PackedStartEventsOfProtectionEquipment_destroy
-};
+    (EncodeFunction)PackedStartEventsOfProtectionEquipment_encode,
+    (DestroyFunction)PackedStartEventsOfProtectionEquipment_destroy};
 
 static void
 PackedStartEventsOfProtectionEquipment_initialize(PackedStartEventsOfProtectionEquipment self)
@@ -3614,13 +3714,16 @@ PackedStartEventsOfProtectionEquipment_destroy(PackedStartEventsOfProtectionEqui
 }
 
 PackedStartEventsOfProtectionEquipment
-PackedStartEventsOfProtectionEquipment_create(PackedStartEventsOfProtectionEquipment self, int ioa,
-        StartEvent event, QualityDescriptorP qdp, CP16Time2a const elapsedTime, const CP24Time2a timestamp)
+PackedStartEventsOfProtectionEquipment_create(PackedStartEventsOfProtectionEquipment self, int ioa, StartEvent event,
+                                              QualityDescriptorP qdp, CP16Time2a const elapsedTime,
+                                              const CP24Time2a timestamp)
 {
     if (self == NULL)
-        self = (PackedStartEventsOfProtectionEquipment) GLOBAL_CALLOC(1, sizeof(struct sPackedStartEventsOfProtectionEquipment));
+        self = (PackedStartEventsOfProtectionEquipment)GLOBAL_CALLOC(
+            1, sizeof(struct sPackedStartEventsOfProtectionEquipment));
 
-    if (self) {
+    if (self)
+    {
         PackedStartEventsOfProtectionEquipment_initialize(self);
 
         self->objectAddress = ioa;
@@ -3658,8 +3761,9 @@ PackedStartEventsOfProtectionEquipment_getTimestamp(PackedStartEventsOfProtectio
 }
 
 PackedStartEventsOfProtectionEquipment
-PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtectionEquipment self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtectionEquipment self,
+                                                     CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                     int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 7;
@@ -3667,19 +3771,23 @@ PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtecti
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (PackedStartEventsOfProtectionEquipment) GLOBAL_MALLOC(sizeof(struct sPackedStartEventsOfProtectionEquipment));
+        self = (PackedStartEventsOfProtectionEquipment)GLOBAL_MALLOC(
+            sizeof(struct sPackedStartEventsOfProtectionEquipment));
 
-    if (self) {
+    if (self)
+    {
         PackedStartEventsOfProtectionEquipment_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3706,18 +3814,20 @@ PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtecti
  ***************************************************************************/
 
 static bool
-PackedStartEventsOfProtectionEquipmentWithCP56Time2a_encode(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_encode(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self,
+                                                            Frame frame, CS101_AppLayerParameters parameters,
+                                                            bool isSequence)
 {
     int size = isSequence ? 11 : (parameters->sizeOfIOA + 11);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte(frame, (uint8_t) self->event);
+    Frame_setNextByte(frame, (uint8_t)self->event);
 
-    Frame_setNextByte(frame, (uint8_t) self->qdp);
+    Frame_setNextByte(frame, (uint8_t)self->qdp);
 
     Frame_appendBytes(frame, self->elapsedTime.encodedValue, 2);
 
@@ -3727,12 +3837,12 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_encode(PackedStartEventsOfP
 }
 
 struct sInformationObjectVFT packedStartEventsOfProtectionEquipmentWithCP56Time2aVFT = {
-        (EncodeFunction) PackedStartEventsOfProtectionEquipmentWithCP56Time2a_encode,
-        (DestroyFunction) PackedStartEventsOfProtectionEquipmentWithCP56Time2a_destroy
-};
+    (EncodeFunction)PackedStartEventsOfProtectionEquipmentWithCP56Time2a_encode,
+    (DestroyFunction)PackedStartEventsOfProtectionEquipmentWithCP56Time2a_destroy};
 
 static void
-PackedStartEventsOfProtectionEquipmentWithCP56Time2a_initialize(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_initialize(
+    PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
 {
     self->virtualFunctionTable = &(packedStartEventsOfProtectionEquipmentWithCP56Time2aVFT);
     self->type = M_EP_TE_1;
@@ -3745,13 +3855,16 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_destroy(PackedStartEventsOf
 }
 
 PackedStartEventsOfProtectionEquipmentWithCP56Time2a
-PackedStartEventsOfProtectionEquipmentWithCP56Time2a_create(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, int ioa,
-        StartEvent event, QualityDescriptorP qdp, const CP16Time2a elapsedTime, const CP56Time2a timestamp)
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_create(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self,
+                                                            int ioa, StartEvent event, QualityDescriptorP qdp,
+                                                            const CP16Time2a elapsedTime, const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (PackedStartEventsOfProtectionEquipmentWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a));
+        self = (PackedStartEventsOfProtectionEquipmentWithCP56Time2a)GLOBAL_CALLOC(
+            1, sizeof(struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         PackedStartEventsOfProtectionEquipmentWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -3771,26 +3884,30 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getEvent(PackedStartEventsO
 }
 
 QualityDescriptorP
-PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getQuality(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getQuality(
+    PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
 {
     return self->qdp;
 }
 
 CP16Time2a
-PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getElapsedTime(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getElapsedTime(
+    PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
 {
     return &(self->elapsedTime);
 }
 
 CP56Time2a
-PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getTimestamp(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getTimestamp(
+    PackedStartEventsOfProtectionEquipmentWithCP56Time2a self)
 {
     return &(self->timestamp);
 }
 
 PackedStartEventsOfProtectionEquipmentWithCP56Time2a
-PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(
+    PackedStartEventsOfProtectionEquipmentWithCP56Time2a self, CS101_AppLayerParameters parameters, uint8_t* msg,
+    int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 11;
@@ -3798,19 +3915,23 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(PackedStartEv
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (PackedStartEventsOfProtectionEquipmentWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a));
+        self = (PackedStartEventsOfProtectionEquipmentWithCP56Time2a)GLOBAL_MALLOC(
+            sizeof(struct sPackedStartEventsOfProtectionEquipmentWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self)
+    {
         PackedStartEventsOfProtectionEquipmentWithCP56Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3837,18 +3958,19 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(PackedStartEv
  ***********************************************************************/
 
 static bool
-PacketOutputCircuitInfo_encode(PackedOutputCircuitInfo self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+PacketOutputCircuitInfo_encode(PackedOutputCircuitInfo self, Frame frame, CS101_AppLayerParameters parameters,
+                               bool isSequence)
 {
     int size = isSequence ? 7 : (parameters->sizeOfIOA + 7);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte(frame, (uint8_t) self->oci);
+    Frame_setNextByte(frame, (uint8_t)self->oci);
 
-    Frame_setNextByte(frame, (uint8_t) self->qdp);
+    Frame_setNextByte(frame, (uint8_t)self->qdp);
 
     Frame_appendBytes(frame, self->operatingTime.encodedValue, 2);
 
@@ -3857,10 +3979,8 @@ PacketOutputCircuitInfo_encode(PackedOutputCircuitInfo self, Frame frame, CS101_
     return true;
 }
 
-struct sInformationObjectVFT packedOutputCircuitInfoVFT = {
-        (EncodeFunction) PacketOutputCircuitInfo_encode,
-        (DestroyFunction) PackedOutputCircuitInfo_destroy
-};
+struct sInformationObjectVFT packedOutputCircuitInfoVFT = {(EncodeFunction)PacketOutputCircuitInfo_encode,
+                                                           (DestroyFunction)PackedOutputCircuitInfo_destroy};
 
 static void
 PacketOutputCircuitInfo_initialize(PackedOutputCircuitInfo self)
@@ -3876,13 +3996,14 @@ PackedOutputCircuitInfo_destroy(PackedOutputCircuitInfo self)
 }
 
 PackedOutputCircuitInfo
-PackedOutputCircuitInfo_create(PackedOutputCircuitInfo self, int ioa,
-        OutputCircuitInfo oci, QualityDescriptorP qdp, const CP16Time2a operatingTime, const CP24Time2a timestamp)
+PackedOutputCircuitInfo_create(PackedOutputCircuitInfo self, int ioa, OutputCircuitInfo oci, QualityDescriptorP qdp,
+                               const CP16Time2a operatingTime, const CP24Time2a timestamp)
 {
     if (self == NULL)
-        self = (PackedOutputCircuitInfo) GLOBAL_CALLOC(1, sizeof(struct sPackedOutputCircuitInfo));
+        self = (PackedOutputCircuitInfo)GLOBAL_CALLOC(1, sizeof(struct sPackedOutputCircuitInfo));
 
-    if (self) {
+    if (self)
+    {
         PacketOutputCircuitInfo_initialize(self);
 
         self->objectAddress = ioa;
@@ -3920,8 +4041,8 @@ PackedOutputCircuitInfo_getTimestamp(PackedOutputCircuitInfo self)
 }
 
 PackedOutputCircuitInfo
-PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                      int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 7;
@@ -3929,19 +4050,22 @@ PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, CS101_AppLay
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (PackedOutputCircuitInfo) GLOBAL_MALLOC(sizeof(struct sPackedOutputCircuitInfo));
+        self = (PackedOutputCircuitInfo)GLOBAL_MALLOC(sizeof(struct sPackedOutputCircuitInfo));
 
-    if (self) {
+    if (self)
+    {
         PacketOutputCircuitInfo_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3968,18 +4092,19 @@ PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, CS101_AppLay
  ***********************************************************************/
 
 static bool
-PackedOutputCircuitInfoWithCP56Time2a_encode(PackedOutputCircuitInfoWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+PackedOutputCircuitInfoWithCP56Time2a_encode(PackedOutputCircuitInfoWithCP56Time2a self, Frame frame,
+                                             CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 11 : (parameters->sizeOfIOA + 11);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte(frame, (uint8_t) self->oci);
+    Frame_setNextByte(frame, (uint8_t)self->oci);
 
-    Frame_setNextByte(frame, (uint8_t) self->qdp);
+    Frame_setNextByte(frame, (uint8_t)self->qdp);
 
     Frame_appendBytes(frame, self->operatingTime.encodedValue, 2);
 
@@ -3989,9 +4114,8 @@ PackedOutputCircuitInfoWithCP56Time2a_encode(PackedOutputCircuitInfoWithCP56Time
 }
 
 struct sInformationObjectVFT packedOutputCircuitInfoWithCP56Time2aVFT = {
-        (EncodeFunction) PackedOutputCircuitInfoWithCP56Time2a_encode,
-        (DestroyFunction) PackedOutputCircuitInfoWithCP56Time2a_destroy
-};
+    (EncodeFunction)PackedOutputCircuitInfoWithCP56Time2a_encode,
+    (DestroyFunction)PackedOutputCircuitInfoWithCP56Time2a_destroy};
 
 static void
 PackedOutputCircuitInfoWithCP56Time2a_initialize(PackedOutputCircuitInfoWithCP56Time2a self)
@@ -4007,13 +4131,16 @@ PackedOutputCircuitInfoWithCP56Time2a_destroy(PackedOutputCircuitInfoWithCP56Tim
 }
 
 PackedOutputCircuitInfoWithCP56Time2a
-PackedOutputCircuitInfoWithCP56Time2a_create(PackedOutputCircuitInfoWithCP56Time2a self, int ioa,
-        OutputCircuitInfo oci, QualityDescriptorP qdp, const CP16Time2a operatingTime, const CP56Time2a timestamp)
+PackedOutputCircuitInfoWithCP56Time2a_create(PackedOutputCircuitInfoWithCP56Time2a self, int ioa, OutputCircuitInfo oci,
+                                             QualityDescriptorP qdp, const CP16Time2a operatingTime,
+                                             const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (PackedOutputCircuitInfoWithCP56Time2a) GLOBAL_CALLOC(1, sizeof(struct sPackedOutputCircuitInfoWithCP56Time2a));
+        self = (PackedOutputCircuitInfoWithCP56Time2a)GLOBAL_CALLOC(
+            1, sizeof(struct sPackedOutputCircuitInfoWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         PackedOutputCircuitInfoWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -4051,8 +4178,9 @@ PackedOutputCircuitInfoWithCP56Time2a_getTimestamp(PackedOutputCircuitInfoWithCP
 }
 
 PackedOutputCircuitInfoWithCP56Time2a
-PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithCP56Time2a self,
+                                                    CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                    int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 11;
@@ -4060,19 +4188,23 @@ PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithC
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (PackedOutputCircuitInfoWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sPackedOutputCircuitInfoWithCP56Time2a));
+        self =
+            (PackedOutputCircuitInfoWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sPackedOutputCircuitInfoWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         PackedOutputCircuitInfoWithCP56Time2a_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -4094,32 +4226,30 @@ PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithC
     return self;
 }
 
-
 /***********************************************************************
  * PackedSinglePointWithSCD : InformationObject
  ***********************************************************************/
 
 static bool
-PackedSinglePointWithSCD_encode(PackedSinglePointWithSCD self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+PackedSinglePointWithSCD_encode(PackedSinglePointWithSCD self, Frame frame, CS101_AppLayerParameters parameters,
+                                bool isSequence)
 {
     int size = isSequence ? 5 : (parameters->sizeOfIOA + 5);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->scd.encodedValue, 4);
 
-    Frame_setNextByte(frame, (uint8_t) self->qds);
+    Frame_setNextByte(frame, (uint8_t)self->qds);
 
     return true;
 }
 
-struct sInformationObjectVFT packedSinglePointWithSCDVFT = {
-        (EncodeFunction) PackedSinglePointWithSCD_encode,
-        (DestroyFunction) PackedSinglePointWithSCD_destroy
-};
+struct sInformationObjectVFT packedSinglePointWithSCDVFT = {(EncodeFunction)PackedSinglePointWithSCD_encode,
+                                                            (DestroyFunction)PackedSinglePointWithSCD_destroy};
 
 static void
 PackedSinglePointWithSCD_initialize(PackedSinglePointWithSCD self)
@@ -4135,13 +4265,14 @@ PackedSinglePointWithSCD_destroy(PackedSinglePointWithSCD self)
 }
 
 PackedSinglePointWithSCD
-PackedSinglePointWithSCD_create(PackedSinglePointWithSCD self, int ioa,
-        const StatusAndStatusChangeDetection scd, QualityDescriptor qds)
+PackedSinglePointWithSCD_create(PackedSinglePointWithSCD self, int ioa, const StatusAndStatusChangeDetection scd,
+                                QualityDescriptor qds)
 {
     if (self == NULL)
-        self = (PackedSinglePointWithSCD) GLOBAL_CALLOC(1, sizeof(struct sPackedSinglePointWithSCD));
+        self = (PackedSinglePointWithSCD)GLOBAL_CALLOC(1, sizeof(struct sPackedSinglePointWithSCD));
 
-    if (self) {
+    if (self)
+    {
         PackedSinglePointWithSCD_initialize(self);
 
         self->objectAddress = ioa;
@@ -4165,8 +4296,8 @@ PackedSinglePointWithSCD_getSCD(PackedSinglePointWithSCD self)
 }
 
 PackedSinglePointWithSCD
-PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                       int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
     int minSize = startIndex + 5;
@@ -4174,19 +4305,22 @@ PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, CS101_AppL
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (PackedSinglePointWithSCD) GLOBAL_MALLOC(sizeof(struct sPackedSinglePointWithSCD));
+        self = (PackedSinglePointWithSCD)GLOBAL_MALLOC(sizeof(struct sPackedSinglePointWithSCD));
 
-    if (self != NULL) {
+    if (self)
+    {
         PackedSinglePointWithSCD_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -4216,17 +4350,15 @@ SingleCommand_encode(SingleCommand self, Frame frame, CS101_AppLayerParameters p
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->sco);
 
     return true;
 }
 
-struct sInformationObjectVFT singleCommandVFT = {
-        (EncodeFunction) SingleCommand_encode,
-        (DestroyFunction) SingleCommand_destroy
-};
+struct sInformationObjectVFT singleCommandVFT = {(EncodeFunction)SingleCommand_encode,
+                                                 (DestroyFunction)SingleCommand_destroy};
 
 static void
 SingleCommand_initialize(SingleCommand self)
@@ -4245,18 +4377,21 @@ SingleCommand
 SingleCommand_create(SingleCommand self, int ioa, bool command, bool selectCommand, int qu)
 {
     if (self == NULL)
-		self = (SingleCommand) GLOBAL_MALLOC(sizeof(struct sSingleCommand));
+        self = (SingleCommand)GLOBAL_MALLOC(sizeof(struct sSingleCommand));
 
-    if (self) {
+    if (self)
+    {
         SingleCommand_initialize(self);
 
         self->objectAddress = ioa;
 
         uint8_t sco = ((qu & 0x1f) * 4);
 
-        if (command) sco |= 0x01;
+        if (command)
+            sco |= 0x01;
 
-        if (selectCommand) sco |= 0x80;
+        if (selectCommand)
+            sco |= 0x80;
 
         self->sco = sco;
     }
@@ -4283,24 +4418,26 @@ SingleCommand_isSelect(SingleCommand self)
 }
 
 SingleCommand
-SingleCommand_getFromBuffer(SingleCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+SingleCommand_getFromBuffer(SingleCommand self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                            int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 1;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (SingleCommand) GLOBAL_MALLOC(sizeof(struct sSingleCommand));
+        self = (SingleCommand)GLOBAL_MALLOC(sizeof(struct sSingleCommand));
 
-    if (self) {
+    if (self)
+    {
         SingleCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -4311,30 +4448,28 @@ SingleCommand_getFromBuffer(SingleCommand self, CS101_AppLayerParameters paramet
     return self;
 }
 
-
 /***********************************************************************
  * SingleCommandWithCP56Time2a : SingleCommand
  ***********************************************************************/
 
 static bool
-SingleCommandWithCP56Time2a_encode(SingleCommandWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+SingleCommandWithCP56Time2a_encode(SingleCommandWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                   bool isSequence)
 {
     int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    SingleCommand_encode((SingleCommand) self, frame, parameters, isSequence);
+    SingleCommand_encode((SingleCommand)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 
     return true;
 }
 
-struct sInformationObjectVFT singleCommandWithCP56Time2aVFT = {
-        (EncodeFunction) SingleCommandWithCP56Time2a_encode,
-        (DestroyFunction) SingleCommandWithCP56Time2a_destroy
-};
+struct sInformationObjectVFT singleCommandWithCP56Time2aVFT = {(EncodeFunction)SingleCommandWithCP56Time2a_encode,
+                                                               (DestroyFunction)SingleCommandWithCP56Time2a_destroy};
 
 static void
 SingleCommandWithCP56Time2a_initialize(SingleCommandWithCP56Time2a self)
@@ -4350,21 +4485,25 @@ SingleCommandWithCP56Time2a_destroy(SingleCommandWithCP56Time2a self)
 }
 
 SingleCommandWithCP56Time2a
-SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bool command, bool selectCommand, int qu, const CP56Time2a timestamp)
+SingleCommandWithCP56Time2a_create(SingleCommandWithCP56Time2a self, int ioa, bool command, bool selectCommand, int qu,
+                                   const CP56Time2a timestamp)
 {
     if (self == NULL)
-		self = (SingleCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSingleCommandWithCP56Time2a));
+        self = (SingleCommandWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sSingleCommandWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         SingleCommandWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
 
         uint8_t sco = ((qu & 0x1f) * 4);
 
-        if (command) sco |= 0x01;
+        if (command)
+            sco |= 0x01;
 
-        if (selectCommand) sco |= 0x80;
+        if (selectCommand)
+            sco |= 0x80;
 
         self->sco = sco;
 
@@ -4382,23 +4521,25 @@ SingleCommandWithCP56Time2a_getTimestamp(SingleCommandWithCP56Time2a self)
 
 SingleCommandWithCP56Time2a
 SingleCommandWithCP56Time2a_getFromBuffer(SingleCommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+                                          uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 8;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (SingleCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSingleCommandWithCP56Time2a));
+        self = (SingleCommandWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sSingleCommandWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self)
+    {
         SingleCommandWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -4424,17 +4565,15 @@ DoubleCommand_encode(DoubleCommand self, Frame frame, CS101_AppLayerParameters p
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->dcq);
 
     return true;
 }
 
-struct sInformationObjectVFT doubleCommandVFT = {
-        (EncodeFunction) DoubleCommand_encode,
-        (DestroyFunction) DoubleCommand_destroy
-};
+struct sInformationObjectVFT doubleCommandVFT = {(EncodeFunction)DoubleCommand_encode,
+                                                 (DestroyFunction)DoubleCommand_destroy};
 
 static void
 DoubleCommand_initialize(DoubleCommand self)
@@ -4453,18 +4592,20 @@ DoubleCommand
 DoubleCommand_create(DoubleCommand self, int ioa, int command, bool selectCommand, int qu)
 {
     if (self == NULL)
-		self = (DoubleCommand) GLOBAL_MALLOC(sizeof(struct sDoubleCommand));
+        self = (DoubleCommand)GLOBAL_MALLOC(sizeof(struct sDoubleCommand));
 
-    if (self) {
+    if (self)
+    {
         DoubleCommand_initialize(self);
 
         self->objectAddress = ioa;
 
         uint8_t dcq = ((qu & 0x1f) * 4);
 
-        dcq += (uint8_t) (command & 0x03);
+        dcq += (uint8_t)(command & 0x03);
 
-        if (selectCommand) dcq |= 0x80;
+        if (selectCommand)
+            dcq |= 0x80;
 
         self->dcq = dcq;
     }
@@ -4491,24 +4632,26 @@ DoubleCommand_isSelect(DoubleCommand self)
 }
 
 DoubleCommand
-DoubleCommand_getFromBuffer(DoubleCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+DoubleCommand_getFromBuffer(DoubleCommand self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                            int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 1;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (DoubleCommand) GLOBAL_MALLOC(sizeof(struct sDoubleCommand));
+        self = (DoubleCommand)GLOBAL_MALLOC(sizeof(struct sDoubleCommand));
 
-    if (self != NULL) {
+    if (self)
+    {
         DoubleCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -4524,24 +4667,23 @@ DoubleCommand_getFromBuffer(DoubleCommand self, CS101_AppLayerParameters paramet
  **********************************************/
 
 static bool
-DoubleCommandWithCP56Time2a_encode(DoubleCommandWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+DoubleCommandWithCP56Time2a_encode(DoubleCommandWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                   bool isSequence)
 {
     int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    DoubleCommand_encode((DoubleCommand) self, frame, parameters, isSequence);
+    DoubleCommand_encode((DoubleCommand)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 
     return true;
 }
 
-struct sInformationObjectVFT doubleCommandWithCP56Time2aVFT = {
-        (EncodeFunction) DoubleCommandWithCP56Time2a_encode,
-        (DestroyFunction) DoubleCommandWithCP56Time2a_destroy
-};
+struct sInformationObjectVFT doubleCommandWithCP56Time2aVFT = {(EncodeFunction)DoubleCommandWithCP56Time2a_encode,
+                                                               (DestroyFunction)DoubleCommandWithCP56Time2a_destroy};
 
 static void
 DoubleCommandWithCP56Time2a_initialize(DoubleCommandWithCP56Time2a self)
@@ -4557,21 +4699,24 @@ DoubleCommandWithCP56Time2a_destroy(DoubleCommandWithCP56Time2a self)
 }
 
 DoubleCommandWithCP56Time2a
-DoubleCommandWithCP56Time2a_create(DoubleCommandWithCP56Time2a self, int ioa, int command, bool selectCommand, int qu, const CP56Time2a timestamp)
+DoubleCommandWithCP56Time2a_create(DoubleCommandWithCP56Time2a self, int ioa, int command, bool selectCommand, int qu,
+                                   const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (DoubleCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sDoubleCommandWithCP56Time2a));
+        self = (DoubleCommandWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sDoubleCommandWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         DoubleCommandWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
 
         uint8_t dcq = ((qu & 0x1f) * 4);
 
-        dcq += (uint8_t) (command & 0x03);
+        dcq += (uint8_t)(command & 0x03);
 
-        if (selectCommand) dcq |= 0x80;
+        if (selectCommand)
+            dcq |= 0x80;
 
         self->dcq = dcq;
 
@@ -4584,40 +4729,42 @@ DoubleCommandWithCP56Time2a_create(DoubleCommandWithCP56Time2a self, int ioa, in
 int
 DoubleCommandWithCP56Time2a_getQU(DoubleCommandWithCP56Time2a self)
 {
-    return DoubleCommand_getQU((DoubleCommand) self);
+    return DoubleCommand_getQU((DoubleCommand)self);
 }
 
 int
 DoubleCommandWithCP56Time2a_getState(DoubleCommandWithCP56Time2a self)
 {
-    return DoubleCommand_getState((DoubleCommand) self);
+    return DoubleCommand_getState((DoubleCommand)self);
 }
 
 bool
 DoubleCommandWithCP56Time2a_isSelect(DoubleCommandWithCP56Time2a self)
 {
-    return DoubleCommand_isSelect((DoubleCommand) self);
+    return DoubleCommand_isSelect((DoubleCommand)self);
 }
 
 DoubleCommandWithCP56Time2a
 DoubleCommandWithCP56Time2a_getFromBuffer(DoubleCommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+                                          uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 8;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (DoubleCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sDoubleCommandWithCP56Time2a));
+        self = (DoubleCommandWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sDoubleCommandWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         DoubleCommandWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -4649,17 +4796,15 @@ StepCommand_encode(StepCommand self, Frame frame, CS101_AppLayerParameters param
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->dcq);
 
     return true;
 }
 
-struct sInformationObjectVFT stepCommandVFT = {
-        (EncodeFunction) StepCommand_encode,
-        (DestroyFunction) StepCommand_destroy
-};
+struct sInformationObjectVFT stepCommandVFT = {(EncodeFunction)StepCommand_encode,
+                                               (DestroyFunction)StepCommand_destroy};
 
 static void
 StepCommand_initialize(StepCommand self)
@@ -4678,7 +4823,7 @@ StepCommand
 StepCommand_create(StepCommand self, int ioa, StepCommandValue command, bool selectCommand, int qu)
 {
     if (self == NULL)
-		self = (StepCommand) GLOBAL_MALLOC(sizeof(struct sStepCommand));
+        self = (StepCommand)GLOBAL_MALLOC(sizeof(struct sStepCommand));
 
     if (self)
     {
@@ -4688,9 +4833,10 @@ StepCommand_create(StepCommand self, int ioa, StepCommandValue command, bool sel
 
         uint8_t dcq = ((qu & 0x1f) * 4);
 
-        dcq += (uint8_t) (command & 0x03);
+        dcq += (uint8_t)(command & 0x03);
 
-        if (selectCommand) dcq |= 0x80;
+        if (selectCommand)
+            dcq |= 0x80;
 
         self->dcq = dcq;
     }
@@ -4707,7 +4853,7 @@ StepCommand_getQU(StepCommand self)
 StepCommandValue
 StepCommand_getState(StepCommand self)
 {
-    return (StepCommandValue) (self->dcq & 0x03);
+    return (StepCommandValue)(self->dcq & 0x03);
 }
 
 bool
@@ -4717,24 +4863,26 @@ StepCommand_isSelect(StepCommand self)
 }
 
 StepCommand
-StepCommand_getFromBuffer(StepCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+StepCommand_getFromBuffer(StepCommand self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                          int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 1;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (StepCommand) GLOBAL_MALLOC(sizeof(struct sStepCommand));
+        self = (StepCommand)GLOBAL_MALLOC(sizeof(struct sStepCommand));
 
-    if (self != NULL) {
+    if (self)
+    {
         StepCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -4750,24 +4898,23 @@ StepCommand_getFromBuffer(StepCommand self, CS101_AppLayerParameters parameters,
  *************************************************/
 
 static bool
-StepCommandWithCP56Time2a_encode(StepCommandWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+StepCommandWithCP56Time2a_encode(StepCommandWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                 bool isSequence)
 {
     int size = isSequence ? 8 : (parameters->sizeOfIOA + 8);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    StepCommand_encode((StepCommand) self, frame, parameters, isSequence);
+    StepCommand_encode((StepCommand)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 
     return true;
 }
 
-struct sInformationObjectVFT stepCommandWithCP56Time2aVFT = {
-        (EncodeFunction) StepCommandWithCP56Time2a_encode,
-        (DestroyFunction) StepCommandWithCP56Time2a_destroy
-};
+struct sInformationObjectVFT stepCommandWithCP56Time2aVFT = {(EncodeFunction)StepCommandWithCP56Time2a_encode,
+                                                             (DestroyFunction)StepCommandWithCP56Time2a_destroy};
 
 static void
 StepCommandWithCP56Time2a_initialize(StepCommandWithCP56Time2a self)
@@ -4783,21 +4930,24 @@ StepCommandWithCP56Time2a_destroy(StepCommandWithCP56Time2a self)
 }
 
 StepCommandWithCP56Time2a
-StepCommandWithCP56Time2a_create(StepCommandWithCP56Time2a self, int ioa, StepCommandValue command, bool selectCommand, int qu, const CP56Time2a timestamp)
+StepCommandWithCP56Time2a_create(StepCommandWithCP56Time2a self, int ioa, StepCommandValue command, bool selectCommand,
+                                 int qu, const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (StepCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sStepCommandWithCP56Time2a));
+        self = (StepCommandWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sStepCommandWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         StepCommandWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
 
         uint8_t dcq = ((qu & 0x1f) * 4);
 
-        dcq += (uint8_t) (command & 0x03);
+        dcq += (uint8_t)(command & 0x03);
 
-        if (selectCommand) dcq |= 0x80;
+        if (selectCommand)
+            dcq |= 0x80;
 
         self->dcq = dcq;
 
@@ -4810,40 +4960,42 @@ StepCommandWithCP56Time2a_create(StepCommandWithCP56Time2a self, int ioa, StepCo
 int
 StepCommandWithCP56Time2a_getQU(StepCommandWithCP56Time2a self)
 {
-    return StepCommand_getQU((StepCommand) self);
+    return StepCommand_getQU((StepCommand)self);
 }
 
 StepCommandValue
 StepCommandWithCP56Time2a_getState(StepCommandWithCP56Time2a self)
 {
-    return StepCommand_getState((StepCommand) self);
+    return StepCommand_getState((StepCommand)self);
 }
 
 bool
 StepCommandWithCP56Time2a_isSelect(StepCommandWithCP56Time2a self)
 {
-    return StepCommand_isSelect((StepCommand) self);
+    return StepCommand_isSelect((StepCommand)self);
 }
 
 StepCommandWithCP56Time2a
 StepCommandWithCP56Time2a_getFromBuffer(StepCommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+                                        uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 8;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (StepCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sStepCommandWithCP56Time2a));
+        self = (StepCommandWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sStepCommandWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         StepCommandWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -4868,14 +5020,15 @@ StepCommandWithCP56Time2a_getTimestamp(StepCommandWithCP56Time2a self)
  ************************************************/
 
 static bool
-SetpointCommandNormalized_encode(SetpointCommandNormalized self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+SetpointCommandNormalized_encode(SetpointCommandNormalized self, Frame frame, CS101_AppLayerParameters parameters,
+                                 bool isSequence)
 {
     int size = isSequence ? 3 : (parameters->sizeOfIOA + 3);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->encodedValue, 2);
     Frame_setNextByte(frame, self->qos);
@@ -4883,10 +5036,8 @@ SetpointCommandNormalized_encode(SetpointCommandNormalized self, Frame frame, CS
     return true;
 }
 
-struct sInformationObjectVFT setpointCommandNormalizedVFT = {
-        (EncodeFunction) SetpointCommandNormalized_encode,
-        (DestroyFunction) SetpointCommandNormalized_destroy
-};
+struct sInformationObjectVFT setpointCommandNormalizedVFT = {(EncodeFunction)SetpointCommandNormalized_encode,
+                                                             (DestroyFunction)SetpointCommandNormalized_destroy};
 
 static void
 SetpointCommandNormalized_initialize(SetpointCommandNormalized self)
@@ -4905,9 +5056,10 @@ SetpointCommandNormalized
 SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float value, bool selectCommand, int ql)
 {
     if (self == NULL)
-		self = (SetpointCommandNormalized) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
+        self = (SetpointCommandNormalized)GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
 
-    if (self) {
+    if (self)
+    {
         SetpointCommandNormalized_initialize(self);
 
         self->objectAddress = ioa;
@@ -4916,7 +5068,8 @@ SetpointCommandNormalized_create(SetpointCommandNormalized self, int ioa, float 
 
         uint8_t qos = ql;
 
-        if (selectCommand) qos |= 0x80;
+        if (selectCommand)
+            qos |= 0x80;
 
         self->qos = qos;
     }
@@ -4933,7 +5086,7 @@ SetpointCommandNormalized_getValue(SetpointCommandNormalized self)
 int
 SetpointCommandNormalized_getQL(SetpointCommandNormalized self)
 {
-    return (int) (self->qos & 0x7f);
+    return (int)(self->qos & 0x7f);
 }
 
 bool
@@ -4944,23 +5097,25 @@ SetpointCommandNormalized_isSelect(SetpointCommandNormalized self)
 
 SetpointCommandNormalized
 SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+                                        uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 3;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (SetpointCommandNormalized) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
+        self = (SetpointCommandNormalized)GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalized));
 
-    if (self) {
+    if (self)
+    {
         SetpointCommandNormalized_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -4979,14 +5134,15 @@ SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, CS101_Ap
  **********************************************************************/
 
 static bool
-SetpointCommandNormalizedWithCP56Time2a_encode(SetpointCommandNormalizedWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+SetpointCommandNormalizedWithCP56Time2a_encode(SetpointCommandNormalizedWithCP56Time2a self, Frame frame,
+                                               CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 10 : (parameters->sizeOfIOA + 10);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    SetpointCommandNormalized_encode((SetpointCommandNormalized) self, frame, parameters, isSequence);
+    SetpointCommandNormalized_encode((SetpointCommandNormalized)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 
@@ -4994,9 +5150,8 @@ SetpointCommandNormalizedWithCP56Time2a_encode(SetpointCommandNormalizedWithCP56
 }
 
 struct sInformationObjectVFT setpointCommandNormalizedWithCP56Time2aVFT = {
-        (EncodeFunction) SetpointCommandNormalizedWithCP56Time2a_encode,
-        (DestroyFunction) SetpointCommandNormalizedWithCP56Time2a_destroy
-};
+    (EncodeFunction)SetpointCommandNormalizedWithCP56Time2a_encode,
+    (DestroyFunction)SetpointCommandNormalizedWithCP56Time2a_destroy};
 
 static void
 SetpointCommandNormalizedWithCP56Time2a_initialize(SetpointCommandNormalizedWithCP56Time2a self)
@@ -5012,12 +5167,15 @@ SetpointCommandNormalizedWithCP56Time2a_destroy(SetpointCommandNormalizedWithCP5
 }
 
 SetpointCommandNormalizedWithCP56Time2a
-SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, const CP56Time2a timestamp)
+SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56Time2a self, int ioa, float value,
+                                               bool selectCommand, int ql, const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (SetpointCommandNormalizedWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalizedWithCP56Time2a));
+        self = (SetpointCommandNormalizedWithCP56Time2a)GLOBAL_MALLOC(
+            sizeof(struct sSetpointCommandNormalizedWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         SetpointCommandNormalizedWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -5026,7 +5184,8 @@ SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56
 
         uint8_t qos = ql;
 
-        if (selectCommand) qos |= 0x80;
+        if (selectCommand)
+            qos |= 0x80;
 
         self->qos = qos;
 
@@ -5039,40 +5198,44 @@ SetpointCommandNormalizedWithCP56Time2a_create(SetpointCommandNormalizedWithCP56
 float
 SetpointCommandNormalizedWithCP56Time2a_getValue(SetpointCommandNormalizedWithCP56Time2a self)
 {
-    return SetpointCommandNormalized_getValue((SetpointCommandNormalized) self);
+    return SetpointCommandNormalized_getValue((SetpointCommandNormalized)self);
 }
 
 int
 SetpointCommandNormalizedWithCP56Time2a_getQL(SetpointCommandNormalizedWithCP56Time2a self)
 {
-    return SetpointCommandNormalized_getQL((SetpointCommandNormalized) self);
+    return SetpointCommandNormalized_getQL((SetpointCommandNormalized)self);
 }
 
 bool
 SetpointCommandNormalizedWithCP56Time2a_isSelect(SetpointCommandNormalizedWithCP56Time2a self)
 {
-    return SetpointCommandNormalized_isSelect((SetpointCommandNormalized) self);
+    return SetpointCommandNormalized_isSelect((SetpointCommandNormalized)self);
 }
 
 SetpointCommandNormalizedWithCP56Time2a
-SetpointCommandNormalizedWithCP56Time2a_getFromBuffer(SetpointCommandNormalizedWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+SetpointCommandNormalizedWithCP56Time2a_getFromBuffer(SetpointCommandNormalizedWithCP56Time2a self,
+                                                      CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                      int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 10;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (SetpointCommandNormalizedWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandNormalizedWithCP56Time2a));
+        self = (SetpointCommandNormalizedWithCP56Time2a)GLOBAL_MALLOC(
+            sizeof(struct sSetpointCommandNormalizedWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         SetpointCommandNormalizedWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5100,14 +5263,15 @@ SetpointCommandNormalizedWithCP56Time2a_getTimestamp(SetpointCommandNormalizedWi
  ************************************************/
 
 static bool
-SetpointCommandScaled_encode(SetpointCommandScaled self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+SetpointCommandScaled_encode(SetpointCommandScaled self, Frame frame, CS101_AppLayerParameters parameters,
+                             bool isSequence)
 {
     int size = isSequence ? 3 : (parameters->sizeOfIOA + 3);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->encodedValue, 2);
     Frame_setNextByte(frame, self->qos);
@@ -5115,10 +5279,8 @@ SetpointCommandScaled_encode(SetpointCommandScaled self, Frame frame, CS101_AppL
     return true;
 }
 
-struct sInformationObjectVFT setpointCommandScaledVFT = {
-        (EncodeFunction) SetpointCommandScaled_encode,
-        (DestroyFunction) SetpointCommandScaled_destroy
-};
+struct sInformationObjectVFT setpointCommandScaledVFT = {(EncodeFunction)SetpointCommandScaled_encode,
+                                                         (DestroyFunction)SetpointCommandScaled_destroy};
 
 static void
 SetpointCommandScaled_initialize(SetpointCommandScaled self)
@@ -5137,9 +5299,10 @@ SetpointCommandScaled
 SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, int value, bool selectCommand, int ql)
 {
     if (self == NULL)
-		self = (SetpointCommandScaled) GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaled));
+        self = (SetpointCommandScaled)GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaled));
 
-    if (self) {
+    if (self)
+    {
         SetpointCommandScaled_initialize(self);
 
         self->objectAddress = ioa;
@@ -5148,7 +5311,8 @@ SetpointCommandScaled_create(SetpointCommandScaled self, int ioa, int value, boo
 
         uint8_t qos = ql;
 
-        if (selectCommand) qos |= 0x80;
+        if (selectCommand)
+            qos |= 0x80;
 
         self->qos = qos;
     }
@@ -5165,7 +5329,7 @@ SetpointCommandScaled_getValue(SetpointCommandScaled self)
 int
 SetpointCommandScaled_getQL(SetpointCommandScaled self)
 {
-    return (int) (self->qos & 0x7f);
+    return (int)(self->qos & 0x7f);
 }
 
 bool
@@ -5175,24 +5339,26 @@ SetpointCommandScaled_isSelect(SetpointCommandScaled self)
 }
 
 SetpointCommandScaled
-SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                    int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 3;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (SetpointCommandScaled) GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaled));
+        self = (SetpointCommandScaled)GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaled));
 
-    if (self != NULL) {
+    if (self)
+    {
         SetpointCommandScaled_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5211,14 +5377,15 @@ SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, CS101_AppLayerPa
  **********************************************************************/
 
 static bool
-SetpointCommandScaledWithCP56Time2a_encode(SetpointCommandScaledWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+SetpointCommandScaledWithCP56Time2a_encode(SetpointCommandScaledWithCP56Time2a self, Frame frame,
+                                           CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 10 : (parameters->sizeOfIOA + 10);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    SetpointCommandScaled_encode((SetpointCommandScaled) self, frame, parameters, isSequence);
+    SetpointCommandScaled_encode((SetpointCommandScaled)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 
@@ -5226,9 +5393,8 @@ SetpointCommandScaledWithCP56Time2a_encode(SetpointCommandScaledWithCP56Time2a s
 }
 
 struct sInformationObjectVFT setpointCommandScaledWithCP56Time2aVFT = {
-        (EncodeFunction) SetpointCommandScaledWithCP56Time2a_encode,
-        (DestroyFunction) SetpointCommandScaledWithCP56Time2a_destroy
-};
+    (EncodeFunction)SetpointCommandScaledWithCP56Time2a_encode,
+    (DestroyFunction)SetpointCommandScaledWithCP56Time2a_destroy};
 
 static void
 SetpointCommandScaledWithCP56Time2a_initialize(SetpointCommandScaledWithCP56Time2a self)
@@ -5244,12 +5410,14 @@ SetpointCommandScaledWithCP56Time2a_destroy(SetpointCommandScaledWithCP56Time2a 
 }
 
 SetpointCommandScaledWithCP56Time2a
-SetpointCommandScaledWithCP56Time2a_create(SetpointCommandScaledWithCP56Time2a self, int ioa, int value, bool selectCommand, int ql, const CP56Time2a timestamp)
+SetpointCommandScaledWithCP56Time2a_create(SetpointCommandScaledWithCP56Time2a self, int ioa, int value,
+                                           bool selectCommand, int ql, const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (SetpointCommandScaledWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaledWithCP56Time2a));
+        self = (SetpointCommandScaledWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaledWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         SetpointCommandScaledWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -5258,7 +5426,8 @@ SetpointCommandScaledWithCP56Time2a_create(SetpointCommandScaledWithCP56Time2a s
 
         uint8_t qos = ql;
 
-        if (selectCommand) qos |= 0x80;
+        if (selectCommand)
+            qos |= 0x80;
 
         self->qos = qos;
 
@@ -5271,40 +5440,43 @@ SetpointCommandScaledWithCP56Time2a_create(SetpointCommandScaledWithCP56Time2a s
 int
 SetpointCommandScaledWithCP56Time2a_getValue(SetpointCommandScaledWithCP56Time2a self)
 {
-    return SetpointCommandScaled_getValue((SetpointCommandScaled) self);
+    return SetpointCommandScaled_getValue((SetpointCommandScaled)self);
 }
 
 int
 SetpointCommandScaledWithCP56Time2a_getQL(SetpointCommandScaledWithCP56Time2a self)
 {
-    return SetpointCommandScaled_getQL((SetpointCommandScaled) self);
+    return SetpointCommandScaled_getQL((SetpointCommandScaled)self);
 }
 
 bool
 SetpointCommandScaledWithCP56Time2a_isSelect(SetpointCommandScaledWithCP56Time2a self)
 {
-    return SetpointCommandScaled_isSelect((SetpointCommandScaled) self);
+    return SetpointCommandScaled_isSelect((SetpointCommandScaled)self);
 }
 
 SetpointCommandScaledWithCP56Time2a
-SetpointCommandScaledWithCP56Time2a_getFromBuffer(SetpointCommandScaledWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+SetpointCommandScaledWithCP56Time2a_getFromBuffer(SetpointCommandScaledWithCP56Time2a self,
+                                                  CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                  int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 10;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (SetpointCommandScaledWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaledWithCP56Time2a));
+        self = (SetpointCommandScaledWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sSetpointCommandScaledWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         SetpointCommandScaledWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5332,16 +5504,17 @@ SetpointCommandScaledWithCP56Time2a_getTimestamp(SetpointCommandScaledWithCP56Ti
  ************************************************/
 
 static bool
-SetpointCommandShort_encode(SetpointCommandShort self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+SetpointCommandShort_encode(SetpointCommandShort self, Frame frame, CS101_AppLayerParameters parameters,
+                            bool isSequence)
 {
     int size = isSequence ? 5 : (parameters->sizeOfIOA + 5);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    uint8_t* valueBytes = (uint8_t*) &(self->value);
+    uint8_t* valueBytes = (uint8_t*)&(self->value);
 
 #if (ORDER_LITTLE_ENDIAN == 1)
     Frame_appendBytes(frame, valueBytes, 4);
@@ -5357,10 +5530,8 @@ SetpointCommandShort_encode(SetpointCommandShort self, Frame frame, CS101_AppLay
     return true;
 }
 
-struct sInformationObjectVFT setpointCommandShortVFT = {
-        (EncodeFunction) SetpointCommandShort_encode,
-        (DestroyFunction) SetpointCommandShort_destroy
-};
+struct sInformationObjectVFT setpointCommandShortVFT = {(EncodeFunction)SetpointCommandShort_encode,
+                                                        (DestroyFunction)SetpointCommandShort_destroy};
 
 static void
 SetpointCommandShort_initialize(SetpointCommandShort self)
@@ -5379,9 +5550,10 @@ SetpointCommandShort
 SetpointCommandShort_create(SetpointCommandShort self, int ioa, float value, bool selectCommand, int ql)
 {
     if (self == NULL)
-		self = (SetpointCommandShort) GLOBAL_MALLOC(sizeof(struct sSetpointCommandShort));
+        self = (SetpointCommandShort)GLOBAL_MALLOC(sizeof(struct sSetpointCommandShort));
 
-    if (self) {
+    if (self)
+    {
         SetpointCommandShort_initialize(self);
 
         self->objectAddress = ioa;
@@ -5390,7 +5562,8 @@ SetpointCommandShort_create(SetpointCommandShort self, int ioa, float value, boo
 
         uint8_t qos = ql & 0x7f;
 
-        if (selectCommand) qos |= 0x80;
+        if (selectCommand)
+            qos |= 0x80;
 
         self->qos = qos;
     }
@@ -5407,7 +5580,7 @@ SetpointCommandShort_getValue(SetpointCommandShort self)
 int
 SetpointCommandShort_getQL(SetpointCommandShort self)
 {
-    return (int) (self->qos & 0x7f);
+    return (int)(self->qos & 0x7f);
 }
 
 bool
@@ -5417,39 +5590,41 @@ SetpointCommandShort_isSelect(SetpointCommandShort self)
 }
 
 SetpointCommandShort
-SetpointCommandShort_getFromBuffer(SetpointCommandShort self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+SetpointCommandShort_getFromBuffer(SetpointCommandShort self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                   int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 5;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (SetpointCommandShort) GLOBAL_MALLOC(sizeof(struct sSetpointCommandShort));
+        self = (SetpointCommandShort)GLOBAL_MALLOC(sizeof(struct sSetpointCommandShort));
 
-    if (self != NULL) {
+    if (self)
+    {
         SetpointCommandShort_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
-        uint8_t* valueBytes = (uint8_t*) &(self->value);
+        uint8_t* valueBytes = (uint8_t*)&(self->value);
 
 #if (ORDER_LITTLE_ENDIAN == 1)
-        valueBytes[0] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[3] = msg [startIndex++];
+        valueBytes[0] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[3] = msg[startIndex++];
 #else
-        valueBytes[3] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[0] = msg [startIndex++];
+        valueBytes[3] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[0] = msg[startIndex++];
 #endif
 
         /* QOS - qualifier of setpoint command */
@@ -5464,14 +5639,15 @@ SetpointCommandShort_getFromBuffer(SetpointCommandShort self, CS101_AppLayerPara
  **********************************************************************/
 
 static bool
-SetpointCommandShortWithCP56Time2a_encode(SetpointCommandShortWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+SetpointCommandShortWithCP56Time2a_encode(SetpointCommandShortWithCP56Time2a self, Frame frame,
+                                          CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 12 : (parameters->sizeOfIOA + 12);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    SetpointCommandShort_encode((SetpointCommandShort) self, frame, parameters, isSequence);
+    SetpointCommandShort_encode((SetpointCommandShort)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 
@@ -5479,9 +5655,8 @@ SetpointCommandShortWithCP56Time2a_encode(SetpointCommandShortWithCP56Time2a sel
 }
 
 struct sInformationObjectVFT setpointCommandShortWithCP56Time2aVFT = {
-        (EncodeFunction) SetpointCommandShortWithCP56Time2a_encode,
-        (DestroyFunction) SetpointCommandShortWithCP56Time2a_destroy
-};
+    (EncodeFunction)SetpointCommandShortWithCP56Time2a_encode,
+    (DestroyFunction)SetpointCommandShortWithCP56Time2a_destroy};
 
 static void
 SetpointCommandShortWithCP56Time2a_initialize(SetpointCommandShortWithCP56Time2a self)
@@ -5497,12 +5672,14 @@ SetpointCommandShortWithCP56Time2a_destroy(SetpointCommandShortWithCP56Time2a se
 }
 
 SetpointCommandShortWithCP56Time2a
-SetpointCommandShortWithCP56Time2a_create(SetpointCommandShortWithCP56Time2a self, int ioa, float value, bool selectCommand, int ql, const CP56Time2a timestamp)
+SetpointCommandShortWithCP56Time2a_create(SetpointCommandShortWithCP56Time2a self, int ioa, float value,
+                                          bool selectCommand, int ql, const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (SetpointCommandShortWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandShortWithCP56Time2a));
+        self = (SetpointCommandShortWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sSetpointCommandShortWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         SetpointCommandShortWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -5511,7 +5688,8 @@ SetpointCommandShortWithCP56Time2a_create(SetpointCommandShortWithCP56Time2a sel
 
         uint8_t qos = ql;
 
-        if (selectCommand) qos |= 0x80;
+        if (selectCommand)
+            qos |= 0x80;
 
         self->qos = qos;
 
@@ -5524,55 +5702,58 @@ SetpointCommandShortWithCP56Time2a_create(SetpointCommandShortWithCP56Time2a sel
 float
 SetpointCommandShortWithCP56Time2a_getValue(SetpointCommandShortWithCP56Time2a self)
 {
-    return SetpointCommandShort_getValue((SetpointCommandShort) self);
+    return SetpointCommandShort_getValue((SetpointCommandShort)self);
 }
 
 int
 SetpointCommandShortWithCP56Time2a_getQL(SetpointCommandShortWithCP56Time2a self)
 {
-    return SetpointCommandShort_getQL((SetpointCommandShort) self);
+    return SetpointCommandShort_getQL((SetpointCommandShort)self);
 }
 
 bool
 SetpointCommandShortWithCP56Time2a_isSelect(SetpointCommandShortWithCP56Time2a self)
 {
-    return SetpointCommandShort_isSelect((SetpointCommandShort) self);
+    return SetpointCommandShort_isSelect((SetpointCommandShort)self);
 }
 
 SetpointCommandShortWithCP56Time2a
-SetpointCommandShortWithCP56Time2a_getFromBuffer(SetpointCommandShortWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+SetpointCommandShortWithCP56Time2a_getFromBuffer(SetpointCommandShortWithCP56Time2a self,
+                                                 CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                                 int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 12;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (SetpointCommandShortWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sSetpointCommandShortWithCP56Time2a));
+        self = (SetpointCommandShortWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sSetpointCommandShortWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self)
+    {
         SetpointCommandShortWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
-        uint8_t* valueBytes = (uint8_t*) &(self->value);
+        uint8_t* valueBytes = (uint8_t*)&(self->value);
 
 #if (ORDER_LITTLE_ENDIAN == 1)
-        valueBytes[0] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[3] = msg [startIndex++];
+        valueBytes[0] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[3] = msg[startIndex++];
 #else
-        valueBytes[3] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[0] = msg [startIndex++];
+        valueBytes[3] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[0] = msg[startIndex++];
 #endif
 
         /* QOS - qualifier of setpoint command */
@@ -5603,9 +5784,9 @@ Bitstring32Command_encode(Bitstring32Command self, Frame frame, CS101_AppLayerPa
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    uint8_t* valueBytes = (uint8_t*) &(self->value);
+    uint8_t* valueBytes = (uint8_t*)&(self->value);
 
 #if (ORDER_LITTLE_ENDIAN == 1)
     Frame_appendBytes(frame, valueBytes, 4);
@@ -5619,10 +5800,8 @@ Bitstring32Command_encode(Bitstring32Command self, Frame frame, CS101_AppLayerPa
     return true;
 }
 
-struct sInformationObjectVFT bitstring32CommandVFT = {
-        (EncodeFunction) Bitstring32Command_encode,
-        (DestroyFunction) Bitstring32Command_destroy
-};
+struct sInformationObjectVFT bitstring32CommandVFT = {(EncodeFunction)Bitstring32Command_encode,
+                                                      (DestroyFunction)Bitstring32Command_destroy};
 
 static void
 Bitstring32Command_initialize(Bitstring32Command self)
@@ -5635,9 +5814,10 @@ Bitstring32Command
 Bitstring32Command_create(Bitstring32Command self, int ioa, uint32_t value)
 {
     if (self == NULL)
-		self = (Bitstring32Command) GLOBAL_MALLOC(sizeof(struct sBitstring32Command));
+        self = (Bitstring32Command)GLOBAL_MALLOC(sizeof(struct sBitstring32Command));
 
-    if (self) {
+    if (self)
+    {
         Bitstring32Command_initialize(self);
 
         self->objectAddress = ioa;
@@ -5661,39 +5841,41 @@ Bitstring32Command_getValue(Bitstring32Command self)
 }
 
 Bitstring32Command
-Bitstring32Command_getFromBuffer(Bitstring32Command self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+Bitstring32Command_getFromBuffer(Bitstring32Command self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                 int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 4;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (Bitstring32Command) GLOBAL_MALLOC(sizeof(struct sBitstring32Command));
+        self = (Bitstring32Command)GLOBAL_MALLOC(sizeof(struct sBitstring32Command));
 
-    if (self != NULL) {
+    if (self)
+    {
         Bitstring32Command_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
-        uint8_t* valueBytes = (uint8_t*) &(self->value);
+        uint8_t* valueBytes = (uint8_t*)&(self->value);
 
 #if (ORDER_LITTLE_ENDIAN == 1)
-        valueBytes[0] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[3] = msg [startIndex++];
+        valueBytes[0] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[3] = msg[startIndex++];
 #else
-        valueBytes[3] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[0] = msg [startIndex++];
+        valueBytes[3] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[0] = msg[startIndex++];
 #endif
     }
 
@@ -5705,14 +5887,15 @@ Bitstring32Command_getFromBuffer(Bitstring32Command self, CS101_AppLayerParamete
  *******************************************************/
 
 static bool
-Bitstring32CommandWithCP56Time2a_encode(Bitstring32CommandWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+Bitstring32CommandWithCP56Time2a_encode(Bitstring32CommandWithCP56Time2a self, Frame frame,
+                                        CS101_AppLayerParameters parameters, bool isSequence)
 {
     int size = isSequence ? 12 : (parameters->sizeOfIOA + 12);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    Bitstring32Command_encode((Bitstring32Command) self, frame, parameters, isSequence);
+    Bitstring32Command_encode((Bitstring32Command)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 
@@ -5720,9 +5903,7 @@ Bitstring32CommandWithCP56Time2a_encode(Bitstring32CommandWithCP56Time2a self, F
 }
 
 struct sInformationObjectVFT bitstring32CommandWithCP56Time2aVFT = {
-        (EncodeFunction) Bitstring32CommandWithCP56Time2a_encode,
-        (DestroyFunction) Bitstring32CommandWithCP56Time2a_destroy
-};
+    (EncodeFunction)Bitstring32CommandWithCP56Time2a_encode, (DestroyFunction)Bitstring32CommandWithCP56Time2a_destroy};
 
 static void
 Bitstring32CommandWithCP56Time2a_initialize(Bitstring32CommandWithCP56Time2a self)
@@ -5732,12 +5913,14 @@ Bitstring32CommandWithCP56Time2a_initialize(Bitstring32CommandWithCP56Time2a sel
 }
 
 Bitstring32CommandWithCP56Time2a
-Bitstring32CommandWithCP56Time2a_create(Bitstring32CommandWithCP56Time2a self, int ioa, uint32_t value, const CP56Time2a timestamp)
+Bitstring32CommandWithCP56Time2a_create(Bitstring32CommandWithCP56Time2a self, int ioa, uint32_t value,
+                                        const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (Bitstring32CommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32CommandWithCP56Time2a));
+        self = (Bitstring32CommandWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sBitstring32CommandWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         Bitstring32CommandWithCP56Time2a_initialize(self);
 
         self->objectAddress = ioa;
@@ -5769,39 +5952,42 @@ Bitstring32CommandWithCP56Time2a_getTimestamp(Bitstring32CommandWithCP56Time2a s
 }
 
 Bitstring32CommandWithCP56Time2a
-Bitstring32CommandWithCP56Time2a_getFromBuffer(Bitstring32CommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+Bitstring32CommandWithCP56Time2a_getFromBuffer(Bitstring32CommandWithCP56Time2a self,
+                                               CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                                               int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 11;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (Bitstring32CommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sBitstring32CommandWithCP56Time2a));
+        self = (Bitstring32CommandWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sBitstring32CommandWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         Bitstring32CommandWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
-        uint8_t* valueBytes = (uint8_t*) &(self->value);
+        uint8_t* valueBytes = (uint8_t*)&(self->value);
 
 #if (ORDER_LITTLE_ENDIAN == 1)
-        valueBytes[0] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[3] = msg [startIndex++];
+        valueBytes[0] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[3] = msg[startIndex++];
 #else
-        valueBytes[3] = msg [startIndex++];
-        valueBytes[2] = msg [startIndex++];
-        valueBytes[1] = msg [startIndex++];
-        valueBytes[0] = msg [startIndex++];
+        valueBytes[3] = msg[startIndex++];
+        valueBytes[2] = msg[startIndex++];
+        valueBytes[1] = msg[startIndex++];
+        valueBytes[0] = msg[startIndex++];
 #endif
 
         /* timestamp */
@@ -5823,15 +6009,13 @@ ReadCommand_encode(ReadCommand self, Frame frame, CS101_AppLayerParameters param
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     return true;
 }
 
-struct sInformationObjectVFT readCommandVFT = {
-        (EncodeFunction) ReadCommand_encode,
-        (DestroyFunction) ReadCommand_destroy
-};
+struct sInformationObjectVFT readCommandVFT = {(EncodeFunction)ReadCommand_encode,
+                                               (DestroyFunction)ReadCommand_destroy};
 
 static void
 ReadCommand_initialize(ReadCommand self)
@@ -5844,9 +6028,10 @@ ReadCommand
 ReadCommand_create(ReadCommand self, int ioa)
 {
     if (self == NULL)
-		self = (ReadCommand) GLOBAL_MALLOC(sizeof(struct sReadCommand));
+        self = (ReadCommand)GLOBAL_MALLOC(sizeof(struct sReadCommand));
 
-    if (self) {
+    if (self)
+    {
         ReadCommand_initialize(self);
 
         self->objectAddress = ioa;
@@ -5861,26 +6046,27 @@ ReadCommand_destroy(ReadCommand self)
     GLOBAL_FREEMEM(self);
 }
 
-
 ReadCommand
-ReadCommand_getFromBuffer(ReadCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+ReadCommand_getFromBuffer(ReadCommand self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                          int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 0;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (ReadCommand) GLOBAL_MALLOC(sizeof(struct sReadCommand));
+        self = (ReadCommand)GLOBAL_MALLOC(sizeof(struct sReadCommand));
 
-    if (self != NULL) {
+    if (self)
+    {
         ReadCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
     }
 
     return self;
@@ -5891,24 +6077,23 @@ ReadCommand_getFromBuffer(ReadCommand self, CS101_AppLayerParameters parameters,
  **************************************************/
 
 static bool
-ClockSynchronizationCommand_encode(ClockSynchronizationCommand self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+ClockSynchronizationCommand_encode(ClockSynchronizationCommand self, Frame frame, CS101_AppLayerParameters parameters,
+                                   bool isSequence)
 {
     int size = isSequence ? 7 : (parameters->sizeOfIOA + 7);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->timestamp.encodedValue, 7);
 
     return true;
 }
 
-struct sInformationObjectVFT clockSynchronizationCommandVFT = {
-        (EncodeFunction) ClockSynchronizationCommand_encode,
-        (DestroyFunction) ClockSynchronizationCommand_destroy
-};
+struct sInformationObjectVFT clockSynchronizationCommandVFT = {(EncodeFunction)ClockSynchronizationCommand_encode,
+                                                               (DestroyFunction)ClockSynchronizationCommand_destroy};
 
 static void
 ClockSynchronizationCommand_initialize(ClockSynchronizationCommand self)
@@ -5921,9 +6106,10 @@ ClockSynchronizationCommand
 ClockSynchronizationCommand_create(ClockSynchronizationCommand self, int ioa, const CP56Time2a timestamp)
 {
     if (self == NULL)
-		self = (ClockSynchronizationCommand) GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
+        self = (ClockSynchronizationCommand)GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
 
-    if (self) {
+    if (self)
+    {
         ClockSynchronizationCommand_initialize(self);
 
         self->objectAddress = ioa;
@@ -5947,23 +6133,25 @@ ClockSynchronizationCommand_getTime(ClockSynchronizationCommand self)
 
 ClockSynchronizationCommand
 ClockSynchronizationCommand_getFromBuffer(ClockSynchronizationCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+                                          uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 7;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (ClockSynchronizationCommand) GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
+        self = (ClockSynchronizationCommand)GLOBAL_MALLOC(sizeof(struct sClockSynchronizationCommand));
 
-    if (self) {
+    if (self)
+    {
         ClockSynchronizationCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5979,24 +6167,23 @@ ClockSynchronizationCommand_getFromBuffer(ClockSynchronizationCommand self, CS10
  ************************************************/
 
 static bool
-InterrogationCommand_encode(InterrogationCommand self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+InterrogationCommand_encode(InterrogationCommand self, Frame frame, CS101_AppLayerParameters parameters,
+                            bool isSequence)
 {
     int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qoi);
 
     return true;
 }
 
-struct sInformationObjectVFT interrogationCommandVFT = {
-        (EncodeFunction) InterrogationCommand_encode,
-        (DestroyFunction) InterrogationCommand_destroy
-};
+struct sInformationObjectVFT interrogationCommandVFT = {(EncodeFunction)InterrogationCommand_encode,
+                                                        (DestroyFunction)InterrogationCommand_destroy};
 
 static void
 InterrogationCommand_initialize(InterrogationCommand self)
@@ -6009,9 +6196,10 @@ InterrogationCommand
 InterrogationCommand_create(InterrogationCommand self, int ioa, uint8_t qoi)
 {
     if (self == NULL)
-		self = (InterrogationCommand) GLOBAL_MALLOC(sizeof(struct sInterrogationCommand));
+        self = (InterrogationCommand)GLOBAL_MALLOC(sizeof(struct sInterrogationCommand));
 
-    if (self) {
+    if (self)
+    {
         InterrogationCommand_initialize(self);
 
         self->objectAddress = ioa;
@@ -6035,24 +6223,26 @@ InterrogationCommand_getQOI(InterrogationCommand self)
 }
 
 InterrogationCommand
-InterrogationCommand_getFromBuffer(InterrogationCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+InterrogationCommand_getFromBuffer(InterrogationCommand self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                   int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 1;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-		self = (InterrogationCommand) GLOBAL_MALLOC(sizeof(struct sInterrogationCommand));
+        self = (InterrogationCommand)GLOBAL_MALLOC(sizeof(struct sInterrogationCommand));
 
-    if (self) {
+    if (self)
+    {
         InterrogationCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6068,24 +6258,23 @@ InterrogationCommand_getFromBuffer(InterrogationCommand self, CS101_AppLayerPara
  **************************************************/
 
 static bool
-CounterInterrogationCommand_encode(CounterInterrogationCommand self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+CounterInterrogationCommand_encode(CounterInterrogationCommand self, Frame frame, CS101_AppLayerParameters parameters,
+                                   bool isSequence)
 {
     int size = isSequence ? 1 : (parameters->sizeOfIOA + 1);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qcc);
 
     return true;
 }
 
-struct sInformationObjectVFT counterInterrogationCommandVFT = {
-        (EncodeFunction) CounterInterrogationCommand_encode,
-        (DestroyFunction) CounterInterrogationCommand_destroy
-};
+struct sInformationObjectVFT counterInterrogationCommandVFT = {(EncodeFunction)CounterInterrogationCommand_encode,
+                                                               (DestroyFunction)CounterInterrogationCommand_destroy};
 
 static void
 CounterInterrogationCommand_initialize(CounterInterrogationCommand self)
@@ -6098,9 +6287,10 @@ CounterInterrogationCommand
 CounterInterrogationCommand_create(CounterInterrogationCommand self, int ioa, QualifierOfCIC qcc)
 {
     if (self == NULL)
-        self = (CounterInterrogationCommand) GLOBAL_MALLOC(sizeof(struct sCounterInterrogationCommand));
+        self = (CounterInterrogationCommand)GLOBAL_MALLOC(sizeof(struct sCounterInterrogationCommand));
 
-    if (self) {
+    if (self)
+    {
         CounterInterrogationCommand_initialize(self);
 
         self->objectAddress = ioa;
@@ -6125,23 +6315,25 @@ CounterInterrogationCommand_getQCC(CounterInterrogationCommand self)
 
 CounterInterrogationCommand
 CounterInterrogationCommand_getFromBuffer(CounterInterrogationCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+                                          uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 1;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (CounterInterrogationCommand) GLOBAL_MALLOC(sizeof(struct sCounterInterrogationCommand));
+        self = (CounterInterrogationCommand)GLOBAL_MALLOC(sizeof(struct sCounterInterrogationCommand));
 
-    if (self) {
+    if (self)
+    {
         CounterInterrogationCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6164,7 +6356,7 @@ TestCommand_encode(TestCommand self, Frame frame, CS101_AppLayerParameters param
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->byte1);
     Frame_setNextByte(frame, self->byte2);
@@ -6172,10 +6364,8 @@ TestCommand_encode(TestCommand self, Frame frame, CS101_AppLayerParameters param
     return true;
 }
 
-struct sInformationObjectVFT testCommandVFT = {
-        (EncodeFunction) TestCommand_encode,
-        (DestroyFunction) TestCommand_destroy
-};
+struct sInformationObjectVFT testCommandVFT = {(EncodeFunction)TestCommand_encode,
+                                               (DestroyFunction)TestCommand_destroy};
 
 static void
 TestCommand_initialize(TestCommand self)
@@ -6188,9 +6378,10 @@ TestCommand
 TestCommand_create(TestCommand self)
 {
     if (self == NULL)
-        self = (TestCommand) GLOBAL_MALLOC(sizeof(struct sTestCommand));
+        self = (TestCommand)GLOBAL_MALLOC(sizeof(struct sTestCommand));
 
-    if (self) {
+    if (self)
+    {
         TestCommand_initialize(self);
 
         self->objectAddress = 0;
@@ -6218,24 +6409,26 @@ TestCommand_isValid(TestCommand self)
 }
 
 TestCommand
-TestCommand_getFromBuffer(TestCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+TestCommand_getFromBuffer(TestCommand self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                          int startIndex)
 {
     /* check message size */
     int minSize = startIndex + 2;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (TestCommand) GLOBAL_MALLOC(sizeof(struct sTestCommand));
+        self = (TestCommand)GLOBAL_MALLOC(sizeof(struct sTestCommand));
 
-    if (self != NULL) {
+    if (self)
+    {
         TestCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6252,14 +6445,15 @@ TestCommand_getFromBuffer(TestCommand self, CS101_AppLayerParameters parameters,
  ************************************************/
 
 static bool
-TestCommandWithCP56Time2a_encode(TestCommandWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+TestCommandWithCP56Time2a_encode(TestCommandWithCP56Time2a self, Frame frame, CS101_AppLayerParameters parameters,
+                                 bool isSequence)
 {
     int size = isSequence ? 2 : (parameters->sizeOfIOA + 9);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->tsc % 0x100);
     Frame_setNextByte(frame, self->tsc / 0x100);
@@ -6269,10 +6463,8 @@ TestCommandWithCP56Time2a_encode(TestCommandWithCP56Time2a self, Frame frame, CS
     return true;
 }
 
-struct sInformationObjectVFT testCommandWithCP56Time2aVFT = {
-        (EncodeFunction) TestCommandWithCP56Time2a_encode,
-        (DestroyFunction) TestCommandWithCP56Time2a_destroy
-};
+struct sInformationObjectVFT testCommandWithCP56Time2aVFT = {(EncodeFunction)TestCommandWithCP56Time2a_encode,
+                                                             (DestroyFunction)TestCommandWithCP56Time2a_destroy};
 
 static void
 TestCommandWithCP56Time2a_initialize(TestCommandWithCP56Time2a self)
@@ -6285,9 +6477,10 @@ TestCommandWithCP56Time2a
 TestCommandWithCP56Time2a_create(TestCommandWithCP56Time2a self, uint16_t tsc, const CP56Time2a timestamp)
 {
     if (self == NULL)
-        self = (TestCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sTestCommandWithCP56Time2a));
+        self = (TestCommandWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sTestCommandWithCP56Time2a));
 
-    if (self) {
+    if (self)
+    {
         TestCommandWithCP56Time2a_initialize(self);
 
         self->objectAddress = 0;
@@ -6319,23 +6512,25 @@ TestCommandWithCP56Time2a_getTimestamp(TestCommandWithCP56Time2a self)
 
 TestCommandWithCP56Time2a
 TestCommandWithCP56Time2a_getFromBuffer(TestCommandWithCP56Time2a self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+                                        uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + 9;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (TestCommandWithCP56Time2a) GLOBAL_MALLOC(sizeof(struct sTestCommandWithCP56Time2a));
+        self = (TestCommandWithCP56Time2a)GLOBAL_MALLOC(sizeof(struct sTestCommandWithCP56Time2a));
 
-    if (self != NULL) {
+    if (self)
+    {
         TestCommandWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6362,17 +6557,15 @@ ResetProcessCommand_encode(ResetProcessCommand self, Frame frame, CS101_AppLayer
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qrp);
 
     return true;
 }
 
-struct sInformationObjectVFT resetProcessCommandVFT = {
-        (EncodeFunction) ResetProcessCommand_encode,
-        (DestroyFunction) ResetProcessCommand_destroy
-};
+struct sInformationObjectVFT resetProcessCommandVFT = {(EncodeFunction)ResetProcessCommand_encode,
+                                                       (DestroyFunction)ResetProcessCommand_destroy};
 
 static void
 ResetProcessCommand_initialize(ResetProcessCommand self)
@@ -6382,12 +6575,13 @@ ResetProcessCommand_initialize(ResetProcessCommand self)
 }
 
 ResetProcessCommand
-ResetProcessCommand_create(ResetProcessCommand self, int ioa,  QualifierOfRPC qrp)
+ResetProcessCommand_create(ResetProcessCommand self, int ioa, QualifierOfRPC qrp)
 {
     if (self == NULL)
-        self = (ResetProcessCommand) GLOBAL_MALLOC(sizeof(struct sResetProcessCommand));
+        self = (ResetProcessCommand)GLOBAL_MALLOC(sizeof(struct sResetProcessCommand));
 
-    if (self) {
+    if (self)
+    {
         ResetProcessCommand_initialize(self);
 
         self->objectAddress = ioa;
@@ -6411,24 +6605,26 @@ ResetProcessCommand_getQRP(ResetProcessCommand self)
 }
 
 ResetProcessCommand
-ResetProcessCommand_getFromBuffer(ResetProcessCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+ResetProcessCommand_getFromBuffer(ResetProcessCommand self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                  int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 1;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (ResetProcessCommand) GLOBAL_MALLOC(sizeof(struct sResetProcessCommand));
+        self = (ResetProcessCommand)GLOBAL_MALLOC(sizeof(struct sResetProcessCommand));
 
-    if (self != NULL) {
+    if (self)
+    {
         ResetProcessCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6444,24 +6640,23 @@ ResetProcessCommand_getFromBuffer(ResetProcessCommand self, CS101_AppLayerParame
  ************************************************/
 
 static bool
-DelayAcquisitionCommand_encode(DelayAcquisitionCommand self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+DelayAcquisitionCommand_encode(DelayAcquisitionCommand self, Frame frame, CS101_AppLayerParameters parameters,
+                               bool isSequence)
 {
     int size = isSequence ? 2 : (parameters->sizeOfIOA + 2);
 
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_appendBytes(frame, self->delay.encodedValue, 2);
 
     return true;
 }
 
-struct sInformationObjectVFT DelayAcquisitionCommandVFT = {
-        (EncodeFunction) DelayAcquisitionCommand_encode,
-        (DestroyFunction) DelayAcquisitionCommand_destroy
-};
+struct sInformationObjectVFT DelayAcquisitionCommandVFT = {(EncodeFunction)DelayAcquisitionCommand_encode,
+                                                           (DestroyFunction)DelayAcquisitionCommand_destroy};
 
 static void
 DelayAcquisitionCommand_initialize(DelayAcquisitionCommand self)
@@ -6474,9 +6669,10 @@ DelayAcquisitionCommand
 DelayAcquisitionCommand_create(DelayAcquisitionCommand self, int ioa, const CP16Time2a delay)
 {
     if (self == NULL)
-        self = (DelayAcquisitionCommand) GLOBAL_MALLOC(sizeof(struct sDelayAcquisitionCommand));
+        self = (DelayAcquisitionCommand)GLOBAL_MALLOC(sizeof(struct sDelayAcquisitionCommand));
 
-    if (self) {
+    if (self)
+    {
         DelayAcquisitionCommand_initialize(self);
 
         self->objectAddress = ioa;
@@ -6500,24 +6696,26 @@ DelayAcquisitionCommand_getDelay(DelayAcquisitionCommand self)
 }
 
 DelayAcquisitionCommand
-DelayAcquisitionCommand_getFromBuffer(DelayAcquisitionCommand self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+DelayAcquisitionCommand_getFromBuffer(DelayAcquisitionCommand self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                      int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 2;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (DelayAcquisitionCommand) GLOBAL_MALLOC(sizeof(struct sDelayAcquisitionCommand));
+        self = (DelayAcquisitionCommand)GLOBAL_MALLOC(sizeof(struct sDelayAcquisitionCommand));
 
-    if (self != NULL) {
+    if (self)
+    {
         DelayAcquisitionCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6540,17 +6738,15 @@ ParameterActivation_encode(ParameterActivation self, Frame frame, CS101_AppLayer
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->qpa);
 
     return true;
 }
 
-struct sInformationObjectVFT parameterActivationVFT = {
-        (EncodeFunction) ParameterActivation_encode,
-        (DestroyFunction) ParameterActivation_destroy
-};
+struct sInformationObjectVFT parameterActivationVFT = {(EncodeFunction)ParameterActivation_encode,
+                                                       (DestroyFunction)ParameterActivation_destroy};
 
 static void
 ParameterActivation_initialize(ParameterActivation self)
@@ -6569,9 +6765,10 @@ ParameterActivation
 ParameterActivation_create(ParameterActivation self, int ioa, QualifierOfParameterActivation qpa)
 {
     if (self == NULL)
-        self = (ParameterActivation) GLOBAL_CALLOC(1, sizeof(struct sParameterActivation));
+        self = (ParameterActivation)GLOBAL_CALLOC(1, sizeof(struct sParameterActivation));
 
-    if (self) {
+    if (self)
+    {
         ParameterActivation_initialize(self);
 
         self->objectAddress = ioa;
@@ -6588,29 +6785,31 @@ ParameterActivation_getQuality(ParameterActivation self)
 }
 
 ParameterActivation
-ParameterActivation_getFromBuffer(ParameterActivation self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+ParameterActivation_getFromBuffer(ParameterActivation self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                  int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 1;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-        self = (ParameterActivation) GLOBAL_MALLOC(sizeof(struct sParameterActivation));
+        self = (ParameterActivation)GLOBAL_MALLOC(sizeof(struct sParameterActivation));
 
-    if (self) {
+    if (self)
+    {
         ParameterActivation_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
         /* QPA */
-        self->qpa = (QualifierOfParameterActivation) msg [startIndex++];
+        self->qpa = (QualifierOfParameterActivation)msg[startIndex++];
     }
 
     return self;
@@ -6628,17 +6827,15 @@ EndOfInitialization_encode(EndOfInitialization self, Frame frame, CS101_AppLayer
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
     Frame_setNextByte(frame, self->coi);
 
     return true;
 }
 
-struct sInformationObjectVFT EndOfInitializationVFT = {
-        (EncodeFunction) EndOfInitialization_encode,
-        (DestroyFunction) EndOfInitialization_destroy
-};
+struct sInformationObjectVFT EndOfInitializationVFT = {(EncodeFunction)EndOfInitialization_encode,
+                                                       (DestroyFunction)EndOfInitialization_destroy};
 
 static void
 EndOfInitialization_initialize(EndOfInitialization self)
@@ -6651,9 +6848,10 @@ EndOfInitialization
 EndOfInitialization_create(EndOfInitialization self, uint8_t coi)
 {
     if (self == NULL)
-       self = (EndOfInitialization) GLOBAL_MALLOC(sizeof(struct sEndOfInitialization));
+        self = (EndOfInitialization)GLOBAL_MALLOC(sizeof(struct sEndOfInitialization));
 
-    if (self) {
+    if (self)
+    {
         EndOfInitialization_initialize(self);
 
         self->objectAddress = 0;
@@ -6677,24 +6875,26 @@ EndOfInitialization_getCOI(EndOfInitialization self)
 }
 
 EndOfInitialization
-EndOfInitialization_getFromBuffer(EndOfInitialization self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+EndOfInitialization_getFromBuffer(EndOfInitialization self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                  int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 1;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-       self = (EndOfInitialization) GLOBAL_MALLOC(sizeof(struct sEndOfInitialization));
+        self = (EndOfInitialization)GLOBAL_MALLOC(sizeof(struct sEndOfInitialization));
 
-    if (self) {
+    if (self)
+    {
         EndOfInitialization_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6717,24 +6917,21 @@ FileReady_encode(FileReady self, Frame frame, CS101_AppLayerParameters parameter
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof % 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof / 256));
 
-    Frame_setNextByte (frame, (uint8_t)(self->lengthOfFile % 0x100));
-    Frame_setNextByte (frame, (uint8_t)((self->lengthOfFile / 0x100) % 0x100));
-    Frame_setNextByte (frame, (uint8_t)((self->lengthOfFile / 0x10000) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)(self->lengthOfFile % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((self->lengthOfFile / 0x100) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((self->lengthOfFile / 0x10000) % 0x100));
 
-    Frame_setNextByte (frame, self->frq);
+    Frame_setNextByte(frame, self->frq);
 
     return true;
 }
 
-struct sInformationObjectVFT FileReadyVFT = {
-        (EncodeFunction) FileReady_encode,
-        (DestroyFunction) FileReady_destroy
-};
+struct sInformationObjectVFT FileReadyVFT = {(EncodeFunction)FileReady_encode, (DestroyFunction)FileReady_destroy};
 
 static void
 FileReady_initialize(FileReady self)
@@ -6747,9 +6944,10 @@ FileReady
 FileReady_create(FileReady self, int ioa, uint16_t nof, uint32_t lengthOfFile, bool positive)
 {
     if (self == NULL)
-       self = (FileReady) GLOBAL_MALLOC(sizeof(struct sFileReady));
+        self = (FileReady)GLOBAL_MALLOC(sizeof(struct sFileReady));
 
-    if (self) {
+    if (self)
+    {
         FileReady_initialize(self);
 
         self->objectAddress = ioa;
@@ -6802,33 +7000,34 @@ FileReady_destroy(FileReady self)
 }
 
 FileReady
-FileReady_getFromBuffer(FileReady self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+FileReady_getFromBuffer(FileReady self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 6;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-       self = (FileReady) GLOBAL_MALLOC(sizeof(struct sFileReady));
+        self = (FileReady)GLOBAL_MALLOC(sizeof(struct sFileReady));
 
-    if (self) {
+    if (self)
+    {
         FileReady_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
         self->nof = msg[startIndex++];
         self->nof += (msg[startIndex++] * 0x100);
 
-        self->lengthOfFile = msg [startIndex++];
-        self->lengthOfFile += (msg [startIndex++] * 0x100);
-        self->lengthOfFile += (msg [startIndex++] * 0x10000);
+        self->lengthOfFile = msg[startIndex++];
+        self->lengthOfFile += (msg[startIndex++] * 0x100);
+        self->lengthOfFile += (msg[startIndex++] * 0x10000);
 
         /* FRQ */
         self->frq = msg[startIndex];
@@ -6849,26 +7048,24 @@ SectionReady_encode(SectionReady self, Frame frame, CS101_AppLayerParameters par
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof % 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof / 256));
 
-    Frame_setNextByte (frame, self->nameOfSection);
+    Frame_setNextByte(frame, self->nameOfSection);
 
-    Frame_setNextByte (frame, (uint8_t)(self->lengthOfSection % 0x100));
-    Frame_setNextByte (frame, (uint8_t)((self->lengthOfSection / 0x100) % 0x100));
-    Frame_setNextByte (frame, (uint8_t)((self->lengthOfSection / 0x10000) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)(self->lengthOfSection % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((self->lengthOfSection / 0x100) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((self->lengthOfSection / 0x10000) % 0x100));
 
-    Frame_setNextByte (frame, self->srq);
+    Frame_setNextByte(frame, self->srq);
 
     return true;
 }
 
-struct sInformationObjectVFT SectionReadyVFT = {
-        (EncodeFunction) SectionReady_encode,
-        (DestroyFunction) SectionReady_destroy
-};
+struct sInformationObjectVFT SectionReadyVFT = {(EncodeFunction)SectionReady_encode,
+                                                (DestroyFunction)SectionReady_destroy};
 
 static void
 SectionReady_initialize(SectionReady self)
@@ -6881,9 +7078,10 @@ SectionReady
 SectionReady_create(SectionReady self, int ioa, uint16_t nof, uint8_t nos, uint32_t lengthOfSection, bool notReady)
 {
     if (self == NULL)
-       self = (SectionReady) GLOBAL_MALLOC(sizeof(struct sSectionReady));
+        self = (SectionReady)GLOBAL_MALLOC(sizeof(struct sSectionReady));
 
-    if (self != NULL) {
+    if (self)
+    {
         SectionReady_initialize(self);
 
         self->objectAddress = ioa;
@@ -6943,24 +7141,26 @@ SectionReady_destroy(SectionReady self)
 }
 
 SectionReady
-SectionReady_getFromBuffer(SectionReady self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+SectionReady_getFromBuffer(SectionReady self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                           int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 7;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     };
 
     if (self == NULL)
-       self = (SectionReady) GLOBAL_MALLOC(sizeof(struct sSectionReady));
+        self = (SectionReady)GLOBAL_MALLOC(sizeof(struct sSectionReady));
 
-    if (self != NULL) {
+    if (self)
+    {
         SectionReady_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6969,9 +7169,9 @@ SectionReady_getFromBuffer(SectionReady self, CS101_AppLayerParameters parameter
 
         self->nameOfSection = msg[startIndex++];
 
-        self->lengthOfSection = msg [startIndex++];
-        self->lengthOfSection += (msg [startIndex++] * 0x100);
-        self->lengthOfSection += (msg [startIndex++] * 0x10000);
+        self->lengthOfSection = msg[startIndex++];
+        self->lengthOfSection += (msg[startIndex++] * 0x100);
+        self->lengthOfSection += (msg[startIndex++] * 0x10000);
 
         self->srq = msg[startIndex];
     }
@@ -6991,22 +7191,20 @@ FileCallOrSelect_encode(FileCallOrSelect self, Frame frame, CS101_AppLayerParame
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof % 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof / 256));
 
-    Frame_setNextByte (frame, self->nameOfSection);
+    Frame_setNextByte(frame, self->nameOfSection);
 
-    Frame_setNextByte (frame, self->scq);
+    Frame_setNextByte(frame, self->scq);
 
     return true;
 }
 
-struct sInformationObjectVFT FileCallOrSelectVFT = {
-        (EncodeFunction) FileCallOrSelect_encode,
-        (DestroyFunction) FileCallOrSelect_destroy
-};
+struct sInformationObjectVFT FileCallOrSelectVFT = {(EncodeFunction)FileCallOrSelect_encode,
+                                                    (DestroyFunction)FileCallOrSelect_destroy};
 
 static void
 FileCallOrSelect_initialize(FileCallOrSelect self)
@@ -7019,9 +7217,10 @@ FileCallOrSelect
 FileCallOrSelect_create(FileCallOrSelect self, int ioa, uint16_t nof, uint8_t nos, uint8_t scq)
 {
     if (self == NULL)
-       self = (FileCallOrSelect) GLOBAL_MALLOC(sizeof(struct sFileCallOrSelect));
+        self = (FileCallOrSelect)GLOBAL_MALLOC(sizeof(struct sFileCallOrSelect));
 
-    if (self != NULL) {
+    if (self)
+    {
         FileCallOrSelect_initialize(self);
 
         self->objectAddress = ioa;
@@ -7051,7 +7250,6 @@ FileCallOrSelect_getSCQ(FileCallOrSelect self)
     return self->scq;
 }
 
-
 void
 FileCallOrSelect_destroy(FileCallOrSelect self)
 {
@@ -7059,24 +7257,26 @@ FileCallOrSelect_destroy(FileCallOrSelect self)
 }
 
 FileCallOrSelect
-FileCallOrSelect_getFromBuffer(FileCallOrSelect self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+FileCallOrSelect_getFromBuffer(FileCallOrSelect self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                               int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 4;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-       self = (FileCallOrSelect) GLOBAL_MALLOC(sizeof(struct sFileCallOrSelect));
+        self = (FileCallOrSelect)GLOBAL_MALLOC(sizeof(struct sFileCallOrSelect));
 
-    if (self != NULL) {
+    if (self)
+    {
         FileCallOrSelect_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7096,26 +7296,25 @@ FileCallOrSelect_getFromBuffer(FileCallOrSelect self, CS101_AppLayerParameters p
  *************************************************/
 
 static bool
-FileLastSegmentOrSection_encode(FileLastSegmentOrSection self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
+FileLastSegmentOrSection_encode(FileLastSegmentOrSection self, Frame frame, CS101_AppLayerParameters parameters,
+                                bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof % 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof / 256));
 
-    Frame_setNextByte (frame, self->nameOfSection);
+    Frame_setNextByte(frame, self->nameOfSection);
 
-    Frame_setNextByte (frame, self->lsq);
+    Frame_setNextByte(frame, self->lsq);
 
-    Frame_setNextByte (frame, self->chs);
+    Frame_setNextByte(frame, self->chs);
 
     return true;
 }
 
-struct sInformationObjectVFT FileLastSegmentOrSectionVFT = {
-        (EncodeFunction) FileLastSegmentOrSection_encode,
-        (DestroyFunction) FileLastSegmentOrSection_destroy
-};
+struct sInformationObjectVFT FileLastSegmentOrSectionVFT = {(EncodeFunction)FileLastSegmentOrSection_encode,
+                                                            (DestroyFunction)FileLastSegmentOrSection_destroy};
 
 static void
 FileLastSegmentOrSection_initialize(FileLastSegmentOrSection self)
@@ -7125,12 +7324,14 @@ FileLastSegmentOrSection_initialize(FileLastSegmentOrSection self)
 }
 
 FileLastSegmentOrSection
-FileLastSegmentOrSection_create(FileLastSegmentOrSection self, int ioa, uint16_t nof, uint8_t nos, uint8_t lsq, uint8_t chs)
+FileLastSegmentOrSection_create(FileLastSegmentOrSection self, int ioa, uint16_t nof, uint8_t nos, uint8_t lsq,
+                                uint8_t chs)
 {
     if (self == NULL)
-       self = (FileLastSegmentOrSection) GLOBAL_MALLOC(sizeof(struct sFileLastSegmentOrSection));
+        self = (FileLastSegmentOrSection)GLOBAL_MALLOC(sizeof(struct sFileLastSegmentOrSection));
 
-    if (self != NULL) {
+    if (self)
+    {
         FileLastSegmentOrSection_initialize(self);
 
         self->objectAddress = ioa;
@@ -7174,24 +7375,26 @@ FileLastSegmentOrSection_destroy(FileLastSegmentOrSection self)
 }
 
 FileLastSegmentOrSection
-FileLastSegmentOrSection_getFromBuffer(FileLastSegmentOrSection self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+FileLastSegmentOrSection_getFromBuffer(FileLastSegmentOrSection self, CS101_AppLayerParameters parameters, uint8_t* msg,
+                                       int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 5;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-       self = (FileLastSegmentOrSection) GLOBAL_MALLOC(sizeof(struct sFileLastSegmentOrSection));
+        self = (FileLastSegmentOrSection)GLOBAL_MALLOC(sizeof(struct sFileLastSegmentOrSection));
 
-    if (self) {
+    if (self)
+    {
         FileLastSegmentOrSection_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7215,22 +7418,19 @@ FileLastSegmentOrSection_getFromBuffer(FileLastSegmentOrSection self, CS101_AppL
 static bool
 FileACK_encode(FileACK self, Frame frame, CS101_AppLayerParameters parameters, bool isSequence)
 {
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof % 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof / 256));
 
-    Frame_setNextByte (frame, self->nameOfSection);
+    Frame_setNextByte(frame, self->nameOfSection);
 
-    Frame_setNextByte (frame, self->afq);
+    Frame_setNextByte(frame, self->afq);
 
     return true;
 }
 
-struct sInformationObjectVFT FileACKVFT = {
-        (EncodeFunction) FileACK_encode,
-        (DestroyFunction) FileACK_destroy
-};
+struct sInformationObjectVFT FileACKVFT = {(EncodeFunction)FileACK_encode, (DestroyFunction)FileACK_destroy};
 
 static void
 FileACK_initialize(FileACK self)
@@ -7239,14 +7439,14 @@ FileACK_initialize(FileACK self)
     self->type = F_AF_NA_1;
 }
 
-
 FileACK
 FileACK_create(FileACK self, int ioa, uint16_t nof, uint8_t nos, uint8_t afq)
 {
     if (self == NULL)
-       self = (FileACK) GLOBAL_MALLOC(sizeof(struct sFileACK));
+        self = (FileACK)GLOBAL_MALLOC(sizeof(struct sFileACK));
 
-    if (self) {
+    if (self)
+    {
         FileACK_initialize(self);
 
         self->objectAddress = ioa;
@@ -7283,24 +7483,25 @@ FileACK_destroy(FileACK self)
 }
 
 FileACK
-FileACK_getFromBuffer(FileACK self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+FileACK_getFromBuffer(FileACK self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 4;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-       self = (FileACK) GLOBAL_MALLOC(sizeof(struct sFileACK));
+        self = (FileACK)GLOBAL_MALLOC(sizeof(struct sFileACK));
 
-    if (self) {
+    if (self)
+    {
         FileACK_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7325,24 +7526,22 @@ FileSegment_encode(FileSegment self, Frame frame, CS101_AppLayerParameters param
     if (self->los > FileSegment_GetMaxDataSize(parameters))
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof % 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof / 256));
 
-    Frame_setNextByte (frame, self->nameOfSection);
+    Frame_setNextByte(frame, self->nameOfSection);
 
-    Frame_setNextByte (frame, self->los);
+    Frame_setNextByte(frame, self->los);
 
-    Frame_appendBytes (frame, self->data, self->los);
+    Frame_appendBytes(frame, self->data, self->los);
 
     return true;
 }
 
-struct sInformationObjectVFT FileSegmentVFT = {
-        (EncodeFunction) FileSegment_encode,
-        (DestroyFunction) FileSegment_destroy
-};
+struct sInformationObjectVFT FileSegmentVFT = {(EncodeFunction)FileSegment_encode,
+                                               (DestroyFunction)FileSegment_destroy};
 
 static void
 FileSegment_initialize(FileSegment self)
@@ -7355,9 +7554,10 @@ FileSegment
 FileSegment_create(FileSegment self, int ioa, uint16_t nof, uint8_t nos, uint8_t* data, uint8_t los)
 {
     if (self == NULL)
-        self = (FileSegment) GLOBAL_MALLOC(sizeof(struct sFileSegment));
+        self = (FileSegment)GLOBAL_MALLOC(sizeof(struct sFileSegment));
 
-    if (self) {
+    if (self)
+    {
         FileSegment_initialize(self);
 
         self->objectAddress = ioa;
@@ -7394,13 +7594,11 @@ FileSegment_getSegmentData(FileSegment self)
     return self->data;
 }
 
-
 int
 FileSegment_GetMaxDataSize(CS101_AppLayerParameters parameters)
 {
-    int maxSize = parameters->maxSizeOfASDU -
-        parameters->sizeOfTypeId - parameters->sizeOfVSQ - parameters->sizeOfCA - parameters->sizeOfCOT
-        - parameters->sizeOfIOA - 4;
+    int maxSize = parameters->maxSizeOfASDU - parameters->sizeOfTypeId - parameters->sizeOfVSQ - parameters->sizeOfCA -
+                  parameters->sizeOfCOT - parameters->sizeOfIOA - 4;
 
     return maxSize;
 }
@@ -7412,13 +7610,14 @@ FileSegment_destroy(FileSegment self)
 }
 
 FileSegment
-FileSegment_getFromBuffer(FileSegment self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+FileSegment_getFromBuffer(FileSegment self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                          int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 4;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
@@ -7429,12 +7628,13 @@ FileSegment_getFromBuffer(FileSegment self, CS101_AppLayerParameters parameters,
         return NULL;
 
     if (self == NULL)
-       self = (FileSegment) GLOBAL_MALLOC(sizeof(struct sFileSegment));
+        self = (FileSegment)GLOBAL_MALLOC(sizeof(struct sFileSegment));
 
-    if (self) {
+    if (self)
+    {
         FileSegment_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7463,26 +7663,24 @@ FileDirectory_encode(FileDirectory self, Frame frame, CS101_AppLayerParameters p
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof % 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof / 256));
 
-    Frame_setNextByte (frame, (uint8_t)(self->lengthOfFile % 0x100));
-    Frame_setNextByte (frame, (uint8_t)((self->lengthOfFile / 0x100) % 0x100));
-    Frame_setNextByte (frame, (uint8_t)((self->lengthOfFile / 0x10000) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)(self->lengthOfFile % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((self->lengthOfFile / 0x100) % 0x100));
+    Frame_setNextByte(frame, (uint8_t)((self->lengthOfFile / 0x10000) % 0x100));
 
-    Frame_setNextByte (frame, self->sof);
+    Frame_setNextByte(frame, self->sof);
 
     Frame_appendBytes(frame, self->creationTime.encodedValue, 7);
 
     return true;
 }
 
-struct sInformationObjectVFT FileDirectoryVFT = {
-        (EncodeFunction) FileDirectory_encode,
-        (DestroyFunction) FileDirectory_destroy
-};
+struct sInformationObjectVFT FileDirectoryVFT = {(EncodeFunction)FileDirectory_encode,
+                                                 (DestroyFunction)FileDirectory_destroy};
 
 static void
 FileDirectory_initialize(FileDirectory self)
@@ -7492,12 +7690,14 @@ FileDirectory_initialize(FileDirectory self)
 }
 
 FileDirectory
-FileDirectory_create(FileDirectory self, int ioa, uint16_t nof, int lengthOfFile, uint8_t sof, const CP56Time2a creationTime)
+FileDirectory_create(FileDirectory self, int ioa, uint16_t nof, uint32_t lengthOfFile, uint8_t sof,
+                     const CP56Time2a creationTime)
 {
     if (self == NULL)
-        self = (FileDirectory) GLOBAL_MALLOC(sizeof(struct sFileDirectory));
+        self = (FileDirectory)GLOBAL_MALLOC(sizeof(struct sFileDirectory));
 
-    if (self) {
+    if (self)
+    {
         FileDirectory_initialize(self);
 
         self->objectAddress = ioa;
@@ -7525,7 +7725,7 @@ FileDirectory_getSOF(FileDirectory self)
 int
 FileDirectory_getSTATUS(FileDirectory self)
 {
-    return (int) (self->sof & CS101_SOF_STATUS);
+    return (int)(self->sof & CS101_SOF_STATUS);
 }
 
 bool
@@ -7546,8 +7746,7 @@ FileDirectory_getFA(FileDirectory self)
     return ((self->sof & CS101_SOF_FA) == CS101_SOF_FA);
 }
 
-
-uint8_t
+uint32_t
 FileDirectory_getLengthOfFile(FileDirectory self)
 {
     return self->lengthOfFile;
@@ -7566,26 +7765,31 @@ FileDirectory_destroy(FileDirectory self)
 }
 
 FileDirectory
-FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex, bool isSequence)
+FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize,
+                            int startIndex, bool isSequence)
 {
     /* check message size */
-    int minSize = startIndex + parameters->sizeOfIOA + 13;
+    int minSize = startIndex + 13;
 
-    if (minSize > msgSize) {
+    if (!isSequence)
+        minSize += parameters->sizeOfIOA;
+
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-       self = (FileDirectory) GLOBAL_MALLOC(sizeof(struct sFileDirectory));
+        self = (FileDirectory)GLOBAL_MALLOC(sizeof(struct sFileDirectory));
 
-    if (self) {
-
+    if (self)
+    {
         FileDirectory_initialize(self);
 
-        if (!isSequence) {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        if (!isSequence)
+        {
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -7593,10 +7797,9 @@ FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters paramet
         self->nof = msg[startIndex++];
         self->nof += (msg[startIndex++] * 0x100);
 
-        self->lengthOfFile = msg [startIndex++];
-        self->lengthOfFile += (msg [startIndex++] * 0x100);
-        self->lengthOfFile += (msg [startIndex++] * 0x10000);
-
+        self->lengthOfFile = msg[startIndex++];
+        self->lengthOfFile += (msg[startIndex++] * 0x100);
+        self->lengthOfFile += (msg[startIndex++] * 0x10000);
 
         self->sof = msg[startIndex++];
 
@@ -7618,10 +7821,10 @@ QueryLog_encode(QueryLog self, Frame frame, CS101_AppLayerParameters parameters,
     if (Frame_getSpaceLeft(frame) < size)
         return false;
 
-    InformationObject_encodeBase((InformationObject) self, frame, parameters, isSequence);
+    InformationObject_encodeBase((InformationObject)self, frame, parameters, isSequence);
 
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof % 256));
-    Frame_setNextByte (frame, (uint8_t)((int) self->nof / 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof % 256));
+    Frame_setNextByte(frame, (uint8_t)((int)self->nof / 256));
 
     Frame_appendBytes(frame, self->rangeStartTime.encodedValue, 7);
     Frame_appendBytes(frame, self->rangeStopTime.encodedValue, 7);
@@ -7629,10 +7832,7 @@ QueryLog_encode(QueryLog self, Frame frame, CS101_AppLayerParameters parameters,
     return true;
 }
 
-struct sInformationObjectVFT QueryLogVFT = {
-        (EncodeFunction) QueryLog_encode,
-        (DestroyFunction) QueryLog_destroy
-};
+struct sInformationObjectVFT QueryLogVFT = {(EncodeFunction)QueryLog_encode, (DestroyFunction)QueryLog_destroy};
 
 static void
 QueryLog_initialize(QueryLog self)
@@ -7645,9 +7845,10 @@ QueryLog
 QueryLog_create(QueryLog self, int ioa, uint16_t nof, const CP56Time2a rangeStartTime, const CP56Time2a rangeStopTime)
 {
     if (self == NULL)
-        self = (QueryLog) GLOBAL_MALLOC(sizeof(struct sQueryLog));
+        self = (QueryLog)GLOBAL_MALLOC(sizeof(struct sQueryLog));
 
-    if (self) {
+    if (self)
+    {
         QueryLog_initialize(self);
 
         self->objectAddress = ioa;
@@ -7684,25 +7885,25 @@ QueryLog_destroy(QueryLog self)
 }
 
 QueryLog
-QueryLog_getFromBuffer(QueryLog self, CS101_AppLayerParameters parameters,
-        uint8_t* msg, int msgSize, int startIndex)
+QueryLog_getFromBuffer(QueryLog self, CS101_AppLayerParameters parameters, uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
     int minSize = startIndex + parameters->sizeOfIOA + 16;
 
-    if (minSize > msgSize) {
+    if (minSize > msgSize)
+    {
         DEBUG_PRINT("invalid ASDU - size too small\n");
         return NULL;
     }
 
     if (self == NULL)
-       self = (QueryLog) GLOBAL_MALLOC(sizeof(struct sQueryLog));
+        self = (QueryLog)GLOBAL_MALLOC(sizeof(struct sQueryLog));
 
-    if (self) {
-
+    if (self)
+    {
         QueryLog_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 

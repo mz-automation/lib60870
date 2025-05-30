@@ -1,3 +1,13 @@
+Changes to version 2.3.6
+------------------------
+
+- fixed wrong size calculation when decoding FileDirectory(F_DR_TA_1) type (#179)
+- CS104 Slave/CS101 Slave: fixed handling of test commands to be compliant with conformance test case (LIB8705-128)
+- CS104_Connection: fixed possible application crash when application is trying to send a message after connection is closed (LIB8705-127)
+- fixed all unchecked results from calls to CS101_ASDU_getElement/CS101_ASDU_getElementEx (#178) -> fixes vulnerability GHSA-75pr-rr3v-j6px (possible NULL pointer dereference when invalid test command is received by CS 104 server)
+- code format updates
+
+
 Changes to version 2.3.5
 ------------------------
 

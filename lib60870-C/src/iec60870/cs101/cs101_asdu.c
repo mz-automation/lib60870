@@ -262,26 +262,28 @@ CS101_ASDU_addInformationObject(CS101_ASDU self, InformationObject io)
 
     int numberOfElements = CS101_ASDU_getNumberOfElements(self);
 
-    if (numberOfElements == 0) {
+    if (numberOfElements == 0)
+    {
         self->asdu[0] = (uint8_t) InformationObject_getType(io);
 
         encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);
     }
-    else if (numberOfElements < 0x7f) {
-
+    else if (numberOfElements < 0x7f)
+    {
         /* Check if type of information object is matching ASDU type */
 
-        if (self->asdu[0] == (uint8_t) InformationObject_getType(io)) {
-
-            if (CS101_ASDU_isSequence(self)) {
-
+        if (self->asdu[0] == (uint8_t) InformationObject_getType(io))
+        {
+            if (CS101_ASDU_isSequence(self))
+            {
                 /* check that new information object has correct IOA */
                 if (InformationObject_getObjectAddress(io) == (getFirstIOA(self) + CS101_ASDU_getNumberOfElements(self)))
                     encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, true);
                 else
                     encoded = false;
             }
-            else {
+            else
+            {
                 encoded = InformationObject_encode(io, (Frame) &asduFrame, self->parameters, false);;
             }
         }

@@ -1915,6 +1915,85 @@ test_SinglePointInformation(void)
 }
 
 void
+test_SinglePointInformationSequence(void)
+{
+    SinglePointInformation spi1;
+    SinglePointInformation spi2;
+    SinglePointInformation spi3;
+    SinglePointInformation spi4;
+
+    spi1 = SinglePointInformation_create(NULL, 101, true, IEC60870_QUALITY_INVALID);
+    spi2 = SinglePointInformation_create(NULL, 102, false, IEC60870_QUALITY_BLOCKED);
+    spi3 = SinglePointInformation_create(NULL, 103, true, IEC60870_QUALITY_GOOD);
+
+    /* invalid quality bit (overflow) is expected to be ignored */
+    spi4 = SinglePointInformation_create(NULL, 104, false, IEC60870_QUALITY_OVERFLOW);
+
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID, SinglePointInformation_getQuality(spi1));
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_BLOCKED, SinglePointInformation_getQuality(spi2));
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_GOOD, SinglePointInformation_getQuality(spi3));
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_GOOD, SinglePointInformation_getQuality(spi4));
+    TEST_ASSERT_TRUE(SinglePointInformation_getValue(spi1));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, true, CS101_COT_PERIODIC, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) spi1);
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) spi2);
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) spi3);
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) spi4);
+
+    SinglePointInformation_destroy(spi1);
+    SinglePointInformation_destroy(spi2);
+    SinglePointInformation_destroy(spi3);
+    SinglePointInformation_destroy(spi4);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(13, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(4, CS101_ASDU_getNumberOfElements(asdu2));
+
+    SinglePointInformation spi1_dec = (SinglePointInformation) CS101_ASDU_getElement(asdu2, 0);
+    SinglePointInformation spi2_dec = (SinglePointInformation) CS101_ASDU_getElement(asdu2, 1);
+    SinglePointInformation spi3_dec = (SinglePointInformation) CS101_ASDU_getElement(asdu2, 2);
+    SinglePointInformation spi4_dec = (SinglePointInformation) CS101_ASDU_getElement(asdu2, 3);
+
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject)spi1_dec));
+    TEST_ASSERT_EQUAL_INT(102, InformationObject_getObjectAddress((InformationObject)spi2_dec));
+    TEST_ASSERT_EQUAL_INT(103, InformationObject_getObjectAddress((InformationObject)spi3_dec));
+    TEST_ASSERT_EQUAL_INT(104, InformationObject_getObjectAddress((InformationObject)spi4_dec));
+
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_INVALID, SinglePointInformation_getQuality(spi1_dec));
+    TEST_ASSERT_TRUE(SinglePointInformation_getValue(spi1_dec));
+
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_BLOCKED, SinglePointInformation_getQuality(spi2_dec));
+    TEST_ASSERT_FALSE(SinglePointInformation_getValue(spi2_dec));
+
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_GOOD, SinglePointInformation_getQuality(spi3_dec));
+    TEST_ASSERT_TRUE(SinglePointInformation_getValue(spi3_dec));
+
+    TEST_ASSERT_EQUAL_UINT8(IEC60870_QUALITY_GOOD, SinglePointInformation_getQuality(spi4_dec));
+    TEST_ASSERT_FALSE(SinglePointInformation_getValue(spi4_dec));
+
+    SinglePointInformation_destroy(spi1_dec);
+    SinglePointInformation_destroy(spi2_dec);
+    SinglePointInformation_destroy(spi3_dec);
+    SinglePointInformation_destroy(spi4_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
 test_DoublePointWithCP24Time2a(void)
 {
     DoublePointWithCP24Time2a dpi1;
@@ -5124,6 +5203,134 @@ test_QueryLog(void)
 }
 
 void
+test_FileDirectory(void)
+{
+    FileDirectory fd1;
+    FileDirectory fd2;
+    FileDirectory fd3;
+
+    struct sCP56Time2a fileCreationTime;
+    uint64_t timeval = Hal_getTimeInMs();
+    CP56Time2a_createFromMsTimestamp(&fileCreationTime, timeval);
+
+    fd1 = FileDirectory_create(NULL, 100, 1, 1024, 0, &fileCreationTime);
+    fd2 = FileDirectory_create(NULL, 101, 2, 2048, 1, &fileCreationTime);
+    fd3 = FileDirectory_create(NULL, 102, 60001, 4444, 2, &fileCreationTime);
+
+    TEST_ASSERT_NOT_NULL(fd1);
+    TEST_ASSERT_NOT_NULL(fd2);
+    TEST_ASSERT_NOT_NULL(fd3);
+
+    TEST_ASSERT_EQUAL_UINT32(1024, FileDirectory_getLengthOfFile(fd1));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    /* NOTE: file directory is always a "sequence" */
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, true, CS101_COT_SPONTANEOUS, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) fd1);
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) fd2);
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) fd3);
+
+    FileDirectory_destroy(fd1);
+    FileDirectory_destroy(fd2);
+    FileDirectory_destroy(fd3);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(48, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(3, CS101_ASDU_getNumberOfElements(asdu2));
+
+    FileDirectory fd1_dec = (FileDirectory)CS101_ASDU_getElement(asdu2, 0);
+    FileDirectory fd2_dec = (FileDirectory)CS101_ASDU_getElement(asdu2, 1);
+    FileDirectory fd3_dec = (FileDirectory)CS101_ASDU_getElement(asdu2, 2);
+
+    TEST_ASSERT_NOT_NULL(fd1_dec);
+    TEST_ASSERT_NOT_NULL(fd2_dec);
+    TEST_ASSERT_NOT_NULL(fd3_dec);
+
+    TEST_ASSERT_EQUAL_UINT32(1024, FileDirectory_getLengthOfFile(fd1_dec));
+    TEST_ASSERT_EQUAL_UINT32(2048, FileDirectory_getLengthOfFile(fd2_dec));
+    TEST_ASSERT_EQUAL_UINT32(4444, FileDirectory_getLengthOfFile(fd3_dec));
+    TEST_ASSERT_EQUAL_INT(100, InformationObject_getObjectAddress((InformationObject)fd1_dec));
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject)fd2_dec));
+    TEST_ASSERT_EQUAL_INT(102, InformationObject_getObjectAddress((InformationObject)fd3_dec));
+    TEST_ASSERT_EQUAL_UINT8(0, FileDirectory_getSOF(fd1_dec));
+    TEST_ASSERT_EQUAL_UINT8(1, FileDirectory_getSOF(fd2_dec));
+    TEST_ASSERT_EQUAL_UINT8(2, FileDirectory_getSOF(fd3_dec));
+    TEST_ASSERT_EQUAL_UINT16(1, FileDirectory_getNOF(fd1_dec));
+    TEST_ASSERT_EQUAL_UINT16(2, FileDirectory_getNOF(fd2_dec));
+    TEST_ASSERT_EQUAL_UINT16(60001, FileDirectory_getNOF(fd3_dec));
+
+    FileDirectory_destroy(fd1_dec);
+    FileDirectory_destroy(fd2_dec);
+    FileDirectory_destroy(fd3_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
+test_FileDirectorySingleEntry(void)
+{
+    FileDirectory fd1;
+
+    struct sCP56Time2a fileCreationTime;
+    uint64_t timeval = Hal_getTimeInMs();
+    CP56Time2a_createFromMsTimestamp(&fileCreationTime, timeval);
+
+    fd1 = FileDirectory_create(NULL, 101, 1, 1024, 0, &fileCreationTime);
+
+    TEST_ASSERT_NOT_NULL(fd1);
+
+    TEST_ASSERT_EQUAL_UINT32(1024, FileDirectory_getLengthOfFile(fd1));
+
+    uint8_t buffer[256];
+
+    struct sBufferFrame bf;
+
+    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+
+    /* NOTE: file directory is always a "sequence" */
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, true, CS101_COT_SPONTANEOUS, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) fd1);
+
+    FileDirectory_destroy(fd1);
+
+    CS101_ASDU_encode(asdu, f);
+
+    TEST_ASSERT_EQUAL_INT(22, Frame_getMsgSize(f));
+
+    CS101_ASDU_destroy(asdu);
+
+    CS101_ASDU asdu2 = CS101_ASDU_createFromBuffer(&defaultAppLayerParameters, buffer, Frame_getMsgSize(f));
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu2));
+
+    FileDirectory fd1_dec = (FileDirectory)CS101_ASDU_getElement(asdu2, 0);
+
+    TEST_ASSERT_NOT_NULL(fd1_dec);
+
+    TEST_ASSERT_EQUAL_UINT32(1024, FileDirectory_getLengthOfFile(fd1_dec));
+    TEST_ASSERT_EQUAL_INT(101, InformationObject_getObjectAddress((InformationObject)fd1_dec));
+    TEST_ASSERT_EQUAL_UINT8(0, FileDirectory_getSOF(fd1_dec));
+    TEST_ASSERT_EQUAL_UINT16(1, FileDirectory_getNOF(fd1_dec));
+
+    FileDirectory_destroy(fd1_dec);
+
+    CS101_ASDU_destroy(asdu2);
+}
+
+void
 test_BitString32xx_encodeDecode(void)
 {
 #ifndef _WIN32
@@ -5180,7 +5387,7 @@ test_version_number(void)
 
     TEST_ASSERT_EQUAL_INT(2, version.major);
     TEST_ASSERT_EQUAL_INT(3, version.minor);
-    TEST_ASSERT_EQUAL_INT(4, version.patch);
+    TEST_ASSERT_EQUAL_INT(6, version.patch);
 }
 
 void
@@ -6793,6 +7000,7 @@ main(int argc, char** argv)
     RUN_TEST(test_SingleEventType);
 
     RUN_TEST(test_SinglePointInformation);
+    RUN_TEST(test_SinglePointInformationSequence);
     RUN_TEST(test_SinglePointWithCP24Time2a);
     RUN_TEST(test_SinglePointWithCP56Time2a);
 
@@ -6853,6 +7061,9 @@ main(int argc, char** argv)
     RUN_TEST(test_Bitstring32CommandWithCP56Time2a);
 
     RUN_TEST(test_QueryLog);
+
+    RUN_TEST(test_FileDirectory);
+    RUN_TEST(test_FileDirectorySingleEntry);
 
     RUN_TEST(test_BitString32xx_encodeDecode);
     RUN_TEST(test_EventOfProtectionEquipmentWithTime);
