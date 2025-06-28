@@ -2843,7 +2843,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
         /* Check for STOPDT_ACT message */
         else if ((buffer[2] & 0x13) == 0x13)
         {
-            DEBUG_PRINT("CS104 SLAVE: Received STARTDT_ACT\n");
+            DEBUG_PRINT("CS104 SLAVE: Received STOPDT_ACT\n");
 
             MasterConnection_deactivate(self);
 
