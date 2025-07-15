@@ -1,7 +1,7 @@
 /*
  *  cs101_slave.h
  *
- *  Copyright 2017-2022 Michael Zillgith
+ *  Copyright 2017-2025 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -251,6 +251,16 @@ CS101_Slave_getAppLayerParameters(CS101_Slave self);
  */
 LinkLayerParameters
 CS101_Slave_getLinkLayerParameters(CS101_Slave self);
+
+/**
+ * \brief Set a callback handler for the library to check if a specific CA is known by the application
+ *
+ * \param self the slave instance
+ * \param handler the callback function to be used
+ * \param parameter user provided context parameter that will be passed to the callback function (or NULL if not required).
+ */
+void
+CS101_Slave_setAllowedCAHandler(CS101_Slave self, CS101_IsCAAllowedHandler handler, void* parameter);
 
 /**
  * \brief Set the handler for the reset CU (communication unit) message

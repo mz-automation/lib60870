@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2018 MZ Automation GmbH
+ *  Copyright 2016-2025 MZ Automation GmbH
  *
  *  This file is part of lib60870-C
  *
@@ -246,6 +246,18 @@ typedef bool (*CS101_DelayAcquisitionHandler) (void* parameter, IMasterConnectio
  * \brief Handler for ASDUs that are not handled by other handlers (default handler)
  */
 typedef bool (*CS101_ASDUHandler) (void* parameter, IMasterConnection connection, CS101_ASDU asdu);
+
+/**
+ * \brief Handler that allows the application to inform the slave library if a specific CA is allowed/available
+ *
+ * \note this handler is called whenever such a check is required by the library (e.g. when a ASDU is received)
+ *
+ * \param[in] parameter user provided parameter
+ * \param[in] ca the CA(ASDU) to be checked
+ *
+ * \return true, when the CA is known and accepted, false, otherwise
+ */
+typedef bool (*CS101_IsCAAllowedHandler) (void* parameter, int ca);
 
 /**
  * @}

@@ -7076,6 +7076,90 @@ test_CS104Slave_rejectCommandsWithBroadcastCA()
     CS104_Slave_destroy(slave);
 }
 
+static bool
+test_IsCAAllowedHandler(void* parameter, int ca)
+{
+    int expectedCa = *((int*)parameter);
+
+    return (expectedCa == ca);
+}
+
+void
+test_CS104Slave_rejectCommandWithUnknownCA()
+{
+    int expectedCa = 100;
+    CS101_ASDU receivedASDU = NULL;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_setAllowedCAHandler(slave, test_IsCAAllowedHandler, &expectedCa);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    CS104_Connection con = CS104_Connection_create("127.0.0.1", 20004);
+
+    bool result = CS104_Connection_connect(con);
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_setASDUReceivedHandler(con, test_CS104Slave_handleTestCommand_asduReceivedHandler, &receivedASDU);
+
+    CS104_Connection_sendStartDT(con);
+
+    TestCommandWithCP56Time2a  tc;
+
+    uint64_t time1 = Hal_getTimeInMs();
+    struct sCP56Time2a cpTime1;
+    CP56Time2a_createFromMsTimestamp(&cpTime1, time1);
+
+    /* send test command with unknown CA */
+    tc = TestCommandWithCP56Time2a_create(NULL, 0xaa55, &cpTime1);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) tc);
+    TestCommandWithCP56Time2a_destroy(tc);
+    TEST_ASSERT_TRUE(CS104_Connection_sendASDU(con, asdu));
+    CS101_ASDU_destroy(asdu);
+
+    Thread_sleep(500);
+
+    TEST_ASSERT_NOT_NULL(receivedASDU);
+    TEST_ASSERT_EQUAL_INT(C_TS_TA_1, CS101_ASDU_getTypeID(receivedASDU));
+    TEST_ASSERT_EQUAL_INT(CS101_COT_UNKNOWN_CA, CS101_ASDU_getCOT(receivedASDU));
+    TEST_ASSERT_TRUE(CS101_ASDU_isNegative(receivedASDU));
+
+    /* send test command with known CA */
+    tc = TestCommandWithCP56Time2a_create(NULL, 0xaa55, &cpTime1);
+
+    asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, expectedCa, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) tc);
+    TestCommandWithCP56Time2a_destroy(tc);
+    TEST_ASSERT_TRUE(CS104_Connection_sendASDU(con, asdu));
+    CS101_ASDU_destroy(asdu);
+
+    Thread_sleep(500);
+
+    TEST_ASSERT_NOT_NULL(receivedASDU);
+    TEST_ASSERT_EQUAL_INT(C_TS_TA_1, CS101_ASDU_getTypeID(receivedASDU));
+    TEST_ASSERT_EQUAL_INT(CS101_COT_ACTIVATION_CON, CS101_ASDU_getCOT(receivedASDU));
+    TEST_ASSERT_FALSE(CS101_ASDU_isNegative(receivedASDU));
+
+    CS104_Connection_close(con);
+
+    CS104_Connection_destroy(con);
+
+    if (receivedASDU)
+        CS101_ASDU_destroy(receivedASDU);
+
+    CS104_Slave_destroy(slave);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -7212,6 +7296,8 @@ main(int argc, char** argv)
     RUN_TEST(test_CS104Slave_handleTestCommandWithTimestamp);
 
     RUN_TEST(test_CS104Slave_rejectCommandsWithBroadcastCA);
+
+    RUN_TEST(test_CS104Slave_rejectCommandWithUnknownCA);
 
     return UNITY_END();
 }
