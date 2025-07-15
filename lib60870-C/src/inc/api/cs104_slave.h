@@ -1,7 +1,7 @@
 /*
  *  cs104_slave.h
  *
- *  Copyright 2017-2022 Michael Zillgith
+ *  Copyright 2017-2025 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -178,6 +178,16 @@ CS104_Slave_setMaxOpenConnections(CS104_Slave self, int maxOpenConnections);
  */
 void
 CS104_Slave_setServerMode(CS104_Slave self, CS104_ServerMode serverMode);
+
+/**
+ * \brief Set a callback handler for the library to check if a specific CA is known by the application
+ *
+ * \param self the slave instance
+ * \param handler the callback function to be used
+ * \param parameter user provided context parameter that will be passed to the callback function (or NULL if not required).
+ */
+void
+CS104_Slave_setAllowedCAHandler(CS104_Slave self, CS101_IsCAAllowedHandler handler, void* parameter);
 
 /**
  * \brief Set the connection request handler

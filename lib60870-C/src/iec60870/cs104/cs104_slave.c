@@ -1175,6 +1175,9 @@ struct sCS104_Slave
     CS104_SlaveRawMessageHandler rawMessageHandler;
     void* rawMessageHandlerParameter;
 
+    CS101_IsCAAllowedHandler isCAAllowedHandler;
+    void* isCAAllowedHandlerParameter;
+
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     TLSConfiguration tlsConfig;
 #endif
@@ -1637,6 +1640,13 @@ CS104_Slave_setConnectionEventHandler(CS104_Slave self, CS104_ConnectionEventHan
     self->connectionEventHandlerParameter = parameter;
 }
 
+void
+CS104_Slave_setAllowedCAHandler(CS104_Slave self, CS101_IsCAAllowedHandler handler, void* parameter)
+{
+    self->isCAAllowedHandler = handler;
+    self->isCAAllowedHandlerParameter = parameter;
+}
+
 /**
  * Activate connection and deactivate existing active connections if required
  */
@@ -2067,6 +2077,17 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
     CS104_Slave slave = self->slave;
 
     int ca = CS101_ASDU_getCA(asdu);
+
+    /* check with user callback if CA address is known/used by application */
+    if (slave->isCAAllowedHandler && (isBroadcastCA(slave, ca) == false))
+    {
+        if (slave->isCAAllowedHandler(slave->isCAAllowedHandlerParameter, ca) == false)
+        {
+            responseNegative(asdu, self, CS101_COT_UNKNOWN_CA);
+
+            return true;
+        }
+    }
 
     /* call plugins */
     if (slave->plugins)
