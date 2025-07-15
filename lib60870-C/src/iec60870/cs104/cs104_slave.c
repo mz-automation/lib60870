@@ -2035,6 +2035,23 @@ responseCOTUnknown(CS101_ASDU asdu, MasterConnection self)
     responseNegative(asdu, self, CS101_COT_UNKNOWN_COT);
 }
 
+static bool
+isBroadcastCA(CS104_Slave self, int ca)
+{
+    if (self->alParameters.sizeOfCA == 2)
+    {
+        if (ca == 65535)
+            return true;
+    }
+    else if (self->alParameters.sizeOfCA == 1)
+    {
+        if (ca == 255)
+            return true;
+    }
+
+    return false;
+}
+
 /*
  * Handle received ASDUs
  *
@@ -2048,6 +2065,8 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
     bool messageHandled = false;
 
     CS104_Slave slave = self->slave;
+
+    int ca = CS101_ASDU_getCA(asdu);
 
     /* call plugins */
     if (slave->plugins)
@@ -2160,6 +2179,15 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd read command C_RD_NA_1\n");
 
+        if (isBroadcastCA(slave, ca) == true)
+        {
+            DEBUG_PRINT("CS104_SLAVE: command with broadcast CA not allowed\n");
+
+            responseNegative(asdu, self, CS101_COT_UNKNOWN_CA);
+
+            return true;
+        }
+
         if (cot == CS101_COT_REQUEST)
         {
             if (slave->readHandler != NULL)
@@ -2252,6 +2280,15 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 #if (CONFIG_ALLOW_C_TS_NA_1_FOR_CS104 == 1)
         DEBUG_PRINT("CS104 SLAVE: Rcvd test command C_TS_NA_1\n");
 
+        if (isBroadcastCA(slave, ca) == true)
+        {
+            DEBUG_PRINT("CS104_SLAVE: command with broadcast CA not allowed\n");
+
+            responseNegative(asdu, self, CS101_COT_UNKNOWN_CA);
+
+            return true;
+        }
+
         {
             union uInformationObject _io;
 
@@ -2343,6 +2380,15 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd delay acquisition command C_CD_NA_1\n");
 
+        if (isBroadcastCA(slave, ca) == true)
+        {
+            DEBUG_PRINT("CS104_SLAVE: command with broadcast CA not allowed\n");
+
+            responseNegative(asdu, self, CS101_COT_UNKNOWN_CA);
+
+            return true;
+        }
+
         if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_SPONTANEOUS))
         {
             if (slave->delayAcquisitionHandler != NULL)
@@ -2385,6 +2431,15 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
     case C_TS_TA_1: /* 107 - test command with timestamp */
 
         DEBUG_PRINT("CS104 SLAVE: Rcvd test command with CP56Time2a C_TS_TA_1\n");
+
+        if (isBroadcastCA(slave, ca) == true)
+        {
+            DEBUG_PRINT("CS104_SLAVE: command with broadcast CA not allowed\n");
+
+            responseNegative(asdu, self, CS101_COT_UNKNOWN_CA);
+
+            return true;
+        }
 
         {
             union uInformationObject _io;
@@ -2843,7 +2898,7 @@ handleMessage(MasterConnection self, uint8_t* buffer, int msgSize)
         /* Check for STOPDT_ACT message */
         else if ((buffer[2] & 0x13) == 0x13)
         {
-            DEBUG_PRINT("CS104 SLAVE: Received STARTDT_ACT\n");
+            DEBUG_PRINT("CS104 SLAVE: Received STOPDT_ACT\n");
 
             MasterConnection_deactivate(self);
 
