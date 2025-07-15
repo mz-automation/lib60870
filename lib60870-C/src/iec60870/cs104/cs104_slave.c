@@ -2083,6 +2083,8 @@ handleASDU(MasterConnection self, CS101_ASDU asdu)
     {
         if (slave->isCAAllowedHandler(slave->isCAAllowedHandlerParameter, ca) == false)
         {
+            DEBUG_PRINT("CS104 SLAVE: Rcvd ASDU with unknown CA\n");
+
             responseNegative(asdu, self, CS101_COT_UNKNOWN_CA);
 
             return true;

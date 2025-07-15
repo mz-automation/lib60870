@@ -68,6 +68,9 @@ struct sCS101_Slave
     CS101_ResetCUHandler resetCUHandler;
     void* resetCUHandlerParameter;
 
+    CS101_IsCAAllowedHandler isCAAllowedHandler;
+    void* isCAAllowedHandlerParameter;
+
     SerialTransceiverFT12 transceiver;
 
     LinkLayerSecondaryUnbalanced unbalancedLinkLayer;
@@ -561,6 +564,13 @@ CS101_Slave_getLinkLayerParameters(CS101_Slave self)
 }
 
 void
+CS101_Slave_setAllowedCAHandler(CS101_Slave self, CS101_IsCAAllowedHandler handler, void* parameter)
+{
+    self->isCAAllowedHandler = handler;
+    self->isCAAllowedHandlerParameter = parameter;
+}
+
+void
 CS101_Slave_setResetCUHandler(CS101_Slave self, CS101_ResetCUHandler handler, void* parameter)
 {
     self->resetCUHandler = handler;
@@ -659,6 +669,19 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
     bool messageHandled = false;
 
     int ca = CS101_ASDU_getCA(asdu);
+
+    /* check with user callback if CA address is known/used by application */
+    if (self->isCAAllowedHandler && (isBroadcastCA(self, ca) == false))
+    {
+        if (self->isCAAllowedHandler(self->isCAAllowedHandlerParameter, ca) == false)
+        {
+            DEBUG_PRINT("CS101_SLAVE: Rcvd ASDU with unknown CA\n");
+
+            responseNegative(asdu, &(self->iMasterConnection), CS101_COT_UNKNOWN_CA);
+
+            return;
+        }
+    }
 
     /* call plugins */
     if (self->plugins)
