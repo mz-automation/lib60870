@@ -617,12 +617,35 @@ CS101_Slave_setDelayAcquisitionHandler(CS101_Slave self, CS101_DelayAcquisitionH
 }
 
 static void
-responseCOTUnknown(CS101_ASDU asdu, IMasterConnection self)
+responseNegative(CS101_ASDU asdu, IMasterConnection self, CS101_CauseOfTransmission cot)
 {
-    DEBUG_PRINT("  with unknown COT\n");
-    CS101_ASDU_setCOT(asdu, CS101_COT_UNKNOWN_COT);
+    CS101_ASDU_setCOT(asdu, cot);
     CS101_ASDU_setNegative(asdu, true);
     sendASDU(self, asdu);
+}
+
+static void
+responseCOTUnknown(CS101_ASDU asdu, IMasterConnection self)
+{
+    DEBUG_PRINT("CS101 SLAVE:   with unknown COT\n");
+    responseNegative(asdu, self, CS101_COT_UNKNOWN_COT);
+}
+
+static bool
+isBroadcastCA(CS101_Slave self, int ca)
+{
+    if (self->alParameters.sizeOfCA == 2)
+    {
+        if (ca == 65535)
+            return true;
+    }
+    else if (self->alParameters.sizeOfCA == 1)
+    {
+        if (ca == 255)
+            return true;
+    }
+
+    return false;
 }
 
 /*
@@ -634,6 +657,8 @@ static void
 handleASDU(CS101_Slave self, CS101_ASDU asdu)
 {
     bool messageHandled = false;
+
+    int ca = CS101_ASDU_getCA(asdu);
 
     /* call plugins */
     if (self->plugins)
@@ -665,7 +690,7 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
     {
     case C_IC_NA_1: /* 100 - interrogation command */
 
-        DEBUG_PRINT("Rcvd interrogation command C_IC_NA_1\n");
+        DEBUG_PRINT("CS101_SLAVE: Rcvd interrogation command C_IC_NA_1\n");
 
         if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_DEACTIVATION))
         {
@@ -695,7 +720,7 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
     case C_CI_NA_1: /* 101 - counter interrogation command */
 
-        DEBUG_PRINT("Rcvd counter interrogation command C_CI_NA_1\n");
+        DEBUG_PRINT("CS101_SLAVE: Rcvd counter interrogation command C_CI_NA_1\n");
 
         if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_DEACTIVATION))
         {
@@ -727,7 +752,16 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
     case C_RD_NA_1: /* 102 - read command */
 
-        DEBUG_PRINT("Rcvd read command C_RD_NA_1\n");
+        DEBUG_PRINT("CS101_SLAVE: Rcvd read command C_RD_NA_1\n");
+
+        if (isBroadcastCA(self, ca) == true)
+        {
+            DEBUG_PRINT("CS101_SLAVE: command with broadcast CA not allowed\n");
+
+            responseNegative(asdu, &(self->iMasterConnection), CS101_COT_UNKNOWN_CA);
+
+            return;
+        }
 
         if (cot == CS101_COT_REQUEST)
         {
@@ -756,7 +790,7 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
     case C_CS_NA_1: /* 103 - Clock synchronization command */
 
-        DEBUG_PRINT("Rcvd clock sync command C_CS_NA_1\n");
+        DEBUG_PRINT("CS101_SLAVE: Rcvd clock sync command C_CS_NA_1\n");
 
         if (cot == CS101_COT_ACTIVATION)
         {
@@ -794,7 +828,16 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
     case C_TS_NA_1: /* 104 - test command */
 
-        DEBUG_PRINT("Rcvd test command C_TS_NA_1\n");
+        DEBUG_PRINT("CS101_SLAVE: Rcvd test command C_TS_NA_1\n");
+
+        if (isBroadcastCA(self, ca) == true)
+        {
+            DEBUG_PRINT("CS101_SLAVE: command with broadcast CA not allowed\n");
+
+            responseNegative(asdu, &(self->iMasterConnection), CS101_COT_UNKNOWN_CA);
+
+            return;
+        }
 
         {
             union uInformationObject _io;
@@ -837,7 +880,7 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
     case C_RP_NA_1: /* 105 - Reset process command */
 
-        DEBUG_PRINT("Rcvd reset process command C_RP_NA_1\n");
+        DEBUG_PRINT("CS101_SLAVE: Rcvd reset process command C_RP_NA_1\n");
 
         if (cot == CS101_COT_ACTIVATION)
         {
@@ -867,7 +910,16 @@ handleASDU(CS101_Slave self, CS101_ASDU asdu)
 
     case C_CD_NA_1: /* 106 - Delay acquisition command */
 
-        DEBUG_PRINT("Rcvd delay acquisition command C_CD_NA_1\n");
+        DEBUG_PRINT("CS101_SLAVE: Rcvd delay acquisition command C_CD_NA_1\n");
+
+        if (isBroadcastCA(self, ca) == true)
+        {
+            DEBUG_PRINT("CS101_SLAVE: command with broadcast CA not allowed\n");
+
+            responseNegative(asdu, &(self->iMasterConnection), CS101_COT_UNKNOWN_CA);
+
+            return;
+        }
 
         if ((cot == CS101_COT_ACTIVATION) || (cot == CS101_COT_SPONTANEOUS))
         {
