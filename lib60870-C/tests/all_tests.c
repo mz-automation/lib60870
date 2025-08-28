@@ -6882,7 +6882,6 @@ test_CS104Slave_handleTestCommand_asduReceivedHandler (void* parameter, int addr
 void
 test_CS104Slave_handleTestCommandWithTimestamp()
 {
-    //TODO install asduHandler to intercept
     CS101_ASDU receivedASDU = NULL;
 
     CS104_Slave slave = CS104_Slave_create(10, 10);
@@ -7160,6 +7159,114 @@ test_CS104Slave_rejectCommandWithUnknownCA()
     CS104_Slave_destroy(slave);
 }
 
+bool
+test_ResetProcessHandler(void* parameter, IMasterConnection connection, CS101_ASDU asdu, uint8_t qrp)
+{
+    int* resetProcessHandlerCalled = (int*)parameter;
+
+    if (resetProcessHandlerCalled)
+    {
+        *resetProcessHandlerCalled = *resetProcessHandlerCalled + 1;
+    }
+
+    IMasterConnection_sendACT_CON(connection, asdu, false);
+
+    return true;
+}
+
+void
+test_CS104Slave_handleResetProcessCommand()
+{
+    CS101_ASDU receivedASDU = NULL;
+    int resetProcessHandlerCalled = 0;
+
+    CS104_Slave slave = CS104_Slave_create(10, 10);
+
+    CS104_Slave_setServerMode(slave, CS104_MODE_SINGLE_REDUNDANCY_GROUP);
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS101_AppLayerParameters alParams = CS104_Slave_getAppLayerParameters(slave);
+
+    CS104_Connection con = CS104_Connection_create("127.0.0.1", 20004);
+
+    bool result = CS104_Connection_connect(con);
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Connection_setASDUReceivedHandler(con, test_CS104Slave_handleTestCommand_asduReceivedHandler, &receivedASDU);
+
+    CS104_Connection_sendStartDT(con);
+
+    ResetProcessCommand rpc = ResetProcessCommand_create(NULL, 0, 0);
+
+    CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) rpc);
+    ResetProcessCommand_destroy(rpc);
+    TEST_ASSERT_TRUE(CS104_Connection_sendASDU(con, asdu));
+    CS101_ASDU_destroy(asdu);
+
+    Thread_sleep(500);
+
+    TEST_ASSERT_NOT_NULL(receivedASDU);
+    TEST_ASSERT_EQUAL_INT(C_RP_NA_1, CS101_ASDU_getTypeID(receivedASDU));
+    TEST_ASSERT_EQUAL_INT(CS101_COT_UNKNOWN_TYPE_ID, CS101_ASDU_getCOT(receivedASDU));
+    TEST_ASSERT_TRUE(CS101_ASDU_isNegative(receivedASDU));
+
+    if (receivedASDU) {
+        CS101_ASDU_destroy(receivedASDU);
+        receivedASDU = NULL;
+    }
+
+    CS104_Slave_setResetProcessHandler(slave, test_ResetProcessHandler, &resetProcessHandlerCalled);
+
+    rpc = ResetProcessCommand_create(NULL, 0, 0);
+
+    asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) rpc);
+    ResetProcessCommand_destroy(rpc);
+    TEST_ASSERT_TRUE(CS104_Connection_sendASDU(con, asdu));
+    CS101_ASDU_destroy(asdu);
+
+    Thread_sleep(500);
+
+    TEST_ASSERT_NOT_NULL(receivedASDU);
+    TEST_ASSERT_EQUAL_INT(C_RP_NA_1, CS101_ASDU_getTypeID(receivedASDU));
+    TEST_ASSERT_EQUAL_INT(CS101_COT_ACTIVATION_CON, CS101_ASDU_getCOT(receivedASDU));
+    TEST_ASSERT_FALSE(CS101_ASDU_isNegative(receivedASDU));
+    TEST_ASSERT_EQUAL_INT(1, resetProcessHandlerCalled);
+
+    /* send reset process command with invalid IOA (!= 0) */
+
+    rpc = ResetProcessCommand_create(NULL, 1, 0);
+
+    asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
+
+    CS101_ASDU_addInformationObject(asdu, (InformationObject) rpc);
+    ResetProcessCommand_destroy(rpc);
+    TEST_ASSERT_TRUE(CS104_Connection_sendASDU(con, asdu));
+    CS101_ASDU_destroy(asdu);
+
+    Thread_sleep(500);
+
+    TEST_ASSERT_NOT_NULL(receivedASDU);
+    TEST_ASSERT_EQUAL_INT(C_RP_NA_1, CS101_ASDU_getTypeID(receivedASDU));
+    TEST_ASSERT_EQUAL_INT(CS101_COT_UNKNOWN_IOA, CS101_ASDU_getCOT(receivedASDU));
+    TEST_ASSERT_TRUE(CS101_ASDU_isNegative(receivedASDU));
+    TEST_ASSERT_EQUAL_INT(1, resetProcessHandlerCalled);
+
+    CS104_Connection_close(con);
+
+    CS104_Connection_destroy(con);
+
+    if (receivedASDU)
+        CS101_ASDU_destroy(receivedASDU);
+
+    CS104_Slave_destroy(slave);
+}
+
 int
 main(int argc, char** argv)
 {
@@ -7298,6 +7405,8 @@ main(int argc, char** argv)
     RUN_TEST(test_CS104Slave_rejectCommandsWithBroadcastCA);
 
     RUN_TEST(test_CS104Slave_rejectCommandWithUnknownCA);
+
+    RUN_TEST(test_CS104Slave_handleResetProcessCommand);
 
     return UNITY_END();
 }
