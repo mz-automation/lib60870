@@ -89,7 +89,7 @@ Thread_sleep(int millies)
 Semaphore
 Semaphore_create(int initialValue)
 {
-    HANDLE self = CreateSemaphore(NULL, 1, 1, NULL);
+    HANDLE self = CreateSemaphore(NULL, initialValue, LONG_MAX, NULL);
 
     return self;
 }
