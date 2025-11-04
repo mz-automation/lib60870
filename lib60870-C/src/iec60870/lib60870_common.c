@@ -27,6 +27,7 @@
 
 #if (CONFIG_DEBUG_OUTPUT == 1)
 static bool debugOutputEnabled = 1;
+static Lib60870_DebugHandler debugHandler = NULL;
 #endif
 
 void
@@ -35,11 +36,20 @@ lib60870_debug_print(const char *format, ...)
 #if (CONFIG_DEBUG_OUTPUT == 1)
     if (debugOutputEnabled)
     {
-        printf("DEBUG_LIB60870: ");
+        char buffer[CONFIG_DEBUG_OUTPUT_BUFFER_SIZE] = "";
         va_list ap;
         va_start(ap, format);
-        vprintf(format, ap);
+        vsnprintf(buffer, CONFIG_DEBUG_OUTPUT_BUFFER_SIZE, format, ap);
         va_end(ap);
+
+        if (debugHandler)
+        {
+            debugHandler("DEBUG_LIB60870: ", buffer);
+        }
+        else
+        {
+            printf("DEBUG_LIB60870: %s", buffer);
+        }
     }
 #else
     UNUSED_PARAMETER(format);
@@ -53,6 +63,16 @@ Lib60870_enableDebugOutput(bool value)
     debugOutputEnabled = value;
 #else
     UNUSED_PARAMETER(value);
+#endif
+}
+
+void
+Lib60870_setDebugOutputHanlder(const Lib60870_DebugHandler handler)
+{
+#if (CONFIG_DEBUG_OUTPUT == 1)
+    debugHandler = handler;
+#else
+    UNUSED_PARAMETER(handler);
 #endif
 }
 
