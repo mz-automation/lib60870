@@ -11,6 +11,11 @@
 #define CONFIG_DEBUG_OUTPUT 0
 #endif
 
+/* default debugging information buffer size only valid CONFIG_DEBUG_OUTPUT set to 1  */
+#ifndef CONFIG_DEBUG_OUTPUT_BUFFER_SIZE
+#define CONFIG_DEBUG_OUTPUT_BUFFER_SIZE 512
+#endif
+
 /**
  * Define the maximum slave message queue size (for CS 101)
  *

@@ -326,8 +326,19 @@ typedef enum {
     CS101_COT_UNKNOWN_IOA = 47
 } CS101_CauseOfTransmission;
 
+/**
+ * \brief Callback handler for debug output
+ *
+ * \param header debug message header
+ * \param content debug message content
+ */
+typedef void (*Lib60870_DebugHandler) (const char* header, const char* content);
+
 const char*
 CS101_CauseOfTransmission_toString(CS101_CauseOfTransmission self);
+
+void
+Lib60870_setDebugOutputHanlder(Lib60870_DebugHandler handler);
 
 void
 Lib60870_enableDebugOutput(bool value);
