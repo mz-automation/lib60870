@@ -904,7 +904,7 @@ handleConnection(void* parameter)
 {
     CS104_Connection self = (CS104_Connection)parameter;
 
-    CS104_ConnectionEvent event = CS104_CONNECTION_OPENED;
+    CS104_ConnectionEvent event = CS104_CONNECTION_FAILED;
 
     resetConnection(self);
 
@@ -1065,9 +1065,6 @@ handleConnection(void* parameter)
 #if (CONFIG_USE_SEMAPHORES == 1)
             Semaphore_post(self->conStateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
-
-            /* register CLOSED event */
-            event = CS104_CONNECTION_FAILED;
         }
 
 #if (CONFIG_USE_SEMAPHORES == 1)
@@ -1115,11 +1112,8 @@ handleConnection(void* parameter)
     }
 
     /* Call connection handler */
-    if ((event == CS104_CONNECTION_CLOSED) || (event == CS104_CONNECTION_FAILED))
-    {
-        if (self->connectionHandler)
-            self->connectionHandler(self->connectionHandlerParameter, self, event);
-    }
+    if (self->connectionHandler)
+        self->connectionHandler(self->connectionHandlerParameter, self, event);
 
     return NULL;
 }
