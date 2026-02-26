@@ -149,11 +149,19 @@ GENERATE_EXPORT_HEADER(lib60870-shared
 add_library (lib60870 STATIC ${library_SRCS})
 
 IF(UNIX)
-    target_link_libraries (lib60870
-        -lpthread
-        -lm
-        -lrt
-    )
+	IF(APPLE)
+		target_link_libraries (lib60870
+				-lpthread
+				-lm
+		)
+	ELSE()
+		target_link_libraries (lib60870
+				-lpthread
+				-lm
+				-lrt
+		)
+	ENDIF(APPLE)
+
 
   configure_file(
     ${CMAKE_CURRENT_LIST_DIR}/lib60870.pc.in
