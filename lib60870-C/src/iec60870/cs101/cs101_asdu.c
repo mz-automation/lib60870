@@ -74,6 +74,123 @@ asduFrame_getSpaceLeft(Frame self)
     return (frame->asdu->parameters->maxSizeOfASDU - frame->asdu->payloadSize - frame->asdu->asduHeaderLength);
 }
 
+/* Returns the fixed data size (bytes, excluding IOA) for a type ID,
+ * or -1 for variable-length / unknown types. Used for VSQ validation. */
+static int
+getElementDataSize(IEC60870_5_TypeID typeId)
+{
+    switch (typeId)
+    {
+    case M_SP_NA_1:
+        return 1;
+    case M_SP_TA_1:
+        return 4;
+    case M_DP_NA_1:
+        return 1;
+    case M_DP_TA_1:
+        return 4;
+    case M_ST_NA_1:
+        return 2;
+    case M_ST_TA_1:
+        return 5;
+    case M_BO_NA_1:
+        return 5;
+    case M_BO_TA_1:
+        return 8;
+    case M_ME_NA_1:
+        return 3;
+    case M_ME_TA_1:
+        return 6;
+    case M_ME_NB_1:
+        return 3;
+    case M_ME_TB_1:
+        return 6;
+    case M_ME_NC_1:
+        return 5;
+    case M_ME_TC_1:
+        return 8;
+    case M_IT_NA_1:
+        return 5;
+    case M_IT_TA_1:
+        return 8;
+    case M_EP_TA_1:
+        return 6;
+    case M_EP_TB_1:
+        return 7;
+    case M_EP_TC_1:
+        return 7;
+    case M_PS_NA_1:
+        return 5;
+    case M_ME_ND_1:
+        return 2;
+    case M_SP_TB_1:
+        return 8;
+    case M_DP_TB_1:
+        return 8;
+    case M_ST_TB_1:
+        return 9;
+    case M_BO_TB_1:
+        return 12;
+    case M_ME_TD_1:
+        return 10;
+    case M_ME_TE_1:
+        return 10;
+    case M_ME_TF_1:
+        return 12;
+    case M_IT_TB_1:
+        return 12;
+    case M_EP_TD_1:
+        return 10;
+    case M_EP_TE_1:
+        return 11;
+    case M_EP_TF_1:
+        return 11;
+    case S_IT_TC_1:
+        return 14;
+    case C_SC_NA_1:
+        return 1;
+    case C_DC_NA_1:
+        return 1;
+    case C_RC_NA_1:
+        return 1;
+    case C_SE_NA_1:
+        return 3;
+    case C_SE_NB_1:
+        return 3;
+    case C_SE_NC_1:
+        return 5;
+    case C_BO_NA_1:
+        return 4;
+    case C_SC_TA_1:
+        return 8;
+    case C_DC_TA_1:
+        return 8;
+    case C_RC_TA_1:
+        return 8;
+    case C_SE_TA_1:
+        return 10;
+    case C_SE_TB_1:
+        return 10;
+    case C_SE_TC_1:
+        return 12;
+    case C_BO_TA_1:
+        return 11;
+    case P_ME_NA_1:
+        return 3;
+    case P_ME_NB_1:
+        return 3;
+    case P_ME_NC_1:
+        return 5;
+    case P_AC_NA_1:
+        return 1;
+    case F_DR_TA_1:
+        return 13;
+
+    default:
+        return -1; /* variable-length or unknown */
+    }
+}
+
 struct sFrameVFT asduFrameVFT = {
         asduFrame_destroy,
         NULL,
@@ -186,6 +303,23 @@ CS101_ASDU_createFromBufferEx(CS101_ASDU asdu, CS101_AppLayerParameters paramete
 
     if (msgLength < asduHeaderLength)
         return NULL;
+
+    /* Validate VSQ against actual payload size */
+    {
+        int payloadSize = msgLength - asduHeaderLength;
+        int numElements = msg[1] & 0x7f;
+        bool isSeq = (msg[1] & 0x80) != 0;
+        int dataSize = getElementDataSize((IEC60870_5_TypeID)msg[0]);
+
+        if (dataSize >= 0 && numElements > 0)
+        {
+            int expectedMinPayload = isSeq ? parameters->sizeOfIOA + numElements * dataSize
+                                           : numElements * (parameters->sizeOfIOA + dataSize);
+
+            if (payloadSize < expectedMinPayload)
+                return NULL;
+        }
+    }
 
     CS101_ASDU self = (CS101_ASDU)asdu;
 
@@ -473,6 +607,10 @@ InformationObject
 CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
 {
     InformationObject retVal = NULL;
+
+    /* Check if index is valid */
+    if (index < 0 || index >= CS101_ASDU_getNumberOfElements(self))
+        return NULL;
 
     int elementSize;
 
