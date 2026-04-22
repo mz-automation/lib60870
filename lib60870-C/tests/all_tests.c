@@ -9371,7 +9371,9 @@ test_CS104_Connection_StopDTTimeout(void)
     Thread serverThread = Thread_create(silent_server_thread_stop_dt, NULL, false);
     Thread_start(serverThread);
 
-    Thread_sleep(100);
+    /* 500 ms gives the server thread reliable time to bind/listen regardless of
+     * OS scheduling latency; 100 ms was too tight on unloaded systems. */
+    Thread_sleep(500);
 
     CS104_Connection con = CS104_Connection_create("127.0.0.1", 20006);
 
@@ -9455,6 +9457,128 @@ test_CS104_Connection_isRunning(void)
     CS104_Connection_destroy(con);
 
     CS104_Slave_destroy(slave);
+}
+
+/*
+ * VSQ validation: specific malformed CS104 frame supplied by the user.
+ *
+ * Raw frame (14 bytes): 68 0a 68 0a 00 4e 11 e0 02 00 4e 68 10 ff
+ * CS104 APCI is 6 bytes, so the ASDU portion is bytes [6..13]:
+ *   typeId = 0x11 (17 = M_EP_TA_1, element data size = 6)
+ *   VSQ    = 0xe0 -> isSeq=1, numElements=96
+ *   expected min payload = sizeOfIOA + 96*6 = 3 + 576 = 579 bytes
+ *   actual payload = 8 - 6 (header) = 2 bytes  -> must be rejected
+ */
+void
+test_CS101_ASDU_VSQ_specificMalformedFrame(void)
+{
+    static const uint8_t rawFrame[] = {
+        0x68, 0x0a, 0x68, 0x0a, 0x00, 0x4e,  /* CS104 APCI (6 bytes) */
+        0x11, 0xe0, 0x02, 0x00, 0x4e, 0x68, 0x10, 0xff  /* ASDU (8 bytes) */
+    };
+
+    /* Pass only the ASDU portion (offset 6) to createFromBuffer */
+    CS101_ASDU asdu = CS101_ASDU_createFromBuffer(
+        &defaultAppLayerParameters,
+        (uint8_t*)(rawFrame + 6),
+        (int)(sizeof(rawFrame) - 6));
+
+    TEST_ASSERT_NULL(asdu);
+}
+
+/*
+ * VSQ validation: non-sequence ASDU where VSQ claims more elements than
+ * the payload can hold.
+ *
+ * typeId = M_ME_NC_1 (13), elementSize = 5, sizeOfIOA = 3
+ * VSQ    = 3 (non-seq) -> expected payload = 3 * (3+5) = 24 bytes
+ * supplied payload = 10 bytes -> must be rejected
+ */
+void
+test_CS101_ASDU_VSQ_truncatedPayload(void)
+{
+    /* ASDU header (6 bytes) + 10-byte invalid payload (too short for 3 elements) */
+    uint8_t asduBuf[16];
+    memset(asduBuf, 0, sizeof(asduBuf));
+    asduBuf[0] = 13;    /* typeId = M_ME_NC_1 */
+    asduBuf[1] = 3;     /* VSQ: non-seq, 3 elements */
+    asduBuf[2] = 0x03;  /* COT = spontaneous */
+    asduBuf[3] = 0x00;  /* OA */
+    asduBuf[4] = 0x01;  /* CA lo */
+    asduBuf[5] = 0x00;  /* CA hi */
+    /* 10 bytes of payload follow (not enough for 3 elements) */
+
+    CS101_ASDU asdu = CS101_ASDU_createFromBuffer(
+        &defaultAppLayerParameters,
+        asduBuf,
+        (int)sizeof(asduBuf));
+
+    TEST_ASSERT_NULL(asdu);
+}
+
+/*
+ * VSQ validation: well-formed ASDU must be accepted.
+ *
+ * typeId = M_SP_NA_1 (1), elementSize = 1, non-seq, 2 elements
+ * payload = 2 * (sizeOfIOA=3 + 1) = 8 bytes -> OK
+ */
+void
+test_CS101_ASDU_VSQ_validFrame(void)
+{
+    /* header = 6 bytes, payload = 2*(3+1) = 8 bytes, total = 14 bytes */
+    uint8_t asduBuf[14];
+    memset(asduBuf, 0, sizeof(asduBuf));
+    asduBuf[0] = 1;    /* typeId = M_SP_NA_1 */
+    asduBuf[1] = 2;    /* VSQ: non-seq, 2 elements */
+    asduBuf[2] = 0x01; /* COT = periodic */
+    asduBuf[3] = 0x00; /* OA */
+    asduBuf[4] = 0x01; /* CA lo */
+    asduBuf[5] = 0x00; /* CA hi */
+    /* element 0: IOA=1, SP=0x01 */
+    asduBuf[6]  = 0x01; asduBuf[7]  = 0x00; asduBuf[8]  = 0x00; asduBuf[9]  = 0x01;
+    /* element 1: IOA=2, SP=0x00 */
+    asduBuf[10] = 0x02; asduBuf[11] = 0x00; asduBuf[12] = 0x00; asduBuf[13] = 0x00;
+
+    CS101_ASDU asdu = CS101_ASDU_createFromBuffer(
+        &defaultAppLayerParameters,
+        asduBuf,
+        (int)sizeof(asduBuf));
+
+    TEST_ASSERT_NOT_NULL(asdu);
+    TEST_ASSERT_EQUAL_INT(2, CS101_ASDU_getNumberOfElements(asdu));
+
+    /* Free memory allocated by createFromBuffer */
+    CS101_ASDU_destroy(asdu);
+}
+
+void
+test_CS101_ASDU_getElementEx_outOfRange(void)
+{
+    CS101_ASDU asdu = CS101_ASDU_create(
+        &defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
+
+    InformationObject io =
+        (InformationObject)SinglePointInformation_create(NULL, 100, true, IEC60870_QUALITY_GOOD);
+
+    CS101_ASDU_addInformationObject(asdu, io);
+    InformationObject_destroy(io);
+
+    TEST_ASSERT_EQUAL_INT(1, CS101_ASDU_getNumberOfElements(asdu));
+
+    /* index 0 is valid */
+    InformationObject elem = CS101_ASDU_getElementEx(asdu, NULL, 0);
+    TEST_ASSERT_NOT_NULL(elem);
+    InformationObject_destroy(elem);
+
+    /* index 1 is out of range */
+    elem = CS101_ASDU_getElementEx(asdu, NULL, 1);
+    TEST_ASSERT_NULL(elem);
+
+    /* negative index is out of range */
+    elem = CS101_ASDU_getElementEx(asdu, NULL, -1);
+    TEST_ASSERT_NULL(elem);
+
+    CS101_ASDU_destroy(asdu);
 }
 
 int
@@ -9563,6 +9687,11 @@ main(int argc, char** argv)
 
     RUN_TEST(test_CS101_ASDU_addObjectOfWrongType);
     RUN_TEST(test_CS101_ASDU_addUntilOverflow);
+
+    RUN_TEST(test_CS101_ASDU_VSQ_specificMalformedFrame);
+    RUN_TEST(test_CS101_ASDU_VSQ_truncatedPayload);
+    RUN_TEST(test_CS101_ASDU_VSQ_validFrame);
+    RUN_TEST(test_CS101_ASDU_getElementEx_outOfRange);
 
 #if (CONFIG_CS104_SUPPORT_TLS == 1)
     RUN_TEST(test_CS104_MasterSlave_TLSConnectSuccess);
