@@ -1844,7 +1844,7 @@ CS104_Connection_sendReadCommand(CS104_Connection self, int ca, int ioa)
 
     ReadCommand readCommand = ReadCommand_create(&_readCommand, ioa);
 
-    return CS104_Connection_sendProcessCommandEx(self, CS101_COT_ACTIVATION, ca, (InformationObject)readCommand);
+    return CS104_Connection_sendProcessCommandEx(self, CS101_COT_REQUEST, ca, (InformationObject)readCommand);
 }
 
 bool
