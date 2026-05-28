@@ -756,6 +756,13 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
         {
             /* store valid certificate when this feature is configured */
 
+            /* release previously stored certificate */
+            if (self->peerCert)
+            {
+                GLOBAL_FREEMEM(self->peerCert);
+                self->peerCert = NULL;
+            }
+
             self->peerCertLength = 0;
             self->peerCert = (uint8_t*) GLOBAL_MALLOC(crt->raw.len);
 
