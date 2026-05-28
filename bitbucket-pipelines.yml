@@ -1,0 +1,142 @@
+# Bitbucket Pipelines - lib60870-C build matrix
+#
+# Six parallel steps covering all build-system / mbedtls-version combinations:
+#   1. cmake    + mbedtls 2.28.x  (ssl_srv.c patch applied)
+#   2. cmake    + mbedtls 3.6.x
+#   3. Makefile + mbedtls 2.28.x  (ssl_srv.c patch applied)
+#   4. Makefile + mbedtls 3.6.x
+#   5. cmake    (no TLS)
+#   6. Makefile (no TLS)
+#
+# The latest patch release of each minor series is resolved at run time via the
+# GitHub Releases API.  A hardcoded fallback is used when the API is unavailable
+# (e.g. due to rate-limiting from shared CI IP addresses).
+#
+# cmake auto-detects the mbedtls source folder under lib60870-C/dependencies/.
+# The Makefile also auto-detects the folder and sets WITH_MBEDTLS or
+# WITH_MBEDTLS3 accordingly; no extra flags are required.
+
+image: ubuntu:24.04
+
+pipelines:
+  default:
+    - parallel:
+
+        # ------------------------------------------------------------------ #
+        # 1. cmake + mbedtls 2.28 (latest patch, ssl_srv.c patch applied)
+        # ------------------------------------------------------------------ #
+        - step:
+            name: "cmake + mbedtls 2.28 (latest patch)"
+            script:
+              - apt-get update -qq
+              - apt-get install -y --no-install-recommends cmake build-essential curl python3 ca-certificates patch bzip2 wget
+              - |
+                VER=$(curl -sf "https://api.github.com/repos/Mbed-TLS/mbedtls/releases?per_page=100" \
+                  | python3 -c "import sys,json,re;d=json.load(sys.stdin);p=re.compile(r'^mbedtls-2[.]28[.](\d+)$');v=sorted([(int(m.group(1)),r['tag_name'].replace('mbedtls-','')) for r in d if not r['prerelease'] for m in [p.match(r['tag_name'])] if m],reverse=True);print(v[0][1])" \
+                  2>/dev/null) || true
+                [ -n "$VER" ] || VER=2.28.10
+                echo "Using mbedtls ${VER}"
+                wget -q \
+                  "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-${VER}/mbedtls-${VER}.tar.bz2" \
+                  -O /tmp/mbedtls.tar.bz2
+                tar xfj /tmp/mbedtls.tar.bz2 -C lib60870-C/dependencies/
+                # Apply the session-resumption patch required by IEC 62351-3:2023.
+                patch "lib60870-C/dependencies/mbedtls-${VER}/library/ssl_srv.c" \
+                  lib60870-C/dependencies/mbedtls_2.28_ssl_srv.c.patch
+              - cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
+              - cmake --build build --parallel $(nproc)
+              - (cd build/tests && ./tests)
+
+        # ------------------------------------------------------------------ #
+        # 2. cmake + mbedtls 3.6 (latest patch)
+        # ------------------------------------------------------------------ #
+        - step:
+            name: "cmake + mbedtls 3.6 (latest patch)"
+            script:
+              - apt-get update -qq
+              - apt-get install -y --no-install-recommends cmake build-essential curl python3 ca-certificates bzip2 wget
+              - |
+                VER=$(curl -sf "https://api.github.com/repos/Mbed-TLS/mbedtls/releases?per_page=100" \
+                  | python3 -c "import sys,json,re;d=json.load(sys.stdin);p=re.compile(r'^mbedtls-3[.]6[.](\d+)$');v=sorted([(int(m.group(1)),r['tag_name'].replace('mbedtls-','')) for r in d if not r['prerelease'] for m in [p.match(r['tag_name'])] if m],reverse=True);print(v[0][1])" \
+                  2>/dev/null) || true
+                [ -n "$VER" ] || VER=3.6.2
+                echo "Using mbedtls ${VER}"
+                wget -q \
+                  "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-${VER}/mbedtls-${VER}.tar.bz2" \
+                  -O /tmp/mbedtls.tar.bz2
+                tar xfj /tmp/mbedtls.tar.bz2 -C lib60870-C/dependencies/
+              - cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
+              - cmake --build build --parallel $(nproc)
+
+        # ------------------------------------------------------------------ #
+        # 3. Makefile + mbedtls 2.28 (latest patch, ssl_srv.c patch applied)
+        # ------------------------------------------------------------------ #
+        - step:
+            name: "Makefile + mbedtls 2.28 (latest patch)"
+            script:
+              - apt-get update -qq
+              - apt-get install -y --no-install-recommends build-essential curl python3 ca-certificates patch bzip2 wget
+              - |
+                VER=$(curl -sf "https://api.github.com/repos/Mbed-TLS/mbedtls/releases?per_page=100" \
+                  | python3 -c "import sys,json,re;d=json.load(sys.stdin);p=re.compile(r'^mbedtls-2[.]28[.](\d+)$');v=sorted([(int(m.group(1)),r['tag_name'].replace('mbedtls-','')) for r in d if not r['prerelease'] for m in [p.match(r['tag_name'])] if m],reverse=True);print(v[0][1])" \
+                  2>/dev/null) || true
+                [ -n "$VER" ] || VER=2.28.10
+                echo "Using mbedtls ${VER}"
+                wget -q \
+                  "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-${VER}/mbedtls-${VER}.tar.bz2" \
+                  -O /tmp/mbedtls.tar.bz2
+                tar xfj /tmp/mbedtls.tar.bz2 -C lib60870-C/dependencies/
+                # Apply the session-resumption patch required by IEC 62351-3:2023.
+                patch "lib60870-C/dependencies/mbedtls-${VER}/library/ssl_srv.c" \
+                  lib60870-C/dependencies/mbedtls_2.28_ssl_srv.c.patch
+              # The Makefile auto-detects the mbedtls-2.28.x directory and sets
+              # WITH_MBEDTLS=1; both the library and test binary are built.
+              - cd lib60870-C && make -j$(nproc) lib tests
+
+        # ------------------------------------------------------------------ #
+        # 4. Makefile + mbedtls 3.6 (latest patch)
+        # ------------------------------------------------------------------ #
+        - step:
+            name: "Makefile + mbedtls 3.6 (latest patch)"
+            script:
+              - apt-get update -qq
+              - apt-get install -y --no-install-recommends build-essential curl python3 ca-certificates bzip2 wget
+              - |
+                VER=$(curl -sf "https://api.github.com/repos/Mbed-TLS/mbedtls/releases?per_page=100" \
+                  | python3 -c "import sys,json,re;d=json.load(sys.stdin);p=re.compile(r'^mbedtls-3[.]6[.](\d+)$');v=sorted([(int(m.group(1)),r['tag_name'].replace('mbedtls-','')) for r in d if not r['prerelease'] for m in [p.match(r['tag_name'])] if m],reverse=True);print(v[0][1])" \
+                  2>/dev/null) || true
+                [ -n "$VER" ] || VER=3.6.2
+                echo "Using mbedtls ${VER}"
+                wget -q \
+                  "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-${VER}/mbedtls-${VER}.tar.bz2" \
+                  -O /tmp/mbedtls.tar.bz2
+                tar xfj /tmp/mbedtls.tar.bz2 -C lib60870-C/dependencies/
+              # The Makefile auto-detects the mbedtls-3.6.x directory and sets
+              # WITH_MBEDTLS3=1; both the library and test binary are built.
+              - cd lib60870-C && make -j$(nproc) lib tests
+
+        # ------------------------------------------------------------------ #
+        # 5. cmake (no TLS)
+        # ------------------------------------------------------------------ #
+        - step:
+            name: "cmake (no TLS)"
+            script:
+              - apt-get update -qq
+              - apt-get install -y --no-install-recommends cmake build-essential
+              # No mbedtls in dependencies/ — cmake auto-detects nothing and
+              # builds without TLS support.
+              - cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
+              - cmake --build build --parallel $(nproc)
+              - (cd build/tests && ./tests)
+
+        # ------------------------------------------------------------------ #
+        # 6. Makefile (no TLS)
+        # ------------------------------------------------------------------ #
+        - step:
+            name: "Makefile (no TLS)"
+            script:
+              - apt-get update -qq
+              - apt-get install -y --no-install-recommends build-essential
+              # No mbedtls in dependencies/ — the Makefile auto-detects nothing
+              # and builds without TLS support.
+              - cd lib60870-C && make -j$(nproc) lib tests
