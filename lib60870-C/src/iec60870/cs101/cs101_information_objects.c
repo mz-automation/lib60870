@@ -6553,7 +6553,7 @@ TestCommand_getFromBuffer(TestCommand self, CS101_AppLayerParameters parameters,
                           int startIndex)
 {
     /* check message size */
-    int minSize = startIndex + 2;
+    int minSize = startIndex + parameters->sizeOfIOA + 2;
 
     if (minSize > msgSize)
     {
@@ -6655,7 +6655,7 @@ TestCommandWithCP56Time2a_getFromBuffer(TestCommandWithCP56Time2a self, CS101_Ap
                                         uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
-    int minSize = startIndex + 9;
+    int minSize = startIndex + parameters->sizeOfIOA + 9;
 
     if (minSize > msgSize)
     {

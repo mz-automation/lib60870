@@ -175,6 +175,24 @@ getElementDataSize(IEC60870_5_TypeID typeId)
         return 12;
     case C_BO_TA_1:
         return 11;
+    case M_EI_NA_1:
+        return 1;
+    case C_IC_NA_1:
+        return 1;
+    case C_CI_NA_1:
+        return 1;
+    case C_RD_NA_1:
+        return 0;
+    case C_CS_NA_1:
+        return 7;
+    case C_TS_NA_1:
+        return 2;
+    case C_RP_NA_1:
+        return 1;
+    case C_CD_NA_1:
+        return 2;
+    case C_TS_TA_1:
+        return 9;
     case P_ME_NA_1:
         return 3;
     case P_ME_NB_1:
@@ -183,8 +201,20 @@ getElementDataSize(IEC60870_5_TypeID typeId)
         return 5;
     case P_AC_NA_1:
         return 1;
+    case F_FR_NA_1:
+        return 6;
+    case F_SR_NA_1:
+        return 7;
+    case F_SC_NA_1:
+        return 4;
+    case F_LS_NA_1:
+        return 5;
+    case F_AF_NA_1:
+        return 4;
     case F_DR_TA_1:
         return 13;
+    case F_SC_NB_1:
+        return 16;
 
     default:
         return -1; /* variable-length or unknown */
