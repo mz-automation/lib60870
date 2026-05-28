@@ -416,11 +416,12 @@ _IPeerConnection_getPeerAddress(IPeerConnection self, char* addrBuf, int addrBuf
     if (addrStr == NULL)
         return 0;
 
-    int len = (int)strlen(buf);
+    int len = (int)strnlen(buf, sizeof(buf));
 
     if (len < addrBufSize)
     {
-        strcpy(addrBuf, buf);
+        memcpy(addrBuf, buf, len);
+        addrBuf[len] = 0;
         return len;
     }
     else
@@ -435,6 +436,7 @@ createConnection(const char* hostname, int tcpPort)
     if (self)
     {
         strncpy(self->hostname, hostname, HOST_NAME_MAX);
+        self->hostname[HOST_NAME_MAX] = 0;
         self->tcpPort = tcpPort;
         self->parameters = defaultAPCIParameters;
         self->alParameters = defaultAppLayerParameters;

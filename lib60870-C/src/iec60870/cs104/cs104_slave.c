@@ -3879,11 +3879,12 @@ _IMasterConnection_getPeerAddress(IMasterConnection self, char* addrBuf, int add
     if (addrStr == NULL)
         return 0;
 
-    int len = (int)strlen(buf);
+    int len = (int)strnlen(buf, sizeof(buf));
 
     if (len < addrBufSize)
     {
-        strcpy(addrBuf, buf);
+        memcpy(addrBuf, buf, len);
+        addrBuf[len] = 0;
         return len;
     }
     else
