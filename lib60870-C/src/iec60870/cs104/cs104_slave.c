@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2025 Michael Zillgith
+ *  Copyright 2016-2026 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -1277,6 +1277,7 @@ struct sMasterConnection
     unsigned int isRunning : 1;
     unsigned int timeoutT2Triggered : 1;
     unsigned int waitingForTestFRcon : 1;
+    unsigned int requeuedOnActivate : 1;  /* set by CS104_Slave_activate to suppress redundant requeue in thread exit */
     uint16_t maxSentASDUs;  /* k-parameter */
     int16_t oldestSentASDU; /* oldest sent ASDU in k-buffer */
     int16_t newestSentASDU; /* newest sent ASDU in k-buffer */
@@ -1681,7 +1682,7 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
     if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
     {
-        /* Deactivate all other connections */
+        /* Close the active connection */
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->openConnectionsLock);
 #endif
@@ -1694,7 +1695,14 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
             if (con && con->isUsed)
             {
                 if (con != connectionToActivate)
-                    MasterConnection_deactivate(con);
+                {
+                    if (MasterConnection_isActive(con))
+                    {
+                        MasterConnection_close(con);
+                        MessageQueue_setWaitingForTransmissionWhenNotConfirmed(con->lowPrioQueue);
+                        con->requeuedOnActivate = 1;
+                    }
+                }
             }
         }
 
@@ -1725,7 +1733,14 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
                 if (con->redundancyGroup == connectionToActivate->redundancyGroup)
                 {
                     if (con != connectionToActivate)
-                        MasterConnection_deactivate(con);
+                    {
+                        if (MasterConnection_isActive(con))
+                        {
+                            MasterConnection_close(con);
+                            MessageQueue_setWaitingForTransmissionWhenNotConfirmed(con->lowPrioQueue);
+                            con->requeuedOnActivate = 1;
+                        }
+                    }
                 }
             }
         }
@@ -3783,7 +3798,8 @@ connectionHandlingThread(void* parameter)
     Semaphore_post(self->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
-    MessageQueue_setWaitingForTransmissionWhenNotConfirmed(self->lowPrioQueue);
+    if (!self->requeuedOnActivate)
+        MessageQueue_setWaitingForTransmissionWhenNotConfirmed(self->lowPrioQueue);
 
     return NULL;
 }
@@ -3958,6 +3974,7 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
     {
         self->socket = skt;
         self->isRunning = false;
+        self->requeuedOnActivate = 0;
         self->receiveCount = 0;
         self->sendCount = 0;
         self->recvBufPos = 0;
@@ -4152,10 +4169,10 @@ MasterConnection_deactivate(MasterConnection self)
 #endif /* CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS */
 
 #endif /* SEC_AUTH_60870_5_7 */
+
+            self->state = M_CON_STATE_UNCONFIRMED_STOPPED;
         }
     }
-
-    self->state = M_CON_STATE_UNCONFIRMED_STOPPED;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->stateLock);
@@ -4871,9 +4888,11 @@ serverThread(void* parameter)
                 {
                     if (MasterConnection_isRunning(connection) == false)
                     {
+                        Thread threadToJoin = NULL;
+
                         if (connection->connectionThread)
                         {
-                            Thread_destroy(connection->connectionThread);
+                            threadToJoin = connection->connectionThread;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
                             Semaphore_wait(connection->stateLock);
@@ -4886,7 +4905,22 @@ serverThread(void* parameter)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
                         }
 
+                        /* Release openConnectionsLock before joining the connection thread.
+                         * The connection thread may be waiting to acquire openConnectionsLock
+                         * (e.g. inside CS104_Slave_activate), so joining while holding the
+                         * lock would cause a deadlock. */
+#if (CONFIG_USE_SEMAPHORES == 1)
+                        Semaphore_post(self->openConnectionsLock);
+#endif
+
+                        if (threadToJoin)
+                            Thread_destroy(threadToJoin);
+
                         MasterConnection_deinit(connection);
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+                        Semaphore_wait(self->openConnectionsLock);
+#endif
 
                         self->openConnections--;
 
