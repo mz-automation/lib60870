@@ -189,6 +189,11 @@ struct sTLSSocket
 
     uint64_t renegotiationStartTime;
     bool sessionResumptionPending;
+
+    /* Timestamp of the most recent TLSSocket_read or TLSSocket_write call.
+     * Used by TLSSocket_tick to detect idle connections and avoid initiating
+     * renegotiation when the read/write path will do it instead. */
+    uint64_t lastActivityTime;
 };
 
 struct TLSCacheAccessor
@@ -648,6 +653,7 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
         {
             *flags &= ~MBEDTLS_X509_BADCERT_BAD_KEY;
             raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH, "Alarm: insufficient key length", self);
+            self->lastCertVerifyFlags = *flags;
             return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
         }
         else if (keyLengthBits == (size_t)(self->tlsConfig->minKeyLengthInBits))
@@ -694,6 +700,7 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
                 raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_NOT_CONFIGURED, "Alarm: certificate validation: trusted individual certificate not available", self);
 
                 *flags |= MBEDTLS_X509_BADCERT_OTHER;
+                self->lastCertVerifyFlags = *flags;
                 return 1;
             }
         }
@@ -706,6 +713,7 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
                                    "Alarm: certificate validation: CA certificate not available", self);
 
                 *flags |= MBEDTLS_X509_BADCERT_NOT_TRUSTED;
+                self->lastCertVerifyFlags = *flags;
                 return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED ;
             }
         }
@@ -1658,6 +1666,7 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
         }
 
         self->lastRenegotiationTime = Hal_getMonotonicTimeInMs();
+        self->lastActivityTime = self->lastRenegotiationTime;
         self->renegotiationInProgress = false;
 
         self->currentTLSVersion = getTLSVersion(self->ssl.major_ver, self->ssl.minor_ver);
@@ -1788,7 +1797,9 @@ performHandshakeAsServer(TLSSocket self)
             return completeServerRenegotiation(self);
         }
 
-        /* Handshake progresses implicitly via mbedtls read/write calls */
+        /* Handshake progresses implicitly via mbedtls read/write calls.
+         * TLSSocket_tick can check the renegotiation timeout for idle
+         * connections. */
         return true;
     }
 
@@ -1956,7 +1967,8 @@ startRenegotiationIfRequired(TLSSocket self)
                 self->lastRenegotiationTime = Hal_getMonotonicTimeInMs();
             }
 
-            /* Server-side renegotiation progresses implicitly via read/write */
+            /* Server-side renegotiation is driven via TLSSocket_read/write or
+             * TLSSocket_tick (periodic call from the connection loop). */
             return true;
         }
 
@@ -2027,9 +2039,28 @@ startRenegotiationIfRequired(TLSSocket self)
     return true;
 }
 
+bool
+TLSSocket_tick(TLSSocket self)
+{
+    checkForCRLUpdate(self);
+
+    if (self->renegotiationInProgress)
+    {
+        if (renegotiationTimedOut(self))
+        {
+            abortRenegotiationDueToTimeout(self);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 int
 TLSSocket_read(TLSSocket self, uint8_t* buf, int size)
 {
+    self->lastActivityTime = Hal_getMonotonicTimeInMs();
+
     checkForCRLUpdate(self);
 
     if (self->renegotiationInProgress)
@@ -2147,6 +2178,8 @@ int
 TLSSocket_write(TLSSocket self, uint8_t* buf, int size)
 {
     int len = 0;
+
+    self->lastActivityTime = Hal_getMonotonicTimeInMs();
 
     checkForCRLUpdate(self);
 

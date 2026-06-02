@@ -147,6 +147,11 @@ struct sTLSSocket
     bool versionMismatchDetected;
     struct TLSCacheAccessor* cacheAccessor;
     bool handshakeInProgress;
+
+    /* Timestamp of the most recent TLSSocket_read or TLSSocket_write call.
+     * Used by TLSSocket_tick to detect idle connections and avoid initiating
+     * renegotiation when the read/write path will do it instead. */
+    uint64_t lastActivityTime;
 };
 
 struct TLSCacheAccessor
@@ -1635,6 +1640,7 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
         }
 
         self->lastRenegotiationTime = Hal_getMonotonicTimeInMs();
+        self->lastActivityTime = self->lastRenegotiationTime;
 
         /* create event that TLS session is established */
         {
@@ -1739,6 +1745,28 @@ startRenegotiationIfRequired(TLSSocket self)
     return true;
 }
 
+bool
+TLSSocket_tick(TLSSocket self)
+{
+    checkForCRLUpdate(self);
+
+    /* Only initiate a new renegotiation when the connection is truly idle:
+     * no TLSSocket_read/write has occurred for at least a full renegotiation
+     * interval.  Polled connections drive renegotiation through those paths;
+     * the full-interval idle check prevents duplicate initiations. */
+    if (self->tlsConfig->renegotiationTimeInMs > 0)
+    {
+        uint64_t now = Hal_getMonotonicTimeInMs();
+        if (now - self->lastActivityTime >= (uint64_t)self->tlsConfig->renegotiationTimeInMs)
+        {
+            if (startRenegotiationIfRequired(self) == false)
+                return false;
+        }
+    }
+
+    return true;
+}
+
 int
 TLSSocket_read(TLSSocket self, uint8_t* buf, int size)
 {
@@ -1746,6 +1774,8 @@ TLSSocket_read(TLSSocket self, uint8_t* buf, int size)
         /* Avoid reading data while handshake is in progress */
         return 0;
     }
+
+    self->lastActivityTime = Hal_getMonotonicTimeInMs();
 
     checkForCRLUpdate(self);
 
@@ -1837,6 +1867,8 @@ TLSSocket_write(TLSSocket self, uint8_t* buf, int size)
         /* Avoid writing data while handshake is in progress */
         return 0;
     }
+
+    self->lastActivityTime = Hal_getMonotonicTimeInMs();
 
     checkForCRLUpdate(self);
 
