@@ -2044,14 +2044,25 @@ TLSSocket_tick(TLSSocket self)
 {
     checkForCRLUpdate(self);
 
-    if (self->renegotiationInProgress)
+#if defined(MBEDTLS_SSL_RENEGOTIATION)
+    /*
+     * When the server sends a HelloRequest the client's mbedtls_ssl_read sets
+     * renego_status = RENEGOTIATION_PENDING and returns WANT_READ.  Without
+     * this check the renegotiation would only advance the next time the client
+     * happens to call TLSSocket_write (e.g. when TEST-FR fires), which can be
+     * tens of seconds later.  Drive it forward here so it completes within one
+     * tick period (~100 ms) instead.
+     */
+    if (self->conf.endpoint == MBEDTLS_SSL_IS_CLIENT &&
+        self->ssl.renego_status == MBEDTLS_SSL_RENEGOTIATION_PENDING)
     {
-        if (renegotiationTimedOut(self))
-        {
-            abortRenegotiationDueToTimeout(self);
+        if (TLSSocket_performHandshake(self) == false)
             return false;
-        }
     }
+#endif /* MBEDTLS_SSL_RENEGOTIATION */
+
+    if (startRenegotiationIfRequired(self) == false)
+        return false;
 
     return true;
 }
@@ -2065,14 +2076,16 @@ TLSSocket_read(TLSSocket self, uint8_t* buf, int size)
 
     if (self->renegotiationInProgress)
     {
-        if (renegotiationTimedOut(self)) {
+        if (renegotiationTimedOut(self))
+        {
             abortRenegotiationDueToTimeout(self);
 
             return -1;
         }
     }
 
-    if (startRenegotiationIfRequired(self) == false) {
+    if (startRenegotiationIfRequired(self) == false)
+    {
         return -1;
     }
 
@@ -2185,7 +2198,8 @@ TLSSocket_write(TLSSocket self, uint8_t* buf, int size)
 
     if (self->renegotiationInProgress)
     {
-        if (renegotiationTimedOut(self)) {
+        if (renegotiationTimedOut(self))
+        {
             abortRenegotiationDueToTimeout(self);
 
             return -1;
