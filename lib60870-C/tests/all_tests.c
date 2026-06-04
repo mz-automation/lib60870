@@ -7358,6 +7358,286 @@ test_CS104_MasterSlave_TLSUnknownCA(void)
 }
 
 /**
+ * Test that the CS104 slave (TLS server) rejects a client presenting a
+ * certificate signed by an unknown CA and generates the appropriate alarm.
+ *
+ * Test scenario (TLS 1.2):
+ * 1. Slave (server) is configured with its own certificate signed by CA1 and
+ *    has CA1 loaded in its trust store so that mutual authentication is
+ *    attempted.
+ * 2. Slave has chain validation enabled and trusts CA1, but the client
+ *    presents a certificate signed by CA2 — a CA that is not in the slave's
+ *    trust store.
+ * 3. Client connects with a certificate signed by CA2 (unknown to the slave)
+ *    but knows CA1 so it can validate the server certificate.
+ * 4. During the TLS handshake the slave cannot find the client certificate's
+ *    issuing CA (CA2) in its trust store.
+ *
+ * Expected results:
+ * - The slave raises security event TLS_EVENT_CODE_ALM_CA_CERT_NOT_AVAILABLE
+ *   ("Alarm: certificate validation: CA certificate not available").
+ * - The TLS handshake fails and the TCP/IP connection is closed (connect
+ *   returns false from the client's perspective).
+ */
+void
+test_CS104_MasterSlave_TLSSlaveUnknownClientCA(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    /* Slave (server) configuration.
+     * Own certificate is signed by CA1. CA1 is added to the trust store so
+     * that client certificates from CA1 would be accepted — but the client
+     * will present a certificate signed by CA2 which is NOT trusted. */
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    /* Slave trusts CA1 but NOT CA2 — so the client cert signed by CA2 is
+     * from an unknown CA as far as the slave is concerned. */
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    /* Client (master) configuration.
+     * Presents a certificate signed by CA2 (unknown to the slave).
+     * Knows CA1 so it can validate the server certificate. */
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig2, TLS_VERSION_TLS_1_2);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA2_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA2_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+    TEST_ASSERT_NOT_NULL(con);
+
+    /* The TLS handshake must fail: the slave cannot validate the client
+     * certificate because the issuing CA is not in its trust store. */
+    bool result = CS104_Connection_connect(con);
+    TEST_ASSERT_FALSE(result);
+
+    Thread_sleep(200);
+
+    CS104_Slave_destroy(slave);
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    /* Verify the slave raised the "CA certificate not available" alarm. */
+    bool foundCACertNotAvailableEvent = false;
+    for (int i = 0; i < eventInfo.eventHandlerCalled && i < 200; i++) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CA_CERT_NOT_AVAILABLE) {
+            foundCACertNotAvailableEvent = true;
+            break;
+        }
+    }
+    TEST_ASSERT_TRUE(foundCACertNotAvailableEvent);
+}
+
+/**
+ * Test that the CS104 slave (TLS server) rejects a client presenting a
+ * certificate whose signature cannot be validated against the known CA, and
+ * generates the appropriate alarm.
+ *
+ * Test scenario (TLS 1.2):
+ * 1. Slave (server) is configured with its own certificate signed by CA1 and
+ *    has CA1 loaded in its trust store — so it is capable of verifying
+ *    CA1-issued client certificates.
+ * 2. Client presents client_CA1_badsig.pem: a certificate that claims to be
+ *    issued by CA1 but whose signature bytes are corrupted.  When the slave
+ *    attempts to verify the signature using CA1's public key, the check fails.
+ * 3. The TLS handshake must fail and the TCP connection must be closed.
+ *
+ * Expected results:
+ * - The slave raises TLS_EVENT_CODE_ALM_CERT_NOT_TRUSTED (14)
+ *   ("Alarm: Certificate validation: certificate signature could not be
+ *    validated").
+ * - connect() returns false from the client's perspective.
+ */
+void
+test_CS104_MasterSlave_TLSSlaveInvalidClientCertSig(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    /* Slave (server) configuration.
+     * Trusts CA1 and has chain validation enabled, so it will attempt to
+     * verify the client certificate's signature using CA1's public key. */
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    /* Client (master) configuration.
+     * Presents a certificate whose signature is corrupted — the signature
+     * cannot be verified against CA1's public key even though the issuer
+     * field names CA1.  The client trusts CA1 to validate the server cert. */
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig2, TLS_VERSION_TLS_1_2);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_badsig.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_badsig.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+    TEST_ASSERT_NOT_NULL(con);
+
+    /* The TLS handshake must fail: the slave detects that the client
+     * certificate's signature is invalid. */
+    bool result = CS104_Connection_connect(con);
+    TEST_ASSERT_FALSE(result);
+
+    Thread_sleep(200);
+
+    CS104_Slave_destroy(slave);
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    /* Verify the slave raised the "certificate signature could not be
+     * validated" alarm (TLS_EVENT_CODE_ALM_CERT_NOT_TRUSTED, code 14). */
+    bool foundCertNotTrustedEvent = false;
+    for (int i = 0; i < eventInfo.eventHandlerCalled && i < 200; i++) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_NOT_TRUSTED) {
+            foundCertNotTrustedEvent = true;
+            break;
+        }
+    }
+    TEST_ASSERT_TRUE(foundCertNotTrustedEvent);
+}
+
+/**
+ * Test that the CS104 slave (TLS server) raises the "certificate unavailable"
+ * alarm and closes the TCP connection when the connecting client does not
+ * provide a certificate at all.
+ *
+ * Test scenario (TLS 1.2):
+ * 1. Slave (server) is configured with chain validation enabled, requiring a
+ *    client certificate (mTLS).
+ * 2. Client connects with a valid CA cert to authenticate the server, but
+ *    deliberately omits its own certificate and private key.
+ * 3. The TLS handshake must fail because the server cannot obtain a client
+ *    certificate.
+ *
+ * Expected results:
+ * - The slave raises TLS_EVENT_CODE_ALM_CERT_UNAVAILABLE (3)
+ *   ("Alarm: certificate unavailable").
+ * - connect() returns false from the client's perspective.
+ */
+void
+test_CS104_MasterSlave_TLSSlaveNoCertProvided(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    /* Slave (server) configuration.
+     * Chain validation is enabled so the server demands a client certificate
+     * during the TLS 1.2 handshake. */
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    /* Client (master) configuration.
+     * Trusts CA1 so it can validate the server certificate, but provides no
+     * own certificate or private key — the client Certificate message will be
+     * empty, causing the server to abort the handshake. */
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig2, TLS_VERSION_TLS_1_2);
+
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+    /* No setOwnCertificateFromFile / setOwnKeyFromFile — intentional. */
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+    TEST_ASSERT_NOT_NULL(con);
+
+    /* The TLS handshake must fail: server aborts because the client sent no
+     * certificate. */
+    bool result = CS104_Connection_connect(con);
+    TEST_ASSERT_FALSE(result);
+
+    Thread_sleep(200);
+
+    CS104_Slave_destroy(slave);
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    /* Verify the slave raised the "certificate unavailable" alarm
+     * (TLS_EVENT_CODE_ALM_CERT_UNAVAILABLE, code 3). */
+    bool foundCertUnavailableEvent = false;
+    for (int i = 0; i < eventInfo.eventHandlerCalled && i < 200; i++) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_UNAVAILABLE) {
+            foundCertUnavailableEvent = true;
+            break;
+        }
+    }
+    TEST_ASSERT_TRUE(foundCertUnavailableEvent);
+}
+
+/**
  * Test that TLS session renegotiation works correctly and raises appropriate
  * security events. This test verifies the renegotiation mechanism is functional
  * and that security events are properly generated.
@@ -7670,7 +7950,9 @@ test_CS104_MasterSlave_TLSRenegotiationCRLExpired(void)
             crlExpiredDetected++;
         }
     }
-    TEST_ASSERT_EQUAL_INT(2, crlExpiredDetected);
+    /* With timer-driven renegotiation (tick-based), multiple renegotiations may fire
+     * in the 1s+2s sleep window. Verify at least 2 CRL expired warnings (1 initial + 1 renegotiation). */
+    TEST_ASSERT_TRUE(crlExpiredDetected >= 2);
 
     CS104_Connection_sendStopDT(con);
 
@@ -10178,6 +10460,9 @@ main(int argc, char** argv)
     RUN_TEST(test_CS104_MasterSlave_TLSWarningMinimumServerKeyLength);
     RUN_TEST(test_CS104_MasterSlave_TLSInvalidSignature);
     RUN_TEST(test_CS104_MasterSlave_TLSUnknownCA);
+    RUN_TEST(test_CS104_MasterSlave_TLSSlaveUnknownClientCA);
+    RUN_TEST(test_CS104_MasterSlave_TLSSlaveInvalidClientCertSig);
+    RUN_TEST(test_CS104_MasterSlave_TLSSlaveNoCertProvided);
     RUN_TEST(test_CS104_MasterSlave_TLSSuccessfulRenegotiation);
     RUN_TEST(test_CS104_MasterSlave_TLSRenegotiateAfterCRLUpdate);
     RUN_TEST(test_CS104_MasterSlave_TLSRenegotiationCRLExpired);
