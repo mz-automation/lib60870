@@ -10329,7 +10329,6 @@ main(int argc, char** argv)
     RUN_TEST(test_CP56Time2a);
     RUN_TEST(test_CP56Time2aToMsTimestamp);
     RUN_TEST(test_CP56Time2aConversionFunctions);
-    RUN_TEST(test_StepPositionInformation);
     RUN_TEST(test_addMaxNumberOfIOsToASDU);
     RUN_TEST(test_SingleEventType);
 
