@@ -8994,7 +8994,7 @@ test_CS104_MasterSlave_TLSServerRenegotiationInvalidPeerCert(void)
             foundRenegotiationEvent = true;
         if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_NOT_CONFIGURED)
             foundCertNotConfigured = true;
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED)
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_UNAVAILABLE)
             foundCertValidationFailed = true;
     }
 
@@ -9085,6 +9085,82 @@ test_CS104_MasterSlave_TLSReuseConfigurationWithSessionResumption(void)
 
     TLSConfiguration_destroy(tlsConfig1);
     TLSConfiguration_destroy(tlsConfig2);
+}
+
+/**
+ * Test that TLSConfiguration_setMaxCertificateSize correctly rejects peer certificates
+ * that exceed the configured maximum size. When the peer's certificate is too large,
+ * the TLS handshake should fail and a security event "Alarm: TLS certificate size exceeded"
+ * (TLS_EVENT_CODE_ALM_CERT_SIZE_EXCEEDED) should be raised.
+ */
+void
+test_CS104_MasterSlave_TLSConfiguration_setMaxCertificateSize(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    /* Client configuration - set a very small max certificate size to force rejection */
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    /* Set maximum allowed certificate size to 100 bytes (smaller than any real certificate) */
+    TLSConfiguration_setMaxCertificateSize(tlsConfig1, 100);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    /* Server configuration - uses a normal certificate that will exceed the client's max size */
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    /* Connection should fail because server's certificate exceeds the client's configured max size */
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    Thread_sleep(200); /* Give time for security event to be generated */
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    /* Verify that certificate size exceeded alarm was raised on the client side */
+    bool certSizeExceededDetected = false;
+    for (int i = 0; i < eventInfo.eventHandlerCalled; i++) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_SIZE_EXCEEDED) {
+            certSizeExceededDetected = true;
+            break;
+        }
+    }
+    TEST_ASSERT_TRUE(certSizeExceededDetected);
 }
 
 #endif /* #if (CONFIG_CS104_SUPPORT_TLS == 1) */
@@ -10477,6 +10553,7 @@ main(int argc, char** argv)
     RUN_TEST(test_CS104_MasterSlave_TLSReuseConfigurationWithSessionResumption);
     RUN_TEST(test_CS104_MasterSlave_TLSServerRenegotiationVerifiesPeerCert);
     RUN_TEST(test_CS104_MasterSlave_TLSServerRenegotiationInvalidPeerCert);
+    RUN_TEST(test_CS104_MasterSlave_TLSConfiguration_setMaxCertificateSize);
 #endif /* #if (CONFIG_CS104_SUPPORT_TLS == 1) */
 
     RUN_TEST(test_ASDUsetGetNumberOfElements);

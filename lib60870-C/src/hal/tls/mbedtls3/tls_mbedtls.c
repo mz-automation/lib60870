@@ -120,6 +120,8 @@ struct sTLSConfiguration
 
     int* ciphersuites;
     int maxCiphersuites;
+
+    int maxCertificateSizeInBytes;
 };
 
 struct sTLSSocket
@@ -571,6 +573,17 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
             *flags = 0;
     }
 
+    if (self->tlsConfig->maxCertificateSizeInBytes > 0 && crt->raw.len > (size_t)(self->tlsConfig->maxCertificateSizeInBytes))
+    {
+        raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_SIZE_EXCEEDED,
+                           "Alarm: TLS certificate size exceeded", self);
+
+        *flags |= MBEDTLS_X509_BADCERT_OTHER;
+        self->lastCertVerifyFlags = *flags;
+
+        return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
+    }
+
     if (certificate_depth == 0)
     {
         /* Get the key size in bits of the public key from the certificate */
@@ -906,6 +919,8 @@ TLSConfiguration_create()
             self->ciphersuites[cipherIndex++] =
                 MBEDTLS_TLS1_3_AES_128_CCM_8_SHA256; /* optional according IEC 62351-3:2023 */
         }
+
+        self->maxCertificateSizeInBytes = 8192; /* default: 8kB */
     }
 
     return self;
@@ -961,6 +976,15 @@ TLSConfiguration_setMinimumKeyLength(TLSConfiguration self, int keyLengthInBits)
         keyLengthInBits = 2048;
 
     self->minKeyLengthInBits = keyLengthInBits;
+}
+
+PAL_API void
+TLSConfiguration_setMaxCertificateSize(TLSConfiguration self, int maxSizeInBytes)
+{
+    if (maxSizeInBytes == 0)
+        maxSizeInBytes = 8192;
+
+    self->maxCertificateSizeInBytes = maxSizeInBytes;
 }
 
 void
