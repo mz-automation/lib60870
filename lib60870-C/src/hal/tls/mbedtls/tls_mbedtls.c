@@ -572,13 +572,10 @@ tls_cache_set_callback(void *data, const mbedtls_ssl_session *session)
 static bool
 compareCertificates(mbedtls_x509_crt* crt1, mbedtls_x509_crt* crt2)
 {
-    if (crt1 != NULL && crt2 != NULL)
+    if (crt1 != NULL && crt2 != NULL && crt1->raw.len == crt2->raw.len &&
+        memcmp(crt1->raw.p, crt2->raw.p, crt1->raw.len) == 0)
     {
-        if (crt1->sig.len == crt2->sig.len)
-        {
-            if (memcmp(crt1->sig.p, crt2->sig.p, crt1->sig.len) == 0)
-                return true;
-        }
+        return true;
     }
 
     return false;
@@ -703,12 +700,7 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
                 certList = LinkedList_getNext(certList);
             }
 
-            if (certMatches)
-            {
-                if (self->tlsConfig->chainValidation == false)
-                    *flags = 0;
-            }
-            else
+            if (!certMatches)
             {
                 raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_NOT_CONFIGURED, "Alarm: certificate validation: trusted individual certificate not available", self);
 
