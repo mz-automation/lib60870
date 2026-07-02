@@ -1099,6 +1099,20 @@ updatedCRL(TLSConfiguration self)
     {
         tlsVersionedCacheInvalidateAll(&(self->serverSessionCache));
     }
+
+    /* If running as a client, clear any saved session so stale sessions are not resumed after CRL changes */
+    if (mbedtls_ssl_conf_get_endpoint(&(self->conf)) == MBEDTLS_SSL_IS_CLIENT)
+    {
+        if (self->savedSession)
+        {
+            mbedtls_ssl_session_free(self->savedSession);
+            GLOBAL_FREEMEM(self->savedSession);
+            self->savedSession = NULL;
+        }
+
+        self->savedSessionTime = 0;
+        self->savedSessionVersion = TLS_VERSION_NOT_SELECTED;
+    }
 }
 
 bool
