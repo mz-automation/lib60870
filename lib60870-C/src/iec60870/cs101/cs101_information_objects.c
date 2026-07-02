@@ -3483,6 +3483,12 @@ IntegratedTotalsForSecurityStatistics_create(IntegratedTotalsForSecurityStatisti
     return self;
 }
 
+uint16_t
+IntegratedTotalsForSecurityStatistics_getAID(IntegratedTotalsForSecurityStatistics self)
+{
+    return self->aid;
+}
+
 BinaryCounterReading
 IntegratedTotalsForSecurityStatistics_getBCR(IntegratedTotalsForSecurityStatistics self)
 {
@@ -3519,7 +3525,7 @@ IntegratedTotalsForSecurityStatistics_getFromBuffer(IntegratedTotalsForSecurityS
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
-    int minSize = startIndex + 5;
+    int minSize = startIndex + 14;
 
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
