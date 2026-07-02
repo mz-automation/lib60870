@@ -971,10 +971,6 @@ TLSConfiguration_create()
             self->ciphersuites[3] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;
             self->ciphersuites[4] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384;
             self->ciphersuites[5] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
-
-            /* additional ciphersuites */
-            self->ciphersuites[6] = MBEDTLS_TLS_RSA_WITH_NULL_SHA256;
-            self->ciphersuites[7] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
         }
 
         self->maxCertificateSizeInBytes = 8192; /* default: 8kB */

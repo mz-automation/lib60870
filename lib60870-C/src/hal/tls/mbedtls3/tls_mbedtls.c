@@ -903,10 +903,6 @@ TLSConfiguration_create()
             self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384;
             self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
 
-            /* additional ciphersuites */
-            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_RSA_WITH_NULL_SHA256;
-            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
-
             /* TLS 1.3 cipher suites */
             self->ciphersuites[cipherIndex++] =
                 MBEDTLS_TLS1_3_AES_128_GCM_SHA256; /* mandatory according IEC 62351-3:2023 */
