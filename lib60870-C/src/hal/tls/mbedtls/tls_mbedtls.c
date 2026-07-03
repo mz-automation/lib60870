@@ -124,6 +124,9 @@ struct sTLSConfiguration
     uint64_t savedSessionTime;
     TLSConfigVersion savedSessionVersion; /* TLS version of the saved session */
 
+    /* mutex protecting configuration data (CRL, savedSession, etc.) */
+    Semaphore configMutex;
+
     bool chainValidation;
     bool allowOnlyKnownCertificates;
     bool timeValidation;
@@ -580,6 +583,11 @@ compareCertificates(mbedtls_x509_crt* crt1, mbedtls_x509_crt* crt2)
 static bool
 crlAvailableForCert(TLSConfiguration cfg, const mbedtls_x509_crt* crt)
 {
+    bool found = false;
+
+    if (cfg->configMutex)
+        Semaphore_wait(cfg->configMutex);
+
     const mbedtls_x509_crl* crl = &(cfg->crl);
 
     while (crl && crl->version != 0)
@@ -587,12 +595,16 @@ crlAvailableForCert(TLSConfiguration cfg, const mbedtls_x509_crt* crt)
         if (crl->issuer_raw.len == crt->issuer_raw.len &&
             memcmp(crl->issuer_raw.p, crt->issuer_raw.p, crl->issuer_raw.len) == 0)
         {
-            return true;
+            found = true;
+            break;
         }
         crl = crl->next;
     }
 
-    return false;
+    if (cfg->configMutex)
+        Semaphore_post(cfg->configMutex);
+
+    return found;
 }
 
 static bool
@@ -1138,7 +1150,7 @@ TLSConfiguration_addCACertificateFromFile(TLSConfiguration self, const char* fil
 }
 
 static void
-updatedCRL(TLSConfiguration self)
+updatedCRL_internal(TLSConfiguration self)
 {
     self->crlUpdated = Hal_getMonotonicTimeInMs();
 
@@ -1166,9 +1178,24 @@ updatedCRL(TLSConfiguration self)
     }
 }
 
+static void
+updatedCRL(TLSConfiguration self)
+{
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
+    updatedCRL_internal(self);
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
+}
+
 bool
 TLSConfiguration_addCRL(TLSConfiguration self, uint8_t* crl, int crlLen)
 {
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     int ret = mbedtls_x509_crl_parse(&(self->crl), crl, crlLen);
 
     if (ret != 0)
@@ -1177,8 +1204,11 @@ TLSConfiguration_addCRL(TLSConfiguration self, uint8_t* crl, int crlLen)
     }
     else
     {
-        updatedCRL(self);
+        updatedCRL_internal(self);
     }
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
 
     return (ret == 0);
 }
@@ -1186,6 +1216,9 @@ TLSConfiguration_addCRL(TLSConfiguration self, uint8_t* crl, int crlLen)
 bool
 TLSConfiguration_addCRLFromFile(TLSConfiguration self, const char* filename)
 {
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     int ret = mbedtls_x509_crl_parse_file(&(self->crl), filename);
 
     if (ret != 0)
@@ -1195,8 +1228,11 @@ TLSConfiguration_addCRLFromFile(TLSConfiguration self, const char* filename)
     }
     else
     {
-        updatedCRL(self);
+        updatedCRL_internal(self);
     }
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
 
     return (ret == 0);
 }
@@ -1204,9 +1240,15 @@ TLSConfiguration_addCRLFromFile(TLSConfiguration self, const char* filename)
 void
 TLSConfiguration_resetCRL(TLSConfiguration self)
 {
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     mbedtls_x509_crl_free(&(self->crl));
     mbedtls_x509_crl_init(&(self->crl));
     self->crlUpdated = Hal_getMonotonicTimeInMs();
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
 }
 
 void
@@ -1265,6 +1307,9 @@ TLSConfiguration_destroy(TLSConfiguration self)
         LinkedList_destroy(self->allowedCertificates);
 
         GLOBAL_FREEMEM(self->ciphersuites);
+
+        if (self->configMutex)
+            Semaphore_destroy(self->configMutex);
 
         GLOBAL_FREEMEM(self);
     }
@@ -1494,9 +1539,15 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
 
         int ret;
 
+        if (configuration->configMutex)
+            Semaphore_wait(configuration->configMutex);
+
         mbedtls_ssl_conf_ca_chain(&(self->conf), &(configuration->cacerts), &(configuration->crl));
 
         self->crlUpdated = configuration->crlUpdated;
+
+        if (configuration->configMutex)
+            Semaphore_post(configuration->configMutex);
 
         if (configuration->minVersion != TLS_VERSION_NOT_SELECTED)
         {
@@ -1562,6 +1613,9 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
         {
             if (configuration->conf.endpoint == MBEDTLS_SSL_IS_CLIENT)
             {
+                if (configuration->configMutex)
+                    Semaphore_wait(configuration->configMutex);
+
                 if (configuration->savedSession && configuration->savedSessionTime > 0)
                 {
                     if (Hal_getMonotonicTimeInMs() < (configuration->savedSessionTime + configuration->sessionResumptionInterval))
@@ -1582,6 +1636,8 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
                         }
                         else
                         {
+                            if (configuration->configMutex)
+                                Semaphore_post(configuration->configMutex);
                             GLOBAL_FREEMEM(self);
                             return NULL;
                         }
@@ -1592,6 +1648,9 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
                         DEBUG_PRINT("TLS", "cached session expired\n");
                     }
                 }
+
+                if (configuration->configMutex)
+                    Semaphore_post(configuration->configMutex);
             }
         }
 
@@ -1645,6 +1704,9 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
         {
             if (configuration->conf.endpoint == MBEDTLS_SSL_IS_CLIENT)
             {
+                if (configuration->configMutex)
+                    Semaphore_wait(configuration->configMutex);
+
                 if (configuration->savedSession == NULL)
                 {
                     configuration->savedSession = (mbedtls_ssl_session*)GLOBAL_CALLOC(1, sizeof(mbedtls_ssl_session));
@@ -1668,6 +1730,9 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
                         }
                     }
                 }
+
+                if (configuration->configMutex)
+                    Semaphore_post(configuration->configMutex);
             }
         }
 
@@ -1930,14 +1995,24 @@ TLSSocket_performHandshake(TLSSocket self)
 static void
 checkForCRLUpdate(TLSSocket self)
 {
+    if (self->tlsConfig->configMutex)
+        Semaphore_wait(self->tlsConfig->configMutex);
+
     if (self->crlUpdated == self->tlsConfig->crlUpdated)
+    {
+        if (self->tlsConfig->configMutex)
+            Semaphore_post(self->tlsConfig->configMutex);
         return;
+    }
 
     DEBUG_PRINT("TLS", "CRL updated -> refresh CA chain\n");
 
     mbedtls_ssl_conf_ca_chain(&(self->conf), &(self->tlsConfig->cacerts), &(self->tlsConfig->crl));
 
     self->crlUpdated = self->tlsConfig->crlUpdated;
+
+    if (self->tlsConfig->configMutex)
+        Semaphore_post(self->tlsConfig->configMutex);
 
     /* IEC TS 62351-100-3 Conformance test 6.2.6 requires that upon CRL update a TLS renegotiation should occur */
     self->lastRenegotiationTime = 0;
