@@ -34,7 +34,7 @@ void
 InformationObject_setObjectAddress(InformationObject self, int ioa);
 
 int
-InformationObject_ParseObjectAddress(CS101_AppLayerParameters parameters, const uint8_t* msg, int startIndex);
+InformationObject_parseObjectAddress(CS101_AppLayerParameters parameters, const uint8_t* msg, int msgSize, int startIndex);
 
 SinglePointInformation
 SinglePointInformation_getFromBuffer(SinglePointInformation self, CS101_AppLayerParameters parameters, uint8_t* msg,
