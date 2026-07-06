@@ -350,7 +350,7 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
 
     struct sBufferFrame bufferFrame;
 
-    Frame frame = BufferFrame_initialize(&bufferFrame, nextMsgPtr + sizeof(struct sMessageQueueEntryInfo), 0);
+    Frame frame = BufferFrame_initialize(&bufferFrame, nextMsgPtr + sizeof(struct sMessageQueueEntryInfo), 0, 256);
     CS101_ASDU_encode(asdu, frame);
 
     entryInfo.size = asduSize;
@@ -868,7 +868,7 @@ HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, CS101_ASDU asdu)
 
         struct sBufferFrame bufferFrame;
 
-        Frame frame = BufferFrame_initialize(&bufferFrame, nextMsgPtr + sizeof(uint16_t), 0);
+        Frame frame = BufferFrame_initialize(&bufferFrame, nextMsgPtr + sizeof(uint16_t), 0, 256);
         CS101_ASDU_encode(asdu, frame);
 
         msgSize = asduSize;
@@ -2116,7 +2116,7 @@ sendASDUInternal(MasterConnection self, CS101_ASDU asdu, bool dontQueueIfBufferF
 
             struct sBufferFrame bufferFrame;
 
-            Frame frame = BufferFrame_initialize(&bufferFrame, frameBuffer.msg, IEC60870_5_104_APCI_LENGTH);
+            Frame frame = BufferFrame_initialize(&bufferFrame, frameBuffer.msg, IEC60870_5_104_APCI_LENGTH, 256);
             CS101_ASDU_encode(asdu, frame);
 
             frameBuffer.msgSize = Frame_getMsgSize(frame);
@@ -3368,7 +3368,7 @@ sendWaitingASDUs(MasterConnection self)
         {
             uint8_t buffer[256];
             struct sBufferFrame _bufferFrame;
-            Frame bufferFrame = BufferFrame_initialize(&_bufferFrame, buffer, 0);
+            Frame bufferFrame = BufferFrame_initialize(&_bufferFrame, buffer, 0, 256);
 
             bool trySend = true;
             bool sentBufferFull = false;
@@ -3381,7 +3381,7 @@ sendWaitingASDUs(MasterConnection self)
 
                 if (isSentBufferFull(self) == false)
                 {
-                    bufferFrame = BufferFrame_initialize(&_bufferFrame, buffer, 0);
+                    bufferFrame = BufferFrame_initialize(&_bufferFrame, buffer, 0, 256);
 
                     Frame asdu = SecureEndpoint_getNextWaitingAsdu(secureEndpoint, bufferFrame);
 

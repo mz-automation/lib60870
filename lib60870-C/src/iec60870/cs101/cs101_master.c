@@ -405,7 +405,7 @@ sendAsduInternal(CS101_Master self, CS101_ASDU asdu)
     {
         struct sBufferFrame bufferFrame;
         uint8_t buffer[256];
-        BufferFrame_initialize(&bufferFrame, buffer, 0);
+        BufferFrame_initialize(&bufferFrame, buffer, 0, 256);
 
         CS101_ASDU_encode(asdu, (Frame)&bufferFrame);
 
@@ -857,7 +857,7 @@ CS101_Master_sendASDU(CS101_Master self, CS101_ASDU asdu)
         {
             struct sBufferFrame bufferFrame;
             uint8_t buffer[256];
-            BufferFrame_initialize(&bufferFrame, buffer, 0);
+            BufferFrame_initialize(&bufferFrame, buffer, 0, 256);
 
             CS101_ASDU_encode(asdu, (Frame)&bufferFrame);
 

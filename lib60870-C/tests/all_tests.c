@@ -319,7 +319,7 @@ test_StepPositionInformation(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -528,7 +528,7 @@ test_StepPositionWithCP24Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -761,7 +761,7 @@ test_StepPositionWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -936,7 +936,7 @@ test_EventOfProtectionEquipmentWithTime(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -1868,7 +1868,7 @@ test_DoublePointInformation(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -1939,7 +1939,7 @@ test_SinglePointInformation(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -2018,7 +2018,7 @@ test_SinglePointInformationSequence(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, true, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -2114,7 +2114,7 @@ test_DoublePointWithCP24Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -2215,7 +2215,7 @@ test_SinglePointWithCP24Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -2307,7 +2307,7 @@ test_DoublePointWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -2393,7 +2393,7 @@ test_SinglePointWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -2458,7 +2458,7 @@ test_NormalizeMeasureValueWithoutQuality(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -2537,7 +2537,7 @@ test_NormalizeMeasureValue(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -2735,7 +2735,7 @@ test_MeasuredValueNormalizedWithCP24Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -2949,7 +2949,7 @@ test_MeasuredValueNormalizedWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -3106,7 +3106,7 @@ test_MeasuredValueScaled(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -3286,7 +3286,7 @@ test_MeasuredValueScaledWithCP24Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -3481,7 +3481,7 @@ test_MeasuredValueScaledWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -3616,7 +3616,7 @@ test_MeasuredValueShort(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -3782,7 +3782,7 @@ test_MeasuredValueShortWithCP24Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -3965,7 +3965,7 @@ test_MeasuredValueShortWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -4077,7 +4077,7 @@ test_IntegratedTotals(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -4165,7 +4165,7 @@ test_IntegratedTotalsWithCP24Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -4261,7 +4261,7 @@ test_IntegratedTotalsWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 
@@ -4325,7 +4325,7 @@ test_SingleCommand(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4377,7 +4377,7 @@ test_SingleCommandWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4423,7 +4423,7 @@ test_DoubleCommand(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4473,7 +4473,7 @@ test_DoubleCommandWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4519,7 +4519,7 @@ test_StepCommandValue(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4568,7 +4568,7 @@ test_StepCommandWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4614,7 +4614,7 @@ test_SetpointCommandNormalized(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4663,7 +4663,7 @@ test_SetpointCommandNormalizedWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4711,7 +4711,7 @@ test_SetpointCommandScaled(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4761,7 +4761,7 @@ test_SetpointCommandScaledWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4808,7 +4808,7 @@ test_SetpointCommandShort(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4857,7 +4857,7 @@ test_SetpointCommandShortWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4902,7 +4902,7 @@ test_InterrogationCommand(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4944,7 +4944,7 @@ test_CounterInterrogationCommand(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -4983,7 +4983,7 @@ test_ReadCommand(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -5023,7 +5023,7 @@ test_ClockSynchronizationCommand(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -5064,7 +5064,7 @@ test_ResetProcessCommand(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -5110,7 +5110,7 @@ test_DelayAcquisitionCommand(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -5147,7 +5147,7 @@ test_TestCommand(void)
     uint8_t buffer[256];
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -5191,7 +5191,7 @@ test_TestCommandWithTime(void)
     uint8_t buffer[256];
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -5315,7 +5315,7 @@ test_Bitstring32CommandWithCP56Time2a(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -5366,7 +5366,7 @@ test_QueryLog(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_ACTIVATION, 0, 1, false, false);
 
@@ -5423,7 +5423,7 @@ test_FileDirectory(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     /* NOTE: file directory is always a "sequence" */
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, true, CS101_COT_SPONTANEOUS, 0, 1, false, false);
@@ -5493,7 +5493,7 @@ test_FileDirectorySingleEntry(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     /* NOTE: file directory is always a "sequence" */
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, true, CS101_COT_SPONTANEOUS, 0, 1, false, false);
@@ -5534,7 +5534,7 @@ test_BitString32xx_encodeDecode(void)
 
     struct sBufferFrame bf;
 
-    Frame f = BufferFrame_initialize(&bf, buffer, 0);
+    Frame f = BufferFrame_initialize(&bf, buffer, 0, 256);
 
     CS101_ASDU asdu = CS101_ASDU_create(&defaultAppLayerParameters, false, CS101_COT_PERIODIC, 0, 1, false, false);
 

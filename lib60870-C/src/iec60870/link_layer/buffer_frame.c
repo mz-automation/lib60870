@@ -36,13 +36,14 @@ static struct sFrameVFT bufferFrameVFT = {
 };
 
 Frame
-BufferFrame_initialize(BufferFrame self, uint8_t* buffer, int startSize)
+BufferFrame_initialize(BufferFrame self, uint8_t* buffer, int startSize, int bufferCapacity)
 {
     self->virtualFunctionTable = &bufferFrameVFT;
     self->buffer = buffer;
 
     self->startSize = startSize;
     self->msgSize = startSize;
+    self->bufferCapacity = bufferCapacity;
     self->isUsed = false;
 
     return (Frame) self;
@@ -108,7 +109,7 @@ BufferFrame_getSpaceLeft(Frame super)
 {
     BufferFrame self = (BufferFrame) super;
 
-    return ((self->startSize) - self->msgSize);
+    return (self->bufferCapacity - self->msgSize);
 }
 
 bool

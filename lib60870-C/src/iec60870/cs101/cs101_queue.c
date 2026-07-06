@@ -44,7 +44,7 @@ CS101_Queue_initialize(CS101_Queue self, int maxQueueSize)
     self->lastMsgIndex = 0;
     self->size = maxQueueSize;
 
-    BufferFrame_initialize(&(self->encodeFrame), NULL, 0);
+    BufferFrame_initialize(&(self->encodeFrame), NULL, 0, 256);
 
 #if (CS101_MAX_QUEUE_SIZE == -1)
     int queueSize = maxQueueSize;
@@ -134,6 +134,7 @@ CS101_Queue_enqueue(CS101_Queue self, CS101_ASDU asdu)
     }
 
     self->encodeFrame.buffer = self->elements[nextIndex].buffer;
+    self->encodeFrame.bufferCapacity = 256;
     self->encodeFrame.startSize = 0;
     self->encodeFrame.msgSize = 0;
 
