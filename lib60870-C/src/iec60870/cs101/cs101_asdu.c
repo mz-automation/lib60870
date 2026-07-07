@@ -221,6 +221,57 @@ getElementDataSize(IEC60870_5_TypeID typeId)
     }
 }
 
+/* Returns true if the ASDU type only allows a single information object */
+static bool
+CS101_ASDU_isSingleInformationObjectType(IEC60870_5_TypeID typeId)
+{
+    /* Process command types */
+    switch (typeId) {
+    case C_SC_NA_1:    /* 45 - Single command */
+    case C_DC_NA_1:    /* 46 - Double command */
+    case C_RC_NA_1:    /* 47 - Step command */
+    case C_SE_NA_1:    /* 48 - Setpoint command, normalized value */
+    case C_SE_NB_1:    /* 49 - Setpoint command, scaled value */
+    case C_SE_NC_1:    /* 50 - Setpoint command, short value */
+    case C_BO_NA_1:    /* 51 - Bitstring command */
+    case C_SC_TA_1:    /* 58 - Single command with CP56Time2a */
+    case C_DC_TA_1:    /* 59 - Double command with CP56Time2a */
+    case C_RC_TA_1:    /* 60 - Step command with CP56Time2a */
+    case C_SE_TA_1:    /* 61 - Setpoint command, normalized with CP56Time2a */
+    case C_SE_TB_1:    /* 62 - Setpoint command, scaled with CP56Time2a */
+    case C_SE_TC_1:    /* 63 - Setpoint command, short with CP56Time2a */
+    case C_BO_TA_1:    /* 64 - Bitstring command with CP56Time2a */
+        return true;
+
+    /* End of initialization */
+    case M_EI_NA_1:    /* 70 - End of initialization */
+        return true;
+
+    /* System command types */
+    case C_IC_NA_1:    /* 100 - Interrogation command */
+    case C_CI_NA_1:    /* 101 - Counter interrogation command */
+    case C_RD_NA_1:    /* 102 - Read command */
+    case C_CS_NA_1:    /* 103 - Clock synchronization command */
+    case C_TS_NA_1:    /* 104 - Test command */
+    case C_RP_NA_1:    /* 105 - Reset process command */
+    case C_CD_NA_1:    /* 106 - Delay acquisition command */
+    case C_TS_TA_1:    /* 107 - Test command with CP56Time2a */
+        return true;
+
+    /* File transfer types (except F_DR_TA_1 - file directory) */
+    case F_FR_NA_1:    /* 120 - File ready */
+    case F_SR_NA_1:    /* 121 - Section ready */
+    case F_SC_NA_1:    /* 122 - File call or select */
+    case F_LS_NA_1:    /* 123 - Last segment, section */
+    case F_AF_NA_1:    /* 124 - Acknowledge file, acknowledge section */
+    case F_SG_NA_1:    /* 125 - Segment */
+        return true;
+
+    default:
+        return false;
+    }
+}
+
 struct sFrameVFT asduFrameVFT = {
         asduFrame_destroy,
         NULL,
@@ -428,6 +479,15 @@ CS101_ASDU_addInformationObject(CS101_ASDU self, InformationObject io)
     bool encoded = false;
 
     int numberOfElements = CS101_ASDU_getNumberOfElements(self);
+
+    /* Check if this ASDU type only allows a single information object */
+    if (numberOfElements > 0)
+    {
+        if (CS101_ASDU_isSingleInformationObjectType(CS101_ASDU_getTypeID(self)))
+        {
+            return false; /* Cannot add more than one IO to this ASDU type */
+        }
+    }
 
     if (numberOfElements == 0)
     {
@@ -641,6 +701,12 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
     /* Check if index is valid */
     if (index < 0 || index >= CS101_ASDU_getNumberOfElements(self))
         return NULL;
+
+    /* Check if this ASDU type only allows a single information object */
+    if (CS101_ASDU_isSingleInformationObjectType(CS101_ASDU_getTypeID(self)) && index > 0)
+    {
+        return NULL; /* Only first element (index 0) is valid for single-object ASDUs */
+    }
 
     int elementSize;
 
