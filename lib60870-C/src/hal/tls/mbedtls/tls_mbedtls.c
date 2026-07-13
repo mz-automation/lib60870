@@ -615,18 +615,26 @@ static bool
 isCAAvailableForCert(TLSConfiguration cfg, const mbedtls_x509_crt* crt)
 {
     mbedtls_x509_crt* caCerts = &(cfg->cacerts);
+    bool found = false;
+
+    if (cfg->configMutex)
+        Semaphore_wait(cfg->configMutex);
 
     while (caCerts && caCerts->version != 0)
     {
         if (caCerts->subject_raw.len == crt->issuer_raw.len &&
             memcmp(caCerts->subject_raw.p, crt->issuer_raw.p, caCerts->subject_raw.len) == 0)
         {
-            return true;
+            found = true;
+            break;
         }
         caCerts = caCerts->next;
     }
 
-    return false;
+    if (cfg->configMutex)
+        Semaphore_post(cfg->configMutex);
+
+    return found;
 }
 
 static int
@@ -819,32 +827,43 @@ TLSConfiguration_setupComplete(TLSConfiguration self)
 {
     if (self->setupComplete == false)
     {
-        mbedtls_ssl_conf_ca_chain(&(self->conf), &(self->cacerts), &(self->crl));
+        if (self->configMutex)
+            Semaphore_wait(self->configMutex);
 
-        if (self->ownCertificate.version > 0)
+        if (self->setupComplete == false)
         {
-            int ret = mbedtls_ssl_conf_own_cert(&(self->conf), &(self->ownCertificate), &(self->ownKey));
+            mbedtls_ssl_conf_ca_chain(&(self->conf), &(self->cacerts), &(self->crl));
 
-            if (ret != 0)
+            if (self->ownCertificate.version > 0)
             {
-                DEBUG_PRINT("TLS", "mbedtls_ssl_conf_own_cert returned -0x%x\n", -ret);
-                return false;
+                int ret = mbedtls_ssl_conf_own_cert(&(self->conf), &(self->ownCertificate), &(self->ownKey));
+
+                if (ret != 0)
+                {
+                    if (self->configMutex)
+                        Semaphore_post(self->configMutex);
+                    DEBUG_PRINT("TLS", "mbedtls_ssl_conf_own_cert returned -0x%x\n", -ret);
+                    return false;
+                }
             }
+
+            if (self->useSessionResumption)
+            {
+                if (self->conf.endpoint == MBEDTLS_SSL_IS_SERVER)
+                {
+                    tlsVersionedCacheInit(&(self->serverSessionCache));
+                    self->serverSessionCache.owner = self;
+                    self->serverSessionCache.timeout = self->sessionResumptionInterval;
+                }
+            }
+
+            mbedtls_ssl_conf_ciphersuites(&(self->conf), self->ciphersuites);
+
+            self->setupComplete = true;
         }
 
-        if (self->useSessionResumption)
-        {
-            if (self->conf.endpoint == MBEDTLS_SSL_IS_SERVER)
-            {
-                tlsVersionedCacheInit(&(self->serverSessionCache));
-                self->serverSessionCache.owner = self;
-                self->serverSessionCache.timeout = self->sessionResumptionInterval;
-            }
-        }
-
-        mbedtls_ssl_conf_ciphersuites(&(self->conf), self->ciphersuites);
-
-        self->setupComplete = true;
+        if (self->configMutex)
+            Semaphore_post(self->configMutex);
     }
 
     return true;
@@ -977,6 +996,9 @@ TLSConfiguration_create()
             self->ciphersuites[5] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
         }
 
+        /* initialize configuration mutex */
+        self->configMutex = Semaphore_create(1);
+
         self->maxCertificateSizeInBytes = 8192; /* default: 8kB */
     }
 
@@ -1065,10 +1087,16 @@ TLSConfiguration_setAllowOnlyKnownCertificates(TLSConfiguration self, bool value
 bool
 TLSConfiguration_setOwnCertificate(TLSConfiguration self, uint8_t* certificate, int certLen)
 {
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     int ret = mbedtls_x509_crt_parse(&(self->ownCertificate), certificate, certLen);
 
     if (ret != 0)
         DEBUG_PRINT("TLS", "mbedtls_x509_crt_parse returned -0x%x\n", -ret);
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
 
     return (ret == 0);
 }
@@ -1076,10 +1104,16 @@ TLSConfiguration_setOwnCertificate(TLSConfiguration self, uint8_t* certificate, 
 bool
 TLSConfiguration_setOwnCertificateFromFile(TLSConfiguration self, const char* filename)
 {
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     int ret = mbedtls_x509_crt_parse_file(&(self->ownCertificate), filename);
 
     if (ret != 0)
         DEBUG_PRINT("TLS", "mbedtls_x509_crt_parse_file returned -0x%x\n", -ret);
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
 
     return (ret == 0);
 }
@@ -1087,10 +1121,16 @@ TLSConfiguration_setOwnCertificateFromFile(TLSConfiguration self, const char* fi
 bool
 TLSConfiguration_setOwnKey(TLSConfiguration self, uint8_t* key, int keyLen, const char* keyPassword)
 {
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     int ret = mbedtls_pk_parse_key(&(self->ownKey), key, keyLen, (const uint8_t*) keyPassword, (keyPassword == NULL) ? 0 : strlen(keyPassword));
 
     if (ret != 0)
         DEBUG_PRINT("TLS", "mbedtls_pk_parse_key returned -0x%x\n", -ret);
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
 
     return (ret == 0);
 }
@@ -1098,10 +1138,16 @@ TLSConfiguration_setOwnKey(TLSConfiguration self, uint8_t* key, int keyLen, cons
 bool
 TLSConfiguration_setOwnKeyFromFile(TLSConfiguration self, const char* filename, const char* keyPassword)
 {
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     int ret =  mbedtls_pk_parse_keyfile(&(self->ownKey), filename, keyPassword);
 
     if (ret != 0)
         DEBUG_PRINT("TLS", "mbedtls_pk_parse_keyfile returned -0x%x\n", -ret);
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
 
     return (ret == 0);
 }
@@ -1109,6 +1155,9 @@ TLSConfiguration_setOwnKeyFromFile(TLSConfiguration self, const char* filename, 
 bool
 TLSConfiguration_addAllowedCertificate(TLSConfiguration self, uint8_t* certificate, int certLen)
 {
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     mbedtls_x509_crt* cert = (mbedtls_x509_crt*)GLOBAL_CALLOC(1, sizeof(mbedtls_x509_crt));
 
     int ret = mbedtls_x509_crt_parse(cert, certificate, certLen);
@@ -1116,18 +1165,25 @@ TLSConfiguration_addAllowedCertificate(TLSConfiguration self, uint8_t* certifica
     if (ret == 0)
     {
         LinkedList_add(self->allowedCertificates, cert);
-        return true;
     }
     else
     {
         GLOBAL_FREEMEM(cert);
-        return false;
+        cert = NULL;
     }
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
+
+    return (ret == 0);
 }
 
 bool
 TLSConfiguration_addAllowedCertificateFromFile(TLSConfiguration self, const char* filename)
 {
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     mbedtls_x509_crt* cert = (mbedtls_x509_crt*)GLOBAL_CALLOC(1, sizeof(mbedtls_x509_crt));
 
     int ret = mbedtls_x509_crt_parse_file(cert, filename);
@@ -1135,25 +1191,34 @@ TLSConfiguration_addAllowedCertificateFromFile(TLSConfiguration self, const char
     if (ret == 0)
     {
         LinkedList_add(self->allowedCertificates, cert);
-        return true;
     }
     else
     {
         GLOBAL_FREEMEM(cert);
-        return false;
+        cert = NULL;
     }
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
+
+    return (ret == 0);
 }
 
 bool
 TLSConfiguration_addCACertificate(TLSConfiguration self, uint8_t* certificate, int certLen)
 {
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     int ret = mbedtls_x509_crt_parse(&(self->cacerts), certificate, certLen);
 
     if (ret != 0)
     {
         DEBUG_PRINT("TLS", "mbedtls_x509_crt_parse returned -0x%x\n", -ret);
-        return false;
     }
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
 
     return (ret == 0);
 }
@@ -1161,10 +1226,16 @@ TLSConfiguration_addCACertificate(TLSConfiguration self, uint8_t* certificate, i
 bool
 TLSConfiguration_addCACertificateFromFile(TLSConfiguration self, const char* filename)
 {
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     int ret = mbedtls_x509_crt_parse_file(&(self->cacerts), filename);
 
     if (ret != 0)
         DEBUG_PRINT("TLS", "mbedtls_x509_crt_parse returned -0x%x\n", -ret);
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
 
     return (ret == 0);
 }
@@ -1291,6 +1362,11 @@ TLSConfiguration_destroy(TLSConfiguration self)
 {
     if (self)
     {
+        Semaphore mutex = self->configMutex;
+
+        if (mutex)
+            Semaphore_wait(mutex);
+
         if (self->useSessionResumption)
         {
             if ((self->conf.endpoint == MBEDTLS_SSL_IS_CLIENT) && (self->savedSession != NULL))
@@ -1328,8 +1404,11 @@ TLSConfiguration_destroy(TLSConfiguration self)
 
         GLOBAL_FREEMEM(self->ciphersuites);
 
-        if (self->configMutex)
-            Semaphore_destroy(self->configMutex);
+        if (mutex)
+        {
+            Semaphore_post(mutex);
+            Semaphore_destroy(mutex);
+        }
 
         GLOBAL_FREEMEM(self);
     }
