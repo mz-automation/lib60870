@@ -46,6 +46,10 @@ configure_file(certs/client_CA1_badsig.pem client_CA1_badsig.pem COPYONLY)
 configure_file(certs/client_CA1_weak.key client_CA1_weak.key COPYONLY)
 configure_file(certs/client_CA1_weak.pem client_CA1_weak.pem COPYONLY)
 
+configure_file(certs/root_CA2.pem root_CA2.pem COPYONLY)
+configure_file(certs/client_CA2_1.key client_CA2_1.key COPYONLY)
+configure_file(certs/client_CA2_1.pem client_CA2_1.pem COPYONLY)
+
 add_executable(tests
   ${tests_SRCS}
 )

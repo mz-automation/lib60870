@@ -123,6 +123,8 @@ struct sTLSConfiguration
 
     int* ciphersuites;
     int maxCiphersuites;
+
+    int maxCertificateSizeInBytes;
 };
 
 struct sTLSSocket
@@ -150,6 +152,11 @@ struct sTLSSocket
     bool versionMismatchDetected;
     struct TLSCacheAccessor* cacheAccessor;
     bool handshakeInProgress;
+
+    /* Timestamp of the most recent TLSSocket_read or TLSSocket_write call.
+     * Used by TLSSocket_tick to detect idle connections and avoid initiating
+     * renegotiation when the read/write path will do it instead. */
+    uint64_t lastActivityTime;
 };
 
 struct TLSCacheAccessor
@@ -579,6 +586,17 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
             *flags = 0;
     }
 
+    if (self->tlsConfig->maxCertificateSizeInBytes > 0 && crt->raw.len > (size_t)(self->tlsConfig->maxCertificateSizeInBytes))
+    {
+        raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_SIZE_EXCEEDED,
+                           "Alarm: TLS certificate size exceeded", self);
+
+        *flags |= MBEDTLS_X509_BADCERT_OTHER;
+        self->lastCertVerifyFlags = *flags;
+
+        return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
+    }
+
     if (certificate_depth == 0)
     {
         /* Get the key size in bits of the public key from the certificate */
@@ -904,10 +922,6 @@ TLSConfiguration_create()
             self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384;
             self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
 
-            /* additional ciphersuites */
-            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_RSA_WITH_NULL_SHA256;
-            self->ciphersuites[cipherIndex++] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
-
             /* TLS 1.3 cipher suites */
             self->ciphersuites[cipherIndex++] =
                 MBEDTLS_TLS1_3_AES_128_GCM_SHA256; /* mandatory according IEC 62351-3:2023 */
@@ -923,6 +937,8 @@ TLSConfiguration_create()
 
         /* initialize configuration mutex */
         self->configMutex = Semaphore_create(1);
+
+        self->maxCertificateSizeInBytes = 8192; /* default: 8kB */
     }
 
     return self;
@@ -978,6 +994,15 @@ TLSConfiguration_setMinimumKeyLength(TLSConfiguration self, int keyLengthInBits)
         keyLengthInBits = 2048;
 
     self->minKeyLengthInBits = keyLengthInBits;
+}
+
+PAL_API void
+TLSConfiguration_setMaxCertificateSize(TLSConfiguration self, int maxSizeInBytes)
+{
+    if (maxSizeInBytes == 0)
+        maxSizeInBytes = 8192;
+
+    self->maxCertificateSizeInBytes = maxSizeInBytes;
 }
 
 void
@@ -1733,6 +1758,7 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
         }
 
         self->lastRenegotiationTime = Hal_getMonotonicTimeInMs();
+        self->lastActivityTime = self->lastRenegotiationTime;
 
         /* create event that TLS session is established */
         {
@@ -1847,6 +1873,28 @@ startRenegotiationIfRequired(TLSSocket self)
     return true;
 }
 
+bool
+TLSSocket_tick(TLSSocket self)
+{
+    checkForCRLUpdate(self);
+
+    /* Only initiate a new renegotiation when the connection is truly idle:
+     * no TLSSocket_read/write has occurred for at least a full renegotiation
+     * interval.  Polled connections drive renegotiation through those paths;
+     * the full-interval idle check prevents duplicate initiations. */
+    if (self->tlsConfig->renegotiationTimeInMs > 0)
+    {
+        uint64_t now = Hal_getMonotonicTimeInMs();
+        if (now - self->lastActivityTime >= (uint64_t)self->tlsConfig->renegotiationTimeInMs)
+        {
+            if (startRenegotiationIfRequired(self) == false)
+                return false;
+        }
+    }
+
+    return true;
+}
+
 int
 TLSSocket_read(TLSSocket self, uint8_t* buf, int size)
 {
@@ -1854,6 +1902,8 @@ TLSSocket_read(TLSSocket self, uint8_t* buf, int size)
         /* Avoid reading data while handshake is in progress */
         return 0;
     }
+
+    self->lastActivityTime = Hal_getMonotonicTimeInMs();
 
     checkForCRLUpdate(self);
 
@@ -1945,6 +1995,8 @@ TLSSocket_write(TLSSocket self, uint8_t* buf, int size)
         /* Avoid writing data while handshake is in progress */
         return 0;
     }
+
+    self->lastActivityTime = Hal_getMonotonicTimeInMs();
 
     checkForCRLUpdate(self);
 

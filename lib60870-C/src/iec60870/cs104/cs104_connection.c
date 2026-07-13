@@ -1599,6 +1599,16 @@ handleConnection(void* parameter)
                     if (isClose(self))
                         loopRunning = false;
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+                    if (self->tlsSocket != NULL)
+                    {
+                        if (TLSSocket_tick(self->tlsSocket) == false)
+                        {
+                            loopRunning = false;
+                        }
+                    }
+#endif /* (CONFIG_CS104_SUPPORT_TLS == 1) */
+
 #ifdef SEC_AUTH_60870_5_7
                     if (self->secureEndpoint)
                     {

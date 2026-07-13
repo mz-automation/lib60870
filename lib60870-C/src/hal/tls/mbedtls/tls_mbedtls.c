@@ -159,6 +159,8 @@ struct sTLSConfiguration
 
     int* ciphersuites;
     int maxCiphersuites;
+
+    int maxCertificateSizeInBytes;
 };
 
 struct sTLSSocket
@@ -192,6 +194,11 @@ struct sTLSSocket
 
     uint64_t renegotiationStartTime;
     bool sessionResumptionPending;
+
+    /* Timestamp of the most recent TLSSocket_read or TLSSocket_write call.
+     * Used by TLSSocket_tick to detect idle connections and avoid initiating
+     * renegotiation when the read/write path will do it instead. */
+    uint64_t lastActivityTime;
 };
 
 struct TLSCacheAccessor
@@ -568,13 +575,10 @@ tls_cache_set_callback(void *data, const mbedtls_ssl_session *session)
 static bool
 compareCertificates(mbedtls_x509_crt* crt1, mbedtls_x509_crt* crt2)
 {
-    if (crt1 != NULL && crt2 != NULL)
+    if (crt1 != NULL && crt2 != NULL && crt1->raw.len == crt2->raw.len &&
+        memcmp(crt1->raw.p, crt2->raw.p, crt1->raw.len) == 0)
     {
-        if (crt1->sig.len == crt2->sig.len)
-        {
-            if (memcmp(crt1->sig.p, crt2->sig.p, crt1->sig.len) == 0)
-                return true;
-        }
+        return true;
     }
 
     return false;
@@ -651,6 +655,17 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
             *flags = 0;
     }
 
+    if (self->tlsConfig->maxCertificateSizeInBytes > 0 && crt->raw.len > (size_t)(self->tlsConfig->maxCertificateSizeInBytes))
+    {
+        raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_SIZE_EXCEEDED,
+                           "Alarm: TLS certificate size exceeded", self);
+
+        *flags |= MBEDTLS_X509_BADCERT_OTHER;
+        self->lastCertVerifyFlags = *flags;
+
+        return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
+    }
+
     if (certificate_depth == 0)
     {
         /* Get the key size in bits of the public key from the certificate */
@@ -660,6 +675,7 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
         {
             *flags &= ~MBEDTLS_X509_BADCERT_BAD_KEY;
             raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH, "Alarm: insufficient key length", self);
+            self->lastCertVerifyFlags = *flags;
             return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
         }
         else if (keyLengthBits == (size_t)(self->tlsConfig->minKeyLengthInBits))
@@ -696,16 +712,12 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
                 certList = LinkedList_getNext(certList);
             }
 
-            if (certMatches)
-            {
-                if (self->tlsConfig->chainValidation == false)
-                    *flags = 0;
-            }
-            else
+            if (!certMatches)
             {
                 raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_NOT_CONFIGURED, "Alarm: certificate validation: trusted individual certificate not available", self);
 
                 *flags |= MBEDTLS_X509_BADCERT_OTHER;
+                self->lastCertVerifyFlags = *flags;
                 return 1;
             }
         }
@@ -718,6 +730,7 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
                                    "Alarm: certificate validation: CA certificate not available", self);
 
                 *flags |= MBEDTLS_X509_BADCERT_NOT_TRUSTED;
+                self->lastCertVerifyFlags = *flags;
                 return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED ;
             }
         }
@@ -962,11 +975,9 @@ TLSConfiguration_create()
             self->ciphersuites[3] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;
             self->ciphersuites[4] = MBEDTLS_TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384;
             self->ciphersuites[5] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
-
-            /* additional ciphersuites */
-            self->ciphersuites[6] = MBEDTLS_TLS_RSA_WITH_NULL_SHA256;
-            self->ciphersuites[7] = MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384;
         }
+
+        self->maxCertificateSizeInBytes = 8192; /* default: 8kB */
     }
 
     return self;
@@ -1022,6 +1033,15 @@ TLSConfiguration_setMinimumKeyLength(TLSConfiguration self, int keyLengthInBits)
         keyLengthInBits = 2048;
 
     self->minKeyLengthInBits = keyLengthInBits;
+}
+
+PAL_API void
+TLSConfiguration_setMaxCertificateSize(TLSConfiguration self, int maxSizeInBytes)
+{
+    if (maxSizeInBytes == 0)
+        maxSizeInBytes = 8192;
+
+    self->maxCertificateSizeInBytes = maxSizeInBytes;
 }
 
 void
@@ -1737,6 +1757,7 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
         }
 
         self->lastRenegotiationTime = Hal_getMonotonicTimeInMs();
+        self->lastActivityTime = self->lastRenegotiationTime;
         self->renegotiationInProgress = false;
 
         self->currentTLSVersion = getTLSVersion(self->ssl.major_ver, self->ssl.minor_ver);
@@ -1867,7 +1888,9 @@ performHandshakeAsServer(TLSSocket self)
             return completeServerRenegotiation(self);
         }
 
-        /* Handshake progresses implicitly via mbedtls read/write calls */
+        /* Handshake progresses implicitly via mbedtls read/write calls.
+         * TLSSocket_tick can check the renegotiation timeout for idle
+         * connections. */
         return true;
     }
 
@@ -2045,7 +2068,8 @@ startRenegotiationIfRequired(TLSSocket self)
                 self->lastRenegotiationTime = Hal_getMonotonicTimeInMs();
             }
 
-            /* Server-side renegotiation progresses implicitly via read/write */
+            /* Server-side renegotiation is driven via TLSSocket_read/write or
+             * TLSSocket_tick (periodic call from the connection loop). */
             return true;
         }
 
@@ -2116,21 +2140,53 @@ startRenegotiationIfRequired(TLSSocket self)
     return true;
 }
 
+bool
+TLSSocket_tick(TLSSocket self)
+{
+    checkForCRLUpdate(self);
+
+#if defined(MBEDTLS_SSL_RENEGOTIATION)
+    /*
+     * When the server sends a HelloRequest the client's mbedtls_ssl_read sets
+     * renego_status = RENEGOTIATION_PENDING and returns WANT_READ.  Without
+     * this check the renegotiation would only advance the next time the client
+     * happens to call TLSSocket_write (e.g. when TEST-FR fires), which can be
+     * tens of seconds later.  Drive it forward here so it completes within one
+     * tick period (~100 ms) instead.
+     */
+    if (self->conf.endpoint == MBEDTLS_SSL_IS_CLIENT &&
+        self->ssl.renego_status == MBEDTLS_SSL_RENEGOTIATION_PENDING)
+    {
+        if (TLSSocket_performHandshake(self) == false)
+            return false;
+    }
+#endif /* MBEDTLS_SSL_RENEGOTIATION */
+
+    if (startRenegotiationIfRequired(self) == false)
+        return false;
+
+    return true;
+}
+
 int
 TLSSocket_read(TLSSocket self, uint8_t* buf, int size)
 {
+    self->lastActivityTime = Hal_getMonotonicTimeInMs();
+
     checkForCRLUpdate(self);
 
     if (self->renegotiationInProgress)
     {
-        if (renegotiationTimedOut(self)) {
+        if (renegotiationTimedOut(self))
+        {
             abortRenegotiationDueToTimeout(self);
 
             return -1;
         }
     }
 
-    if (startRenegotiationIfRequired(self) == false) {
+    if (startRenegotiationIfRequired(self) == false)
+    {
         return -1;
     }
 
@@ -2237,11 +2293,14 @@ TLSSocket_write(TLSSocket self, uint8_t* buf, int size)
 {
     int len = 0;
 
+    self->lastActivityTime = Hal_getMonotonicTimeInMs();
+
     checkForCRLUpdate(self);
 
     if (self->renegotiationInProgress)
     {
-        if (renegotiationTimedOut(self)) {
+        if (renegotiationTimedOut(self))
+        {
             abortRenegotiationDueToTimeout(self);
 
             return -1;
