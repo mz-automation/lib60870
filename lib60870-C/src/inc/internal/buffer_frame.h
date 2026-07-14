@@ -36,13 +36,14 @@ struct sBufferFrame {
     uint8_t* buffer;
     int msgSize;
     int startSize;
+    int bufferCapacity;
     bool isUsed;
 };
 
 typedef struct sBufferFrame* BufferFrame;
 
 Frame
-BufferFrame_initialize(BufferFrame self, uint8_t* buffer, int startSize);
+BufferFrame_initialize(BufferFrame self, uint8_t* buffer, int startSize, int bufferCapacity);
 
 void
 BufferFrame_destroy(Frame super);

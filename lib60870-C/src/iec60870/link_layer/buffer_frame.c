@@ -36,13 +36,14 @@ static struct sFrameVFT bufferFrameVFT = {
 };
 
 Frame
-BufferFrame_initialize(BufferFrame self, uint8_t* buffer, int startSize)
+BufferFrame_initialize(BufferFrame self, uint8_t* buffer, int startSize, int bufferCapacity)
 {
     self->virtualFunctionTable = &bufferFrameVFT;
     self->buffer = buffer;
 
     self->startSize = startSize;
     self->msgSize = startSize;
+    self->bufferCapacity = bufferCapacity;
     self->isUsed = false;
 
     return (Frame) self;
@@ -69,7 +70,9 @@ BufferFrame_setNextByte(Frame super, uint8_t byte)
 {
     BufferFrame self = (BufferFrame) super;
 
-    self->buffer[self->msgSize++] = byte;
+    if (self->msgSize < self->bufferCapacity) {
+        self->buffer[self->msgSize++] = byte;
+    }
 }
 
 void
@@ -77,14 +80,15 @@ BufferFrame_appendBytes(Frame super, const uint8_t* bytes, int numberOfBytes)
 {
     BufferFrame self = (BufferFrame) super;
 
-    int i;
+    if (numberOfBytes > 0 && self->msgSize + numberOfBytes <= self->bufferCapacity) {
+        int i;
+        uint8_t* target = self->buffer + self->msgSize;
 
-    uint8_t* target = self->buffer + self->msgSize;
+        for (i = 0; i < numberOfBytes; i++)
+            target[i] = bytes[i];
 
-    for (i = 0; i < numberOfBytes; i++)
-        target[i] = bytes[i];
-
-    self->msgSize += numberOfBytes;
+        self->msgSize += numberOfBytes;
+    }
 }
 
 int
@@ -108,7 +112,7 @@ BufferFrame_getSpaceLeft(Frame super)
 {
     BufferFrame self = (BufferFrame) super;
 
-    return ((self->startSize) - self->msgSize);
+    return (self->bufferCapacity - self->msgSize);
 }
 
 bool
