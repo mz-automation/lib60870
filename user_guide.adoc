@@ -1,4 +1,4 @@
-= lib60870 - IEC 60870-5-101/104 C Source Code Library User Guide - Version 2.4.0
+= lib60870 - IEC 60870-5-101/104 C Source Code Library User Guide - Version 2.4.1
 Copyright 2020 MZ Automation GmbH
 
 == Introduction
@@ -750,6 +750,7 @@ The library supports the following ASDU (application service data unit) types.
 | M_EP_TD_1(38) | Event of protection equipment with CP56Time2a | + | +
 | M_EP_TE_1(39) | Packed start events of protection equipment with CP56Time2a | + | +
 | M_EP_TF_1(40) | Packed output circuit info with CP56Time2a | + | +
+| S_IT_TC_1(41) | Integrated total for security statistics with CP56Time2a | + | -
 | C_SC_NA_1(45) | Single command (BOOLEAN) | + | +
 | C_DC_NA_1(46) | Double command (ON/OFF/transient) | + | +
 | C_RC_NA_1(47) | Step command | + | +

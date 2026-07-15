@@ -32,6 +32,8 @@
 #include "lib_memory.h"
 #include "platform_endian.h"
 
+/* InformationObject_getFromBuffer now requires `msgSize` to perform bounds checks. */
+
 typedef bool (*EncodeFunction)(InformationObject self, Frame frame, CS101_AppLayerParameters parameters,
                                bool isSequence);
 typedef void (*DestroyFunction)(InformationObject self);
@@ -229,26 +231,41 @@ InformationObject_encodeBase(InformationObject self, Frame frame, CS101_AppLayer
 }
 
 int
-InformationObject_ParseObjectAddress(CS101_AppLayerParameters parameters, const uint8_t* msg, int startIndex)
+InformationObject_parseObjectAddress(CS101_AppLayerParameters parameters, const uint8_t* msg, int msgSize, int startIndex)
 {
-    /* parse information object address */
+    /* parse information object address with bounds checks */
+    if (startIndex < 0 || startIndex >= msgSize)
+        return 0;
+
+    int remaining = msgSize - startIndex;
+
     int ioa = msg[startIndex];
 
     if (parameters->sizeOfIOA > 1)
-        ioa += (msg[startIndex + 1] * 0x100);
+    {
+        if (remaining > 1)
+            ioa += (msg[startIndex + 1] * 0x100);
+        else
+            return 0;
+    }
 
     if (parameters->sizeOfIOA > 2)
-        ioa += (msg[startIndex + 2] * 0x10000);
+    {
+        if (remaining > 2)
+            ioa += (msg[startIndex + 2] * 0x10000);
+        else
+            return 0;
+    }
 
     return ioa;
 }
 
 static void
-InformationObject_getFromBuffer(InformationObject self, CS101_AppLayerParameters parameters, uint8_t* msg,
-                                int startIndex)
+InformationObject_getFromBuffer(InformationObject self, CS101_AppLayerParameters parameters,
+                                uint8_t* msg, int msgSize, int startIndex)
 {
     /* parse information object address */
-    self->objectAddress = InformationObject_ParseObjectAddress(parameters, msg, startIndex);
+    self->objectAddress = InformationObject_parseObjectAddress(parameters, msg, msgSize, startIndex);
 }
 
 int
@@ -341,7 +358,7 @@ SinglePointInformation_getFromBuffer(SinglePointInformation self, CS101_AppLayer
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -493,7 +510,7 @@ StepPositionInformation_getFromBuffer(StepPositionInformation self, CS101_AppLay
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -613,7 +630,7 @@ StepPositionWithCP56Time2a_getFromBuffer(StepPositionWithCP56Time2a self, CS101_
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -736,7 +753,7 @@ StepPositionWithCP24Time2a_getFromBuffer(StepPositionWithCP24Time2a self, CS101_
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -848,7 +865,7 @@ DoublePointInformation_getFromBuffer(DoublePointInformation self, CS101_AppLayer
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -958,7 +975,7 @@ DoublePointWithCP24Time2a_getFromBuffer(DoublePointWithCP24Time2a self, CS101_Ap
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -1071,7 +1088,7 @@ DoublePointWithCP56Time2a_getFromBuffer(DoublePointWithCP56Time2a self, CS101_Ap
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -1185,7 +1202,7 @@ SinglePointWithCP24Time2a_getFromBuffer(SinglePointWithCP24Time2a self, CS101_Ap
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -1299,7 +1316,7 @@ SinglePointWithCP56Time2a_getFromBuffer(SinglePointWithCP56Time2a self, CS101_Ap
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -1421,7 +1438,7 @@ BitString32_getFromBuffer(BitString32 self, CS101_AppLayerParameters parameters,
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -1544,7 +1561,7 @@ Bitstring32WithCP24Time2a_getFromBuffer(Bitstring32WithCP24Time2a self, CS101_Ap
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -1670,7 +1687,7 @@ Bitstring32WithCP56Time2a_getFromBuffer(Bitstring32WithCP56Time2a self, CS101_Ap
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -1823,7 +1840,7 @@ MeasuredValueNormalized_getFromBuffer(MeasuredValueNormalized self, CS101_AppLay
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -1990,7 +2007,7 @@ MeasuredValueNormalizedWithoutQuality_getFromBuffer(MeasuredValueNormalizedWitho
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -2106,7 +2123,7 @@ MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(MeasuredValueNormalizedWithC
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -2228,7 +2245,7 @@ MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(MeasuredValueNormalizedWithC
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -2339,7 +2356,7 @@ MeasuredValueScaled_getFromBuffer(MeasuredValueScaled self, CS101_AppLayerParame
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -2507,7 +2524,7 @@ MeasuredValueScaledWithCP24Time2a_getFromBuffer(MeasuredValueScaledWithCP24Time2
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -2625,7 +2642,7 @@ MeasuredValueScaledWithCP56Time2a_getFromBuffer(MeasuredValueScaledWithCP56Time2
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -2751,7 +2768,7 @@ MeasuredValueShort_getFromBuffer(MeasuredValueShort self, CS101_AppLayerParamete
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -2930,7 +2947,7 @@ MeasuredValueShortWithCP24Time2a_getFromBuffer(MeasuredValueShortWithCP24Time2a 
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3057,7 +3074,7 @@ MeasuredValueShortWithCP56Time2a_getFromBuffer(MeasuredValueShortWithCP56Time2a 
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3178,7 +3195,7 @@ IntegratedTotals_getFromBuffer(IntegratedTotals self, CS101_AppLayerParameters p
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3289,7 +3306,7 @@ IntegratedTotalsWithCP24Time2a_getFromBuffer(IntegratedTotalsWithCP24Time2a self
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3403,7 +3420,7 @@ IntegratedTotalsWithCP56Time2a_getFromBuffer(IntegratedTotalsWithCP56Time2a self
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3483,6 +3500,12 @@ IntegratedTotalsForSecurityStatistics_create(IntegratedTotalsForSecurityStatisti
     return self;
 }
 
+uint16_t
+IntegratedTotalsForSecurityStatistics_getAID(IntegratedTotalsForSecurityStatistics self)
+{
+    return self->aid;
+}
+
 BinaryCounterReading
 IntegratedTotalsForSecurityStatistics_getBCR(IntegratedTotalsForSecurityStatistics self)
 {
@@ -3519,7 +3542,7 @@ IntegratedTotalsForSecurityStatistics_getFromBuffer(IntegratedTotalsForSecurityS
         uint8_t* msg, int msgSize, int startIndex, bool isSequence)
 {
     /* check message size */
-    int minSize = startIndex + 5;
+    int minSize = startIndex + 14;
 
     if (!isSequence)
         minSize += parameters->sizeOfIOA;
@@ -3539,7 +3562,7 @@ IntegratedTotalsForSecurityStatistics_getFromBuffer(IntegratedTotalsForSecurityS
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject) self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3646,7 +3669,7 @@ EventOfProtectionEquipment_getFromBuffer(EventOfProtectionEquipment self, CS101_
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3791,7 +3814,7 @@ EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(EventOfProtectionEquipmen
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -3927,7 +3950,7 @@ PackedStartEventsOfProtectionEquipment_getFromBuffer(PackedStartEventsOfProtecti
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -4071,7 +4094,7 @@ PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -4205,7 +4228,7 @@ PackedOutputCircuitInfo_getFromBuffer(PackedOutputCircuitInfo self, CS101_AppLay
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -4344,7 +4367,7 @@ PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(PackedOutputCircuitInfoWithC
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -4460,7 +4483,7 @@ PackedSinglePointWithSCD_getFromBuffer(PackedSinglePointWithSCD self, CS101_AppL
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -4577,7 +4600,7 @@ SingleCommand_getFromBuffer(SingleCommand self, CS101_AppLayerParameters paramet
     {
         SingleCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -4679,7 +4702,7 @@ SingleCommandWithCP56Time2a_getFromBuffer(SingleCommandWithCP56Time2a self, CS10
     {
         SingleCommandWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -4791,7 +4814,7 @@ DoubleCommand_getFromBuffer(DoubleCommand self, CS101_AppLayerParameters paramet
     {
         DoubleCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -4904,7 +4927,7 @@ DoubleCommandWithCP56Time2a_getFromBuffer(DoubleCommandWithCP56Time2a self, CS10
     {
         DoubleCommandWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5022,7 +5045,7 @@ StepCommand_getFromBuffer(StepCommand self, CS101_AppLayerParameters parameters,
     {
         StepCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5135,7 +5158,7 @@ StepCommandWithCP56Time2a_getFromBuffer(StepCommandWithCP56Time2a self, CS101_Ap
     {
         StepCommandWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5255,7 +5278,7 @@ SetpointCommandNormalized_getFromBuffer(SetpointCommandNormalized self, CS101_Ap
     {
         SetpointCommandNormalized_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5375,7 +5398,7 @@ SetpointCommandNormalizedWithCP56Time2a_getFromBuffer(SetpointCommandNormalizedW
     {
         SetpointCommandNormalizedWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5498,7 +5521,7 @@ SetpointCommandScaled_getFromBuffer(SetpointCommandScaled self, CS101_AppLayerPa
     {
         SetpointCommandScaled_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5616,7 +5639,7 @@ SetpointCommandScaledWithCP56Time2a_getFromBuffer(SetpointCommandScaledWithCP56T
     {
         SetpointCommandScaledWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5749,7 +5772,7 @@ SetpointCommandShort_getFromBuffer(SetpointCommandShort self, CS101_AppLayerPara
     {
         SetpointCommandShort_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -5878,7 +5901,7 @@ SetpointCommandShortWithCP56Time2a_getFromBuffer(SetpointCommandShortWithCP56Tim
     {
         SetpointCommandShortWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6000,7 +6023,7 @@ Bitstring32Command_getFromBuffer(Bitstring32Command self, CS101_AppLayerParamete
     {
         Bitstring32Command_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6112,7 +6135,7 @@ Bitstring32CommandWithCP56Time2a_getFromBuffer(Bitstring32CommandWithCP56Time2a 
     {
         Bitstring32CommandWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6206,7 +6229,7 @@ ReadCommand_getFromBuffer(ReadCommand self, CS101_AppLayerParameters parameters,
     {
         ReadCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
     }
 
     return self;
@@ -6291,7 +6314,7 @@ ClockSynchronizationCommand_getFromBuffer(ClockSynchronizationCommand self, CS10
     {
         ClockSynchronizationCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6382,7 +6405,7 @@ InterrogationCommand_getFromBuffer(InterrogationCommand self, CS101_AppLayerPara
     {
         InterrogationCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6473,7 +6496,7 @@ CounterInterrogationCommand_getFromBuffer(CounterInterrogationCommand self, CS10
     {
         CounterInterrogationCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6553,7 +6576,7 @@ TestCommand_getFromBuffer(TestCommand self, CS101_AppLayerParameters parameters,
                           int startIndex)
 {
     /* check message size */
-    int minSize = startIndex + 2;
+    int minSize = startIndex + parameters->sizeOfIOA + 2;
 
     if (minSize > msgSize)
     {
@@ -6568,7 +6591,7 @@ TestCommand_getFromBuffer(TestCommand self, CS101_AppLayerParameters parameters,
     {
         TestCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6655,7 +6678,7 @@ TestCommandWithCP56Time2a_getFromBuffer(TestCommandWithCP56Time2a self, CS101_Ap
                                         uint8_t* msg, int msgSize, int startIndex)
 {
     /* check message size */
-    int minSize = startIndex + 9;
+    int minSize = startIndex + parameters->sizeOfIOA + 9;
 
     if (minSize > msgSize)
     {
@@ -6670,7 +6693,7 @@ TestCommandWithCP56Time2a_getFromBuffer(TestCommandWithCP56Time2a self, CS101_Ap
     {
         TestCommandWithCP56Time2a_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6764,7 +6787,7 @@ ResetProcessCommand_getFromBuffer(ResetProcessCommand self, CS101_AppLayerParame
     {
         ResetProcessCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6855,7 +6878,7 @@ DelayAcquisitionCommand_getFromBuffer(DelayAcquisitionCommand self, CS101_AppLay
     {
         DelayAcquisitionCommand_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -6944,7 +6967,7 @@ ParameterActivation_getFromBuffer(ParameterActivation self, CS101_AppLayerParame
     {
         ParameterActivation_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7034,7 +7057,7 @@ EndOfInitialization_getFromBuffer(EndOfInitialization self, CS101_AppLayerParame
     {
         EndOfInitialization_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7158,7 +7181,7 @@ FileReady_getFromBuffer(FileReady self, CS101_AppLayerParameters parameters, uin
     {
         FileReady_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7300,7 +7323,7 @@ SectionReady_getFromBuffer(SectionReady self, CS101_AppLayerParameters parameter
     {
         SectionReady_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7416,7 +7439,7 @@ FileCallOrSelect_getFromBuffer(FileCallOrSelect self, CS101_AppLayerParameters p
     {
         FileCallOrSelect_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7534,7 +7557,7 @@ FileLastSegmentOrSection_getFromBuffer(FileLastSegmentOrSection self, CS101_AppL
     {
         FileLastSegmentOrSection_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7641,7 +7664,7 @@ FileACK_getFromBuffer(FileACK self, CS101_AppLayerParameters parameters, uint8_t
     {
         FileACK_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7774,7 +7797,7 @@ FileSegment_getFromBuffer(FileSegment self, CS101_AppLayerParameters parameters,
     {
         FileSegment_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 
@@ -7929,7 +7952,7 @@ FileDirectory_getFromBuffer(FileDirectory self, CS101_AppLayerParameters paramet
 
         if (!isSequence)
         {
-            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+            InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
             startIndex += parameters->sizeOfIOA; /* skip IOA */
         }
@@ -8043,7 +8066,7 @@ QueryLog_getFromBuffer(QueryLog self, CS101_AppLayerParameters parameters, uint8
     {
         QueryLog_initialize(self);
 
-        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, startIndex);
+        InformationObject_getFromBuffer((InformationObject)self, parameters, msg, msgSize, startIndex);
 
         startIndex += parameters->sizeOfIOA; /* skip IOA */
 

@@ -1,3 +1,36 @@
+Changes to version 2.4.1
+------------------------
+
+New features and improvements:
+
+- TLS (mbedtls 2.28/3.6): Added mutex to protect CRL updates/access during runtime (LIB8705-307)
+- added missing function IntegratedTotalsForSecurityStatistics_getAID
+- check if the ASDU type allows more than one information object before adding or reading IO to/from the ASDU
+- TLS (mbedtls 2.28): drive renegotiation and handle timeouts in TLSSocket_tick to allow exact time based renegotiation intervals
+- CS101_ASDU: validate user provided index of CS101_ASDU_getElement
+- TLS (mbedtls 2.28/3.6): Added function TLSConfiguration_setMaxCertificateSize and optional maximum certificate size check during handshake
+- fixed broken BufferFrame implementation (LIB8705-313)
+
+Vulnerability fixes:
+
+- added message length validation checks when parsing IOAs in ASDUs/information objects (LIB8705-306)
+- fixed - OOB read in decoder for ASDU S_IT_TC_1 (LIB8705-305)(GHSA-f5xp-w6f3-vvrv)
+- TLS (mbedtls 2.28 integration): fixed - certificate validation is bypassed in configuration with allowOnlyKnownCertificate=true and validateChain=false (LIB8705-304)(GHSA-fc2j-39h7-c7v9)
+- TLS (mbedtls 2.28, 3.6) - removed unencrypted cipher suite TLS_RSA_WITH_NULL_SHA256 from default configuration (LIB8705-303)
+- CS101_ASDU: added validation of VSQ field against expected payload size when creating the ASDU from a buffer (GHSA-7v97-jmwv-w5j7)
+
+
+Other bug fixes:
+
+- CS104 server: fixed - connection switch-over without stopping old connection can cause out-of-order retransmit over the new connection (LIB8705-283)
+- CS104 server: fixed potential dead-lock in server thread
+- TLS (mbedtls 2.28, 3.6): fixed potential memory leak during renegotiation when the peer certificate has to be stored
+- CS 101/104 client/master: fixed - use request COT for read command (LIB8705-270)
+
+Notes:
+
+- the secure authentication module (implementation of IEC 60870-5-7:2013) has to be updated to the latest version to be compatible with this library version.
+
 Changes to version 2.4.0
 ------------------------
 
@@ -11,6 +44,7 @@ Changes to version 2.4.0
 - CS101/CS104 slave: reject commands with broadcast CA when not allowed for command type (LIB8705-130)
 - CS104 slave: fixed potentical deadlock - lowPrioQueue doesn't have to be locked during sendASDU call
 - CS104 slave: fixed detection of unconfirmed messages when connection is closed
+- CS104 connection: fixed read command to use request cause of transmission instead of activation (LIB8705-270)
 - CS104 client: added threadless operation mode (CS104_Connection_startThreadless/stopThreadless/run) and example cs104_client_no_threads (LIB8705-134)
 - CS104 client: implemented T1 timeout when waiting for STARTDT/STOPDT confirmation messages
 - Added IMasterConnection_sendASDUEx to allow bypassing queues for correct message ordering in GI responses (LIB8705-149)

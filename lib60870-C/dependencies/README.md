@@ -30,12 +30,12 @@ When using make the make command has to be invoked with the WITH_MBEDTLS=1 param
 
 ### mbedtls 3.6
 
-For TLS support with mbedtls 3.6 download the source tarball of version 3.6.x and extract here in the subfolder (Version 3.6.2 https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.2/mbedtls-3.6.2.tar.bz2)
+For TLS support with mbedtls 3.6 download the source tarball of version 3.6.x and extract here in the subfolder (Version 3.6.6 https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.6/mbedtls-3.6.6.tar.bz2)
 
 On a Linux command line enter the following commands in this directory:
 
-    wget https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.2/mbedtls-3.6.2.tar.bz2
-    tar xfj mbedtls-3.6.2.tar.bz2
+    wget https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.6/mbedtls-3.6.6.tar.bz2
+    tar xfj mbedtls-3.6.6.tar.bz2
 
 When running cmake the build system will automatically find the mbedtls source code and includes it into the library build.
 

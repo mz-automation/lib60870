@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2025 Michael Zillgith
+ *  Copyright 2016-2026 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -350,7 +350,7 @@ MessageQueue_enqueueASDU(MessageQueue self, CS101_ASDU asdu)
 
     struct sBufferFrame bufferFrame;
 
-    Frame frame = BufferFrame_initialize(&bufferFrame, nextMsgPtr + sizeof(struct sMessageQueueEntryInfo), 0);
+    Frame frame = BufferFrame_initialize(&bufferFrame, nextMsgPtr + sizeof(struct sMessageQueueEntryInfo), 0, 256);
     CS101_ASDU_encode(asdu, frame);
 
     entryInfo.size = asduSize;
@@ -868,7 +868,7 @@ HighPriorityASDUQueue_enqueue(HighPriorityASDUQueue self, CS101_ASDU asdu)
 
         struct sBufferFrame bufferFrame;
 
-        Frame frame = BufferFrame_initialize(&bufferFrame, nextMsgPtr + sizeof(uint16_t), 0);
+        Frame frame = BufferFrame_initialize(&bufferFrame, nextMsgPtr + sizeof(uint16_t), 0, 256);
         CS101_ASDU_encode(asdu, frame);
 
         msgSize = asduSize;
@@ -1277,6 +1277,7 @@ struct sMasterConnection
     unsigned int isRunning : 1;
     unsigned int timeoutT2Triggered : 1;
     unsigned int waitingForTestFRcon : 1;
+    unsigned int requeuedOnActivate : 1;  /* set by CS104_Slave_activate to suppress redundant requeue in thread exit */
     uint16_t maxSentASDUs;  /* k-parameter */
     int16_t oldestSentASDU; /* oldest sent ASDU in k-buffer */
     int16_t newestSentASDU; /* newest sent ASDU in k-buffer */
@@ -1681,7 +1682,7 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
 #if (CONFIG_CS104_SUPPORT_SERVER_MODE_SINGLE_REDUNDANCY_GROUP == 1)
     if (self->serverMode == CS104_MODE_SINGLE_REDUNDANCY_GROUP)
     {
-        /* Deactivate all other connections */
+        /* Close the active connection */
 #if (CONFIG_USE_SEMAPHORES == 1)
         Semaphore_wait(self->openConnectionsLock);
 #endif
@@ -1694,7 +1695,14 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
             if (con && con->isUsed)
             {
                 if (con != connectionToActivate)
-                    MasterConnection_deactivate(con);
+                {
+                    if (MasterConnection_isActive(con))
+                    {
+                        MasterConnection_close(con);
+                        MessageQueue_setWaitingForTransmissionWhenNotConfirmed(con->lowPrioQueue);
+                        con->requeuedOnActivate = 1;
+                    }
+                }
             }
         }
 
@@ -1725,7 +1733,14 @@ CS104_Slave_activate(CS104_Slave self, MasterConnection connectionToActivate)
                 if (con->redundancyGroup == connectionToActivate->redundancyGroup)
                 {
                     if (con != connectionToActivate)
-                        MasterConnection_deactivate(con);
+                    {
+                        if (MasterConnection_isActive(con))
+                        {
+                            MasterConnection_close(con);
+                            MessageQueue_setWaitingForTransmissionWhenNotConfirmed(con->lowPrioQueue);
+                            con->requeuedOnActivate = 1;
+                        }
+                    }
                 }
             }
         }
@@ -2101,7 +2116,7 @@ sendASDUInternal(MasterConnection self, CS101_ASDU asdu, bool dontQueueIfBufferF
 
             struct sBufferFrame bufferFrame;
 
-            Frame frame = BufferFrame_initialize(&bufferFrame, frameBuffer.msg, IEC60870_5_104_APCI_LENGTH);
+            Frame frame = BufferFrame_initialize(&bufferFrame, frameBuffer.msg, IEC60870_5_104_APCI_LENGTH, 256);
             CS101_ASDU_encode(asdu, frame);
 
             frameBuffer.msgSize = Frame_getMsgSize(frame);
@@ -3353,7 +3368,7 @@ sendWaitingASDUs(MasterConnection self)
         {
             uint8_t buffer[256];
             struct sBufferFrame _bufferFrame;
-            Frame bufferFrame = BufferFrame_initialize(&_bufferFrame, buffer, 0);
+            Frame bufferFrame = BufferFrame_initialize(&_bufferFrame, buffer, 0, 256);
 
             bool trySend = true;
             bool sentBufferFull = false;
@@ -3366,7 +3381,7 @@ sendWaitingASDUs(MasterConnection self)
 
                 if (isSentBufferFull(self) == false)
                 {
-                    bufferFrame = BufferFrame_initialize(&_bufferFrame, buffer, 0);
+                    bufferFrame = BufferFrame_initialize(&_bufferFrame, buffer, 0, 256);
 
                     Frame asdu = SecureEndpoint_getNextWaitingAsdu(secureEndpoint, bufferFrame);
 
@@ -3732,6 +3747,16 @@ connectionHandlingThread(void* parameter)
 
 #endif /* SEC_AUTH_60870_5_7 */
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+        if (self->tlsSocket != NULL)
+        {
+            if (TLSSocket_tick(self->tlsSocket) == false)
+            {
+                MasterConnection_close(self);
+            }
+        }
+#endif /* (CONFIG_CS104_SUPPORT_TLS == 1) */
+
         /* call plugins */
         if (self->slave->plugins)
         {
@@ -3783,7 +3808,8 @@ connectionHandlingThread(void* parameter)
     Semaphore_post(self->stateLock);
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
 
-    MessageQueue_setWaitingForTransmissionWhenNotConfirmed(self->lowPrioQueue);
+    if (!self->requeuedOnActivate)
+        MessageQueue_setWaitingForTransmissionWhenNotConfirmed(self->lowPrioQueue);
 
     return NULL;
 }
@@ -3879,11 +3905,12 @@ _IMasterConnection_getPeerAddress(IMasterConnection self, char* addrBuf, int add
     if (addrStr == NULL)
         return 0;
 
-    int len = (int)strlen(buf);
+    int len = (int)strnlen(buf, sizeof(buf));
 
     if (len < addrBufSize)
     {
-        strcpy(addrBuf, buf);
+        memcpy(addrBuf, buf, len);
+        addrBuf[len] = 0;
         return len;
     }
     else
@@ -3957,6 +3984,7 @@ MasterConnection_init(MasterConnection self, Socket skt, MessageQueue lowPrioQue
     {
         self->socket = skt;
         self->isRunning = false;
+        self->requeuedOnActivate = 0;
         self->receiveCount = 0;
         self->sendCount = 0;
         self->recvBufPos = 0;
@@ -4151,10 +4179,10 @@ MasterConnection_deactivate(MasterConnection self)
 #endif /* CONFIG_CS104_SUPPORT_SERVER_MODE_MULTIPLE_REDUNDANCY_GROUPS */
 
 #endif /* SEC_AUTH_60870_5_7 */
+
+            self->state = M_CON_STATE_UNCONFIRMED_STOPPED;
         }
     }
-
-    self->state = M_CON_STATE_UNCONFIRMED_STOPPED;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
     Semaphore_post(self->stateLock);
@@ -4870,9 +4898,11 @@ serverThread(void* parameter)
                 {
                     if (MasterConnection_isRunning(connection) == false)
                     {
+                        Thread threadToJoin = NULL;
+
                         if (connection->connectionThread)
                         {
-                            Thread_destroy(connection->connectionThread);
+                            threadToJoin = connection->connectionThread;
 
 #if (CONFIG_USE_SEMAPHORES == 1)
                             Semaphore_wait(connection->stateLock);
@@ -4885,7 +4915,22 @@ serverThread(void* parameter)
 #endif /* (CONFIG_USE_SEMAPHORES == 1) */
                         }
 
+                        /* Release openConnectionsLock before joining the connection thread.
+                         * The connection thread may be waiting to acquire openConnectionsLock
+                         * (e.g. inside CS104_Slave_activate), so joining while holding the
+                         * lock would cause a deadlock. */
+#if (CONFIG_USE_SEMAPHORES == 1)
+                        Semaphore_post(self->openConnectionsLock);
+#endif
+
+                        if (threadToJoin)
+                            Thread_destroy(threadToJoin);
+
                         MasterConnection_deinit(connection);
+
+#if (CONFIG_USE_SEMAPHORES == 1)
+                        Semaphore_wait(self->openConnectionsLock);
+#endif
 
                         self->openConnections--;
 

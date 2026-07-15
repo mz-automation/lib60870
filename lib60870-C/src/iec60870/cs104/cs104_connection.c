@@ -416,11 +416,12 @@ _IPeerConnection_getPeerAddress(IPeerConnection self, char* addrBuf, int addrBuf
     if (addrStr == NULL)
         return 0;
 
-    int len = (int)strlen(buf);
+    int len = (int)strnlen(buf, sizeof(buf));
 
     if (len < addrBufSize)
     {
-        strcpy(addrBuf, buf);
+        memcpy(addrBuf, buf, len);
+        addrBuf[len] = 0;
         return len;
     }
     else
@@ -435,6 +436,7 @@ createConnection(const char* hostname, int tcpPort)
     if (self)
     {
         strncpy(self->hostname, hostname, HOST_NAME_MAX);
+        self->hostname[HOST_NAME_MAX] = 0;
         self->tcpPort = tcpPort;
         self->parameters = defaultAPCIParameters;
         self->alParameters = defaultAppLayerParameters;
@@ -1597,6 +1599,16 @@ handleConnection(void* parameter)
                     if (isClose(self))
                         loopRunning = false;
 
+#if (CONFIG_CS104_SUPPORT_TLS == 1)
+                    if (self->tlsSocket != NULL)
+                    {
+                        if (TLSSocket_tick(self->tlsSocket) == false)
+                        {
+                            loopRunning = false;
+                        }
+                    }
+#endif /* (CONFIG_CS104_SUPPORT_TLS == 1) */
+
 #ifdef SEC_AUTH_60870_5_7
                     if (self->secureEndpoint)
                     {
@@ -1844,7 +1856,7 @@ CS104_Connection_sendReadCommand(CS104_Connection self, int ca, int ioa)
 
     ReadCommand readCommand = ReadCommand_create(&_readCommand, ioa);
 
-    return CS104_Connection_sendProcessCommandEx(self, CS101_COT_ACTIVATION, ca, (InformationObject)readCommand);
+    return CS104_Connection_sendProcessCommandEx(self, CS101_COT_REQUEST, ca, (InformationObject)readCommand);
 }
 
 bool

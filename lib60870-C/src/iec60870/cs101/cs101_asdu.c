@@ -1,5 +1,5 @@
 /*
- *  Copyright 2016-2024 Michael Zillgith
+ *  Copyright 2016-2026 Michael Zillgith
  *
  *  This file is part of lib60870-C
  *
@@ -72,6 +72,204 @@ asduFrame_getSpaceLeft(Frame self)
     ASDUFrame frame = (ASDUFrame)self;
 
     return (frame->asdu->parameters->maxSizeOfASDU - frame->asdu->payloadSize - frame->asdu->asduHeaderLength);
+}
+
+/* Returns the fixed data size (bytes, excluding IOA) for a type ID,
+ * or -1 for variable-length / unknown types. Used for VSQ validation. */
+static int
+getElementDataSize(IEC60870_5_TypeID typeId)
+{
+    switch (typeId)
+    {
+    case M_SP_NA_1:
+        return 1;
+    case M_SP_TA_1:
+        return 4;
+    case M_DP_NA_1:
+        return 1;
+    case M_DP_TA_1:
+        return 4;
+    case M_ST_NA_1:
+        return 2;
+    case M_ST_TA_1:
+        return 5;
+    case M_BO_NA_1:
+        return 5;
+    case M_BO_TA_1:
+        return 8;
+    case M_ME_NA_1:
+        return 3;
+    case M_ME_TA_1:
+        return 6;
+    case M_ME_NB_1:
+        return 3;
+    case M_ME_TB_1:
+        return 6;
+    case M_ME_NC_1:
+        return 5;
+    case M_ME_TC_1:
+        return 8;
+    case M_IT_NA_1:
+        return 5;
+    case M_IT_TA_1:
+        return 8;
+    case M_EP_TA_1:
+        return 6;
+    case M_EP_TB_1:
+        return 7;
+    case M_EP_TC_1:
+        return 7;
+    case M_PS_NA_1:
+        return 5;
+    case M_ME_ND_1:
+        return 2;
+    case M_SP_TB_1:
+        return 8;
+    case M_DP_TB_1:
+        return 8;
+    case M_ST_TB_1:
+        return 9;
+    case M_BO_TB_1:
+        return 12;
+    case M_ME_TD_1:
+        return 10;
+    case M_ME_TE_1:
+        return 10;
+    case M_ME_TF_1:
+        return 12;
+    case M_IT_TB_1:
+        return 12;
+    case M_EP_TD_1:
+        return 10;
+    case M_EP_TE_1:
+        return 11;
+    case M_EP_TF_1:
+        return 11;
+    case S_IT_TC_1:
+        return 14;
+    case C_SC_NA_1:
+        return 1;
+    case C_DC_NA_1:
+        return 1;
+    case C_RC_NA_1:
+        return 1;
+    case C_SE_NA_1:
+        return 3;
+    case C_SE_NB_1:
+        return 3;
+    case C_SE_NC_1:
+        return 5;
+    case C_BO_NA_1:
+        return 4;
+    case C_SC_TA_1:
+        return 8;
+    case C_DC_TA_1:
+        return 8;
+    case C_RC_TA_1:
+        return 8;
+    case C_SE_TA_1:
+        return 10;
+    case C_SE_TB_1:
+        return 10;
+    case C_SE_TC_1:
+        return 12;
+    case C_BO_TA_1:
+        return 11;
+    case M_EI_NA_1:
+        return 1;
+    case C_IC_NA_1:
+        return 1;
+    case C_CI_NA_1:
+        return 1;
+    case C_RD_NA_1:
+        return 0;
+    case C_CS_NA_1:
+        return 7;
+    case C_TS_NA_1:
+        return 2;
+    case C_RP_NA_1:
+        return 1;
+    case C_CD_NA_1:
+        return 2;
+    case C_TS_TA_1:
+        return 9;
+    case P_ME_NA_1:
+        return 3;
+    case P_ME_NB_1:
+        return 3;
+    case P_ME_NC_1:
+        return 5;
+    case P_AC_NA_1:
+        return 1;
+    case F_FR_NA_1:
+        return 6;
+    case F_SR_NA_1:
+        return 7;
+    case F_SC_NA_1:
+        return 4;
+    case F_LS_NA_1:
+        return 5;
+    case F_AF_NA_1:
+        return 4;
+    case F_DR_TA_1:
+        return 13;
+    case F_SC_NB_1:
+        return 16;
+
+    default:
+        return -1; /* variable-length or unknown */
+    }
+}
+
+/* Returns true if the ASDU type only allows a single information object */
+static bool
+CS101_ASDU_isSingleInformationObjectType(IEC60870_5_TypeID typeId)
+{
+    /* Process command types */
+    switch (typeId) {
+    case C_SC_NA_1:    /* 45 - Single command */
+    case C_DC_NA_1:    /* 46 - Double command */
+    case C_RC_NA_1:    /* 47 - Step command */
+    case C_SE_NA_1:    /* 48 - Setpoint command, normalized value */
+    case C_SE_NB_1:    /* 49 - Setpoint command, scaled value */
+    case C_SE_NC_1:    /* 50 - Setpoint command, short value */
+    case C_BO_NA_1:    /* 51 - Bitstring command */
+    case C_SC_TA_1:    /* 58 - Single command with CP56Time2a */
+    case C_DC_TA_1:    /* 59 - Double command with CP56Time2a */
+    case C_RC_TA_1:    /* 60 - Step command with CP56Time2a */
+    case C_SE_TA_1:    /* 61 - Setpoint command, normalized with CP56Time2a */
+    case C_SE_TB_1:    /* 62 - Setpoint command, scaled with CP56Time2a */
+    case C_SE_TC_1:    /* 63 - Setpoint command, short with CP56Time2a */
+    case C_BO_TA_1:    /* 64 - Bitstring command with CP56Time2a */
+        return true;
+
+    /* End of initialization */
+    case M_EI_NA_1:    /* 70 - End of initialization */
+        return true;
+
+    /* System command types */
+    case C_IC_NA_1:    /* 100 - Interrogation command */
+    case C_CI_NA_1:    /* 101 - Counter interrogation command */
+    case C_RD_NA_1:    /* 102 - Read command */
+    case C_CS_NA_1:    /* 103 - Clock synchronization command */
+    case C_TS_NA_1:    /* 104 - Test command */
+    case C_RP_NA_1:    /* 105 - Reset process command */
+    case C_CD_NA_1:    /* 106 - Delay acquisition command */
+    case C_TS_TA_1:    /* 107 - Test command with CP56Time2a */
+        return true;
+
+    /* File transfer types (except F_DR_TA_1 - file directory) */
+    case F_FR_NA_1:    /* 120 - File ready */
+    case F_SR_NA_1:    /* 121 - Section ready */
+    case F_SC_NA_1:    /* 122 - File call or select */
+    case F_LS_NA_1:    /* 123 - Last segment, section */
+    case F_AF_NA_1:    /* 124 - Acknowledge file, acknowledge section */
+    case F_SG_NA_1:    /* 125 - Segment */
+        return true;
+
+    default:
+        return false;
+    }
 }
 
 struct sFrameVFT asduFrameVFT = {
@@ -187,6 +385,23 @@ CS101_ASDU_createFromBufferEx(CS101_ASDU asdu, CS101_AppLayerParameters paramete
     if (msgLength < asduHeaderLength)
         return NULL;
 
+    /* Validate VSQ against actual payload size */
+    {
+        int payloadSize = msgLength - asduHeaderLength;
+        int numElements = msg[1] & 0x7f;
+        bool isSeq = (msg[1] & 0x80) != 0;
+        int dataSize = getElementDataSize((IEC60870_5_TypeID)msg[0]);
+
+        if (dataSize >= 0 && numElements > 0)
+        {
+            int expectedMinPayload = isSeq ? parameters->sizeOfIOA + numElements * dataSize
+                                           : numElements * (parameters->sizeOfIOA + dataSize);
+
+            if (payloadSize < expectedMinPayload)
+                return NULL;
+        }
+    }
+
     CS101_ASDU self = (CS101_ASDU)asdu;
 
     if (self == NULL)
@@ -264,6 +479,15 @@ CS101_ASDU_addInformationObject(CS101_ASDU self, InformationObject io)
     bool encoded = false;
 
     int numberOfElements = CS101_ASDU_getNumberOfElements(self);
+
+    /* Check if this ASDU type only allows a single information object */
+    if (numberOfElements > 0)
+    {
+        if (CS101_ASDU_isSingleInformationObjectType(CS101_ASDU_getTypeID(self)))
+        {
+            return false; /* Cannot add more than one IO to this ASDU type */
+        }
+    }
 
     if (numberOfElements == 0)
     {
@@ -474,6 +698,16 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
 {
     InformationObject retVal = NULL;
 
+    /* Check if index is valid */
+    if (index < 0 || index >= CS101_ASDU_getNumberOfElements(self))
+        return NULL;
+
+    /* Check if this ASDU type only allows a single information object */
+    if (CS101_ASDU_isSingleInformationObjectType(CS101_ASDU_getTypeID(self)) && index > 0)
+    {
+        return NULL; /* Only first element (index 0) is valid for single-object ASDUs */
+    }
+
     int elementSize;
 
     switch (CS101_ASDU_getTypeID(self))
@@ -490,7 +724,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)SinglePointInformation_getFromBuffer(
@@ -510,7 +744,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)SinglePointWithCP24Time2a_getFromBuffer(
@@ -530,7 +764,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)DoublePointInformation_getFromBuffer(
@@ -550,7 +784,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)DoublePointWithCP24Time2a_getFromBuffer(
@@ -570,7 +804,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)StepPositionInformation_getFromBuffer(
@@ -590,7 +824,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)StepPositionWithCP24Time2a_getFromBuffer(
@@ -610,7 +844,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)BitString32_getFromBuffer(
@@ -630,7 +864,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)Bitstring32WithCP24Time2a_getFromBuffer(
@@ -650,7 +884,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)MeasuredValueNormalized_getFromBuffer(
@@ -670,7 +904,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)MeasuredValueNormalizedWithCP24Time2a_getFromBuffer(
@@ -690,7 +924,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)MeasuredValueScaled_getFromBuffer(
@@ -710,7 +944,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)MeasuredValueScaledWithCP24Time2a_getFromBuffer(
@@ -730,7 +964,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)MeasuredValueShort_getFromBuffer(
@@ -750,7 +984,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)MeasuredValueShortWithCP24Time2a_getFromBuffer(
@@ -770,7 +1004,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)IntegratedTotals_getFromBuffer(
@@ -790,7 +1024,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)IntegratedTotalsWithCP24Time2a_getFromBuffer(
@@ -810,7 +1044,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)EventOfProtectionEquipment_getFromBuffer(
@@ -830,7 +1064,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)PackedStartEventsOfProtectionEquipment_getFromBuffer(
@@ -850,7 +1084,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)PackedOutputCircuitInfo_getFromBuffer(
@@ -870,7 +1104,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)PackedSinglePointWithSCD_getFromBuffer(
@@ -890,7 +1124,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)MeasuredValueNormalizedWithoutQuality_getFromBuffer(
@@ -910,7 +1144,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)SinglePointWithCP56Time2a_getFromBuffer(
@@ -930,7 +1164,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)DoublePointWithCP56Time2a_getFromBuffer(
@@ -950,7 +1184,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)StepPositionWithCP56Time2a_getFromBuffer(
@@ -970,7 +1204,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)Bitstring32WithCP56Time2a_getFromBuffer(
@@ -990,7 +1224,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)MeasuredValueNormalizedWithCP56Time2a_getFromBuffer(
@@ -1010,7 +1244,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)MeasuredValueScaledWithCP56Time2a_getFromBuffer(
@@ -1030,7 +1264,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)MeasuredValueShortWithCP56Time2a_getFromBuffer(
@@ -1050,7 +1284,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)IntegratedTotalsWithCP56Time2a_getFromBuffer(
@@ -1070,7 +1304,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)EventOfProtectionEquipmentWithCP56Time2a_getFromBuffer(
@@ -1090,7 +1324,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->payloadSize, self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)PackedStartEventsOfProtectionEquipmentWithCP56Time2a_getFromBuffer(
@@ -1110,7 +1344,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)PackedOutputCircuitInfoWithCP56Time2a_getFromBuffer(
@@ -1130,7 +1364,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)IntegratedTotalsForSecurityStatistics_getFromBuffer(
@@ -1425,7 +1659,7 @@ CS101_ASDU_getElementEx(CS101_ASDU self, InformationObject io, int index)
                 self->parameters->sizeOfIOA + (index * elementSize), true);
 
             InformationObject_setObjectAddress(
-                retVal, InformationObject_ParseObjectAddress(self->parameters, self->payload, 0) + index);
+                retVal, InformationObject_parseObjectAddress(self->parameters, self->payload, self->payloadSize, 0) + index);
         }
         else
             retVal = (InformationObject)FileDirectory_getFromBuffer(

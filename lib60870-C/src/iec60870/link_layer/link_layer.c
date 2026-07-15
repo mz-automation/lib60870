@@ -436,7 +436,7 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self, uint8_t fc, bool isB
                 if (self->_linkLayer.userDataSize > 0)
                 {
                     bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer,
-                                                         self->_linkLayer.userDataSize);
+                                                         self->_linkLayer.userDataSize, 255);
 
                     DEBUG_PRINT("SLL - REQ UD2 - send old message\n");
 
@@ -445,7 +445,7 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self, uint8_t fc, bool isB
             }
             else
             {
-                bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer, 0);
+                bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer, 0, 255);
 
                 asdu = self->applicationLayer->GetClass2Data(self->appLayerParam, bufferFrame);
 
@@ -505,7 +505,7 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self, uint8_t fc, bool isB
                 if (self->_linkLayer.userDataSize > 0)
                 {
                     bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer,
-                                                         self->_linkLayer.userDataSize);
+                                                         self->_linkLayer.userDataSize, 255);
 
                     DEBUG_PRINT("SLL - REQ UD1 - send old message\n");
 
@@ -514,7 +514,7 @@ LinkLayerSecondaryUnbalanced_handleMessage(LL_Sec_Unb self, uint8_t fc, bool isB
             }
             else
             {
-                bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer, 0);
+                bufferFrame = BufferFrame_initialize(&_bufferFrame, self->_linkLayer.userDataBuffer, 0, 255);
 
                 asdu = self->applicationLayer->GetClass1Data(self->appLayerParam, bufferFrame);
 
@@ -1397,7 +1397,7 @@ LinkLayerPrimaryBalanced_runStateMachine(LinkLayerPrimaryBalanced self)
         else
         {
             /* provide a buffer where the application layer can encode the user data */
-            Frame bufferFrame = BufferFrame_initialize(&(self->lastSendAsdu), self->linkLayer->userDataBuffer, 0);
+            Frame bufferFrame = BufferFrame_initialize(&(self->lastSendAsdu), self->linkLayer->userDataBuffer, 0, 255);
 
             Frame asdu = self->applicationLayer->GetUserData(self->applicationLayerParam, bufferFrame);
 
@@ -1633,7 +1633,7 @@ LinkLayerPrimaryUnbalanced_create(SerialTransceiverFT12 transceiver, LinkLayerPa
 
         self->linkLayer->llPriUnbalanced = self;
 
-        BufferFrame_initialize(&(self->nextBroadcastMessage), self->buffer, 0);
+        BufferFrame_initialize(&(self->nextBroadcastMessage), self->buffer, 0, 256);
 
         self->slaveConnections = LinkedList_create();
 
@@ -1718,7 +1718,7 @@ LinkLayerSlaveConnection_create(LinkLayerSlaveConnection self, LinkLayerPrimaryU
         self->requestClass1Data = false;
         self->requestClass2Data = false;
 
-        BufferFrame_initialize(&(self->nextMessage), self->buffer, 0);
+        BufferFrame_initialize(&(self->nextMessage), self->buffer, 0, 256);
     }
 
     return self;
