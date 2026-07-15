@@ -1,7 +1,7 @@
 Changes to version 2.4.1
 ------------------------
 
-New features and other improvements:
+New features and improvements:
 
 - TLS (mbedtls 2.28/3.6): Added mutex to protect CRL updates/access during runtime (LIB8705-307)
 - added missing function IntegratedTotalsForSecurityStatistics_getAID
@@ -26,6 +26,10 @@ Other bug fixes:
 - CS104 server: fixed potential dead-lock in server thread
 - TLS (mbedtls 2.28, 3.6): fixed potential memory leak during renegotiation when the peer certificate has to be stored
 - CS 101/104 client/master: fixed - use request COT for read command (LIB8705-270)
+
+Notes:
+
+- the secure authentication module (implementation of IEC 60870-5-7:2013) has to be updated to the latest version to be compatible with this library version.
 
 Changes to version 2.4.0
 ------------------------
