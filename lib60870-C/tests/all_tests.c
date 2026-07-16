@@ -6106,6 +6106,459 @@ test_CS104_MasterSlave_TLSConnectFails(void)
     TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_ALM_ALGO_NOT_SUPPORTED, eventInfo.eventCodes[0]);
 }
 
+void
+test_CS104_MasterSlave_TLSConnectSuccessWhitelistedFingerprint(void)
+{
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, NULL);
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    /* use valid certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    const size_t FINGERPRINT_SIZE = 32;
+    uint8_t* fingerprint = malloc(FINGERPRINT_SIZE * sizeof(uint8_t));
+    {
+        uint8_t fingerprintValues[] = {
+            0x0e, 0x22, 0x24, 0x70, 0x7d, 0x43, 0x38, 0xfb,
+            0x57, 0xf0, 0x84, 0xb8, 0x85, 0xc1, 0xef, 0x71,
+            0x06, 0xd0, 0xd3, 0x39, 0x65, 0xa0, 0x41, 0x4e,
+            0x5c, 0x6d, 0x78, 0xab, 0xc6, 0xd5, 0xfa, 0x8f,
+        };
+        memcpy(fingerprint, fingerprintValues, FINGERPRINT_SIZE);
+    }
+    res = TLSConfiguration_addAllowedCertificateFingerprint(tlsConfig2, fingerprint, FINGERPRINT_SIZE);
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
+
+void
+test_CS104_MasterSlave_TLSConnectSuccessWhitelistedDn(void)
+{
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, NULL);
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    /* use valid certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    char certDn[] = "C=DE, ST=BW, L=Freiburg, O=MZ Automation GmbH, OU=R&D, CN=server1";
+    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn, strlen(certDn) + 1);
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
+
+void
+test_CS104_MasterSlave_TLSConnectSuccessPartialWhitelistedDn(void)
+{
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, NULL);
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    /* use valid certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    char certDn[] = "O=MZ Automation GmbH, CN=server1";
+    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn, strlen(certDn) + 1);
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_TRUE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+}
+
+void
+test_CS104_MasterSlave_TLSConnectFailWhitelistedFingerprint(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    /* use valid certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    const size_t FINGERPRINT_SIZE = 32;
+    uint8_t* fingerprint = malloc(FINGERPRINT_SIZE * sizeof(uint8_t));
+    {
+        uint8_t fingerprintValues[] = {
+            0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
+            0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
+            0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
+            0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
+        };
+        memcpy(fingerprint, fingerprintValues, FINGERPRINT_SIZE);
+    }
+    res = TLSConfiguration_addAllowedCertificateFingerprint(tlsConfig2, fingerprint, FINGERPRINT_SIZE);
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    TEST_ASSERT_EQUAL_INT(1, eventInfo.eventHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_ALM_HANDSHAKE_FAILED_UNKNOWN_REASON, eventInfo.eventCodes[0]);
+}
+
+void
+test_CS104_MasterSlave_TLSConnectFailWhitelistedDn(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    /* use valid certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    char certDn[] = "C=PT, CN=server2";
+    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn, strlen(certDn) + 1);
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    TEST_ASSERT_EQUAL_INT(1, eventInfo.eventHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_ALM_HANDSHAKE_FAILED_UNKNOWN_REASON, eventInfo.eventCodes[0]);
+}
+
+void
+test_CS104_MasterSlave_TLSConnectFailPartialWhitelistedDn(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    /* use valid certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    char certDn[] = "C=PT, CN=server1";
+    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn, strlen(certDn) + 1);
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    TEST_ASSERT_EQUAL_INT(1, eventInfo.eventHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_ALM_HANDSHAKE_FAILED_UNKNOWN_REASON, eventInfo.eventCodes[0]);
+}
+
+void
+test_CS104_MasterSlave_TLSConnectFailWhitelist(void)
+{
+    struct secEventInfo eventInfo;
+    memset(&eventInfo, 0, sizeof(struct secEventInfo));
+
+    bool res = false;
+
+    TLSConfiguration tlsConfig1 = TLSConfiguration_create();
+
+    TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
+
+    TLSConfiguration_setChainValidation(tlsConfig1, true);
+
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig1, "server_CA1_1.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig1, "server_CA1_1.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig1, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    TLSConfiguration tlsConfig2 = TLSConfiguration_create();
+
+    TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setAllowOnlyKnownCertificates(tlsConfig2, true);
+
+    /* use valid certificate */
+    res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "client_CA1_3.key", NULL);
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_setOwnCertificateFromFile(tlsConfig2, "client_CA1_3.pem");
+    TEST_ASSERT_TRUE(res);
+    res = TLSConfiguration_addCACertificateFromFile(tlsConfig2, "root_CA1.pem");
+    TEST_ASSERT_TRUE(res);
+
+    CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
+
+    TEST_ASSERT_NOT_NULL(slave);
+
+    CS104_Slave_setLocalPort(slave, 20004);
+
+    CS104_Slave_start(slave);
+
+    CS104_Connection con = CS104_Connection_createSecure("127.0.0.1", 20004, tlsConfig2);
+
+    TEST_ASSERT_NOT_NULL(con);
+
+    bool result = CS104_Connection_connect(con);
+
+    TEST_ASSERT_FALSE(result);
+
+    CS104_Slave_destroy(slave);
+
+    CS104_Connection_destroy(con);
+
+    TLSConfiguration_destroy(tlsConfig1);
+    TLSConfiguration_destroy(tlsConfig2);
+
+    TEST_ASSERT_EQUAL_INT(1, eventInfo.eventHandlerCalled);
+    TEST_ASSERT_EQUAL_INT(TLS_EVENT_CODE_ALM_HANDSHAKE_FAILED_UNKNOWN_REASON, eventInfo.eventCodes[0]);
+}
+
 #ifndef WITH_MBEDTLS3
 void
 test_CS104_MasterSlave_TLSVersionMismatch(void)
@@ -10514,6 +10967,13 @@ main(int argc, char** argv)
     RUN_TEST(test_CS104_MasterSlave_TLSConnectSuccess);
     RUN_TEST(test_CS104_MasterSlave_TLSConnectSuccessWithoutSeparateCACert);
     RUN_TEST(test_CS104_MasterSlave_TLSConnectFails);
+    RUN_TEST(test_CS104_MasterSlave_TLSConnectSuccessWhitelistedFingerprint);
+    RUN_TEST(test_CS104_MasterSlave_TLSConnectSuccessWhitelistedDn);
+    RUN_TEST(test_CS104_MasterSlave_TLSConnectSuccessPartialWhitelistedDn);
+    RUN_TEST(test_CS104_MasterSlave_TLSConnectFailWhitelistedFingerprint);
+    RUN_TEST(test_CS104_MasterSlave_TLSConnectFailWhitelistedDn);
+    RUN_TEST(test_CS104_MasterSlave_TLSConnectFailPartialWhitelistedDn);
+    RUN_TEST(test_CS104_MasterSlave_TLSConnectFailWhitelist);
 
 #ifndef WITH_MBEDTLS3
     RUN_TEST(test_CS104_MasterSlave_TLSVersionMismatch);

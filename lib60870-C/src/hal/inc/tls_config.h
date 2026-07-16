@@ -271,6 +271,26 @@ PAL_API bool
 TLSConfiguration_addAllowedCertificateFromFile(TLSConfiguration self, const char* filename);
 
 /**
+ * Add a certificate fingerprint to the list of allowed peer certificate fingerprints from a byte buffer
+ *
+ * \param fingerprint the certificate fingerprint buffer
+ * \param fingerprintLen the length of the certificate fingerprint buffer
+ * \return true, when the certificate fingerprint was set, false otherwise (e.g. unknown certificate fingerprint format)
+ */
+PAL_API bool
+TLSConfiguration_addAllowedCertificateFingerprint(TLSConfiguration self, unsigned char* fingerprint, int fingerprintLen);
+
+/**
+ * Add a certificate DN to the list of allowed peer certificate DNs from a byte buffer
+ *
+ * \param dn the certificate DN buffer
+ * \param dnLen the length of the certificate DN buffer
+ * \return true, when the certificate DN was set, false otherwise (e.g. unknown certificate DN format)
+ */
+PAL_API bool
+TLSConfiguration_addAllowedCertificateDn(TLSConfiguration self, char* dn, int dnLen);
+
+/**
  * \brief Add a CA certificate used to validate peer certificates from a byte buffer
  *
  * \param certificate the certificate buffer
