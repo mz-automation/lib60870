@@ -605,7 +605,7 @@ compareCertFingerprints(uint8_t crtFingerprint1[32], mbedtls_x509_crt* crt2)
 {
     if (crtFingerprint1 != NULL && crt2 != NULL)
     {
-        // Get the Fingerprint for crt2
+        /* Get the Fingerprint for crt2 */
         uint8_t crtFingerprint2[CERT_FINGERPRINT_SIZE];
         int ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), crt2->raw.p, crt2->raw.len, crtFingerprint2);
 
@@ -623,8 +623,8 @@ compareCertDns(mbedtls_asn1_named_data* crtDn1, mbedtls_x509_crt* crt2)
 {
     if (crtDn1 != NULL && crt2 != NULL)
     {
-        // Check that all attributes from the whitelisted
-        // certificate are present in the received certificate
+        /* Check that all attributes from the whitelisted
+           certificate are present in the received certificate */
         for (mbedtls_asn1_named_data* a = crtDn1; a != NULL; a = a->next)
         {
             int found = false;
@@ -647,8 +647,8 @@ compareCertDns(mbedtls_asn1_named_data* crtDn1, mbedtls_x509_crt* crt2)
             }
         }
         
-        // Allow received certificate to have
-        // attributes that are not whitelisted
+        /* Allow received certificate to have
+           attributes that are not whitelisted */
         return true;
     }
 
@@ -801,7 +801,7 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
                     for (size_t i = 0; i < CERT_FINGERPRINT_SIZE; ++i)
                     {
                         snprintf(allowedFingerprintString + 3 * i, 3, "%02X", allowedFingerprint[i]);
-                        allowedFingerprintString[3 * i + 2] = ':'; // Replace the '\n' from snprintf
+                        allowedFingerprintString[3 * i + 2] = ':'; /* Replace the '\n' from snprintf */
                     }
                     allowedFingerprintString[3 * CERT_FINGERPRINT_SIZE - 1] = '\0';
                     DEBUG_PRINT("TLS", "%s\n", allowedFingerprintString);

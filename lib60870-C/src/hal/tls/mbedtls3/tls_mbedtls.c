@@ -555,7 +555,7 @@ compareCertFingerprints(uint8_t crtFingerprint1[32], mbedtls_x509_crt* crt2)
 {
     if (crtFingerprint1 != NULL && crt2 != NULL)
     {
-        // Get the Fingerprint for crt2
+        /* Get the Fingerprint for crt2 */
         uint8_t crtFingerprint2[CERT_FINGERPRINT_SIZE];
         int ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), crt2->raw.p, crt2->raw.len, crtFingerprint2);
 
@@ -573,8 +573,8 @@ compareCertDns(mbedtls_asn1_named_data* crtDn1, mbedtls_x509_crt* crt2)
 {
     if (crtDn1 != NULL && crt2 != NULL)
     {
-        // Check that all attributes from the whitelisted
-        // certificate are present in the received certificate
+        /* Check that all attributes from the whitelisted
+           certificate are present in the received certificate */
         for (mbedtls_asn1_named_data* a = crtDn1; a != NULL; a = a->next)
         {
             int found = false;
@@ -597,8 +597,8 @@ compareCertDns(mbedtls_asn1_named_data* crtDn1, mbedtls_x509_crt* crt2)
             }
         }
         
-        // Allow received certificate to have
-        // attributes that are not whitelisted
+        /* Allow received certificate to have
+           attributes that are not whitelisted */
         return true;
     }
 
@@ -725,7 +725,7 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
                     for (size_t i = 0; i < CERT_FINGERPRINT_SIZE; ++i)
                     {
                         snprintf(allowedFingerprintString + 3 * i, 3, "%02X", allowedFingerprint[i]);
-                        allowedFingerprintString[3 * i + 2] = ':'; // Replace the '\n' from snprintf
+                        allowedFingerprintString[3 * i + 2] = ':'; /* Replace the '\n' from snprintf */
                     }
                     allowedFingerprintString[3 * CERT_FINGERPRINT_SIZE - 1] = '\0';
                     DEBUG_PRINT("TLS", "%s\n", allowedFingerprintString);
@@ -1520,48 +1520,20 @@ createSecurityEvents(TLSConfiguration config, int ret, uint32_t flags, TLSSocket
                            socket);
         break;
 
-        // MIGRATE 2.28->3.x.x:https://github.com/Mbed-TLS/mbedtls/blob/development/docs/3.0-migration-guide.md#changes-in-the-ssl-error-code-space
-        // case MBEDTLS_ERR_SSL_NO_CIPHER_CHOSEN: (MIGRATE 2.28->3.x.x)
-        //     raiseSecurityEvent(config, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_NO_CIPHER, "Alarm: no matching TLS
-        //     ciphers", socket); break;
-
-        // case MBEDTLS_ERR_SSL_NO_USABLE_CIPHERSUITE: (MIGRATE 2.28->3.x.x)
-        //     raiseSecurityEvent(config, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_ALGO_NOT_SUPPORTED, "Alarm: Algorithm
-        //     not supported", socket); break;
-
     case MBEDTLS_ERR_SSL_HANDSHAKE_FAILURE:
         raiseSecurityEvent(config, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_ALGO_NOT_SUPPORTED,
                            "Alarm: Handshake failure", socket);
         break;
-
-        // case MBEDTLS_ERR_SSL_BAD_HS_PROTOCOL_VERSION: (MIGRATE 2.28->3.x.x)
-        //     raiseSecurityEvent(config,TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_UNSECURE_COMMUNICATION, "Alarm:
-        //     Unsecure communication", socket); break;
 
     case MBEDTLS_ERR_SSL_NO_CLIENT_CERTIFICATE:
         raiseSecurityEvent(config, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_UNAVAILABLE,
                            "Alarm: certificate unavailable", socket);
         break;
 
-        // case MBEDTLS_ERR_SSL_BAD_HS_CERTIFICATE: (MIGRATE 2.28->3.x.x)
-        //     raiseSecurityEvent(config,TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_BAD_CERT, "Alarm: Bad certificate",
-        //     socket); break;
-
     case MBEDTLS_ERR_SSL_BUFFER_TOO_SMALL:
         raiseSecurityEvent(config, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_SIZE_EXCEEDED,
                            "Alarm: TLS certificate size exceeded", socket);
         break;
-
-        // MIGRATE 2.28->3.x.x: the removal of this is undocumented TODO: Verify migration path
-        // case MBEDTLS_ERR_SSL_PEER_VERIFY_FAILED: (MIGRATE 2.28->3.x.x)
-        //     raiseSecurityEvent(config,TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED, "Alarm:
-        //     certificate validation: certificate signature could not be validated", socket); break;
-
-        // MIGRATE 2.28->3.x.x: the removal of this is undocumented. The docs say migrating users are affected but don't
-        // provide a migration path TODO: Verify migration path (MIGRATE 2.28->3.x.x) case
-        // MBEDTLS_ERR_SSL_CERTIFICATE_REQUIRED:
-        //     raiseSecurityEvent(config,TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_REQUIRED, "Alarm: Certificate
-        //     required", socket); break;
 
     case MBEDTLS_ERR_SSL_DECODE_ERROR:
         raiseSecurityEvent(config, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_HANDSHAKE_FAILED_UNKNOWN_REASON,
@@ -1676,8 +1648,8 @@ writeFunction(void* ctx, unsigned char* buf, size_t len)
     if (self == NULL)
         return MBEDTLS_ERR_NET_INVALID_CONTEXT;
 
-    //if (self->versionMismatchDetected)
-    //    return MBEDTLS_ERR_NET_CONN_RESET;
+    if (self->versionMismatchDetected)
+       return MBEDTLS_ERR_NET_CONN_RESET;
 
     int ret = Socket_write(self->socket, buf, (int)len);
 

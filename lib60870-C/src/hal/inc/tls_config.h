@@ -271,9 +271,9 @@ PAL_API bool
 TLSConfiguration_addAllowedCertificateFromFile(TLSConfiguration self, const char* filename);
 
 /**
- * Add a certificate fingerprint to the list of allowed peer certificate fingerprints from a byte buffer
+ * Add a certificate fingerprint (SHA-256) to the list of allowed peer certificate fingerprints from a byte buffer
  *
- * \param fingerprint the certificate fingerprint buffer
+ * \param fingerprint the certificate fingerprint buffer (should be 32 bytes for SHA256)
  * \param fingerprintLen the length of the certificate fingerprint buffer
  * \return true, when the certificate fingerprint was set, false otherwise (e.g. unknown certificate fingerprint format)
  */
