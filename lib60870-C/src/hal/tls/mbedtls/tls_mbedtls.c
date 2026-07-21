@@ -78,6 +78,13 @@ tlsFormatTimestamp(char* buffer, size_t bufferSize)
 #define DEBUG_PRINT(appId, fmt, ...) do {} while(0)
 #endif
 
+#if __STDC_VERSION__ >= 201112L
+#include <stdatomic.h>
+#else
+#include "hal_thread.h"
+#define _TLS_OWN_CNT_SEM 1
+#endif
+
 typedef struct TLSCacheEntry
 {
     uint64_t timestamp;
@@ -157,6 +164,11 @@ struct sTLSConfiguration
     bool useSessionResumption;
     int sessionResumptionInterval; /* session resumption interval in milliseconds */
 
+#ifdef _TLS_OWN_CNT_SEM
+    Semaphore ownerCountMutex;
+#endif /* _TLS_OWN_CNT_SEM */
+
+    int ownerCount;
     int* ciphersuites;
     int maxCiphersuites;
 
@@ -926,6 +938,12 @@ TLSConfiguration_create()
 
     if (self)
     {
+         self->ownerCount = 1;
+
+#ifdef _TLS_OWN_CNT_SEM
+        self->ownerCountMutex = Semaphore_create(1);
+#endif /* TLS_OWN_CNT_SEM */
+
         mbedtls_ssl_config_init( &(self->conf) );
         mbedtls_x509_crt_init( &(self->ownCertificate) );
         mbedtls_x509_crt_init( &(self->cacerts) );
@@ -1357,8 +1375,8 @@ TLSConfiguration_setRenegotiationTimeout(TLSConfiguration self, int timeoutInMs)
         self->renegotiationTimeoutInMs = timeoutInMs;
 }
 
-void
-TLSConfiguration_destroy(TLSConfiguration self)
+static void
+destroy(TLSConfiguration self)
 {
     if (self)
     {
@@ -1411,6 +1429,34 @@ TLSConfiguration_destroy(TLSConfiguration self)
         }
 
         GLOBAL_FREEMEM(self);
+    }
+}
+
+void
+TLSConfiguration_destroy(TLSConfiguration self)
+{
+    if (self)
+    {
+#ifdef _TLS_OWN_CNT_SEM
+
+        int cnt;
+
+        Semaphore_wait(self->ownerCountMutex);
+
+        cnt = self->ownerCount;
+        self->ownerCount--;
+
+        Semaphore_post(self->ownerCountMutex);
+
+        if (cnt == 1) {
+            destroy(self);
+        }
+#else
+        if (atomic_fetch_sub(&(self->ownerCount), 1) == 1)
+        {
+            destroy(self);
+        }
+#endif /* #ifdef _TLS_OWN_CNT_SEM */
     }
 }
 
@@ -2493,4 +2539,18 @@ TLSConfigVersion_toString(TLSConfigVersion version)
         default:
             return "unknown TLS version";
     }
+}
+
+TLSConfiguration
+TLSConfiguration_claimOwnership(TLSConfiguration self)
+{
+#ifdef _TLS_OWN_CNT_SEM
+    Semaphore_wait(self->ownerCountMutex);
+    self->ownerCount++;
+    Semaphore_post(self->ownerCountMutex);
+#else
+    atomic_fetch_add(&(self->ownerCount), 1);
+#endif
+
+    return self;
 }
