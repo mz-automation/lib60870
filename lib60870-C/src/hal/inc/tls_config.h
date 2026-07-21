@@ -283,12 +283,11 @@ TLSConfiguration_addAllowedCertificateFingerprint(TLSConfiguration self, unsigne
 /**
  * Add a certificate DN to the list of allowed peer certificate DNs from a byte buffer
  *
- * \param dn the certificate DN buffer
- * \param dnLen the length of the certificate DN buffer
+ * \param dn the certificate DN buffer (null terminated)
  * \return true, when the certificate DN was set, false otherwise (e.g. unknown certificate DN format)
  */
 PAL_API bool
-TLSConfiguration_addAllowedCertificateDn(TLSConfiguration self, char* dn, int dnLen);
+TLSConfiguration_addAllowedCertificateDn(TLSConfiguration self, char* dn);
 
 /**
  * \brief Add a CA certificate used to validate peer certificates from a byte buffer

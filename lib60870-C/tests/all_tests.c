@@ -6207,7 +6207,7 @@ test_CS104_MasterSlave_TLSConnectSuccessWhitelistedDn(void)
     TEST_ASSERT_TRUE(res);
 
     char certDn[] = "C=DE, ST=BW, L=Freiburg, O=MZ Automation GmbH, OU=R&D, CN=server1";
-    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn, strlen(certDn) + 1);
+    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn);
     TEST_ASSERT_TRUE(res);
 
     CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
@@ -6266,7 +6266,7 @@ test_CS104_MasterSlave_TLSConnectSuccessPartialWhitelistedDn(void)
     TEST_ASSERT_TRUE(res);
 
     char certDn[] = "O=MZ Automation GmbH, CN=server1";
-    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn, strlen(certDn) + 1);
+    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn);
     TEST_ASSERT_TRUE(res);
 
     CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
@@ -6403,7 +6403,7 @@ test_CS104_MasterSlave_TLSConnectFailWhitelistedDn(void)
     TEST_ASSERT_TRUE(res);
 
     char certDn[] = "C=PT, CN=server2";
-    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn, strlen(certDn) + 1);
+    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn);
     TEST_ASSERT_TRUE(res);
 
     CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);
@@ -6468,7 +6468,7 @@ test_CS104_MasterSlave_TLSConnectFailPartialWhitelistedDn(void)
     TEST_ASSERT_TRUE(res);
 
     char certDn[] = "C=PT, CN=server1";
-    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn, strlen(certDn) + 1);
+    res = TLSConfiguration_addAllowedCertificateDn(tlsConfig2, certDn);
     TEST_ASSERT_TRUE(res);
 
     CS104_Slave slave = CS104_Slave_createSecure(100, 100, tlsConfig1);

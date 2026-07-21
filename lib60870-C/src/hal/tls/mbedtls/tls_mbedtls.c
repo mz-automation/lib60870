@@ -1210,7 +1210,13 @@ TLSConfiguration_setChainValidation(TLSConfiguration self, bool value)
         authMode = MBEDTLS_SSL_VERIFY_NONE;
     }
 
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
     mbedtls_ssl_conf_authmode(&(self->conf), authMode);
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
 }
 
 void
@@ -1364,7 +1370,7 @@ TLSConfiguration_addAllowedCertificateFingerprint(TLSConfiguration self, uint8_t
 }
 
 bool
-TLSConfiguration_addAllowedCertificateDn(TLSConfiguration self, char* dn, int dnLen)
+TLSConfiguration_addAllowedCertificateDn(TLSConfiguration self, char* dn)
 {
     if (self->configMutex)
         Semaphore_wait(self->configMutex);
@@ -1373,6 +1379,8 @@ TLSConfiguration_addAllowedCertificateDn(TLSConfiguration self, char* dn, int dn
     int ret = mbedtls_x509_string_to_names(&allowedCertDn, dn);
     if (ret != 0)
     {
+        if (self->configMutex)
+            Semaphore_post(self->configMutex);
         return false;
     }
 
