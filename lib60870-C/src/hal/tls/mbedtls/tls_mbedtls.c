@@ -39,6 +39,8 @@
 #define CONFIG_DEBUG_TLS 0
 #endif
 
+static const size_t CERT_FINGERPRINT_SIZE = 32;
+
 #if (CONFIG_DEBUG_TLS == 1)
 static void
 tlsFormatTimestamp(char* buffer, size_t bufferSize)
@@ -122,6 +124,8 @@ struct sTLSConfiguration
 
     mbedtls_ssl_config conf;
     LinkedList /* <mbedtls_x509_crt*> */ allowedCertificates;
+    LinkedList /* <uint8_t[32]> */ allowedCertificateFingerprints;
+    LinkedList /* <mbedtls_asn1_named_data*> */ allowedCertificateDNs;
 
     /* session cache for server */
     TLSVersionedCache serverSessionCache;
@@ -597,6 +601,61 @@ compareCertificates(mbedtls_x509_crt* crt1, mbedtls_x509_crt* crt2)
 }
 
 static bool
+compareCertFingerprints(uint8_t crtFingerprint1[32], mbedtls_x509_crt* crt2)
+{
+    if (crtFingerprint1 != NULL && crt2 != NULL)
+    {
+        /* Get the Fingerprint for crt2 */
+        uint8_t crtFingerprint2[CERT_FINGERPRINT_SIZE];
+        int ret = mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), crt2->raw.p, crt2->raw.len, crtFingerprint2);
+
+        if ((ret >= 0) && (memcmp(crtFingerprint1, crtFingerprint2, CERT_FINGERPRINT_SIZE) == 0))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool
+compareCertDns(mbedtls_asn1_named_data* crtDn1, mbedtls_x509_crt* crt2)
+{
+    if (crtDn1 != NULL && crt2 != NULL)
+    {
+        /* Check that all attributes from the whitelisted
+           certificate are present in the received certificate */
+        for (mbedtls_asn1_named_data* a = crtDn1; a != NULL; a = a->next)
+        {
+            int found = false;
+
+            for (mbedtls_asn1_named_data* b = &crt2->subject; b != NULL; b = b->next)
+            {
+                if ((a->oid.len == b->oid.len) &&
+                    (a->val.len == b->val.len) &&
+                    (memcmp(a->oid.p, b->oid.p, a->oid.len) == 0) &&
+                    (memcmp(a->val.p, b->val.p, a->val.len) == 0))
+                {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                return false;
+            }
+        }
+        
+        /* Allow received certificate to have
+           attributes that are not whitelisted */
+        return true;
+    }
+
+    return false;
+}
+
+static bool
 crlAvailableForCert(TLSConfiguration cfg, const mbedtls_x509_crt* crt)
 {
     bool found = false;
@@ -709,12 +768,10 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
 
         if (self->tlsConfig->allowOnlyKnownCertificates)
         {
-            DEBUG_PRINT("TLS", "Check against list of allowed certs\n");
-
             bool certMatches = false;
 
+            DEBUG_PRINT("TLS", "Check against list of allowed certs\n");
             LinkedList certList = LinkedList_getNext(self->tlsConfig->allowedCertificates);
-
             while (certList)
             {
                 mbedtls_x509_crt* allowedCert = (mbedtls_x509_crt*)LinkedList_getData(certList);
@@ -732,7 +789,59 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
                 certList = LinkedList_getNext(certList);
             }
 
-            if (!certMatches)
+            DEBUG_PRINT("TLS", "Check against list of allowed certificate fingerprints\n");
+            certList = LinkedList_getNext(self->tlsConfig->allowedCertificateFingerprints);
+            while (!certMatches && certList)
+            {
+                uint8_t* allowedFingerprint = (uint8_t*)LinkedList_getData(certList);
+
+                DEBUG_PRINT("TLS", "Compare With:\n");
+                {
+                    char allowedFingerprintString[3 * CERT_FINGERPRINT_SIZE];
+                    for (size_t i = 0; i < CERT_FINGERPRINT_SIZE; ++i)
+                    {
+                        snprintf(allowedFingerprintString + 3 * i, 3, "%02X", allowedFingerprint[i]);
+                        allowedFingerprintString[3 * i + 2] = ':'; /* Replace the '\n' from snprintf */
+                    }
+                    allowedFingerprintString[3 * CERT_FINGERPRINT_SIZE - 1] = '\0';
+                    DEBUG_PRINT("TLS", "%s\n", allowedFingerprintString);
+                }
+
+                if (compareCertFingerprints(allowedFingerprint, crt))
+                {
+                    certMatches = true;
+                    break;
+                }
+
+                certList = LinkedList_getNext(certList);
+            }
+
+            DEBUG_PRINT("TLS", "Check against list of allowed DNs of certificate\n");
+            certList = LinkedList_getNext(self->tlsConfig->allowedCertificateDNs);
+            while (!certMatches && certList)
+            {
+                mbedtls_asn1_named_data* allowedDn = (mbedtls_asn1_named_data*)LinkedList_getData(certList);
+
+                DEBUG_PRINT("TLS", "Compare With:\n");
+                memset(buffer, 0, 1024);
+                mbedtls_x509_dn_gets(buffer, 1023, allowedDn);
+                DEBUG_PRINT("TLS", "%s\n", buffer);
+
+                if (compareCertDns(allowedDn, crt))
+                {
+                    certMatches = true;
+                    break;
+                }
+
+                certList = LinkedList_getNext(certList);
+            }
+
+            if (certMatches)
+            {
+                if (self->tlsConfig->chainValidation == false)
+                    *flags = 0;
+            }
+            else
             {
                 raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_NOT_CONFIGURED, "Alarm: certificate validation: trusted individual certificate not available", self);
 
@@ -975,6 +1084,8 @@ TLSConfiguration_create()
         self->renegotiationTimeInMs = -1; /* no automatic renegotiation */
 
         self->allowedCertificates = LinkedList_create();
+        self->allowedCertificateFingerprints = LinkedList_create();
+        self->allowedCertificateDNs = LinkedList_create();
 
         /* default behavior is to allow all certificates that are signed by the CA */
         self->chainValidation = true;
@@ -1088,6 +1199,24 @@ void
 TLSConfiguration_setChainValidation(TLSConfiguration self, bool value)
 {
     self->chainValidation = value;
+
+    int authMode;
+    if (self->chainValidation)
+    {
+        authMode = MBEDTLS_SSL_VERIFY_REQUIRED;
+    }
+    else
+    {
+        authMode = MBEDTLS_SSL_VERIFY_NONE;
+    }
+
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
+    mbedtls_ssl_conf_authmode(&(self->conf), authMode);
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
 }
 
 void
@@ -1220,6 +1349,46 @@ TLSConfiguration_addAllowedCertificateFromFile(TLSConfiguration self, const char
         Semaphore_post(self->configMutex);
 
     return (ret == 0);
+}
+
+bool
+TLSConfiguration_addAllowedCertificateFingerprint(TLSConfiguration self, uint8_t* fingerprint, int fingerprintLen)
+{
+    if (CERT_FINGERPRINT_SIZE != (size_t)fingerprintLen)
+    {
+        return false;
+    }
+
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
+    LinkedList_add(self->allowedCertificateFingerprints, fingerprint);
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
+    return true;
+}
+
+bool
+TLSConfiguration_addAllowedCertificateDn(TLSConfiguration self, char* dn)
+{
+    if (self->configMutex)
+        Semaphore_wait(self->configMutex);
+
+    mbedtls_asn1_named_data* allowedCertDn = NULL;
+    int ret = mbedtls_x509_string_to_names(&allowedCertDn, dn);
+    if (ret != 0)
+    {
+        if (self->configMutex)
+            Semaphore_post(self->configMutex);
+        return false;
+    }
+
+    LinkedList_add(self->allowedCertificateDNs, allowedCertDn);
+
+    if (self->configMutex)
+        Semaphore_post(self->configMutex);
+    return true;
 }
 
 bool
@@ -1407,18 +1576,9 @@ destroy(TLSConfiguration self)
         mbedtls_pk_free(&(self->ownKey));
         mbedtls_ssl_config_free(&(self->conf));
 
-        LinkedList certElem = LinkedList_getNext(self->allowedCertificates);
-
-        while (certElem)
-        {
-            mbedtls_x509_crt* cert = (mbedtls_x509_crt*)LinkedList_getData(certElem);
-
-            mbedtls_x509_crt_free(cert);
-
-            certElem = LinkedList_getNext(certElem);
-        }
-
-        LinkedList_destroy(self->allowedCertificates);
+        LinkedList_destroyDeep(self->allowedCertificates, (void*)mbedtls_x509_crt_free);
+        LinkedList_destroyDeep(self->allowedCertificateFingerprints, Memory_free);
+        LinkedList_destroyDeep(self->allowedCertificateDNs, (void*)mbedtls_asn1_free_named_data_list);
 
         GLOBAL_FREEMEM(self->ciphersuites);
 
