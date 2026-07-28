@@ -47,7 +47,7 @@ pipelines:
               - cmake --build build --parallel $(nproc)
               - (cd build/tests && ./tests)
               - lcov --directory build --capture --output-file coverage.info
-              - lcov --remove coverage.info '/usr/include/*' 'dependencies/*' --output-file coverage.info
+              - lcov --remove coverage.info '*usr*' '*dependencies*' --output-file coverage.info
               - genhtml coverage.info -o coverage-report
             artifacts:
               - coverage-report/**
@@ -74,7 +74,7 @@ pipelines:
               - cmake --build build --parallel $(nproc)
               - (cd build/tests && ./tests)
               - lcov --directory build --capture --output-file coverage.info
-              - lcov --remove coverage.info '/usr/include/*' 'dependencies/*' --output-file coverage.info
+              - lcov --remove coverage.info '*usr*' '*dependencies*' --output-file coverage.info
               - genhtml coverage.info -o coverage-report
             artifacts:
               - coverage-report/**
@@ -140,7 +140,7 @@ pipelines:
               - cmake --build build --parallel $(nproc)
               - (cd build/tests && ./tests)
               - lcov --directory build --capture --output-file coverage.info
-              - lcov --remove coverage.info '/usr/include/*' 'dependencies/*' --output-file coverage.info
+              - lcov --remove coverage.info '*usr*' '*dependencies*' --output-file coverage.info
               - genhtml coverage.info -o coverage-report
             artifacts:
               - coverage-report/**
