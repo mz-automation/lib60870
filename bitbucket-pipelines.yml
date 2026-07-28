@@ -46,8 +46,7 @@ pipelines:
               - CFLAGS="--coverage -fprofile-update=atomic" LDFLAGS="--coverage" cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
               - cmake --build build --parallel $(nproc)
               - (cd build/tests && ./tests)
-              - lcov --directory build --capture --output-file coverage.info
-              - lcov --remove coverage.info '*usr*' '*dependencies*' --output-file coverage.info
+              - lcov --directory build --capture --output-file coverage.info --ignore-errors gcov
               - genhtml coverage.info -o coverage-report
             artifacts:
               - coverage-report/**
@@ -73,8 +72,7 @@ pipelines:
               - CFLAGS="--coverage -fprofile-update=atomic" LDFLAGS="--coverage" cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
               - cmake --build build --parallel $(nproc)
               - (cd build/tests && ./tests)
-              - lcov --directory build --capture --output-file coverage.info
-              - lcov --remove coverage.info '*usr*' '*dependencies*' --output-file coverage.info
+              - lcov --directory build --capture --output-file coverage.info --ignore-errors gcov
               - genhtml coverage.info -o coverage-report
             artifacts:
               - coverage-report/**
@@ -139,8 +137,7 @@ pipelines:
               - CFLAGS="--coverage -fprofile-update=atomic" LDFLAGS="--coverage" cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
               - cmake --build build --parallel $(nproc)
               - (cd build/tests && ./tests)
-              - lcov --directory build --capture --output-file coverage.info
-              - lcov --remove coverage.info '*usr*' '*dependencies*' --output-file coverage.info
+              - lcov --directory build --capture --output-file coverage.info --ignore-errors gcov
               - genhtml coverage.info -o coverage-report
             artifacts:
               - coverage-report/**
