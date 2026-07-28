@@ -43,7 +43,7 @@ pipelines:
                 # Apply the session-resumption patch required by IEC 62351-3:2023.
                 patch "lib60870-C/dependencies/mbedtls-${VER}/library/ssl_srv.c" \
                   lib60870-C/dependencies/mbedtls_2.28_ssl_srv.c.patch
-              - cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF -DCMAKE_C_FLAGS="--coverage" -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+              - CFLAGS="--coverage" LDFLAGS="--coverage" cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
               - cmake --build build --parallel $(nproc)
               - (cd build/tests && ./tests)
               - lcov --directory build --capture --output-file coverage.info
@@ -70,7 +70,7 @@ pipelines:
                   "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-${VER}/mbedtls-${VER}.tar.bz2" \
                   -O /tmp/mbedtls.tar.bz2
                 tar xfj /tmp/mbedtls.tar.bz2 -C lib60870-C/dependencies/
-              - cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF -DCMAKE_C_FLAGS="--coverage" -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+              - CFLAGS="--coverage" LDFLAGS="--coverage" cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
               - cmake --build build --parallel $(nproc)
               - (cd build/tests && ./tests)
               - lcov --directory build --capture --output-file coverage.info
@@ -136,7 +136,7 @@ pipelines:
               - apt-get install -y --no-install-recommends cmake build-essential lcov
               # No mbedtls in dependencies/ — cmake auto-detects nothing and
               # builds without TLS support.
-              - cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF -DCMAKE_C_FLAGS="--coverage" -DCMAKE_EXE_LINKER_FLAGS="--coverage"
+              - CFLAGS="--coverage" LDFLAGS="--coverage" cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
               - cmake --build build --parallel $(nproc)
               - (cd build/tests && ./tests)
               - lcov --directory build --capture --output-file coverage.info
