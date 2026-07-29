@@ -46,7 +46,7 @@
 
 static int psaInitCounter = 0;
 
-static const size_t CERT_FINGERPRINT_SIZE = 32;
+#define CERT_FINGERPRINT_SIZE 32
 
 #if __STDC_VERSION__ >= 201112L
 #include <stdatomic.h>

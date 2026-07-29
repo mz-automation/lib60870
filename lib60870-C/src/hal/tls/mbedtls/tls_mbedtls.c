@@ -39,7 +39,7 @@
 #define CONFIG_DEBUG_TLS 0
 #endif
 
-static const size_t CERT_FINGERPRINT_SIZE = 32;
+#define CERT_FINGERPRINT_SIZE 32
 
 #if (CONFIG_DEBUG_TLS == 1)
 static void

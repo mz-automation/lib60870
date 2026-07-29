@@ -6138,7 +6138,7 @@ test_CS104_MasterSlave_TLSConnectSuccessWhitelistedFingerprint(void)
     TEST_ASSERT_TRUE(res);
 
     const size_t FINGERPRINT_SIZE = 32;
-    uint8_t* fingerprint = malloc(FINGERPRINT_SIZE * sizeof(uint8_t));
+    uint8_t* fingerprint = (uint8_t*)malloc(FINGERPRINT_SIZE * sizeof(uint8_t));
     {
         uint8_t fingerprintValues[] = {
             0x0e, 0x22, 0x24, 0x70, 0x7d, 0x43, 0x38, 0xfb,
@@ -6328,7 +6328,7 @@ test_CS104_MasterSlave_TLSConnectFailWhitelistedFingerprint(void)
     TEST_ASSERT_TRUE(res);
 
     const size_t FINGERPRINT_SIZE = 32;
-    uint8_t* fingerprint = malloc(FINGERPRINT_SIZE * sizeof(uint8_t));
+    uint8_t* fingerprint = (uint8_t*)malloc(FINGERPRINT_SIZE * sizeof(uint8_t));
     {
         uint8_t fingerprintValues[] = {
             0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
