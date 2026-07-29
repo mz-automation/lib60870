@@ -45,11 +45,12 @@ pipelines:
                   lib60870-C/dependencies/mbedtls_2.28_ssl_srv.c.patch
               - CFLAGS="--coverage -fprofile-update=atomic" LDFLAGS="--coverage" cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
               - cmake --build build --parallel $(nproc)
-              - (cd build/tests && ./tests)
+              - bash lib60870-C/tests/run-tests.sh build/tests/tests 135
               - lcov --directory build --capture --output-file coverage.info --ignore-errors gcov
-              - genhtml coverage.info -o coverage-report
+              - lcov --remove coverage.info '/usr/*' '*/dependencies/*' '*/tests/*' --output-file coverage-filtered.info --ignore-errors unused
+              - genhtml coverage-filtered.info -o coverage-report-mbedtls-228
             artifacts:
-              - coverage-report/**
+              - coverage-report-mbedtls-228/**
 
         # ------------------------------------------------------------------ #
         # 2. cmake + mbedtls 3.6 (latest patch)
@@ -71,11 +72,12 @@ pipelines:
                 tar xfj /tmp/mbedtls.tar.bz2 -C lib60870-C/dependencies/
               - CFLAGS="--coverage -fprofile-update=atomic" LDFLAGS="--coverage" cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
               - cmake --build build --parallel $(nproc)
-              - (cd build/tests && ./tests)
+              - bash lib60870-C/tests/run-tests.sh build/tests/tests 134
               - lcov --directory build --capture --output-file coverage.info --ignore-errors gcov
-              - genhtml coverage.info -o coverage-report
+              - lcov --remove coverage.info '/usr/*' '*/dependencies/*' '*/tests/*' --output-file coverage-filtered.info --ignore-errors unused
+              - genhtml coverage-filtered.info -o coverage-report-mbedtls-36
             artifacts:
-              - coverage-report/**
+              - coverage-report-mbedtls-36/**
 
         # ------------------------------------------------------------------ #
         # 3. Makefile + mbedtls 2.28 (latest patch, ssl_srv.c patch applied)
@@ -100,7 +102,8 @@ pipelines:
                   lib60870-C/dependencies/mbedtls_2.28_ssl_srv.c.patch
               # The Makefile auto-detects the mbedtls-2.28.x directory and sets
               # WITH_MBEDTLS=1; both the library and test binary are built.
-              - cd lib60870-C && make -j$(nproc) lib tests
+              - (cd lib60870-C && make -j$(nproc) lib tests)
+              - bash lib60870-C/tests/run-tests.sh lib60870-C/build/tests.exe 135
 
         # ------------------------------------------------------------------ #
         # 4. Makefile + mbedtls 3.6 (latest patch)
@@ -122,7 +125,8 @@ pipelines:
                 tar xfj /tmp/mbedtls.tar.bz2 -C lib60870-C/dependencies/
               # The Makefile auto-detects the mbedtls-3.6.x directory and sets
               # WITH_MBEDTLS3=1; both the library and test binary are built.
-              - cd lib60870-C && make -j$(nproc) lib tests
+              - (cd lib60870-C && make -j$(nproc) lib tests)
+              - bash lib60870-C/tests/run-tests.sh lib60870-C/build/tests.exe 134
 
         # ------------------------------------------------------------------ #
         # 5. cmake (no TLS)
@@ -136,11 +140,12 @@ pipelines:
               # builds without TLS support.
               - CFLAGS="--coverage -fprofile-update=atomic" LDFLAGS="--coverage" cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
               - cmake --build build --parallel $(nproc)
-              - (cd build/tests && ./tests)
+              - bash lib60870-C/tests/run-tests.sh build/tests/tests 94
               - lcov --directory build --capture --output-file coverage.info --ignore-errors gcov
-              - genhtml coverage.info -o coverage-report
+              - lcov --remove coverage.info '/usr/*' '*/dependencies/*' '*/tests/*' --output-file coverage-filtered.info --ignore-errors unused
+              - genhtml coverage-filtered.info -o coverage-report-no-tls
             artifacts:
-              - coverage-report/**
+              - coverage-report-no-tls/**
 
         # ------------------------------------------------------------------ #
         # 6. Makefile (no TLS)
@@ -152,4 +157,5 @@ pipelines:
               - apt-get install -y --no-install-recommends build-essential
               # No mbedtls in dependencies/ — the Makefile auto-detects nothing
               # and builds without TLS support.
-              - cd lib60870-C && make -j$(nproc) lib tests
+              - (cd lib60870-C && make -j$(nproc) lib tests)
+              - bash lib60870-C/tests/run-tests.sh lib60870-C/build/tests.exe 94
