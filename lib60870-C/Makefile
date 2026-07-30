@@ -59,6 +59,7 @@ LIB_SOURCE_DIRS += $(MBEDTLS_DIR)/library
 LIB_SOURCE_DIRS += src/hal/tls/mbedtls
 LIB_INCLUDE_DIRS += src/hal/tls/mbedtls
 LIB_INCLUDE_DIRS += $(MBEDTLS_DIR)/include
+CFLAGS += -DWITH_MBEDTLS=1
 CFLAGS += -D'MBEDTLS_CONFIG_FILE="mbedtls_config.h"'
 CFLAGS += -D'CONFIG_CS104_SUPPORT_TLS=1'
 endif
@@ -68,6 +69,7 @@ LIB_SOURCE_DIRS += $(MBEDTLS_DIR)/library
 LIB_SOURCE_DIRS += src/hal/tls/mbedtls3
 LIB_INCLUDE_DIRS += src/hal/tls/mbedtls3
 LIB_INCLUDE_DIRS += $(MBEDTLS_DIR)/include
+CFLAGS += -DWITH_MBEDTLS3=1
 CFLAGS += -D'MBEDTLS_CONFIG_FILE="mbedtls_config.h"'
 CFLAGS += -D'CONFIG_CS104_SUPPORT_TLS=1'
 endif
