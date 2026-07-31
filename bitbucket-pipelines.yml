@@ -70,26 +70,12 @@ pipelines:
                   "https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-${VER}/mbedtls-${VER}.tar.bz2" \
                   -O /tmp/mbedtls.tar.bz2
                 tar xfj /tmp/mbedtls.tar.bz2 -C lib60870-C/dependencies/
-              # Run the authoritative test suite without coverage instrumentation.
-              - cmake -S lib60870-C -B build-test -DBUILD_EXAMPLES=OFF
-              - cmake --build build-test --parallel $(nproc)
-              - |
-                test_status=0
-                bash lib60870-C/tests/run-tests.sh build-test/tests/tests 134 || test_status=$?
-                echo "$test_status" > /tmp/mbedtls-36-test-status
-              # Build separately for coverage. Instrumentation changes the timing
-              # of some client/server tests, so this run collects data but does not
-              # determine the job result.
-              - CFLAGS="--coverage -fprofile-update=atomic" LDFLAGS="--coverage" cmake -S lib60870-C -B build-coverage -DBUILD_EXAMPLES=OFF
-              - cmake --build build-coverage --parallel $(nproc)
-              - |
-                if ! bash lib60870-C/tests/run-tests.sh build-coverage/tests/tests 134; then
-                  echo "Coverage-instrumented tests reported failures; authoritative status comes from the uninstrumented run."
-                fi
-              - lcov --directory build-coverage --capture --output-file coverage.info --ignore-errors gcov
+              - CFLAGS="--coverage -fprofile-update=atomic" LDFLAGS="--coverage" cmake -S lib60870-C -B build -DBUILD_EXAMPLES=OFF
+              - cmake --build build --parallel $(nproc)
+              - bash lib60870-C/tests/run-tests.sh build/tests/tests 134
+              - lcov --directory build --capture --output-file coverage.info --ignore-errors gcov
               - lcov --remove coverage.info '/usr/*' '*/dependencies/*' '*/tests/*' --output-file coverage-filtered.info --ignore-errors unused
               - genhtml coverage-filtered.info -o coverage-report-mbedtls-36
-              - test "$(cat /tmp/mbedtls-36-test-status)" -eq 0
             artifacts:
               - coverage-report-mbedtls-36/**
 
