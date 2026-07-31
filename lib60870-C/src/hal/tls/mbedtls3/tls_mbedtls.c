@@ -679,6 +679,9 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
         {
             *flags &= ~MBEDTLS_X509_BADCERT_BAD_KEY;
             raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH, "Alarm: insufficient key length", self);
+            raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED,
+                               "Alarm: Certificate verification failed after key length validation", self);
+            self->certValidationFailed = true;
             return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
         }
         else if (keyLengthBits == (size_t)(self->tlsConfig->minKeyLengthInBits))
@@ -1866,7 +1869,7 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
 
                 uint32_t flags = mbedtls_ssl_get_verify_result(&(self->ssl));
 
-                if (self->versionMismatchDetected == false)
+                if (self->versionMismatchDetected == false && self->certValidationFailed == false)
                 {
                     createSecurityEvents(configuration, ret, flags, self);
                 }

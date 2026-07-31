@@ -7402,21 +7402,31 @@ test_CS104_MasterSlave_TLSInsufficientKeyLength(void)
     bool foundInsufficientKeyLengthEvent = false;
     bool foundCertValidationFailedEvent = false;
     bool foundMinKeyLengthEvent = false;
+    bool foundUnknownHandshakeFailureEvent = false;
 
-    for (int i = 0; i < eventInfo.eventHandlerCalled && i < 200; i++) {
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH) {
+    for (int i = 0; i < eventInfo.eventHandlerCalled && i < 200; i++)
+    {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH)
+        {
             foundInsufficientKeyLengthEvent = true;
         }
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED)
+        {
             foundCertValidationFailedEvent = true;
         }
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_WRN_MIN_KEY_LENGTH) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_WRN_MIN_KEY_LENGTH)
+        {
             foundMinKeyLengthEvent = true;
+        }
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_HANDSHAKE_FAILED_UNKNOWN_REASON)
+        {
+            foundUnknownHandshakeFailureEvent = true;
         }
     }
     TEST_ASSERT_TRUE(foundInsufficientKeyLengthEvent);
     TEST_ASSERT_TRUE(foundCertValidationFailedEvent);
     TEST_ASSERT_FALSE(foundMinKeyLengthEvent);
+    TEST_ASSERT_FALSE(foundUnknownHandshakeFailureEvent);
 }
 
 void
@@ -7485,21 +7495,31 @@ test_CS104_MasterSlave_TLSInsufficientServerKeyLength(void)
     bool foundInsufficientKeyLengthEvent = false;
     bool foundCertValidationFailedEvent = false;
     bool foundMinKeyLengthEvent = false;
+    bool foundUnknownHandshakeFailureEvent = false;
 
-    for (int i = 0; i < eventInfo.eventHandlerCalled && i < 200; i++) {
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH) {
+    for (int i = 0; i < eventInfo.eventHandlerCalled && i < 200; i++)
+    {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH)
+        {
             foundInsufficientKeyLengthEvent = true;
         }
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED)
+        {
             foundCertValidationFailedEvent = true;
         }
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_WRN_MIN_KEY_LENGTH) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_WRN_MIN_KEY_LENGTH)
+        {
             foundMinKeyLengthEvent = true;
+        }
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_HANDSHAKE_FAILED_UNKNOWN_REASON)
+        {
+            foundUnknownHandshakeFailureEvent = true;
         }
     }
     TEST_ASSERT_TRUE(foundInsufficientKeyLengthEvent);
     TEST_ASSERT_TRUE(foundCertValidationFailedEvent);
     TEST_ASSERT_FALSE(foundMinKeyLengthEvent);
+    TEST_ASSERT_FALSE(foundUnknownHandshakeFailureEvent);
 }
 
 void
