@@ -2049,6 +2049,26 @@ checkForCRLUpdate(TLSSocket self)
 
         self->crlUpdated = self->tlsConfig->crlUpdated;
 
+        const mbedtls_x509_crt* peerCertificate = mbedtls_ssl_get_peer_cert(&(self->ssl));
+
+        if (peerCertificate)
+        {
+            uint32_t flags = 0;
+
+            mbedtls_x509_crt_verify((mbedtls_x509_crt*)peerCertificate, &(self->tlsConfig->cacerts),
+                                    &(self->tlsConfig->crl), NULL, &flags, NULL, NULL);
+
+            if (self->tlsConfig->timeValidation == false)
+            {
+                flags &= ~MBEDTLS_X509_BADCERT_EXPIRED;
+                flags &= ~MBEDTLS_X509_BADCRL_EXPIRED;
+                flags &= ~MBEDTLS_X509_BADCERT_FUTURE;
+                flags &= ~MBEDTLS_X509_BADCRL_FUTURE;
+            }
+
+            self->lastCertVerifyFlags = flags;
+        }
+
         /* IEC TS 62351-100-3 Conformance test 6.2.6 requires that upon CRL update a TLS renegotiation should occur */
         self->lastRenegotiationTime = 0;
     }
