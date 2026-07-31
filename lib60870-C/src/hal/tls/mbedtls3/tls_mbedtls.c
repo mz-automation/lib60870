@@ -633,6 +633,33 @@ crlAvailableForCert(TLSConfiguration cfg, const mbedtls_x509_crt* crt)
     return found;
 }
 
+static bool
+isCAAvailableForCert(TLSConfiguration cfg, const mbedtls_x509_crt* crt)
+{
+    mbedtls_x509_crt* caCerts = &(cfg->cacerts);
+    bool found = false;
+
+    if (cfg->configMutex)
+        Semaphore_wait(cfg->configMutex);
+
+    while (caCerts && caCerts->version != 0)
+    {
+        if (caCerts->subject_raw.len == crt->issuer_raw.len &&
+            memcmp(caCerts->subject_raw.p, crt->issuer_raw.p, caCerts->subject_raw.len) == 0)
+        {
+            found = true;
+            break;
+        }
+
+        caCerts = caCerts->next;
+    }
+
+    if (cfg->configMutex)
+        Semaphore_post(cfg->configMutex);
+
+    return found;
+}
+
 static int
 verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth, uint32_t* flags)
 {
@@ -775,6 +802,19 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
 
                 *flags |= MBEDTLS_X509_BADCERT_OTHER;
                 return 1;
+            }
+        }
+
+        if (self->tlsConfig->chainValidation)
+        {
+            if (isCAAvailableForCert(self->tlsConfig, crt) == false)
+            {
+                raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CA_CERT_NOT_AVAILABLE,
+                                   "Alarm: certificate validation: CA certificate not available", self);
+
+                *flags |= MBEDTLS_X509_BADCERT_NOT_TRUSTED;
+                self->lastCertVerifyFlags = *flags;
+                return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
             }
         }
 
