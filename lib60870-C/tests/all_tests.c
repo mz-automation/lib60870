@@ -7616,6 +7616,7 @@ test_CS104_MasterSlave_TLSWarningMinimumServerKeyLength(void)
     TLSConfiguration tlsConfig1 = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig1, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
 
     /* Set minimum key length to 2048 bits (default, but explicit for test clarity) */
     TLSConfiguration_setMinimumKeyLength(tlsConfig1, 2048);
@@ -7637,6 +7638,7 @@ test_CS104_MasterSlave_TLSWarningMinimumServerKeyLength(void)
     TLSConfiguration tlsConfig2 = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig2, TLS_VERSION_TLS_1_2);
 
     /* Use certificate with 1024-bit RSA key (below minimum) */
     res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "server_CA1_1.key", NULL);
@@ -8145,6 +8147,7 @@ test_CS104_MasterSlave_TLSSuccessfulRenegotiation(void)
     TLSConfiguration tlsConfig1 = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig1, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
 
     /* Set short renegotiation time (1 second) so renegotiation happens quickly */
     TLSConfiguration_setRenegotiationTime(tlsConfig1, 1000);
@@ -8266,6 +8269,7 @@ test_CS104_MasterSlave_TLSRenegotiateAfterCRLUpdate(void)
     TLSConfiguration tlsConfig1 = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig1, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
 
     TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
 
