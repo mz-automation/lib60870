@@ -2195,7 +2195,7 @@ TLSSocket_read(TLSSocket self, uint8_t* buf, int size)
                 if (flags != 0 && !self->certValidationFailed)
                 {
                     self->certValidationFailed = true;
-                    createSecurityEvents(self->tlsConfig, ret, flags, self);
+                    createSecurityEvents(self->tlsConfig, MBEDTLS_ERR_X509_CERT_VERIFY_FAILED, flags, self);
                 }
                 else if (flags == 0)
                 {
@@ -2257,9 +2257,23 @@ TLSSocket_write(TLSSocket self, uint8_t* buf, int size)
         {
             DEBUG_PRINT("TLS", "mbedtls_ssl_write returned -0x%X\n", -ret);
 
-            if (0 != (ret = mbedtls_ssl_session_reset(&(self->ssl))))
+            uint32_t flags = mbedtls_ssl_get_verify_result(&(self->ssl));
+
+            if (flags == 0 && self->lastCertVerifyFlags != 0)
+                flags = self->lastCertVerifyFlags;
+
+            if (flags != 0 && !self->certValidationFailed)
             {
-                DEBUG_PRINT("TLS", "mbedtls_ssl_session_reset failed -0x%X\n", -ret);
+                self->certValidationFailed = true;
+                createSecurityEvents(self->tlsConfig, MBEDTLS_ERR_X509_CERT_VERIFY_FAILED, flags, self);
+            }
+
+            if (!self->certValidationFailed)
+            {
+                int resetError = mbedtls_ssl_session_reset(&(self->ssl));
+
+                if (resetError != 0)
+                    DEBUG_PRINT("TLS", "mbedtls_ssl_session_reset failed -0x%X\n", -resetError);
             }
 
             return -1;
