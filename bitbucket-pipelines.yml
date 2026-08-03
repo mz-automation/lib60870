@@ -19,8 +19,8 @@
 image: ubuntu:24.04
 
 pipelines:
-  custom:
-    post-merge-tests:
+  branches:
+    v2.4_develop_ci_test_coverage:
       - parallel:
 
         # ------------------------------------------------------------------ #
@@ -164,9 +164,3 @@ pipelines:
               # and builds without TLS support.
               - (cd lib60870-C && make -j$(nproc) lib tests)
               - bash lib60870-C/tests/run-tests.sh lib60870-C/build/tests.exe 94
-
-triggers:
-  pullrequest-fulfilled:
-    - condition: BITBUCKET_PR_DESTINATION_BRANCH == "v2.4_develop_ci_test_coverage"
-      pipelines:
-        - post-merge-tests
