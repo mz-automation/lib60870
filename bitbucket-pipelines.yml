@@ -19,8 +19,9 @@
 image: ubuntu:24.04
 
 pipelines:
-  default:
-    - parallel:
+  custom:
+    post-merge-tests:
+      - parallel:
 
         # ------------------------------------------------------------------ #
         # 1. cmake + mbedtls 2.28 (latest patch, ssl_srv.c patch applied)
@@ -163,3 +164,9 @@ pipelines:
               # and builds without TLS support.
               - (cd lib60870-C && make -j$(nproc) lib tests)
               - bash lib60870-C/tests/run-tests.sh lib60870-C/build/tests.exe 94
+
+triggers:
+  pullrequest-fulfilled:
+    - condition: BITBUCKET_PR_DESTINATION_BRANCH == "v2.4_develop_ci_test_coverage"
+      pipelines:
+        - post-merge-tests
