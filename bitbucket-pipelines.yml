@@ -28,23 +28,14 @@ definitions:
           - bash .ci/run-cs103-compatibility.sh v2.2_develop
 
 pipelines:
-  custom:
-    cs103-compatibility:
-      - step: *cs103-compatibility
   branches:
-    v2.4_develop:
-      - step: *cs103-compatibility
-    v2.5_develop:
-      - step: *cs103-compatibility
-    master:
-      - step: *cs103-compatibility
     v2.4_develop_ci_test_coverage:
       - parallel:
 
         # ------------------------------------------------------------------ #
         # 1. cmake + mbedtls 2.28 (latest patch, ssl_srv.c patch applied)
         # ------------------------------------------------------------------ #
-        - step:
+        - step: &cmake-mbedtls-228
             name: "cmake + mbedtls 2.28 (latest patch)"
             script:
               - apt-get update -qq
@@ -74,7 +65,7 @@ pipelines:
         # ------------------------------------------------------------------ #
         # 2. cmake + mbedtls 3.6 (latest patch)
         # ------------------------------------------------------------------ #
-        - step:
+        - step: &cmake-mbedtls-36
             name: "cmake + mbedtls 3.6 (latest patch)"
             script:
               - apt-get update -qq
@@ -101,7 +92,7 @@ pipelines:
         # ------------------------------------------------------------------ #
         # 3. Makefile + mbedtls 2.28 (latest patch, ssl_srv.c patch applied)
         # ------------------------------------------------------------------ #
-        - step:
+        - step: &make-mbedtls-228
             name: "Makefile + mbedtls 2.28 (latest patch)"
             script:
               - apt-get update -qq
@@ -129,7 +120,7 @@ pipelines:
         # ------------------------------------------------------------------ #
         # 4. Makefile + mbedtls 3.6 (latest patch)
         # ------------------------------------------------------------------ #
-        - step:
+        - step: &make-mbedtls-36
             name: "Makefile + mbedtls 3.6 (latest patch)"
             script:
               - apt-get update -qq
@@ -154,7 +145,7 @@ pipelines:
         # ------------------------------------------------------------------ #
         # 5. cmake (no TLS)
         # ------------------------------------------------------------------ #
-        - step:
+        - step: &cmake-no-tls
             name: "cmake (no TLS)"
             script:
               - apt-get update -qq
@@ -173,7 +164,7 @@ pipelines:
         # ------------------------------------------------------------------ #
         # 6. Makefile (no TLS)
         # ------------------------------------------------------------------ #
-        - step:
+        - step: &make-no-tls
             name: "Makefile (no TLS)"
             script:
               - apt-get update -qq
@@ -182,3 +173,41 @@ pipelines:
               # and builds without TLS support.
               - (cd lib60870-C && make -j$(nproc) lib tests)
               - bash lib60870-C/tests/run-tests.sh lib60870-C/build/tests.exe 94
+
+        - step: *cs103-compatibility
+
+    v2.4_develop:
+      - parallel:
+        - step: *cmake-mbedtls-228
+        - step: *cmake-mbedtls-36
+        - step: *make-mbedtls-228
+        - step: *make-mbedtls-36
+        - step: *cmake-no-tls
+        - step: *make-no-tls
+        - step: *cs103-compatibility
+
+    v2.5_develop:
+      - parallel:
+        - step: *cmake-mbedtls-228
+        - step: *cmake-mbedtls-36
+        - step: *make-mbedtls-228
+        - step: *make-mbedtls-36
+        - step: *cmake-no-tls
+        - step: *make-no-tls
+        - step: *cs103-compatibility
+
+    master:
+      - step: *cs103-compatibility
+
+  custom:
+    cs103-compatibility:
+      - step: *cs103-compatibility
+    full-test-matrix:
+      - parallel:
+        - step: *cmake-mbedtls-228
+        - step: *cmake-mbedtls-36
+        - step: *make-mbedtls-228
+        - step: *make-mbedtls-36
+        - step: *cmake-no-tls
+        - step: *make-no-tls
+        - step: *cs103-compatibility
