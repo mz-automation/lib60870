@@ -32,6 +32,12 @@ pipelines:
     cs103-compatibility:
       - step: *cs103-compatibility
   branches:
+    v2.4_develop:
+      - step: *cs103-compatibility
+    v2.5_develop:
+      - step: *cs103-compatibility
+    master:
+      - step: *cs103-compatibility
     v2.4_develop_ci_test_coverage:
       - parallel:
 
