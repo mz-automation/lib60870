@@ -18,7 +18,19 @@
 
 image: ubuntu:24.04
 
+definitions:
+  steps:
+    - step: &cs103-compatibility
+        name: "CS103 compatibility (v2.2_develop)"
+        script:
+          - apt-get update -qq
+          - apt-get install -y --no-install-recommends build-essential cmake git openssh-client socat
+          - bash .ci/run-cs103-compatibility.sh v2.2_develop
+
 pipelines:
+  custom:
+    cs103-compatibility:
+      - step: *cs103-compatibility
   branches:
     v2.4_develop_ci_test_coverage:
       - parallel:
