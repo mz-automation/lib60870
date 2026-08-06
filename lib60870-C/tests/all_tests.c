@@ -6138,7 +6138,7 @@ test_CS104_MasterSlave_TLSConnectSuccessWhitelistedFingerprint(void)
     TEST_ASSERT_TRUE(res);
 
     const size_t FINGERPRINT_SIZE = 32;
-    uint8_t* fingerprint = malloc(FINGERPRINT_SIZE * sizeof(uint8_t));
+    uint8_t* fingerprint = (uint8_t*)malloc(FINGERPRINT_SIZE * sizeof(uint8_t));
     {
         uint8_t fingerprintValues[] = {
             0x0e, 0x22, 0x24, 0x70, 0x7d, 0x43, 0x38, 0xfb,
@@ -6328,7 +6328,7 @@ test_CS104_MasterSlave_TLSConnectFailWhitelistedFingerprint(void)
     TEST_ASSERT_TRUE(res);
 
     const size_t FINGERPRINT_SIZE = 32;
-    uint8_t* fingerprint = malloc(FINGERPRINT_SIZE * sizeof(uint8_t));
+    uint8_t* fingerprint = (uint8_t*)malloc(FINGERPRINT_SIZE * sizeof(uint8_t));
     {
         uint8_t fingerprintValues[] = {
             0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11,
@@ -7402,21 +7402,31 @@ test_CS104_MasterSlave_TLSInsufficientKeyLength(void)
     bool foundInsufficientKeyLengthEvent = false;
     bool foundCertValidationFailedEvent = false;
     bool foundMinKeyLengthEvent = false;
+    bool foundUnknownHandshakeFailureEvent = false;
 
-    for (int i = 0; i < eventInfo.eventHandlerCalled && i < 200; i++) {
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH) {
+    for (int i = 0; i < eventInfo.eventHandlerCalled && i < 200; i++)
+    {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH)
+        {
             foundInsufficientKeyLengthEvent = true;
         }
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED)
+        {
             foundCertValidationFailedEvent = true;
         }
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_WRN_MIN_KEY_LENGTH) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_WRN_MIN_KEY_LENGTH)
+        {
             foundMinKeyLengthEvent = true;
+        }
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_HANDSHAKE_FAILED_UNKNOWN_REASON)
+        {
+            foundUnknownHandshakeFailureEvent = true;
         }
     }
     TEST_ASSERT_TRUE(foundInsufficientKeyLengthEvent);
     TEST_ASSERT_TRUE(foundCertValidationFailedEvent);
     TEST_ASSERT_FALSE(foundMinKeyLengthEvent);
+    TEST_ASSERT_FALSE(foundUnknownHandshakeFailureEvent);
 }
 
 void
@@ -7485,21 +7495,31 @@ test_CS104_MasterSlave_TLSInsufficientServerKeyLength(void)
     bool foundInsufficientKeyLengthEvent = false;
     bool foundCertValidationFailedEvent = false;
     bool foundMinKeyLengthEvent = false;
+    bool foundUnknownHandshakeFailureEvent = false;
 
-    for (int i = 0; i < eventInfo.eventHandlerCalled && i < 200; i++) {
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH) {
+    for (int i = 0; i < eventInfo.eventHandlerCalled && i < 200; i++)
+    {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH)
+        {
             foundInsufficientKeyLengthEvent = true;
         }
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED)
+        {
             foundCertValidationFailedEvent = true;
         }
-        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_WRN_MIN_KEY_LENGTH) {
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_WRN_MIN_KEY_LENGTH)
+        {
             foundMinKeyLengthEvent = true;
+        }
+        if (eventInfo.eventCodes[i] == TLS_EVENT_CODE_ALM_HANDSHAKE_FAILED_UNKNOWN_REASON)
+        {
+            foundUnknownHandshakeFailureEvent = true;
         }
     }
     TEST_ASSERT_TRUE(foundInsufficientKeyLengthEvent);
     TEST_ASSERT_TRUE(foundCertValidationFailedEvent);
     TEST_ASSERT_FALSE(foundMinKeyLengthEvent);
+    TEST_ASSERT_FALSE(foundUnknownHandshakeFailureEvent);
 }
 
 void
@@ -7596,6 +7616,7 @@ test_CS104_MasterSlave_TLSWarningMinimumServerKeyLength(void)
     TLSConfiguration tlsConfig1 = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig1, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
 
     /* Set minimum key length to 2048 bits (default, but explicit for test clarity) */
     TLSConfiguration_setMinimumKeyLength(tlsConfig1, 2048);
@@ -7617,6 +7638,7 @@ test_CS104_MasterSlave_TLSWarningMinimumServerKeyLength(void)
     TLSConfiguration tlsConfig2 = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig2, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig2, TLS_VERSION_TLS_1_2);
 
     /* Use certificate with 1024-bit RSA key (below minimum) */
     res = TLSConfiguration_setOwnKeyFromFile(tlsConfig2, "server_CA1_1.key", NULL);
@@ -8125,6 +8147,7 @@ test_CS104_MasterSlave_TLSSuccessfulRenegotiation(void)
     TLSConfiguration tlsConfig1 = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig1, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
 
     /* Set short renegotiation time (1 second) so renegotiation happens quickly */
     TLSConfiguration_setRenegotiationTime(tlsConfig1, 1000);
@@ -8246,6 +8269,7 @@ test_CS104_MasterSlave_TLSRenegotiateAfterCRLUpdate(void)
     TLSConfiguration tlsConfig1 = TLSConfiguration_create();
 
     TLSConfiguration_setChainValidation(tlsConfig1, true);
+    TLSConfiguration_setMaxTlsVersion(tlsConfig1, TLS_VERSION_TLS_1_2);
 
     TLSConfiguration_setEventHandler(tlsConfig1, securityEventHandler, &eventInfo);
 

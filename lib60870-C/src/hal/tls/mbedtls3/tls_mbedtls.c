@@ -46,7 +46,7 @@
 
 static int psaInitCounter = 0;
 
-static const size_t CERT_FINGERPRINT_SIZE = 32;
+#define CERT_FINGERPRINT_SIZE 32
 
 #if __STDC_VERSION__ >= 201112L
 #include <stdatomic.h>
@@ -633,6 +633,33 @@ crlAvailableForCert(TLSConfiguration cfg, const mbedtls_x509_crt* crt)
     return found;
 }
 
+static bool
+isCAAvailableForCert(TLSConfiguration cfg, const mbedtls_x509_crt* crt)
+{
+    mbedtls_x509_crt* caCerts = &(cfg->cacerts);
+    bool found = false;
+
+    if (cfg->configMutex)
+        Semaphore_wait(cfg->configMutex);
+
+    while (caCerts && caCerts->version != 0)
+    {
+        if (caCerts->subject_raw.len == crt->issuer_raw.len &&
+            memcmp(caCerts->subject_raw.p, crt->issuer_raw.p, caCerts->subject_raw.len) == 0)
+        {
+            found = true;
+            break;
+        }
+
+        caCerts = caCerts->next;
+    }
+
+    if (cfg->configMutex)
+        Semaphore_post(cfg->configMutex);
+
+    return found;
+}
+
 static int
 verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth, uint32_t* flags)
 {
@@ -679,6 +706,9 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
         {
             *flags &= ~MBEDTLS_X509_BADCERT_BAD_KEY;
             raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_INSUFFICIENT_KEY_LENGTH, "Alarm: insufficient key length", self);
+            raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CERT_VALIDATION_FAILED,
+                               "Alarm: Certificate verification failed after key length validation", self);
+            self->certValidationFailed = true;
             return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
         }
         else if (keyLengthBits == (size_t)(self->tlsConfig->minKeyLengthInBits))
@@ -772,6 +802,19 @@ verifyCertificate(void* parameter, mbedtls_x509_crt* crt, int certificate_depth,
 
                 *flags |= MBEDTLS_X509_BADCERT_OTHER;
                 return 1;
+            }
+        }
+
+        if (self->tlsConfig->chainValidation)
+        {
+            if (isCAAvailableForCert(self->tlsConfig, crt) == false)
+            {
+                raiseSecurityEvent(self->tlsConfig, TLS_SEC_EVT_INCIDENT, TLS_EVENT_CODE_ALM_CA_CERT_NOT_AVAILABLE,
+                                   "Alarm: certificate validation: CA certificate not available", self);
+
+                *flags |= MBEDTLS_X509_BADCERT_NOT_TRUSTED;
+                self->lastCertVerifyFlags = *flags;
+                return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
             }
         }
 
@@ -1866,7 +1909,7 @@ TLSSocket_create(Socket socket, TLSConfiguration configuration, bool storeClient
 
                 uint32_t flags = mbedtls_ssl_get_verify_result(&(self->ssl));
 
-                if (self->versionMismatchDetected == false)
+                if (self->versionMismatchDetected == false && self->certValidationFailed == false)
                 {
                     createSecurityEvents(configuration, ret, flags, self);
                 }
@@ -2006,6 +2049,26 @@ checkForCRLUpdate(TLSSocket self)
 
         self->crlUpdated = self->tlsConfig->crlUpdated;
 
+        const mbedtls_x509_crt* peerCertificate = mbedtls_ssl_get_peer_cert(&(self->ssl));
+
+        if (peerCertificate)
+        {
+            uint32_t flags = 0;
+
+            mbedtls_x509_crt_verify((mbedtls_x509_crt*)peerCertificate, &(self->tlsConfig->cacerts),
+                                    &(self->tlsConfig->crl), NULL, &flags, NULL, NULL);
+
+            if (self->tlsConfig->timeValidation == false)
+            {
+                flags &= ~MBEDTLS_X509_BADCERT_EXPIRED;
+                flags &= ~MBEDTLS_X509_BADCRL_EXPIRED;
+                flags &= ~MBEDTLS_X509_BADCERT_FUTURE;
+                flags &= ~MBEDTLS_X509_BADCRL_FUTURE;
+            }
+
+            self->lastCertVerifyFlags = flags;
+        }
+
         /* IEC TS 62351-100-3 Conformance test 6.2.6 requires that upon CRL update a TLS renegotiation should occur */
         self->lastRenegotiationTime = 0;
     }
@@ -2132,7 +2195,7 @@ TLSSocket_read(TLSSocket self, uint8_t* buf, int size)
                 if (flags != 0 && !self->certValidationFailed)
                 {
                     self->certValidationFailed = true;
-                    createSecurityEvents(self->tlsConfig, ret, flags, self);
+                    createSecurityEvents(self->tlsConfig, MBEDTLS_ERR_X509_CERT_VERIFY_FAILED, flags, self);
                 }
                 else if (flags == 0)
                 {
@@ -2194,9 +2257,23 @@ TLSSocket_write(TLSSocket self, uint8_t* buf, int size)
         {
             DEBUG_PRINT("TLS", "mbedtls_ssl_write returned -0x%X\n", -ret);
 
-            if (0 != (ret = mbedtls_ssl_session_reset(&(self->ssl))))
+            uint32_t flags = mbedtls_ssl_get_verify_result(&(self->ssl));
+
+            if (flags == 0 && self->lastCertVerifyFlags != 0)
+                flags = self->lastCertVerifyFlags;
+
+            if (flags != 0 && !self->certValidationFailed)
             {
-                DEBUG_PRINT("TLS", "mbedtls_ssl_session_reset failed -0x%X\n", -ret);
+                self->certValidationFailed = true;
+                createSecurityEvents(self->tlsConfig, MBEDTLS_ERR_X509_CERT_VERIFY_FAILED, flags, self);
+            }
+
+            if (!self->certValidationFailed)
+            {
+                int resetError = mbedtls_ssl_session_reset(&(self->ssl));
+
+                if (resetError != 0)
+                    DEBUG_PRINT("TLS", "mbedtls_ssl_session_reset failed -0x%X\n", -resetError);
             }
 
             return -1;
