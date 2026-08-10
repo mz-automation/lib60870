@@ -24,8 +24,10 @@ definitions:
         name: "CS103 compatibility (v2.2_develop)"
         script:
           - apt-get update -qq
-          - apt-get install -y --no-install-recommends build-essential cmake git openssh-client socat
-          - bash .ci/run-cs103-compatibility.sh v2.2_develop
+          - apt-get install -y --no-install-recommends build-essential cmake git openssh-client socat lcov
+          - bash .ci/run-cs103-compatibility.sh v2.2_develop coverage-report-cs103
+        artifacts:
+          - coverage-report-cs103/**
 
 pipelines:
   branches:
