@@ -1545,6 +1545,23 @@ TLSConfiguration_setRenegotiationTimeout(TLSConfiguration self, int timeoutInMs)
 }
 
 static void
+destroyAllowedCertificate(void* certificate)
+{
+    mbedtls_x509_crt* cert = (mbedtls_x509_crt*)certificate;
+
+    mbedtls_x509_crt_free(cert);
+    GLOBAL_FREEMEM(cert);
+}
+
+static void
+destroyAllowedCertificateDn(void* distinguishedName)
+{
+    mbedtls_asn1_named_data* dn = (mbedtls_asn1_named_data*)distinguishedName;
+
+    mbedtls_asn1_free_named_data_list(&dn);
+}
+
+static void
 destroy(TLSConfiguration self)
 {
     if (self)
@@ -1576,9 +1593,9 @@ destroy(TLSConfiguration self)
         mbedtls_pk_free(&(self->ownKey));
         mbedtls_ssl_config_free(&(self->conf));
 
-        LinkedList_destroyDeep(self->allowedCertificates, (void*)mbedtls_x509_crt_free);
+        LinkedList_destroyDeep(self->allowedCertificates, destroyAllowedCertificate);
         LinkedList_destroyDeep(self->allowedCertificateFingerprints, Memory_free);
-        LinkedList_destroyDeep(self->allowedCertificateDNs, (void*)mbedtls_asn1_free_named_data_list);
+        LinkedList_destroyDeep(self->allowedCertificateDNs, destroyAllowedCertificateDn);
 
         GLOBAL_FREEMEM(self->ciphersuites);
 
