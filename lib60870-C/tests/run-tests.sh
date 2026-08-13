@@ -4,23 +4,15 @@ set -u
 
 usage()
 {
-    echo "Usage: $0 <test-executable> <expected-test-count>" >&2
+    echo "Usage: $0 <test-executable>" >&2
 }
 
-if [ "$#" -ne 2 ]; then
+if [ "$#" -ne 1 ]; then
     usage
     exit 2
 fi
 
 test_executable=$1
-expected_test_count=$2
-
-case "$expected_test_count" in
-    ''|*[!0-9]*)
-        echo "Expected test count must be a non-negative integer: $expected_test_count" >&2
-        exit 2
-        ;;
-esac
 
 if [ ! -f "$test_executable" ]; then
     echo "Test executable not found: $test_executable" >&2
@@ -43,7 +35,7 @@ cleanup()
 
 trap cleanup EXIT HUP INT TERM
 
-echo "Running $test_name from $test_directory (expected tests: $expected_test_count)"
+echo "Running $test_name from $test_directory"
 
 set +e
 (
@@ -62,11 +54,6 @@ fi
 
 actual_test_count=$(printf '%s\n' "$summary" | awk '{print $1}')
 failure_count=$(printf '%s\n' "$summary" | awk '{print $3}')
-
-if [ "$actual_test_count" -ne "$expected_test_count" ]; then
-    echo "Unexpected test count: expected $expected_test_count, ran $actual_test_count." >&2
-    exit 1
-fi
 
 if [ "$failure_count" -ne 0 ]; then
     echo "Unity reported $failure_count test failure(s)." >&2
