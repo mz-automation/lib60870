@@ -20,6 +20,15 @@ image: ubuntu:24.04
 
 definitions:
   steps:
+    - step: &iec62351-3-compatibility
+        name: "IEC 62351-3 TLS compatibility"
+        script:
+          - apt-get update -qq
+          - apt-get install -y --no-install-recommends build-essential ca-certificates cmake git libssl-dev openssh-client openssl patch python3
+          - bash .ci/run-iec62351-3-tests.sh LIB8705-379-reference-server iec62351-3-results
+        artifacts:
+          - iec62351-3-results/**
+
     - step: &cs103-compatibility
         name: "CS103 compatibility (v2.2_develop)"
         script:
@@ -242,6 +251,7 @@ pipelines:
         - step: *cmake-no-tls
         - step: *make-no-tls
         - step: *cs103-compatibility
+        - step: *iec62351-3-compatibility
 
     v2.5_develop:
       - parallel:
@@ -257,6 +267,8 @@ pipelines:
       - step: *cs103-compatibility
 
   custom:
+    iec62351-3-compatibility:
+      - step: *iec62351-3-compatibility
     cs103-compatibility:
       - step: *cs103-compatibility
     full-test-matrix:
