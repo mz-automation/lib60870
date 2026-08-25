@@ -38,6 +38,15 @@ definitions:
         artifacts:
           - coverage-report-cs103/**
 
+    - step: &sec-auth-compatibility
+        name: "Sec-Auth compatibility (main)"
+        script:
+          - apt-get update -qq
+          - apt-get install -y --no-install-recommends bzip2 build-essential ca-certificates cmake curl git openssh-client python3 wget
+          - bash .ci/run-sec-auth-compatibility.sh main sec-auth-results
+        artifacts:
+          - sec-auth-results/**
+
     - step: &asan-no-tls
         name: "ASan: cmake (no TLS)"
         script:
@@ -252,6 +261,7 @@ pipelines:
         - step: *make-no-tls
         - step: *cs103-compatibility
         - step: *iec62351-3-compatibility
+        - step: *sec-auth-compatibility
 
     v2.5_develop:
       - parallel:
@@ -271,6 +281,8 @@ pipelines:
       - step: *iec62351-3-compatibility
     cs103-compatibility:
       - step: *cs103-compatibility
+    sec-auth-compatibility:
+      - step: *sec-auth-compatibility
     full-test-matrix:
       - parallel:
         - step: *cmake-mbedtls-228
