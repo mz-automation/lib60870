@@ -1846,6 +1846,7 @@ LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc
 
             self->lastSendTime = Hal_getMonotonicTimeInMs();
             self->waitingForResponse = true;
+            self->nextFcb = true;
             newState = PLL_EXECUTE_RESET_REMOTE_LINK;
 
             llsc_setState(self, LL_STATE_BUSY);
