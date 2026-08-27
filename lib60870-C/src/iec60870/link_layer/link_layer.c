@@ -1738,7 +1738,7 @@ llsc_setState(LinkLayerSlaveConnection self, LinkLayerState newState)
 }
 
 static void
-LinkLayerSlaveConnection_HandleMessage(LinkLayerSlaveConnection self, uint8_t fc, bool acd, bool dfc, int address,
+LinkLayerSlaveConnection_handleMessage(LinkLayerSlaveConnection self, uint8_t fc, bool acd, bool dfc, int address,
                                        uint8_t* msg, int userDataStart, int userDataLength)
 {
     IPrimaryApplicationLayer applicationLayer = self->primaryLink->applicationLayer;
@@ -2385,7 +2385,7 @@ LinkLayerPrimaryUnbalanced_handleMessage(LinkLayerPrimaryUnbalanced self, uint8_
 
     if (slave)
     {
-        LinkLayerSlaveConnection_HandleMessage(slave, fc, acd, dfc, address, msg, userDataStart, userDataLength);
+        LinkLayerSlaveConnection_handleMessage(slave, fc, acd, dfc, address, msg, userDataStart, userDataLength);
     }
     else
     {
